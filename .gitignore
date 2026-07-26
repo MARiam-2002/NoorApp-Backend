@@ -8,7 +8,8 @@ node_modules/
 .yarn/build-state.yml
 .yarn/install-state.gz
 
-# Build outputs (dist/ must be included in git to work on Vercel)
+# Build outputs (Vercel builds dist/ during deploy)
+dist/
 build/
 out/
 *.tsbuildinfo
@@ -21,9 +22,8 @@ src/**/*.js.map
 src/**/*.d.ts.map
 !src/**/*.d.ts
 
-# Environment variables (.env tracked for development, remove from production)
+# Environment variables
 .env
-.env.example
 .env.development
 .env.production
 .env.test   

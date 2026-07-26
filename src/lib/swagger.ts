@@ -87,25 +87,21 @@ function walkRouteDirs(dir: string, ext: string, results: string[]): void {
 function resolveSwaggerFiles(): string[] {
   const root = process.cwd();
   const results: string[] = [];
+  const useDist = process.env.NODE_ENV === 'production' || !fs.existsSync(path.join(root, 'src', 'routes'));
+
   try {
-    // First, try to find TypeScript source files (development mode)
-    if (fs.existsSync(path.join(root, 'src', 'routes'))) {
-      walkRouteDirs(path.join(root, 'src', 'routes'), '.ts', results);
-      logger.debug('[Swagger] Source TS files matched', { count: results.length });
-    }
-    
-    // If no TS files found or in production, look for compiled JS files
-    if (results.length === 0 && fs.existsSync(path.join(root, 'dist', 'routes'))) {
+    if (useDist && fs.existsSync(path.join(root, 'dist', 'routes'))) {
       walkRouteDirs(path.join(root, 'dist', 'routes'), '.js', results);
-      logger.debug('[Swagger] Compiled JS files matched', { count: results.length });
+    } else if (fs.existsSync(path.join(root, 'src', 'routes'))) {
+      walkRouteDirs(path.join(root, 'src', 'routes'), '.ts', results);
     }
-    
+
     if (results.length > 0) {
       logger.info('[Swagger] Found route files', { count: results.length, files: results.slice(0, 3) });
       return results;
     }
-    
-    logger.warn('[Swagger] No JSDoc route files found - returning empty spec paths');
+
+    logger.warn('[Swagger] No JSDoc route files found');
     return [];
   } catch (err) {
     logger.error('[Swagger] resolveSwaggerFiles failed', { err });

@@ -1,39 +1,4 @@
-# .vercelignore — Noor API
-# ابسط config 2026. Vercel بيطبق ده قبل ما يبدأ الـ build.
-# نبعث كل حاجة إلا: الـ .js compiled artifacts اللي داخل src/, والـ tests, والملفات المساعدة.
-
-# ---- Critical: NEVER ship compiled JS/CJS/MJS living inside src/
-#      (اللي هي بتعمل Invalid-export crash من Vercel function scanner)
+# Never ship compiled JS inside src/ (breaks Vercel function scanner)
 src/**/*.js
 src/**/*.cjs
 src/**/*.mjs
-src/**/*.jsx
-src/**/*.js.map
-src/**/*.d.ts.map
-
-# ---- Dev assets (مش محتاجينها في deploy)
-tests/
-.github/
-.vscode/
-.idea/
-coverage/
-.vitest/
-*.md
-.dockerignore
-Dockerfile
-docker-compose.yml
-
-# ---- Caches / logs
-.cache/
-.parcel-cache/
-.next/
-.turbo/
-*.log
-.DS_Store
-Thumbs.db
-
-# ---- Secrets (مش نبعتهم أبداً)
-.env
-.env.*
-.*.local
-*.local

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "vercel-build": "npm run build && npm run prisma:deploy",
     "postinstall": "prisma generate && node scripts/patch-adhan.cjs",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
@@ -33,6 +34,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "prisma": "^6.19.3",
     "adhan": "^4.4.4",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
@@ -63,7 +65,6 @@
     "@types/node": "^26.1.1",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-    "prisma": "^6.19.3",
     "tsx": "^4.23.1",
     "typescript": "~5.8.3"
   }
