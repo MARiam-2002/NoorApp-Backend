@@ -17,8 +17,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
-    "removeComments": false,
-    "baseUrl": "."
+    "removeComments": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
