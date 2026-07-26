@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "buildCommand": "npm run build && npm run prisma:deploy",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "api/index.cjs": {
+      "includeFiles": "dist/**,src/**/*.{ts,tsx,mts,cts,json},node_modules/**,prisma/**",
+      "excludeFiles": "src/**/*.{js,cjs,mjs,jsx,js.map,d.ts.map}",
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.cjs"
+    }
+  ]
+}

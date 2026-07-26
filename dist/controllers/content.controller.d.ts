@@ -1,0 +1,4 @@
+export declare const getVerseOfDayHandler: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
+export declare const getHadithOfDayHandler: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
+export declare const getDailyChallengeHandler: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
+//# sourceMappingURL=content.controller.d.ts.map

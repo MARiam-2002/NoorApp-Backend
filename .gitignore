@@ -1,0 +1,87 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.pnpm-store/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Build outputs (dist/ must be included in git to work on Vercel)
+build/
+out/
+*.tsbuildinfo
+
+# Prevent stale compiled TS artifacts in src/ (critical — otherwise Vercel loads src/app.js instead of dist/app.js!)
+src/**/*.js
+src/**/*.cjs
+src/**/*.mjs
+src/**/*.js.map
+src/**/*.d.ts.map
+!src/**/*.d.ts
+
+# Environment variables (.env tracked for development, remove from production)
+.env
+.env.example
+.env.development
+.env.production
+.env.test   
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Tests and coverage
+coverage/
+.nyc_output/
+
+# Deployment platform
+.vercel/
+.netlify/
+.firebase/
+
+# Local storage (default: STORAGE_LOCAL_DIR=uploads)
+uploads/
+storage/
+tmp/
+temp/
+
+# Editor / IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Docker volumes
+postgres-data/
+redis-data/
+
+# Misc
+.cache/
+.parcel-cache/
+.eslintcache
+

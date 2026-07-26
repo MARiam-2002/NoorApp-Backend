@@ -1,0 +1,87 @@
+import type { Request, Response } from 'express';
+
+import { asyncHandler, sendSuccess } from '../middleware/common';
+import { AppError } from '../lib/errors';
+import { ErrorCodes, HttpStatus } from '../config';
+import * as profileService from '../services/profile.service';
+
+export const getProfile = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const data = await profileService.getProfile(userId);
+
+  sendSuccess(res, data, 'User profile retrieved successfully');
+});
+
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const { username, email } = req.body as { username: string; email?: string };
+  const data = await profileService.updateProfile(userId, { username, email });
+
+  sendSuccess(res, data, 'User profile updated successfully');
+});
+
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword: string;
+    newPassword: string;
+  };
+  const data = await profileService.changePassword(userId, {
+    currentPassword,
+    newPassword,
+  });
+
+  sendSuccess(res, data, 'Password changed successfully');
+});
+
+export const updateLocation = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const { latitude, longitude, timezone } = req.body as {
+    latitude: number;
+    longitude: number;
+    timezone?: string;
+  };
+  const data = await profileService.updateLocation(userId, {
+    latitude,
+    longitude,
+    timezone,
+  });
+
+  sendSuccess(res, data, 'Location updated successfully');
+});

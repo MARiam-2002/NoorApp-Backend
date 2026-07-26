@@ -1,0 +1,117 @@
+{
+  "info": {
+    "name": "نور - Noor API Collection",
+    "description": "Complete API endpoints for Noor Islamic App",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/auth/signup", "host": ["{{baseUrl}}"], "path": ["auth", "signup"]},
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"أحمد\",\"email\":\"ahmed@example.com\",\"password\":\"SecurePass123!\",\"timezone\":\"Africa/Cairo\"}"
+            }
+          }
+        },
+        {
+          "name": "Sign In",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/auth/signin", "host": ["{{baseUrl}}"], "path": ["auth", "signin"]},
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"ahmed@example.com\",\"password\":\"SecurePass123!\"}"
+            }
+          }
+        },
+        {
+          "name": "Google OAuth",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/auth/google", "host": ["{{baseUrl}}"], "path": ["auth", "google"]},
+            "body": {"mode": "raw", "raw": "{\"idToken\":\"YOUR_GOOGLE_ID_TOKEN\"}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": {"raw": "{{baseUrl}}/dashboard", "host": ["{{baseUrl}}"], "path": ["dashboard"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prayers",
+      "item": [
+        {
+          "name": "Get Today Prayers",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/prayers/today?latitude=30.0444&longitude=31.2357&timezone=Africa/Cairo",
+              "host": ["{{baseUrl}}"],
+              "path": ["prayers", "today"],
+              "query": [
+                {"key": "latitude", "value": "30.0444"},
+                {"key": "longitude", "value": "31.2357"},
+                {"key": "timezone", "value": "Africa/Cairo"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasbih",
+      "item": [
+        {
+          "name": "Increment Tasbih",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{baseUrl}}/tasbih/increment", "host": ["{{baseUrl}}"], "path": ["tasbih", "increment"]},
+            "body": {"mode": "raw", "raw": "{\"dhikr\":\"ALHAMDULILLAH\"}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quran",
+      "item": [
+        {
+          "name": "Get All Surahs",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": {"raw": "{{baseUrl}}/quran/surahs", "host": ["{{baseUrl}}"], "path": ["quran", "surahs"]}
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl", "value": "https://noor-app-backend.vercel.app/api/v1"},
+    {"key": "accessToken", "value": ""}
+  ]
+}

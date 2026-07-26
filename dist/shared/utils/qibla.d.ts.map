@@ -1,0 +1,1 @@
+{"version":3,"file":"qibla.d.ts","sourceRoot":"","sources":["../../../src/shared/utils/qibla.ts"],"names":[],"mappings":"AAqCA,wBAAgB,uBAAuB,CACrC,QAAQ,EAAE,MAAM,EAChB,SAAS,EAAE,MAAM,GAChB;IAAE,YAAY,EAAE,MAAM,CAAC;IAAC,WAAW,EAAE,MAAM,CAAC;IAAC,WAAW,EAAE,MAAM,CAAA;CAAE,CAkBpE"}

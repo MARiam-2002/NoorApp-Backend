@@ -1,0 +1,1 @@
+{"version":3,"file":"permissions.d.ts","sourceRoot":"","sources":["../../../src/shared/constants/permissions.ts"],"names":[],"mappings":"AAAA,eAAO,MAAM,WAAW;;;;;;;CAOd,CAAC;AAEX,MAAM,MAAM,UAAU,GAAG,CAAC,OAAO,WAAW,CAAC,CAAC,MAAM,OAAO,WAAW,CAAC,CAAC;AAExE,eAAO,MAAM,cAAc,uGAA6B,CAAC"}

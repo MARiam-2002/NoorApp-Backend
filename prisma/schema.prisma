@@ -1,0 +1,324 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "linux-musl"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PrayerName {
+  FAJR
+  DHUHR
+  ASR
+  MAGHRIB
+  ISHA
+}
+
+enum ChallengeType {
+  QURAN_PAGES
+  PRAYER
+  ADHKAR
+  SADAQAH
+}
+
+model User {
+  id         String       @id @default(uuid())
+  username   String
+  email      String       @unique
+  password   String?
+  provider   AuthProvider @default(LOCAL)
+  providerId String?
+  googleId   String?      @unique
+  role       UserRole     @default(USER)
+  isActive   Boolean      @default(true)
+  points     Int          @default(0)
+  timezone   String       @default("Africa/Cairo")
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  refreshTokens        RefreshToken[]
+  passwordResetTokens  PasswordResetToken[]
+  dailyProgress        DailyProgress[]
+  prayerCompletions    PrayerCompletion[]
+  khatmah              Khatmah?
+  challengeCompletions ChallengeCompletion[]
+  quranBookmarks       QuranBookmark[]
+  quranLastRead        QuranLastRead?
+  quranReadingHistory  QuranReadingHistory[]
+  tasbihLogs           TasbihLog[]
+  tasbihResetHistory   TasbihResetHistory[]
+  notifications        Notification[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model DailyProgress {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime @db.Date
+  quranPagesRead  Int      @default(0)
+  adhkarCompleted Boolean  @default(false)
+  sadaqahAmount   Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_progress")
+}
+
+model PrayerCompletion {
+  id          String     @id @default(uuid())
+  userId      String
+  date        DateTime   @db.Date
+  prayer      PrayerName
+  completedAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, prayer])
+  @@index([userId, date])
+  @@map("prayer_completions")
+}
+
+model Surah {
+  id         Int    @id
+  nameEn     String
+  nameAr     String
+  totalAyahs Int    @default(0)
+  totalPages Int    @default(0)
+
+  ayahs          Ayah[]
+  khatmahs       Khatmah[]
+  versesOfTheDay VerseOfTheDay[]
+  bookmarks      QuranBookmark[]
+  lastReads      QuranLastRead[]
+
+  @@map("surahs")
+}
+
+model Ayah {
+  id         String @id @default(uuid())
+  surahId    Int
+  ayahNumber Int
+  textAr     String @db.Text
+  page       Int?
+  juz        Int?
+
+  surah Surah @relation(fields: [surahId], references: [id], onDelete: Cascade)
+
+  @@unique([surahId, ayahNumber])
+  @@index([surahId])
+  @@map("ayahs")
+}
+
+model Khatmah {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  currentSurahId Int      @default(2)
+  currentPage    Int      @default(1)
+  totalPagesRead Int      @default(0)
+  startedAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentSurah Surah @relation(fields: [currentSurahId], references: [id])
+
+  @@map("khatmah")
+}
+
+model QuranBookmark {
+  id         String   @id @default(uuid())
+  userId     String
+  surahId    Int
+  ayahNumber Int
+  note       String?
+  createdAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surah Surah @relation(fields: [surahId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, surahId, ayahNumber])
+  @@index([userId])
+  @@map("quran_bookmarks")
+}
+
+model QuranLastRead {
+  userId     String   @id
+  surahId    Int
+  ayahNumber Int
+  page       Int?
+  updatedAt  DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surah Surah @relation(fields: [surahId], references: [id])
+
+  @@map("quran_last_read")
+}
+
+model QuranReadingHistory {
+  id       String   @id @default(uuid())
+  userId   String
+  surahId  Int
+  ayahFrom Int
+  ayahTo   Int
+  readAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("quran_reading_history")
+}
+
+model VerseOfTheDay {
+  id          String @id @default(uuid())
+  dayOfYear   Int    @unique
+  surahNumber Int
+  ayahNumber  Int
+  textAr      String
+  referenceAr String
+
+  surah Surah @relation(fields: [surahNumber], references: [id])
+
+  @@map("verses_of_the_day")
+}
+
+model HadithOfTheDay {
+  id        String @id @default(uuid())
+  dayOfYear Int    @unique
+  textAr    String
+  sourceAr  String
+
+  @@map("hadiths_of_the_day")
+}
+
+model DailyChallengeTemplate {
+  id            String        @id @default(uuid())
+  dayOfYear     Int           @unique
+  titleAr       String
+  descriptionAr String
+  type          ChallengeType
+  targetValue   Int
+  rewardPoints  Int           @default(50)
+
+  @@map("daily_challenge_templates")
+}
+
+model ChallengeCompletion {
+  id          String    @id @default(uuid())
+  userId      String
+  dayOfYear   Int
+  completedAt DateTime  @default(now())
+  claimedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayOfYear])
+  @@index([userId, dayOfYear])
+  @@map("challenge_completions")
+}
+
+enum TasbihDhikr {
+  SUBHAN_ALLAH
+  ALHAMDULILLAH
+  LA_ILAHA_ILLA_ALLAH
+  ALLAHU_AKBAR
+  ASTAGHFIRULLAH
+  LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH
+}
+
+model TasbihLog {
+  id           String      @id @default(uuid())
+  userId       String
+  date         DateTime    @db.Date
+  dhikr        TasbihDhikr @default(ALHAMDULILLAH)
+  count        Int         @default(0)
+  totalAllTime Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resetHistory TasbihResetHistory[]
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("tasbih_logs")
+}
+
+model TasbihResetHistory {
+  id                String   @id @default(uuid())
+  userId            String
+  tasbihLogId       String
+  countBeforeReset  Int
+  date              DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasbihLog  TasbihLog  @relation(fields: [tasbihLogId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("tasbih_reset_history")
+}
+
+enum NotificationType {
+  PRAYER_REMINDER
+  CHALLENGE
+  ACHIEVEMENT
+  GENERAL
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  titleAr   String
+  bodyAr    String
+  type      NotificationType @default(GENERAL)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}

@@ -1,0 +1,3 @@
+export declare const calculateQiblaHandler: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
+export declare const getMyQiblaHandler: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
+//# sourceMappingURL=qibla.controller.d.ts.map
