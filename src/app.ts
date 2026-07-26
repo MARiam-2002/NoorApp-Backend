@@ -32,6 +32,7 @@ export function createApp(): express.Application {
   return app;
 }
 
+/** @deprecated use createApp() — kept for server.ts local bootstrap */
 export async function initializeApp(): Promise<express.Application> {
   await connectDatabase();
   return createApp();
