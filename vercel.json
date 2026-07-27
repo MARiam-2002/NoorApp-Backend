@@ -1,7 +1,6 @@
 {
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index.cjs" }
-  ]
+  "framework": null,
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }]
 }
