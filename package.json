@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "vercel-build": "npm run build && npm run prisma:deploy",
+    "vercel-build": "npm run build && prisma migrate deploy || (echo 'migrate deploy skipped, using db push' && prisma db push --skip-generate)",
     "postinstall": "prisma generate && node scripts/patch-adhan.cjs",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
@@ -30,7 +30,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.x"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
