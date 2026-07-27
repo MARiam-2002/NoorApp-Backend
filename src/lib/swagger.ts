@@ -299,6 +299,52 @@ function buildSwaggerSpec() {
           description: 'JWT Bearer Token - أضف التوكن بدون البادئة Bearer',
         },
       },
+      parameters: {
+        PageParam: {
+          in: 'query',
+          name: 'page',
+          schema: { type: 'integer', default: 1, minimum: 1, example: 1 },
+          description: 'رقم الصفحة (افتراضي 1)',
+        },
+        LimitParam: {
+          in: 'query',
+          name: 'limit',
+          schema: { type: 'integer', default: 30, minimum: 1, maximum: 100, example: 30 },
+          description: 'عدد العناصر في الصفحة الواحدة (افتراضي 30، الحد الأقصى 100)',
+        },
+      },
+      responses: {
+        Unauthorized: {
+          description: '❌ غير مصرح به - التوكن غير صالح أو منتهي الصلاحية',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ErrorResponse' },
+              example: {
+                success: false,
+                code: 'UNAUTHORIZED',
+                message: 'التوكن غير صالح أو منتهي الصلاحية',
+                details: null,
+                timestamp: '2026-07-27T10:30:00.000Z',
+              },
+            },
+          },
+        },
+        BadRequest: {
+          description: '❌ بيانات الطلب غير صالحة',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ErrorResponse' },
+              example: {
+                success: false,
+                code: 'VALIDATION_ERROR',
+                message: 'حقول مطلوبة مفقودة أو بيانات غير صحيحة',
+                details: [{ field: 'email', message: 'Invalid email' }],
+                timestamp: '2026-07-27T10:30:00.000Z',
+              },
+            },
+          },
+        },
+      },
       schemas: {
         ApiResponse: {
           type: 'object',
@@ -309,6 +355,52 @@ function buildSwaggerSpec() {
             meta: { type: 'object', nullable: true },
             timestamp: { type: 'string', format: 'date-time' },
           },
+          example: {
+            success: true,
+            message: 'Operation completed successfully',
+            data: {},
+            meta: { page: 1, limit: 10, total: 53 },
+            timestamp: '2026-07-27T10:30:00.000Z',
+          },
+        },
+        PaginatedResponse: {
+          type: 'object',
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                meta: {
+                  type: 'object',
+                  properties: {
+                    page: { type: 'integer', example: 1 },
+                    limit: { type: 'integer', example: 30 },
+                    total: { type: 'integer', example: 120 },
+                    totalPages: { type: 'integer', example: 4 },
+                    hasNext: { type: 'boolean', example: true },
+                    hasPrev: { type: 'boolean', example: false },
+                  },
+                },
+              },
+            },
+          ],
+          example: {
+            success: true,
+            message: 'تم جلب البيانات بنجاح',
+            data: [
+              { id: 1, date: '2026-07-27', count: 198, dhikr: 'SUBHAN_ALLAH' },
+              { id: 2, date: '2026-07-26', count: 297, dhikr: 'ALHAMDULILLAH' },
+            ],
+            meta: {
+              page: 1,
+              limit: 30,
+              total: 120,
+              totalPages: 4,
+              hasNext: true,
+              hasPrev: false,
+            },
+            timestamp: '2026-07-27T10:30:00.000Z',
+          },
         },
         ErrorResponse: {
           type: 'object',
@@ -318,6 +410,15 @@ function buildSwaggerSpec() {
             message: { type: 'string', example: 'Invalid input provided' },
             details: { type: 'array', items: { type: 'object' }, nullable: true },
             timestamp: { type: 'string', format: 'date-time' },
+          },
+          example: {
+            success: false,
+            code: 'VALIDATION_ERROR',
+            message: 'كلمة المرور قصيرة جداً (6 أحرف على الأقل)',
+            details: [
+              { field: 'password', message: 'String must contain at least 6 character(s)' },
+            ],
+            timestamp: '2026-07-27T10:30:00.000Z',
           },
         },
         SignupRequest: {
@@ -349,6 +450,12 @@ function buildSwaggerSpec() {
               description: 'الاسم الكامل للمستخدم (اختياري)',
             },
           },
+          example: {
+            username: 'noor_user',
+            email: 'noor@example.com',
+            password: 'StrongPass123!',
+            fullName: 'مريم خالد',
+          },
         },
         LoginRequest: {
           type: 'object',
@@ -367,6 +474,24 @@ function buildSwaggerSpec() {
               description: 'كلمة المرور',
             },
           },
+          example: {
+            email: 'noor@example.com',
+            password: 'StrongPass123!',
+          },
+        },
+        GoogleAuthRequest: {
+          type: 'object',
+          required: ['idToken'],
+          properties: {
+            idToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ.ewogImlzc...',
+              description: 'Google ID Token المستلم من تطبيق Flutter بعد نجاح تسجيل الدخول عبر Google',
+            },
+          },
+          example: {
+            idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ.ewogImlzc3VlciI6ICJhY2NvdW50cy5nb29nbGUuY29tIiwKICAiYXpwIjogIjEyMy5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIKfQ==.signature123abc',
+          },
         },
         AuthResponse: {
           type: 'object',
@@ -384,12 +509,12 @@ function buildSwaggerSpec() {
             },
             accessToken: {
               type: 'string',
-              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM...',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz',
               description: 'توكن الوصول (short-lived)',
             },
             refreshToken: {
               type: 'string',
-              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh.xyz...',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123',
               description: 'توكن التحديث (long-lived) لتجديد accessToken',
             },
             tokenType: {
@@ -402,6 +527,392 @@ function buildSwaggerSpec() {
               example: 900,
               description: 'مدة صلاحية الـ accessToken بالثواني (15 دقيقة افتراضياً)',
             },
+          },
+          example: {
+            user: {
+              id: 'clx8abc123def456ghi',
+              username: 'noor_user',
+              email: 'noor@example.com',
+              fullName: 'مريم خالد',
+              createdAt: '2026-07-27T10:30:00.000Z',
+            },
+            accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz',
+            refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123',
+            tokenType: 'Bearer',
+            expiresIn: 900,
+          },
+        },
+        TasbihToday: {
+          type: 'object',
+          properties: {
+            todayCount: { type: 'integer', example: 156, description: 'إجمالي التسبيحات اليوم' },
+            currentDhikr: {
+              type: 'string',
+              enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH'],
+              example: 'SUBHAN_ALLAH',
+            },
+            currentDhikrAr: { type: 'string', example: 'سبحان الله' },
+            currentDhikrCount: { type: 'integer', example: 57, description: 'عدد تكرار الذكر الحالي' },
+            dailyGoal: { type: 'integer', example: 99, description: 'هدف اليوم (افتراضي 99)' },
+            progressPercent: { type: 'number', example: 57.58, description: 'نسبة التقدم نحو الهدف' },
+            lastDhikrChangeAt: { type: 'string', format: 'date-time', example: '2026-07-27T09:15:30.000Z' },
+          },
+          example: {
+            todayCount: 156,
+            currentDhikr: 'SUBHAN_ALLAH',
+            currentDhikrAr: 'سبحان الله',
+            currentDhikrCount: 57,
+            dailyGoal: 99,
+            progressPercent: 57.58,
+            lastDhikrChangeAt: '2026-07-27T09:15:30.000Z',
+          },
+        },
+        TasbihIncrementRequest: {
+          type: 'object',
+          properties: {
+            amount: {
+              type: 'integer',
+              minimum: 1,
+              default: 1,
+              example: 1,
+              description: 'كمية الزيادة (افتراضي 1)',
+            },
+          },
+          example: { amount: 1 },
+        },
+        TasbihChangeDhikrRequest: {
+          type: 'object',
+          required: ['dhikr'],
+          properties: {
+            dhikr: {
+              type: 'string',
+              enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH'],
+              example: 'ALHAMDULILLAH',
+              description: 'الذكر الجديد المراد التبديل إليه',
+            },
+          },
+          example: { dhikr: 'ALHAMDULILLAH' },
+        },
+        QiblaResponse: {
+          type: 'object',
+          properties: {
+            bearingDegrees: { type: 'number', example: 215.67, description: 'زاوية اتجاه القبلة بالدرجات من الشمال' },
+            bearingRadians: { type: 'number', example: 3.764, description: 'الزاوية بالراديان' },
+            directionAr: { type: 'string', example: 'الجنوب الغربي', description: 'اسم الاتجاه بالعربية' },
+            distanceKm: { type: 'number', example: 1246.35, description: 'المسافة إلى مكة المكرمة بالكيلومتر' },
+            kaaba: {
+              type: 'object',
+              properties: {
+                latitude: { type: 'number', example: 21.4225 },
+                longitude: { type: 'number', example: 39.8262 },
+              },
+            },
+            userLocation: {
+              type: 'object',
+              properties: {
+                latitude: { type: 'number', example: 30.0444 },
+                longitude: { type: 'number', example: 31.2357 },
+              },
+            },
+          },
+          example: {
+            bearingDegrees: 215.67,
+            bearingRadians: 3.764,
+            directionAr: 'الجنوب الغربي',
+            distanceKm: 1246.35,
+            kaaba: { latitude: 21.4225, longitude: 39.8262 },
+            userLocation: { latitude: 30.0444, longitude: 31.2357 },
+          },
+        },
+        UserProfile: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'clx8abc123def456ghi' },
+            username: { type: 'string', example: 'noor_user' },
+            email: { type: 'string', format: 'email', example: 'noor@example.com' },
+            fullName: { type: 'string', example: 'مريم خالد', nullable: true },
+            avatarUrl: { type: 'string', example: 'https://cdn.noor.app/avatars/user123.jpg', nullable: true },
+            phone: { type: 'string', example: '+201001234567', nullable: true },
+            city: { type: 'string', example: 'القاهرة', nullable: true },
+            country: { type: 'string', example: 'Egypt', nullable: true },
+            latitude: { type: 'number', example: 30.0444, nullable: true },
+            longitude: { type: 'number', example: 31.2357, nullable: true },
+            timezone: { type: 'string', example: 'Africa/Cairo', nullable: true },
+            prayerCalculationMethod: { type: 'string', example: 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY', nullable: true },
+            points: { type: 'integer', example: 2450 },
+            level: { type: 'integer', example: 5 },
+            joinedAt: { type: 'string', format: 'date-time', example: '2026-05-10T08:00:00.000Z' },
+          },
+          example: {
+            id: 'clx8abc123def456ghi',
+            username: 'noor_user',
+            email: 'noor@example.com',
+            fullName: 'مريم خالد',
+            avatarUrl: 'https://cdn.noor.app/avatars/user123.jpg',
+            phone: '+201001234567',
+            city: 'القاهرة',
+            country: 'Egypt',
+            latitude: 30.0444,
+            longitude: 31.2357,
+            timezone: 'Africa/Cairo',
+            prayerCalculationMethod: 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY',
+            points: 2450,
+            level: 5,
+            joinedAt: '2026-05-10T08:00:00.000Z',
+          },
+        },
+        UpdateProfileRequest: {
+          type: 'object',
+          properties: {
+            username: { type: 'string', example: 'noor_user_updated', minLength: 3 },
+            fullName: { type: 'string', example: 'مريم خالد محمود' },
+            avatarUrl: { type: 'string', example: 'https://cdn.noor.app/avatars/new_avatar.jpg' },
+            phone: { type: 'string', example: '+201001234567' },
+            city: { type: 'string', example: 'القاهرة' },
+            country: { type: 'string', example: 'Egypt' },
+            prayerCalculationMethod: {
+              type: 'string',
+              example: 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY',
+            },
+          },
+          example: {
+            username: 'noor_user_updated',
+            fullName: 'مريم خالد محمود',
+            avatarUrl: 'https://cdn.noor.app/avatars/new_avatar.jpg',
+            phone: '+201001234567',
+            city: 'القاهرة',
+            country: 'Egypt',
+            prayerCalculationMethod: 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY',
+          },
+        },
+        ChangePasswordRequest: {
+          type: 'object',
+          required: ['currentPassword', 'newPassword'],
+          properties: {
+            currentPassword: {
+              type: 'string',
+              format: 'password',
+              example: 'OldPass123!',
+              description: 'كلمة المرور الحالية',
+            },
+            newPassword: {
+              type: 'string',
+              format: 'password',
+              example: 'NewStrongPass456!',
+              minLength: 6,
+              description: 'كلمة المرور الجديدة (6 أحرف على الأقل)',
+            },
+          },
+          example: {
+            currentPassword: 'OldPass123!',
+            newPassword: 'NewStrongPass456!',
+          },
+        },
+        UpdateLocationRequest: {
+          type: 'object',
+          required: ['latitude', 'longitude'],
+          properties: {
+            latitude: {
+              type: 'number',
+              minimum: -90,
+              maximum: 90,
+              example: 30.0444,
+              description: 'خط العرض',
+            },
+            longitude: {
+              type: 'number',
+              minimum: -180,
+              maximum: 180,
+              example: 31.2357,
+              description: 'خط الطول',
+            },
+            timezone: {
+              type: 'string',
+              example: 'Africa/Cairo',
+              description: 'المنطقة الزمنية (اختياري)',
+            },
+            city: {
+              type: 'string',
+              example: 'القاهرة',
+              description: 'اسم المدينة (اختياري)',
+            },
+            country: {
+              type: 'string',
+              example: 'Egypt',
+              description: 'اسم الدولة (اختياري)',
+            },
+          },
+          example: {
+            latitude: 30.0444,
+            longitude: 31.2357,
+            timezone: 'Africa/Cairo',
+            city: 'القاهرة',
+            country: 'Egypt',
+          },
+        },
+        DashboardResponse: {
+          type: 'object',
+          properties: {
+            greeting: {
+              type: 'object',
+              properties: {
+                text: { type: 'string', example: 'صباح الخير، مريم 🌸' },
+                points: { type: 'integer', example: 2450 },
+                level: { type: 'integer', example: 5 },
+                streakDays: { type: 'integer', example: 12 },
+              },
+            },
+            prayers: {
+              type: 'object',
+              properties: {
+                date: { type: 'string', example: '2026-07-27' },
+                currentPrayer: { type: 'string', example: 'DHUHR' },
+                nextPrayer: { type: 'string', example: 'ASR' },
+                nextPrayerAt: { type: 'string', example: '2026-07-27T15:24:00.000Z' },
+                countdownSeconds: { type: 'integer', example: 5830 },
+                list: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', enum: ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'] },
+                      nameAr: { type: 'string', example: 'الظهر' },
+                      time: { type: 'string', example: '12:30' },
+                      completed: { type: 'boolean', example: true },
+                    },
+                  },
+                },
+              },
+            },
+            verseOfDay: {
+              type: 'object',
+              properties: {
+                surahNumber: { type: 'integer', example: 2 },
+                surahNameAr: { type: 'string', example: 'البقرة' },
+                verseNumber: { type: 'integer', example: 255 },
+                text: { type: 'string', example: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ...' },
+                translation: { type: 'string', example: 'الله - لا إله إلا هو الحي القيوم...' },
+              },
+            },
+            hadithOfDay: {
+              type: 'object',
+              properties: {
+                narrator: { type: 'string', example: 'عن أبي هريرة رضي الله عنه' },
+                text: { type: 'string', example: 'من سلك طريقاً يلتمس فيه علماً سهّل الله له به طريقاً إلى الجنة...' },
+                source: { type: 'string', example: 'صحيح مسلم' },
+              },
+            },
+            journeyToday: {
+              type: 'object',
+              properties: {
+                quranPages: { type: 'integer', example: 3 },
+                quranGoal: { type: 'integer', example: 4 },
+                adhkarCompleted: { type: 'boolean', example: false },
+                sadaqahAmount: { type: 'number', example: 25 },
+                prayersCompleted: { type: 'integer', example: 3 },
+                overallPercent: { type: 'number', example: 68.5 },
+              },
+            },
+            khatmahProgress: {
+              type: 'object',
+              properties: {
+                currentSurah: { type: 'string', example: 'النحل' },
+                currentPage: { type: 'integer', example: 278 },
+                totalPages: { type: 'integer', example: 604 },
+                percent: { type: 'number', example: 46.03 },
+              },
+            },
+            todayChallenge: {
+              type: 'object',
+              properties: {
+                id: { type: 'integer', example: 208 },
+                titleAr: { type: 'string', example: 'اقرأ صفحتين من القرآن' },
+                descriptionAr: { type: 'string', example: 'اقرأ صفحتين على الأقل من القرآن الكريم اليوم' },
+                type: { type: 'string', example: 'QURAN_PAGES' },
+                target: { type: 'integer', example: 2 },
+                currentValue: { type: 'integer', example: 3 },
+                completed: { type: 'boolean', example: true },
+                rewardPoints: { type: 'integer', example: 50 },
+                claimed: { type: 'boolean', example: false },
+              },
+            },
+            quickTools: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  key: { type: 'string', example: 'TASBIH' },
+                  labelAr: { type: 'string', example: 'المسبحة' },
+                },
+              },
+              example: [
+                { key: 'TASBIH', labelAr: 'المسبحة' },
+                { key: 'QIBLA', labelAr: 'القبلة' },
+              ],
+            },
+          },
+          example: {
+            greeting: {
+              text: 'صباح الخير، مريم 🌸',
+              points: 2450,
+              level: 5,
+              streakDays: 12,
+            },
+            prayers: {
+              date: '2026-07-27',
+              currentPrayer: 'DHUHR',
+              nextPrayer: 'ASR',
+              nextPrayerAt: '2026-07-27T15:24:00.000Z',
+              countdownSeconds: 5830,
+              list: [
+                { id: 'FAJR', nameAr: 'الفجر', time: '03:42', completed: true },
+                { id: 'DHUHR', nameAr: 'الظهر', time: '12:30', completed: true },
+                { id: 'ASR', nameAr: 'العصر', time: '15:24', completed: false },
+                { id: 'MAGHRIB', nameAr: 'المغرب', time: '18:49', completed: false },
+                { id: 'ISHA', nameAr: 'العشاء', time: '20:18', completed: false },
+              ],
+            },
+            verseOfDay: {
+              surahNumber: 2,
+              surahNameAr: 'البقرة',
+              verseNumber: 255,
+              text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ',
+              translation: 'الله - لا إله إلا هو، الحي القيوم. لا تأخذه سنة ولا نوم. له ما في السماوات وما في الأرض',
+            },
+            hadithOfDay: {
+              narrator: 'عن أبي هريرة رضي الله عنه',
+              text: 'من سلك طريقاً يلتمس فيه علماً سهّل الله له به طريقاً إلى الجنة، وإن الملائكة لتضع أجنحتها لطالب العلم رضا بما يصنع',
+              source: 'صحيح مسلم',
+            },
+            journeyToday: {
+              quranPages: 3,
+              quranGoal: 4,
+              adhkarCompleted: false,
+              sadaqahAmount: 25,
+              prayersCompleted: 3,
+              overallPercent: 68.5,
+            },
+            khatmahProgress: {
+              currentSurah: 'النحل',
+              currentPage: 278,
+              totalPages: 604,
+              percent: 46.03,
+            },
+            todayChallenge: {
+              id: 208,
+              titleAr: 'اقرأ صفحتين من القرآن',
+              descriptionAr: 'اقرأ صفحتين على الأقل من القرآن الكريم اليوم',
+              type: 'QURAN_PAGES',
+              target: 2,
+              currentValue: 3,
+              completed: true,
+              rewardPoints: 50,
+              claimed: false,
+            },
+            quickTools: [
+              { key: 'TASBIH', labelAr: 'المسبحة' },
+              { key: 'QIBLA', labelAr: 'القبلة' },
+            ],
           },
         },
       },
@@ -516,7 +1027,7 @@ html,body{margin:0;background:#FAF8F3;color:#1A1040;-webkit-font-smoothing:antia
     <span class="title">نور</span>
   </div>
   <div class="actions">
-    <a class="ghost" target="_blank" href="https://editor.swagger.io/?url=${location.origin}${safeSpecUrl}">Swagger Editor ↗</a>
+    <a class="ghost" target="_blank" onclick="window.location.href='https://editor.swagger.io/?url='+encodeURIComponent(window.location.origin+'${safeSpecUrl}');return false;" href="#">Swagger Editor ↗</a>
     <a class="primary" href="${safeSpecUrl}">تحميل JSON ↓</a>
   </div>
 </div>
@@ -552,7 +1063,7 @@ html,body{margin:0;background:#FAF8F3;color:#1A1040;-webkit-font-smoothing:antia
     <div style="margin-top:30px;text-align:center;color:#9F9F9F;font-size:13.5px;max-width:640px">
       <p style="margin:4px 0">إذا استغرق أكثر من 10 ثواني — استخدمي الخيارات البديلة التالية (كلها تعمل 100%):</p>
       <div class="aopt" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:14px">
-        <a class="btn p" target="_blank" href="https://editor.swagger.io/?url=${location.origin}${safeSpecUrl}">افتحي في Swagger Editor ↗</a>
+        <a class="btn p" target="_blank" onclick="window.location.href='https://editor.swagger.io/?url='+encodeURIComponent(window.location.origin+'${safeSpecUrl}');return false;" href="#">افتحي في Swagger Editor ↗</a>
         <a class="btn s" href="${safeSpecUrl}">تحميل OpenAPI JSON ↓</a>
         <a class="btn g" target="_blank" href="https://www.postman.com/">استيراد في Postman ↗</a>
       </div>

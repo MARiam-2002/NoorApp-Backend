@@ -42,14 +42,14 @@ export const qiblaRouter = Router();
  *         description: خط عرض المستخدم الحالي (GPS) من -90 إلى 90
  *         schema:
  *           type: number
- *           example: 24.7136
+ *           example: 30.0444
  *       - in: query
  *         name: lng
  *         required: true
  *         description: خط طول المستخدم الحالي (GPS) من -180 إلى 180
  *         schema:
  *           type: number
- *           example: 46.6753
+ *           example: 31.2357
  *     responses:
  *       200:
  *         description: زاوية اتجاه القبلة
@@ -62,6 +62,22 @@ export const qiblaRouter = Router();
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/QiblaResponse'
+ *             example:
+ *               success: true
+ *               message: تم حساب اتجاه القبلة بنجاح
+ *               data:
+ *                 bearingDegrees: 215.67
+ *                 bearingRadians: 3.764
+ *                 directionAr: الجنوب الغربي
+ *                 distanceKm: 1246.35
+ *                 kaaba:
+ *                   latitude: 21.4225
+ *                   longitude: 39.8262
+ *                 userLocation:
+ *                   latitude: 30.0444
+ *                   longitude: 31.2357
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
@@ -92,12 +108,34 @@ qiblaRouter.get(
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/QiblaResponse'
+ *             example:
+ *               success: true
+ *               message: اتجاه القبلة بناءً على الموقع المحفوظ
+ *               data:
+ *                 bearingDegrees: 215.67
+ *                 bearingRadians: 3.764
+ *                 directionAr: الجنوب الغربي
+ *                 distanceKm: 1246.35
+ *                 kaaba:
+ *                   latitude: 21.4225
+ *                   longitude: 39.8262
+ *                 userLocation:
+ *                   latitude: 30.0444
+ *                   longitude: 31.2357
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         description: لم يتم حفظ موقع جغرافي للمستخدم بعد
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: LOCATION_NOT_SET
+ *               message: لم يتم حفظ موقع جغرافي للمستخدم بعد. يرجى تحديث الموقع من إعدادات الملف الشخصي.
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */

@@ -66,6 +66,19 @@ export const tasbihRouter = Router();
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/TasbihToday'
+ *             example:
+ *               success: true
+ *               message: بيانات المسبحة لليوم
+ *               data:
+ *                 todayCount: 156
+ *                 currentDhikr: SUBHAN_ALLAH
+ *                 currentDhikrAr: سبحان الله
+ *                 currentDhikrCount: 57
+ *                 dailyGoal: 99
+ *                 progressPercent: 57.58
+ *                 lastDhikrChangeAt: '2026-07-27T09:15:30.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -90,6 +103,36 @@ tasbihRouter.get('/today', authenticate, getTodayHandler);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PaginatedResponse'
+ *             example:
+ *               success: true
+ *               message: سجل التسبيحات
+ *               data:
+ *                 - date: '2026-07-27'
+ *                   totalCount: 156
+ *                   dhikrStats:
+ *                     - dhikr: SUBHAN_ALLAH
+ *                       dhikrAr: سبحان الله
+ *                       count: 99
+ *                     - dhikr: ALHAMDULILLAH
+ *                       dhikrAr: الحمد لله
+ *                       count: 57
+ *                 - date: '2026-07-26'
+ *                   totalCount: 297
+ *                   dhikrStats:
+ *                     - dhikr: LA_ILAHA_ILLA_ALLAH
+ *                       dhikrAr: لا إله إلا الله
+ *                       count: 198
+ *                     - dhikr: ALLAHU_AKBAR
+ *                       dhikrAr: الله أكبر
+ *                       count: 99
+ *               meta:
+ *                 page: 1
+ *                 limit: 30
+ *                 total: 120
+ *                 totalPages: 4
+ *                 hasNext: true
+ *                 hasPrev: false
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -116,6 +159,15 @@ tasbihRouter.get(
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/TasbihIncrementRequest'
+ *           examples:
+ *             default:
+ *               summary: زيادة بمقدار واحد (افتراضي)
+ *               value:
+ *                 amount: 1
+ *             plus5:
+ *               summary: زيادة بخمس (مثال ثانوي)
+ *               value:
+ *                 amount: 5
  *     responses:
  *       200:
  *         description: تم زيادة العداد بنجاح
@@ -128,6 +180,19 @@ tasbihRouter.get(
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/TasbihToday'
+ *             example:
+ *               success: true
+ *               message: تم زيادة العداد بنجاح
+ *               data:
+ *                 todayCount: 157
+ *                 currentDhikr: SUBHAN_ALLAH
+ *                 currentDhikrAr: سبحان الله
+ *                 currentDhikrCount: 58
+ *                 dailyGoal: 99
+ *                 progressPercent: 58.59
+ *                 lastDhikrChangeAt: '2026-07-27T09:15:30.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:01.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -159,6 +224,19 @@ tasbihRouter.post(
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/TasbihToday'
+ *             example:
+ *               success: true
+ *               message: تمت إعادة ضبط العداد بنجاح
+ *               data:
+ *                 todayCount: 0
+ *                 currentDhikr: SUBHAN_ALLAH
+ *                 currentDhikrAr: سبحان الله
+ *                 currentDhikrCount: 0
+ *                 dailyGoal: 99
+ *                 progressPercent: 0
+ *                 lastDhikrChangeAt: '2026-07-27T10:30:00.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -188,6 +266,11 @@ tasbihRouter.post('/reset', authenticate, resetTodayHandler);
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/TasbihChangeDhikrRequest'
+ *           examples:
+ *             default:
+ *               summary: تغيير الذكر إلى الحمد لله
+ *               value:
+ *                 dhikr: ALHAMDULILLAH
  *     responses:
  *       200:
  *         description: تم تغيير الذكر بنجاح
@@ -200,6 +283,19 @@ tasbihRouter.post('/reset', authenticate, resetTodayHandler);
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/TasbihToday'
+ *             example:
+ *               success: true
+ *               message: تم تغيير الذكر بنجاح
+ *               data:
+ *                 todayCount: 156
+ *                 currentDhikr: ALHAMDULILLAH
+ *                 currentDhikrAr: الحمد لله
+ *                 currentDhikrCount: 0
+ *                 dailyGoal: 99
+ *                 progressPercent: 0
+ *                 lastDhikrChangeAt: '2026-07-27T10:30:00.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:

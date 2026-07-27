@@ -56,6 +56,14 @@ const googleSignInSchema = z.object({
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/SignupRequest'
+ *           examples:
+ *             default:
+ *               summary: مثال لإنشاء حساب
+ *               value:
+ *                 username: noor_user
+ *                 email: noor@example.com
+ *                 password: StrongPass123!
+ *                 fullName: مريم خالد
  *     responses:
  *       201:
  *         description: ✅ تم إنشاء الحساب بنجاح
@@ -68,18 +76,46 @@ const googleSignInSchema = z.object({
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/AuthResponse'
+ *             example:
+ *               success: true
+ *               message: تم إنشاء الحساب بنجاح
+ *               data:
+ *                 user:
+ *                   id: clx8abc123def456ghi
+ *                   username: noor_user
+ *                   email: noor@example.com
+ *                   fullName: مريم خالد
+ *                   createdAt: '2026-07-27T10:30:00.000Z'
+ *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz
+ *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
+ *                 tokenType: Bearer
+ *                 expiresIn: 900
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         description: ❌ بيانات غير صالحة
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: VALIDATION_ERROR
+ *               message: كلمة المرور قصيرة جداً (6 أحرف على الأقل)
+ *               details: [{ field: password, message: 'String must contain at least 6 character(s)' }]
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       409:
  *         description: ❌ البريد الإلكتروني مستخدم بالفعل
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: DUPLICATE_EMAIL
+ *               message: البريد الإلكتروني مستخدم بالفعل
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -95,6 +131,12 @@ const googleSignInSchema = z.object({
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/LoginRequest'
+ *           examples:
+ *             default:
+ *               summary: مثال لتسجيل الدخول
+ *               value:
+ *                 email: noor@example.com
+ *                 password: StrongPass123!
  *     responses:
  *       200:
  *         description: ✅ تم تسجيل الدخول بنجاح
@@ -107,12 +149,34 @@ const googleSignInSchema = z.object({
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/AuthResponse'
+ *             example:
+ *               success: true
+ *               message: تم تسجيل الدخول بنجاح
+ *               data:
+ *                 user:
+ *                   id: clx8abc123def456ghi
+ *                   username: noor_user
+ *                   email: noor@example.com
+ *                   fullName: مريم خالد
+ *                   createdAt: '2026-07-27T10:30:00.000Z'
+ *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz
+ *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
+ *                 tokenType: Bearer
+ *                 expiresIn: 900
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         description: ❌ بيانات اعتماد غير صالحة
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: INVALID_CREDENTIALS
+ *               message: البريد الإلكتروني أو كلمة المرور غير صحيحة
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -133,11 +197,38 @@ const googleSignInSchema = z.object({
  *               refreshToken:
  *                 type: string
  *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh
+ *           examples:
+ *             default:
+ *               summary: مثال لتجديد التوكن
+ *               value:
+ *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
  *     responses:
  *       200:
  *         description: ✅ تم تجديد التوكن بنجاح
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تم تجديد التوكن بنجاح
+ *               data:
+ *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTk1MjAwLCJleHAiOjE3MjE5OTYxMDB9.newxyz123
+ *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5OTA2MDAsImV4cCI6MTcyNDU4MjYwMH0.newrefresh456
+ *                 tokenType: Bearer
+ *                 expiresIn: 900
+ *               meta: null
+ *               timestamp: '2026-07-27T13:00:00.000Z'
  *       401:
  *         description: ❌ Refresh Token غير صالح أو منتهي
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: INVALID_REFRESH_TOKEN
+ *               message: Refresh Token غير صالح أو منتهي الصلاحية
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -155,9 +246,22 @@ const googleSignInSchema = z.object({
  *             required: [refreshToken]
  *             properties:
  *               refreshToken: { type: string }
+ *           examples:
+ *             default:
+ *               summary: مثال لتسجيل الخروج
+ *               value:
+ *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
  *     responses:
  *       200:
  *         description: ✅ تم تسجيل الخروج بنجاح
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تم تسجيل الخروج بنجاح
+ *               data: true
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -171,8 +275,31 @@ const googleSignInSchema = z.object({
  *     responses:
  *       200:
  *         description: ✅ بيانات المستخدم الحالي
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: بيانات المستخدم الحالي
+ *               data:
+ *                 id: clx8abc123def456ghi
+ *                 username: noor_user
+ *                 email: noor@example.com
+ *                 fullName: مريم خالد
+ *                 createdAt: '2026-05-10T08:00:00.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         description: ❌ غير مصرح به - التوكن غير صالح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: UNAUTHORIZED
+ *               message: التوكن غير صالح أو منتهي الصلاحية
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -191,9 +318,22 @@ const googleSignInSchema = z.object({
  *             required: [email]
  *             properties:
  *               email: { type: string, format: email }
+ *           examples:
+ *             default:
+ *               summary: مثال لطلب إعادة التعيين
+ *               value:
+ *                 email: noor@example.com
  *     responses:
  *       200:
  *         description: ✅ تم إرسال التعليمات إذا كان الحساب موجوداً
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: إذا كان الحساب مسجلاً فسيصلك بريد إلكتروني به رابط إعادة تعيين كلمة المرور
+ *               data: true
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -212,9 +352,23 @@ const googleSignInSchema = z.object({
  *             properties:
  *               token: { type: string }
  *               password: { type: string, format: password }
+ *           examples:
+ *             default:
+ *               summary: مثال لإعادة التعيين
+ *               value:
+ *                 token: eyJhbGciOiJIUzI1NiJ9.reset_token_123
+ *                 password: NewStrongPass456!
  *     responses:
  *       200:
  *         description: ✅ تم تغيير كلمة المرور بنجاح
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تم تغيير كلمة المرور بنجاح
+ *               data: true
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -227,6 +381,15 @@ const googleSignInSchema = z.object({
  *     responses:
  *       200:
  *         description: ✅ رابط تسجيل دخول جوجل
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تم جلب رابط تسجيل الدخول عبر Google
+ *               data:
+ *                 url: https://accounts.google.com/o/oauth2/v2/auth?client_id=123.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fnoor.app%2Fauth%2Fgoogle%2Fcallback&response_type=code&scope=openid%20email%20profile
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 
 /**
@@ -242,6 +405,11 @@ const googleSignInSchema = z.object({
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/GoogleAuthRequest'
+ *           examples:
+ *             default:
+ *               summary: مثال لتسجيل الدخول عبر جوجل
+ *               value:
+ *                 idToken: eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ.ewogImlzc3VlciI6ICJhY2NvdW50cy5nb29nbGUuY29tIiwKICAiYXpwIjogIjEyMy5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIKfQ==.signature123abc
  *     responses:
  *       200:
  *         description: ✅ تم الدخول عبر جوجل بنجاح
@@ -254,8 +422,34 @@ const googleSignInSchema = z.object({
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/AuthResponse'
+ *             example:
+ *               success: true
+ *               message: تم تسجيل الدخول عبر Google بنجاح
+ *               data:
+ *                 user:
+ *                   id: clx8abc123def456ghi
+ *                   username: noor_google
+ *                   email: noor@gmail.com
+ *                   fullName: مريم خالد
+ *                   createdAt: '2026-07-27T10:30:00.000Z'
+ *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz
+ *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
+ *                 tokenType: Bearer
+ *                 expiresIn: 900
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         description: ❌ Google Token غير صالح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: INVALID_GOOGLE_TOKEN
+ *               message: Google ID Token غير صالح أو منتهي
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 export const authRouter = Router();
 

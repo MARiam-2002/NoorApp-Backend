@@ -17,10 +17,27 @@ export const contentRouter = Router();
  *     parameters:
  *       - in: query
  *         name: day
- *         schema: { type: integer, example: 200 }
+ *         schema: { type: integer, example: 208 }
  *         description: رقم اليوم في السنة (اختياري، افتراضي اليوم الحالي)
  *     responses:
- *       200: { description: ✅ آية اليوم }
+ *       200:
+ *         description: ✅ آية اليوم
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: آية اليوم
+ *               data:
+ *                 dayOfYear: 208
+ *                 surahNumber: 2
+ *                 surahNameAr: البقرة
+ *                 surahNameEn: Al-Baqarah
+ *                 verseNumber: 255
+ *                 text: اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ
+ *                 translation: الله - لا إله إلا هو، الحي القيوم. لا تأخذه سنة ولا نوم. له ما في السماوات وما في الأرض
+ *                 audioUrl: https://cdn.noor.app/quran/2/255.mp3
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 contentRouter.get('/verse-of-day', getVerseOfDayHandler);
 
@@ -34,10 +51,24 @@ contentRouter.get('/verse-of-day', getVerseOfDayHandler);
  *     parameters:
  *       - in: query
  *         name: day
- *         schema: { type: integer, example: 200 }
+ *         schema: { type: integer, example: 208 }
  *         description: رقم اليوم في السنة (اختياري، افتراضي اليوم الحالي)
  *     responses:
- *       200: { description: ✅ حديث اليوم }
+ *       200:
+ *         description: ✅ حديث اليوم
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: حديث اليوم
+ *               data:
+ *                 dayOfYear: 208
+ *                 narrator: عن أبي هريرة رضي الله عنه
+ *                 text: من سلك طريقاً يلتمس فيه علماً سهّل الله له به طريقاً إلى الجنة، وإن الملائكة لتضع أجنحتها لطالب العلم رضا بما يصنع
+ *                 source: صحيح مسلم
+ *                 grade: صحيح
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 contentRouter.get('/hadith-of-day', getHadithOfDayHandler);
 
@@ -51,9 +82,24 @@ contentRouter.get('/hadith-of-day', getHadithOfDayHandler);
  *     parameters:
  *       - in: query
  *         name: day
- *         schema: { type: integer, example: 200 }
+ *         schema: { type: integer, example: 208 }
  *         description: رقم اليوم في السنة (اختياري، افتراضي اليوم الحالي)
  *     responses:
- *       200: { description: ✅ تفاصيل التحدي }
+ *       200:
+ *         description: ✅ تفاصيل التحدي
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تفاصيل التحدي اليومي
+ *               data:
+ *                 dayOfYear: 208
+ *                 titleAr: اقرأ صفحتين من القرآن
+ *                 descriptionAr: اقرأ صفحتين على الأقل من القرآن الكريم اليوم
+ *                 type: QURAN_PAGES
+ *                 target: 2
+ *                 rewardPoints: 50
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 contentRouter.get('/daily-challenge', getDailyChallengeHandler);

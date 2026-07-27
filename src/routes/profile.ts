@@ -62,6 +62,27 @@ const updateLocationSchema = z.object({
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/UserProfile'
+ *             example:
+ *               success: true
+ *               message: بيانات الملف الشخصي
+ *               data:
+ *                 id: clx8abc123def456ghi
+ *                 username: noor_user
+ *                 email: noor@example.com
+ *                 fullName: مريم خالد
+ *                 avatarUrl: https://cdn.noor.app/avatars/user123.jpg
+ *                 phone: +201001234567
+ *                 city: القاهرة
+ *                 country: Egypt
+ *                 latitude: 30.0444
+ *                 longitude: 31.2357
+ *                 timezone: Africa/Cairo
+ *                 prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
+ *                 points: 2450
+ *                 level: 5
+ *                 joinedAt: '2026-05-10T08:00:00.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -83,6 +104,13 @@ const updateLocationSchema = z.object({
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/UpdateProfileRequest'
+ *           examples:
+ *             default:
+ *               summary: تعديل الاسم والمدينة
+ *               value:
+ *                 fullName: مريم خالد محمود
+ *                 city: الإسكندرية
+ *                 avatarUrl: https://cdn.noor.app/avatars/new_avatar.jpg
  *     responses:
  *       200:
  *         description: تم تعديل البيانات بنجاح
@@ -95,6 +123,27 @@ const updateLocationSchema = z.object({
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/UserProfile'
+ *             example:
+ *               success: true
+ *               message: تم تعديل بيانات الملف الشخصي بنجاح
+ *               data:
+ *                 id: clx8abc123def456ghi
+ *                 username: noor_user
+ *                 email: noor@example.com
+ *                 fullName: مريم خالد محمود
+ *                 avatarUrl: https://cdn.noor.app/avatars/new_avatar.jpg
+ *                 phone: +201001234567
+ *                 city: الإسكندرية
+ *                 country: Egypt
+ *                 latitude: 30.0444
+ *                 longitude: 31.2357
+ *                 timezone: Africa/Cairo
+ *                 prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
+ *                 points: 2450
+ *                 level: 5
+ *                 joinedAt: '2026-05-10T08:00:00.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
@@ -118,6 +167,12 @@ const updateLocationSchema = z.object({
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/ChangePasswordRequest'
+ *           examples:
+ *             default:
+ *               summary: مثال لتغيير كلمة المرور
+ *               value:
+ *                 currentPassword: OldPass123!
+ *                 newPassword: NewStrongPass456!
  *     responses:
  *       200:
  *         description: تم تغيير كلمة المرور بنجاح
@@ -131,12 +186,24 @@ const updateLocationSchema = z.object({
  *                     data:
  *                       type: boolean
  *                       example: true
+ *             example:
+ *               success: true
+ *               message: تم تغيير كلمة المرور بنجاح
+ *               data: true
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         description: كلمة المرور الحالية غير صحيحة أو الجديدة لا تستوفي الشروط الأمنية
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               code: INVALID_CURRENT_PASSWORD
+ *               message: كلمة المرور الحالية غير صحيحة
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
@@ -162,6 +229,15 @@ const updateLocationSchema = z.object({
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/UpdateLocationRequest'
+ *           examples:
+ *             default:
+ *               summary: تحديث الموقع إلى القاهرة
+ *               value:
+ *                 latitude: 30.0444
+ *                 longitude: 31.2357
+ *                 timezone: Africa/Cairo
+ *                 city: القاهرة
+ *                 country: Egypt
  *     responses:
  *       200:
  *         description: تم حفظ الموقع الجغرافي بنجاح
@@ -174,6 +250,27 @@ const updateLocationSchema = z.object({
  *                   properties:
  *                     data:
  *                       $ref: '#/components/schemas/UserProfile'
+ *             example:
+ *               success: true
+ *               message: تم حفظ الموقع الجغرافي بنجاح
+ *               data:
+ *                 id: clx8abc123def456ghi
+ *                 username: noor_user
+ *                 email: noor@example.com
+ *                 fullName: مريم خالد
+ *                 avatarUrl: https://cdn.noor.app/avatars/user123.jpg
+ *                 phone: +201001234567
+ *                 city: القاهرة
+ *                 country: Egypt
+ *                 latitude: 30.0444
+ *                 longitude: 31.2357
+ *                 timezone: Africa/Cairo
+ *                 prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
+ *                 points: 2450
+ *                 level: 5
+ *                 joinedAt: '2026-05-10T08:00:00.000Z'
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:

@@ -22,13 +22,53 @@ export const notificationsRouter = Router();
  *     parameters:
  *       - in: query
  *         name: page
- *         schema: { type: integer, default: 1 }
+ *         schema: { type: integer, default: 1, example: 1 }
+ *         description: رقم الصفحة (افتراضي 1)
  *       - in: query
  *         name: perPage
- *         schema: { type: integer, default: 20, minimum: 5, maximum: 100 }
+ *         schema: { type: integer, default: 20, minimum: 5, maximum: 100, example: 20 }
+ *         description: عدد الإشعارات في الصفحة (افتراضي 20)
  *     responses:
  *       200:
  *         description: ✅ قائمة الإشعارات
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: قائمة الإشعارات
+ *               data:
+ *                 - id: 550e8400-e29b-41d4-a716-446655440000
+ *                   type: CHALLENGE_REWARD
+ *                   titleAr: مبروك! حصلت على مكافأة التحدي
+ *                   bodyAr: أكملت تحدي اليوم وحصلت على 50 نقطة
+ *                   isRead: false
+ *                   deepLink: /challenges
+ *                   createdAt: '2026-07-27T09:15:00.000Z'
+ *                 - id: 550e8400-e29b-41d4-a716-446655440001
+ *                   type: PRAYER_REMINDER
+ *                   titleAr: حان وقت صلاة الظهر
+ *                   bodyAr: اقضِ صلاتك الآن واحرص على الصلاة في وقتها
+ *                   isRead: true
+ *                   deepLink: /prayers
+ *                   createdAt: '2026-07-27T05:30:00.000Z'
+ *                 - id: 550e8400-e29b-41d4-a716-446655440002
+ *                   type: VERSE_OF_DAY
+ *                   titleAr: آية اليوم جاهزة
+ *                   bodyAr: 'اقرأ آية اليوم: آية الكرسي من سورة البقرة'
+ *                   isRead: true
+ *                   deepLink: /content/verse-of-day
+ *                   createdAt: '2026-07-27T03:00:00.000Z'
+ *               meta:
+ *                 page: 1
+ *                 perPage: 20
+ *                 total: 45
+ *                 unreadCount: 7
+ *                 totalPages: 3
+ *                 hasNext: true
+ *                 hasPrev: false
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 notificationsRouter.get('/', authenticate, listNotificationsHandler);
 
@@ -42,6 +82,17 @@ notificationsRouter.get('/', authenticate, listNotificationsHandler);
  *     responses:
  *       200:
  *         description: ✅ عدد الإشعارات
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: عدد الإشعارات غير المقروءة
+ *               data:
+ *                 unreadCount: 7
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 notificationsRouter.get('/unread-count', authenticate, getUnreadCountHandler);
 
@@ -56,10 +107,34 @@ notificationsRouter.get('/unread-count', authenticate, getUnreadCountHandler);
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string, format: uuid }
+ *         schema: { type: string, format: uuid, example: 550e8400-e29b-41d4-a716-446655440000 }
+ *         description: معرف الإشعار (UUID)
  *     responses:
- *       200: { description: ✅ تم التعليم كمقروء }
- *       404: { description: ❌ الإشعار غير موجود }
+ *       200:
+ *         description: ✅ تم التعليم كمقروء
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تم تعليم الإشعار كمقروء
+ *               data:
+ *                 id: 550e8400-e29b-41d4-a716-446655440000
+ *                 isRead: true
+ *                 unreadCount: 6
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       404:
+ *         description: ❌ الإشعار غير موجود
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               code: NOT_FOUND
+ *               message: الإشعار غير موجود
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 notificationsRouter.patch('/:id/read', authenticate, markAsReadHandler);
 
@@ -71,7 +146,20 @@ notificationsRouter.patch('/:id/read', authenticate, markAsReadHandler);
  *     summary: تعليم جميع الإشعارات كمقروءة دفعة واحدة
  *     security: [ { bearerAuth: [] } ]
  *     responses:
- *       200: { description: ✅ تم تعليم جميع الإشعارات كمقروءة }
+ *       200:
+ *         description: ✅ تم تعليم جميع الإشعارات كمقروءة
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تم تعليم جميع الإشعارات كمقروءة
+ *               data:
+ *                 markedCount: 7
+ *                 unreadCount: 0
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 notificationsRouter.patch('/read-all', authenticate, markAllAsReadHandler);
 
@@ -86,10 +174,40 @@ notificationsRouter.patch('/read-all', authenticate, markAllAsReadHandler);
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string, format: uuid }
+ *         schema: { type: string, format: uuid, example: 550e8400-e29b-41d4-a716-446655440000 }
+ *         description: معرف الإشعار (UUID)
  *     responses:
- *       200: { description: ✅ تفاصيل الإشعار }
- *       404: { description: ❌ الإشعار غير موجود }
+ *       200:
+ *         description: ✅ تفاصيل الإشعار
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: تفاصيل الإشعار
+ *               data:
+ *                 id: 550e8400-e29b-41d4-a716-446655440000
+ *                 type: CHALLENGE_REWARD
+ *                 titleAr: مبروك! حصلت على مكافأة التحدي
+ *                 bodyAr: أكملت تحدي اليوم وحصلت على 50 نقطة
+ *                 isRead: false
+ *                 deepLink: /challenges
+ *                 payload:
+ *                   challengeId: 208
+ *                   points: 50
+ *                 createdAt: '2026-07-27T09:15:00.000Z'
+ *                 readAt: null
+ *               meta: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       404:
+ *         description: ❌ الإشعار غير موجود
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               code: NOT_FOUND
+ *               message: الإشعار غير موجود
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
  *   delete:
  *     tags: ['Notifications']
  *     summary: حذف إشعار معين
@@ -98,10 +216,23 @@ notificationsRouter.patch('/read-all', authenticate, markAllAsReadHandler);
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string, format: uuid }
+ *         schema: { type: string, format: uuid, example: 550e8400-e29b-41d4-a716-446655440000 }
+ *         description: معرف الإشعار (UUID)
  *     responses:
- *       204: { description: ✅ تم الحذف }
- *       404: { description: ❌ الإشعار غير موجود }
+ *       204:
+ *         description: ✅ تم الحذف
+ *       404:
+ *         description: ❌ الإشعار غير موجود
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               code: NOT_FOUND
+ *               message: الإشعار غير موجود
+ *               details: null
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 notificationsRouter.get('/:id', authenticate, getNotificationHandler);
 notificationsRouter.delete('/:id', authenticate, deleteNotificationHandler);
