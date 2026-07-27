@@ -206,6 +206,37 @@ html[lang="en"] body { direction: ltr; }
   border: 3px solid var(--noor-bg);
 }
 ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--noor-gold), var(--noor-gold-dark)); }
+
+/* ---------- Hide Swagger's built-in Errors panel (red box) permanently ---------- */
+.swagger-ui .errors-wrapper,
+.swagger-ui [class*="errors"],
+.swagger-ui div.errors,
+.swagger-ui section.errors,
+.swagger-ui [role="alert"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+}
+
+/* ---------- Remove blue-ish badges / default icons in scheme-container ---------- */
+.swagger-ui .scheme-container .schemes-server-container svg,
+.swagger-ui .scheme-container .schemes-title svg {
+  display: none !important;
+}
+.swagger-ui .scheme-container {
+  background: linear-gradient(180deg, #FFFFFF, #FAF8F3) !important;
+  border: 1.5px solid rgba(201, 168, 106, 0.22) !important;
+}
+.swagger-ui .info .title svg { display: none !important; }
+.swagger-ui .opblock-tag-section svg {
+  color: var(--noor-gold-dark) !important;
+}
 `;
 
 function walkRouteDirs(dir: string, ext: string, results: string[]): void {
@@ -287,6 +318,90 @@ function buildSwaggerSpec() {
             message: { type: 'string', example: 'Invalid input provided' },
             details: { type: 'array', items: { type: 'object' }, nullable: true },
             timestamp: { type: 'string', format: 'date-time' },
+          },
+        },
+        SignupRequest: {
+          type: 'object',
+          required: ['username', 'email', 'password'],
+          properties: {
+            username: {
+              type: 'string',
+              example: 'noor_user',
+              minLength: 3,
+              description: 'اسم المستخدم الفريد',
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'noor@example.com',
+              description: 'البريد الإلكتروني',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              example: 'StrongPass123!',
+              minLength: 6,
+              description: 'كلمة المرور (6 أحرف على الأقل)',
+            },
+            fullName: {
+              type: 'string',
+              example: 'مريم خالد',
+              description: 'الاسم الكامل للمستخدم (اختياري)',
+            },
+          },
+        },
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email: {
+              type: 'string',
+              format: 'email',
+              example: 'noor@example.com',
+              description: 'البريد الإلكتروني للمستخدم',
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              example: 'StrongPass123!',
+              description: 'كلمة المرور',
+            },
+          },
+        },
+        AuthResponse: {
+          type: 'object',
+          properties: {
+            user: {
+              type: 'object',
+              description: 'بيانات المستخدم المسجل',
+              properties: {
+                id: { type: 'string', example: 'clx8abc123def456ghi' },
+                username: { type: 'string', example: 'noor_user' },
+                email: { type: 'string', example: 'noor@example.com' },
+                fullName: { type: 'string', example: 'مريم خالد', nullable: true },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            accessToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM...',
+              description: 'توكن الوصول (short-lived)',
+            },
+            refreshToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh.xyz...',
+              description: 'توكن التحديث (long-lived) لتجديد accessToken',
+            },
+            tokenType: {
+              type: 'string',
+              example: 'Bearer',
+              enum: ['Bearer'],
+            },
+            expiresIn: {
+              type: 'integer',
+              example: 900,
+              description: 'مدة صلاحية الـ accessToken بالثواني (15 دقيقة افتراضياً)',
+            },
           },
         },
       },
@@ -414,10 +529,10 @@ html,body{margin:0;background:#FAF8F3;color:#1A1040;-webkit-font-smoothing:antia
           <h1>✨ توثيق <span>Noor API</span></h1>
           <p>نسخة v1.0 — 53 endpoint للقرآن الكريم · الأحاديث النبوية · مواقيت الصلاة · رحلة إسلامية يومية · تحديات وتقدّم</p>
           <div class="chips">
-            <span class="chip solid">🧭 Base URL: <code style="background:rgba(26,16,64,.5);color:#F4EBDB;padding:3px 10px;border-radius:8px;margin-inline:6px;font-weight:700">/api/v1</code></span>
-            <span class="chip">📘 Swagger / OpenAPI 3.1</span>
-            <span class="chip">🔐 JWT Bearer Auth</span>
-            <span class="chip">⚡ Express 5 + Prisma 6</span>
+            <span class="chip solid">Base URL: <code style="background:rgba(26,16,64,.5);color:#F4EBDB;padding:3px 10px;border-radius:8px;margin-inline:6px;font-weight:700">/api/v1</code></span>
+            <span class="chip">Swagger / OpenAPI 3.1</span>
+            <span class="chip">JWT Bearer Auth</span>
+            <span class="chip">Express 5 + Prisma 6</span>
           </div>
         </div>
       </div>
@@ -469,7 +584,7 @@ function showFallback(reason){
         '<img src="${LOGO_URL}" alt="نور" onerror="this.style.display=\\'none\\'"/>' +
         '<div><h1 style="color:#fff;font-size:28px">✨ توثيق <span>Noor API</span></h1>' +
         '<p>نسخة v1.0 — 53 endpoint للقرآن الكريم · الأحاديث · مواقيت الصلاة · رحلة إسلامية يومية.</p>' +
-        '<div class="chips"><span class="chip solid">🧭 Base URL: /api/v1</span><span class="chip">📘 Swagger / OpenAPI 3.1</span><span class="chip">🔐 JWT Bearer Auth</span></div>' +
+        '<div class="chips"><span class="chip solid">Base URL: /api/v1</span><span class="chip">Swagger / OpenAPI 3.1</span><span class="chip">JWT Bearer Auth</span></div>' +
         '</div></div></div>' +
     '<div class="card"><h3>📄 السبب:</h3><div>' + (reason||'خطأ غير معروف').replace(/[<>&]/g,'') + '</div></div>' +
     '<div class="card"><h3>🚀 الخيارات البديلة (كلها تعمل 100%):</h3><ul>' +

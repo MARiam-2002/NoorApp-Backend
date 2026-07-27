@@ -243,10 +243,10 @@ a.bx:hover{transform:translateY(-1.5px)}
         <h1>✨ توثيق <span>Noor API</span></h1>
         <p>نسخة v1.0 — <b>53 endpoint</b> للقرآن الكريم · الأحاديث النبوية · مواقيت الصلاة · القبلة · التسبيح · التحديات · رحلة يومية كاملة لتطبيق Flutter.</p>
         <div class="chips">
-          <span class="chip solid">🧭 Base URL: <code>/api/v1</code></span>
-          <span class="chip">📘 Swagger / OpenAPI 3.1</span>
-          <span class="chip">🔐 JWT Bearer Auth</span>
-          <span class="chip">⚡ Express 5 · Prisma 6</span>
+          <span class="chip solid">Base URL: <code>/api/v1</code></span>
+          <span class="chip">Swagger / OpenAPI 3.1</span>
+          <span class="chip">JWT Bearer Auth</span>
+          <span class="chip">Express 5 · Prisma 6</span>
         </div>
       </div>
     </div>
