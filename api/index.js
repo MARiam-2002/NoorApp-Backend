@@ -33,7 +33,62 @@
 const path = require("node:path");
 
 // ---------- STEP 1: STATIC LANDING HTML (never depends on the app) ----------
-const LANDING = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b7a5c"><title>Noor API | واجهة برمجة تطبيقات نور</title><style>:root{--g:#10b981;--g2:#34d399;--gd:#fbbf24;--t:#e6eaf2;--m:#93a0b8}*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,"Noto Sans Arabic",sans-serif;color:var(--t);background:radial-gradient(1200px 600px at 20% -10%,#0e3a2e,transparent 60%),radial-gradient(900px 500px at 110% 10%,#1a2a5c,transparent 55%),linear-gradient(180deg,#070a18,#0a0f22)}main{max-width:920px;margin:0 auto;padding:56px 24px 80px}.b{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(16,185,129,.12);color:var(--g2);font-weight:600;font-size:13px;border:1px solid rgba(16,185,129,.28)}.d{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 0 4px rgba(16,185,129,.18);animation:p 1.6s infinite}@keyframes p{0%,100%{opacity:1}50%{opacity:.5}}h1{font-size:44px;line-height:1.15;margin:18px 0 10px;background:linear-gradient(90deg,#fff,#86efac 40%,#fde68a 100%);-webkit-background-clip:text;background-clip:text;color:transparent}.l{font-size:18px;color:var(--m);margin:0 0 28px}.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:28px 0 36px}.c{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px;transition:.25s ease}.c:hover{transform:translateY(-3px);border-color:rgba(16,185,129,.45)}.c h3{margin:0 0 6px;font-size:18px;color:#fff}.c p{margin:0 0 14px;color:var(--m);font-size:14.5px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:11px 16px;border-radius:12px;font-weight:700;transition:.2s ease;border:1px solid transparent}.btn.p{background:linear-gradient(180deg,var(--g),#059669);color:#052e22}.btn.p:hover{filter:brightness(1.05)}.btn.o{background:transparent;border-color:rgba(255,255,255,.12);color:var(--t)}.btn.o:hover{background:rgba(255,255,255,.04)}.s{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--m);margin-top:8px;flex-wrap:wrap}.pi{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(251,191,36,.12);color:var(--gd);font-size:12px;border:1px solid rgba(251,191,36,.3)}footer{margin-top:32px;color:var(--m);font-size:13px;opacity:.85}code{font-family:ui-monospace,Consolas,monospace;background:rgba(255,255,255,.06);padding:2px 6px;border-radius:6px;font-size:13px;color:#c7d2fe}@media(max-width:520px){h1{font-size:32px}}</style></head><body><main><span class="b"><span class="d"></span> الخدمة تعمل — API Online</span><h1>Noor API ✨<br/>واجهة برمجة تطبيقات نور</h1><p class="l">نسخة <b>v1.0.0</b> — القرآن الكريم · الأحاديث النبوية · مواقيت الصلاة · رحلة إسلامية يومية كاملة لتطبيق Flutter.</p><div class="g"><div class="c"><span class="pi">Swagger / OpenAPI</span><h3>📚 التوثيق التفاعلي</h3><p>جرب جميع الـ endpoints مباشرة من المتصفح مع وصف عربي لكل طلب واستجابة.</p><a class="btn p" href="/api/v1/docs">افتح التوثيق ↗</a></div><div class="c"><span class="pi">Monitoring</span><h3>🩺 فحص صحة الخدمة</h3><p>تأكد من أن قاعدة البيانات والخدمة تعمل بشكل سليم (Health Check).</p><a class="btn o" href="/api/v1/health">/api/v1/health ↗</a></div><div class="c"><span class="pi">Discover</span><h3>🧭 روابط سريعة للمطورين</h3><p>أشهر الـ endpoints التي يحتاجها فريق Flutter للبدء فوراً.</p><div style="display:flex;flex-wrap:wrap;gap:8px"><code>/quran/surahs</code><code>/content/verse-of-day</code><code>/prayers/today</code><code>/journey/today</code></div></div></div><div class="s"><span>Base URL للاستخدام في تطبيق Flutter:</span><code>/api/v1</code></div><footer>© ${new Date().getFullYear()} Noor App — Express · TypeScript · Prisma · Neon PostgreSQL · Vercel</footer></main></body></html>`;
+const LANDING = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1A1040"><title>Noor API | واجهة برمجة تطبيقات نور</title><style>
+:root{--navy:#1A1040;--navy2:#2A1B5C;--gold:#C9A86A;--gold2:#B39156;--cream:#FAF8F3;--text:#1A1040;--muted:#5A5475;--subtle:#9F9F9F;--border:#ECE9E0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,"Noto Sans Arabic","Tajawal",sans-serif;color:var(--cream);
+  background:
+    radial-gradient(1100px 600px at 15% -10%,rgba(201,168,106,.22),transparent 55%),
+    radial-gradient(800px 500px at 110% 10%,rgba(42,27,92,.85),transparent 55%),
+    linear-gradient(180deg,#0F0A28,#1A1040 55%,#201550)}
+main{max-width:980px;margin:0 auto;padding:64px 24px 96px;position:relative;z-index:1}
+.brand{display:inline-flex;align-items:center;gap:14px;margin-bottom:22px}
+.brand img{width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(201,168,106,.35))}
+.brand .t{font-size:40px;font-weight:900;color:#fff;letter-spacing:-1px;font-family:Tajawal,sans-serif}
+.brand .t span{background:linear-gradient(90deg,#F4EBDB,#D9BD95 60%,#C9A86A);-webkit-background-clip:text;background-clip:text;color:transparent}
+.b{display:inline-flex;align-items:center;gap:10px;padding:7px 16px;border-radius:999px;background:rgba(201,168,106,.14);color:#F4EBDB;font-weight:700;font-size:13px;border:1px solid rgba(201,168,106,.35)}
+.d{width:9px;height:9px;border-radius:50%;background:#C9A86A;box-shadow:0 0 0 5px rgba(201,168,106,.22);animation:p 1.6s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.55}}
+h1{font-size:48px;line-height:1.12;margin:14px 0 10px;font-weight:900;letter-spacing:-.8px;font-family:Tajawal,sans-serif}
+h1 span{background:linear-gradient(90deg,#fff 0%,#F4EBDB 35%,#D9BD95 70%,#C9A86A 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.l{font-size:18px;color:rgba(244,235,219,.8);margin:0 0 34px;line-height:1.9}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin:28px 0 38px}
+.c{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));border:1px solid rgba(244,235,219,.1);border-radius:20px;padding:26px;transition:.25s ease;position:relative;overflow:hidden}
+.c::before{content:"";position:absolute;top:0;inset-inline-start:0;width:4px;height:100%;background:linear-gradient(180deg,#C9A86A,rgba(201,168,106,0));opacity:.7;border-radius:4px}
+.c:hover{transform:translateY(-3px);border-color:rgba(201,168,106,.5);box-shadow:0 14px 40px rgba(0,0,0,.3)}
+.c h3{margin:0 0 8px;font-size:19px;color:#fff;font-weight:800}
+.c p{margin:0 0 16px;color:rgba(244,235,219,.72);font-size:14.5px;line-height:1.8}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:800;transition:.2s ease;border:1px solid transparent;font-size:14px}
+.btn.p{background:linear-gradient(180deg,#C9A86A,#B39156);color:#1A1040;border-color:#B39156;box-shadow:0 6px 18px rgba(201,168,106,.3)}
+.btn.p:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn.o{background:transparent;border-color:rgba(244,235,219,.15);color:rgba(244,235,219,.95)}
+.btn.o:hover{background:rgba(244,235,219,.06);border-color:rgba(201,168,106,.4)}
+.s{display:flex;align-items:center;gap:12px;font-size:14px;color:rgba(244,235,219,.7);margin-top:10px;flex-wrap:wrap}
+.pi{display:inline-block;padding:4px 12px;border-radius:999px;background:rgba(201,168,106,.15);color:#F4EBDB;font-size:12px;border:1px solid rgba(201,168,106,.32);font-weight:700;margin-bottom:12px}
+footer{margin-top:38px;color:rgba(244,235,219,.6);font-size:13px;opacity:.9}
+code{font-family:ui-monospace,Consolas,monospace;background:rgba(244,235,219,.08);padding:3px 10px;border-radius:8px;font-size:13px;color:#D9BD95;font-weight:600;word-break:break-word}
+.flow{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+@media(max-width:560px){
+  h1{font-size:34px}
+  .brand{margin-bottom:18px}.brand img{width:48px;height:48px}.brand .t{font-size:32px}
+  main{padding:40px 18px 72px}
+}
+</style></head><body><main>
+  <div class="brand">
+    <img src="https://asset.cloudinary.com/dgzucjqgi/f9fbb8b99944054a0378125ae226ae60" alt="نور" onerror="this.style.display='none'"/>
+    <span class="t"><span>نور</span></span>
+  </div>
+  <span class="b"><span class="d"></span> الخدمة تعمل — API Online</span>
+  <h1>Noor API ✨<br/><span>واجهة برمجة تطبيقات نور</span></h1>
+  <p class="l">نسخة <b>v1.0.0</b> — القرآن الكريم · الأحاديث النبوية · مواقيت الصلاة · القبلة · التسبيح · رحلة إسلامية يومية كاملة لتطبيق Flutter.</p>
+  <div class="g">
+    <div class="c"><span class="pi">Swagger / OpenAPI 3.1</span><h3>📚 التوثيق التفاعلي</h3><p>جرب جميع الـ 53 endpoint مباشرة من المتصفح مع وصف عربي لكل طلب واستجابة.</p><a class="btn p" href="/api/v1/docs">افتح التوثيق ↗</a></div>
+    <div class="c"><span class="pi">Monitoring</span><h3>🩺 فحص صحة الخدمة</h3><p>تأكد من أن قاعدة البيانات والخدمة تعمل بشكل سليم (Health + DB check).</p><a class="btn o" href="/api/v1/health">/api/v1/health ↗</a></div>
+    <div class="c"><span class="pi">Discover</span><h3>🧭 روابط سريعة للمطورين</h3><p>أشهر الـ endpoints التي يحتاجها فريق Flutter للبدء فوراً.</p><div class="flow"><code>/quran/surahs</code><code>/content/verse-of-day</code><code>/prayers/today</code><code>/journey/today</code><code>/tasbih</code><code>/qibla</code></div></div>
+  </div>
+  <div class="s"><span>Base URL للاستخدام في تطبيق Flutter:</span><code>/api/v1</code></div>
+  <footer>© ${new Date().getFullYear()} Noor App — Express 5 · TypeScript · Prisma 6 · Neon PostgreSQL · Vercel</footer>
+</main></body></html>`;
 
 // ---------- STEP 2: RESPONSE HELPERS (raw Node, zero deps) ----------
 function sendHtml(res, status, html) {
@@ -81,80 +136,136 @@ function errorHtml(errMsg) {
 // then gracefully upgrades to Swagger UI if possible. No infinite spinner EVER.
 function docsHubHtml() {
   const JSON_URL = "/api/v1/swagger.json";
+  const LOGO =
+    "https://asset.cloudinary.com/dgzucjqgi/f9fbb8b99944054a0378125ae226ae60";
   return `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="theme-color" content="#C9A46E" />
-<title>Noor API | توثيق API</title>
+<meta name="theme-color" content="#1A1040" />
+<title>Noor API | توثيق نور</title>
 <style>
-:root{--g:#C9A46E;--g2:#B08F56;--bg:#FAFAF8;--s:#FFFFFF;--t:#1A1816;--tm:#65605B;--ts:#8A8580;--b:#EDE9E0;--bh:#E0D9CC;--ok:#1F8A59;--bad:#BD3B2F;--warn:#B38521;--info:#2D5FB0}
+:root{
+  --navy:#1A1040;--navy2:#2A1B5C;--navy-soft:rgba(26,16,64,.08);
+  --gold:#C9A86A;--gold2:#B39156;--gold-light:#D9BD95;--gold-muted:#F4EBDB;
+  --cream:#FAF8F3;--surface:#FFFFFF;
+  --text:#1A1040;--muted:#5A5475;--subtle:#9F9F9F;
+  --border:#ECE9E0;--border-hover:#D9D4C6;
+  --ok:#2D8A61;--bad:#B83A2F;--warn:#A97D1F;--info:#3555AE;
+  --r-sm:8px;--r:12px;--r-lg:16px;
+  --sh-xs:0 1px 2px rgba(26,16,64,.04);--sh-sm:0 2px 10px rgba(26,16,64,.05);--sh-md:0 6px 24px rgba(26,16,64,.07)
+}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--t);font-family:Inter,'Segoe UI',-apple-system,BlinkMacSystemFont,Tajawal,'SF Pro Display',sans-serif;-webkit-font-smoothing:antialiased}
-.tb{background:rgba(255,255,255,.92);border-bottom:1px solid var(--b);padding:14px 0;position:sticky;top:0;z-index:50;backdrop-filter:blur(8px)}
-.tb .wrap{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.logo{font-size:26px;font-weight:800;color:var(--g);letter-spacing:-.8px;font-family:Tajawal,Inter,sans-serif}
-.ql{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-a.bx{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;font-weight:700;font-size:12.5px;text-decoration:none;border:1px solid;transition:.2s}
-a.bx.p{background:linear-gradient(180deg,var(--g),var(--g2));color:#fff;border-color:var(--g2)}
-a.bx.s{background:var(--s);border-color:var(--b);color:var(--t)}
+html,body{margin:0;background:var(--cream);color:var(--text);font-family:Inter,'Segoe UI',-apple-system,BlinkMacSystemFont,Tajawal,'SF Pro Display',sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.tb{
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);
+  padding:16px 0;position:sticky;top:0;z-index:50;
+}
+.tb::before{content:"";position:absolute;inset-inline:0;top:0;height:3px;background:linear-gradient(90deg,transparent 5%,var(--navy) 25%,var(--gold) 50%,var(--navy) 75%,transparent 95%)}
+.tb .wrap{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:relative;z-index:1}
+.brand{display:inline-flex;align-items:center;gap:14px}
+.brand img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(26,16,64,.15))}
+.brand .t{font-size:28px;font-weight:800;color:var(--navy);letter-spacing:-.5px;font-family:Tajawal,Inter,sans-serif}
+.ql{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+a.bx{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;font-weight:700;font-size:12.5px;text-decoration:none;border:1px solid;transition:.2s ease;font-family:Inter,Tajawal,sans-serif}
+a.bx.p{background:linear-gradient(180deg,var(--gold),var(--gold2));color:var(--navy);border-color:var(--gold2);box-shadow:0 2px 10px rgba(201,168,106,.32)}
+a.bx.n{background:linear-gradient(180deg,var(--navy),var(--navy2));color:#fff;border-color:var(--navy);box-shadow:0 3px 12px rgba(26,16,64,.25)}
+a.bx.s{background:var(--surface);border-color:var(--border);color:var(--text);box-shadow:var(--sh-xs)}
 a.bx:hover{transform:translateY(-1.5px)}
-.main{max-width:1280px;margin:0 auto;padding:32px 24px 120px}
-.hd{margin-bottom:22px}
-.hd .pi{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:rgba(201,164,110,.12);color:var(--g2);border:1px solid rgba(201,164,110,.3);font-weight:700;font-size:12px}
-.hd h1{font-size:32px;margin:14px 0 8px;color:var(--t);letter-spacing:-.4px;font-weight:800}
-.hd .sub{color:var(--ts);font-size:15px;line-height:1.8;margin:0}
-.loadbox{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:36px 28px;text-align:center;box-shadow:0 1px 3px rgba(26,24,22,.04);margin-bottom:22px}
-.ldr{display:inline-block;width:28px;height:28px;border:3px solid var(--b);border-top-color:var(--g);border-radius:50%;animation:sp 1s linear infinite;margin-bottom:14px}
+.main{max-width:1280px;margin:0 auto;padding:34px 24px 120px}
+.hero{
+  background:linear-gradient(135deg,#1A1040 0%,#2A1B5C 55%,#1A1040 100%);
+  border-radius:20px;padding:44px 40px;margin:0 0 26px;color:#fff;position:relative;overflow:hidden;
+  box-shadow:0 14px 50px rgba(26,16,64,.28)
+}
+.hero::before{content:"";position:absolute;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,106,.32),transparent 65%);top:-160px;inset-inline-start:-120px;pointer-events:none}
+.hero::after{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,106,.2),transparent 70%);bottom:-140px;inset-inline-end:-100px;pointer-events:none}
+.hero .row{display:flex;align-items:center;gap:20px;position:relative;z-index:1}
+.hero img{width:68px;height:68px;object-fit:contain;filter:drop-shadow(0 8px 22px rgba(201,168,106,.42))}
+.hero h1{margin:0 0 6px;font-size:34px;font-weight:900;letter-spacing:-.8px;font-family:Tajawal,Inter,sans-serif}
+.hero h1 span{background:linear-gradient(90deg,#F4EBDB 0%,#D9BD95 55%,#C9A86A 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{margin:0;color:rgba(255,255,255,.82);font-size:16px;line-height:1.9;position:relative;z-index:1}
+.hero .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;position:relative;z-index:1}
+.hero .chip{display:inline-flex;align-items:center;gap:7px;padding:9px 17px;border-radius:999px;background:rgba(201,168,106,.2);border:1px solid rgba(201,168,106,.4);color:#F4EBDB;font-size:12.5px;font-weight:700}
+.hero .chip.solid{background:linear-gradient(180deg,var(--gold),var(--gold2));color:var(--navy);border-color:transparent;font-weight:900;box-shadow:0 4px 14px rgba(201,168,106,.38)}
+.hero code{background:rgba(26,16,64,.5);color:#F4EBDB;padding:3px 11px;border-radius:8px;margin-inline:6px;font-weight:700}
+.loadbox{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:40px 30px;text-align:center;box-shadow:var(--sh-sm);margin-bottom:24px}
+.ldr{display:inline-block;width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite;margin-bottom:16px}
 @keyframes sp{to{transform:rotate(360deg)}}
-.ldt{font-size:16px;color:var(--t);font-weight:700;margin:0 0 4px}
-.lds{font-size:13px;color:var(--ts);margin:0 0 18px}
-.pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px}
-.pil{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;border:1px solid;font-size:12px;font-weight:700}
-.pil.p{background:rgba(201,164,110,.12);color:var(--g2);border-color:rgba(201,164,110,.3)}
-.pil.o{background:rgba(31,138,89,.1);color:var(--ok);border-color:rgba(31,138,89,.3)}
-.pil.b{background:rgba(189,59,47,.1);color:var(--bad);border-color:rgba(189,59,47,.3)}
-.gr{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:22px 0}
-.cd{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:22px;transition:.25s ease;box-shadow:0 1px 3px rgba(26,24,22,.04)}
-.cd:hover{transform:translateY(-2px);border-color:rgba(201,164,110,.5)}
-.cd h3{margin:0 0 8px;font-size:18px;color:var(--t)}
-.cd p{margin:0 0 14px;color:var(--tm);font-size:14px;line-height:1.7}
-.cd .tag{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(201,164,110,.12);color:var(--g2);font-size:11.5px;border:1px solid rgba(201,164,110,.3);font-weight:700;margin-bottom:10px}
+.ldt{font-size:17px;color:var(--text);font-weight:800;margin:0 0 4px;letter-spacing:-.3px}
+.lds{font-size:13.5px;color:var(--subtle);margin:0 0 20px}
+.pills{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.pil{display:inline-flex;align-items:center;gap:7px;padding:7px 15px;border-radius:999px;border:1px solid;font-size:12.5px;font-weight:700}
+.pil.p{background:rgba(201,168,106,.13);color:var(--gold2);border-color:rgba(201,168,106,.32)}
+.pil.o{background:rgba(45,138,97,.1);color:var(--ok);border-color:rgba(45,138,97,.28)}
+.pil.b{background:rgba(184,58,47,.1);color:var(--bad);border-color:rgba(184,58,47,.28)}
+.gr{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin:24px 0}
+.cd{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;transition:.25s ease;box-shadow:var(--sh-xs);position:relative;overflow:hidden}
+.cd::before{content:"";position:absolute;top:0;inset-inline-start:0;width:4px;height:100%;background:linear-gradient(180deg,var(--navy),var(--gold));opacity:.85;border-radius:4px}
+.cd:hover{transform:translateY(-2.5px);border-color:rgba(201,168,106,.5);box-shadow:var(--sh-md)}
+.cd h3{margin:0 0 10px;font-size:18.5px;color:var(--text);font-weight:800}
+.cd p{margin:0 0 16px;color:var(--muted);font-size:14.5px;line-height:1.8}
+.cd .tag{display:inline-block;padding:4px 12px;border-radius:999px;background:rgba(201,168,106,.13);color:var(--gold2);font-size:11.5px;border:1px solid rgba(201,168,106,.3);font-weight:700;margin-bottom:12px}
 #swagger-ui{position:relative;z-index:1}
-.swagger-ui .topbar{background:#fff!important;border-bottom:1px solid #EDE9E0!important;padding:14px 0!important;box-shadow:none!important;margin:0 -24px 32px!important;padding-inline:24px!important}
-.swagger-ui .info{background:#fff!important;border:1px solid #EDE9E0!important;border-radius:12px!important;padding:28px 32px!important;margin:0 0 24px!important;box-shadow:0 1px 2px rgba(26,24,22,.04)!important}
-.swagger-ui .opblock{border:1px solid #EDE9E0!important;border-radius:12px!important;margin:12px 0!important;background:#fff!important;box-shadow:0 1px 2px rgba(26,24,22,.04)!important;overflow:hidden!important}
-.basehint{background:linear-gradient(180deg,#fff,#F7F3EC);border:1px solid rgba(201,164,110,.22);border-radius:14px;padding:16px 20px;margin:22px 0 0;color:var(--tm);font-size:14px}
-.basehint b{color:var(--g2)}
-.basehint .ecs{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
-.basehint code{background:#F3ECDD;color:var(--g2);padding:3px 10px;border-radius:6px;font-size:12.5px;font-family:ui-monospace,Consolas,monospace;font-weight:600}
-@media(max-width:520px){.hd h1{font-size:26px}.main{padding:20px 16px 80px}}
+.swagger-ui .topbar{background:#fff!important;border-bottom:1px solid var(--border)!important;padding:14px 0!important;box-shadow:none!important;margin:0 -24px 32px!important;padding-inline:24px!important}
+.swagger-ui .info{background:#fff!important;border:1px solid var(--border)!important;border-radius:var(--r-lg)!important;padding:28px 32px!important;margin:0 0 24px!important;box-shadow:var(--sh-xs)!important}
+.swagger-ui .opblock{border:1px solid var(--border)!important;border-radius:var(--r-lg)!important;margin:12px 0!important;background:#fff!important;box-shadow:var(--sh-xs)!important;overflow:hidden!important}
+.basehint{background:linear-gradient(180deg,#fff,var(--gold-muted));border:1px solid rgba(201,168,106,.25);border-radius:14px;padding:18px 22px;margin:24px 0 0;color:var(--muted);font-size:14px;box-shadow:var(--sh-xs)}
+.basehint b{color:var(--gold2);font-weight:800;font-size:14.5px}
+.basehint .ecs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.basehint code{background:#fff;color:var(--navy);padding:4px 11px;border-radius:8px;font-size:12.5px;font-family:ui-monospace,Consolas,monospace;font-weight:700;border:1px solid rgba(201,168,106,.25);box-shadow:0 1px 2px rgba(26,16,64,.04)}
+@media(max-width:560px){
+  .hero{padding:30px 22px;border-radius:16px}
+  .hero h1{font-size:26px}.hero img{width:52px;height:52px}
+  .main{padding:22px 16px 80px}
+  .tb .wrap{padding:0 18px}
+  .brand img{width:38px;height:38px}.brand .t{font-size:24px}
+}
 </style>
 </head>
 <body>
-<div class="tb"><div class="wrap"><div class="logo">نور</div><div class="ql"><a class="bx s" href="${JSON_URL}">OpenAPI JSON ↓</a><a class="bx p" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">افتحي في Editor ↗</a></div></div></div>
+<div class="tb"><div class="wrap">
+  <div class="brand">
+    <img src="${LOGO}" alt="نور" onerror="this.style.display='none'"/>
+    <span class="t">نور</span>
+  </div>
+  <div class="ql">
+    <a class="bx s" href="${JSON_URL}">OpenAPI JSON ↓</a>
+    <a class="bx n" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">Swagger Editor ↗</a>
+  </div>
+</div></div>
 <div class="main">
-  <div class="hd">
-    <span class="pi">✨ Swagger / OpenAPI 3.1</span>
-    <h1>توثيق Noor API</h1>
-    <p class="sub">نسخة v1.0 — <b>53 endpoint</b> للقرآن الكريم · الأحاديث النبوية · مواقيت الصلاة · القبلة · التحديات · رحلة يومية كاملة لتطبيق Flutter.</p>
+  <div class="hero">
+    <div class="row">
+      <img src="${LOGO}" alt="نور" onerror="this.style.display='none'"/>
+      <div>
+        <h1>✨ توثيق <span>Noor API</span></h1>
+        <p>نسخة v1.0 — <b>53 endpoint</b> للقرآن الكريم · الأحاديث النبوية · مواقيت الصلاة · القبلة · التسبيح · التحديات · رحلة يومية كاملة لتطبيق Flutter.</p>
+        <div class="chips">
+          <span class="chip solid">🧭 Base URL: <code>/api/v1</code></span>
+          <span class="chip">📘 Swagger / OpenAPI 3.1</span>
+          <span class="chip">🔐 JWT Bearer Auth</span>
+          <span class="chip">⚡ Express 5 · Prisma 6</span>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="wrapBeforeSwagger">
     <div class="loadbox" id="loadBox">
       <div class="ldr" id="spinner"></div>
-      <p class="ldt">جارٍ تحميل واجهة التوثيق...</p>
+      <p class="ldt">جارٍ تحميل واجهة التوثيق التفاعلي...</p>
       <p class="lds" id="statusTxt">1/3 تحميل مكتبة Swagger UI من CDN</p>
-      <div class="pills" id="pillRow" style="margin-top:14px">
+      <div class="pills" id="pillRow" style="margin-top:16px">
         <span class="pil p" id="p1">⏳ واجهة Swagger</span>
         <span class="pil p" id="p2">⏳ API Specs</span>
         <span class="pil p" id="p3">⏳ العرض النهائي</span>
       </div>
-      <div style="margin-top:28px;padding-top:22px;border-top:1px dashed var(--b);text-align:center;color:var(--ts);font-size:13px">
+      <div style="margin-top:30px;padding-top:24px;border-top:1px dashed var(--border);text-align:center;color:var(--subtle);font-size:13.5px">
         <p style="margin:4px 0">إذا استغرق أكثر من ١٠ ثواني — الخيارات التالية تعمل ١٠٠٪ بدون الحاجة للـ CDN:</p>
-        <div class="gr" style="margin:14px auto 0;max-width:560px">
-          <div class="cd"><span class="tag">الأفضل للمطورين</span><h3>Swagger Editor الرسمي</h3><p>نفس واجهة Swagger بالكامل على موقع الرسمي + الاتصال بمواصفاتنا مباشرة.</p><a class="bx p" style="width:100%" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">افتحي الآن ↗</a></div>
-          <div class="cd"><span class="tag">فريق Flutter</span><h3>Postman Collection</h3><p>File → Import → رابط. تلصقي رابط الـ JSON بيولعلك 53 endpoint جاهزين للتجربة.</p><a class="bx s" style="width:100%" href="${JSON_URL}">نسخ رابط الـ JSON ↓</a></div>
+        <div class="gr" style="margin:16px auto 0;max-width:600px">
+          <div class="cd"><span class="tag">الأفضل للمطورين 💎</span><h3>Swagger Editor الرسمي</h3><p>نفس واجهة Swagger بالكامل على موقع الرسمي + الاتصال بمواصفاتنا مباشرة.</p><a class="bx n" style="width:100%" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">افتحي الآن ↗</a></div>
+          <div class="cd"><span class="tag">فريق Flutter 📮</span><h3>Postman Collection</h3><p>File → Import → رابط. ألصقي رابط الـ JSON بيولعلك 53 endpoint جاهزين.</p><a class="bx p" style="width:100%" href="${JSON_URL}">نسخ رابط الـ JSON ↓</a></div>
         </div>
       </div>
     </div>
@@ -163,7 +274,7 @@ a.bx:hover{transform:translateY(-1.5px)}
   <div class="basehint">
     <b>💡 نصيحة لفريق Flutter:</b> Base URL للإستخدام في التطبيق هو <code>' + location.origin + '/api/v1</code>
     <div class="ecs">
-      <code>/quran/surahs</code><code>/quran/surah/1</code><code>/content/verse-of-day</code><code>/prayers/today</code><code>/journey/today</code><code>/content/hadith-of-day</code><code>/challenges</code><code>/auth/login</code><code>/health</code>
+      <code>/quran/surahs</code><code>/quran/surah/1</code><code>/content/verse-of-day</code><code>/content/hadith-of-day</code><code>/prayers/today</code><code>/journey/today</code><code>/challenges</code><code>/tasbih</code><code>/qibla</code><code>/auth/login</code><code>/health</code>
     </div>
   </div>
 </div>
@@ -188,17 +299,18 @@ function showFriendlyFallback(reason){
   var rootA = document.getElementById('swagger-ui');
   if (rootA) {
     var html =
-      '<div style="max-width:880px;margin:0 auto;padding:6px 0 24px">' +
-      '<div style="background:rgba(189,59,47,.08);border:1px solid rgba(189,59,47,.25);color:var(--bad);padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:18px">⚠ ' + String(reason||'خطأ غير معروف').replace(/[<>&]/g,'') + '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">' +
-        '<div class="cd"><span class="tag">الخيار الأول 💎</span><h3>Swagger Editor الرسمي</h3><p>نفس الواجهة الأصلية مع نفس الـ 53 endpoints. زر Try it out شغال تمام.</p><a class="bx p" style="width:100%" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">افتحي في editor.swagger.io ↗</a></div>' +
-        '<div class="cd"><span class="tag">الخيار الثاني 📮</span><h3>استيراد لـ Postman</h3><p>File → Import → رابط. الصقي الـ URL تحت وبيجيبلك كل الـ endpoints مع parameters و responses.</p><a class="bx s" style="width:100%" href="${JSON_URL}">نسخ رابط الـ OpenAPI JSON ↓</a></div>' +
+      '<div style="max-width:920px;margin:0 auto;padding:6px 0 28px">' +
+      '<div style="background:rgba(184,58,47,.08);border:1px solid rgba(184,58,47,.28);color:var(--bad);padding:13px 20px;border-radius:14px;font-size:14px;font-weight:700;margin-bottom:20px">⚠ ' + String(reason||'خطأ غير معروف').replace(/[<>&]/g,'') + '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">' +
+        '<div class="cd"><span class="tag">الخيار الأول 💎</span><h3>Swagger Editor الرسمي</h3><p>نفس الواجهة الأصلية مع نفس الـ 53 endpoints. زر Try it out شغال تمام.</p><a class="bx n" style="width:100%" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">افتحي في editor.swagger.io ↗</a></div>' +
+        '<div class="cd"><span class="tag">الخيار الثاني 📮</span><h3>استيراد لـ Postman</h3><p>File → Import → رابط. الصقي الـ URL تحت وبيجيبلك كل الـ endpoints مع parameters و responses.</p><a class="bx p" style="width:100%" href="${JSON_URL}">نسخ رابط الـ OpenAPI JSON ↓</a></div>' +
         '<div class="cd"><span class="tag">الخيار الثالث 🔧</span><h3>استكشاف سريع من المتصفح</h3><p>الروابط الأساسية اللي فريق Flutter بيحتاجها للتجربة المباشرة.</p><div style="display:flex;gap:7px;flex-wrap:wrap">' +
           '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/health">/health</a>' +
           '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/quran/surahs">/quran/surahs</a>' +
           '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/content/verse-of-day">/verse-of-day</a>' +
-          '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/prayers/today?city=Riyadh">/prayers/today</a>' +
+          '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/prayers/today?city=Cairo">/prayers/today</a>' +
           '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/journey/today">/journey/today</a>' +
+          '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/tasbih">/tasbih</a>' +
         '</div></div>' +
       '</div></div>';
     rootA.innerHTML = html;
@@ -215,7 +327,7 @@ function showFriendlyFallback(reason){
     setTimeout(function(){
       if(!ok){ try{
         var s=document.createElement('style');
-        s.textContent='.swagger-ui{font-family:Inter,Segoe UI,sans-serif}.swagger-ui .topbar{display:none}.swagger-ui .info{padding:20px;background:#fff;border:1px solid var(--b);border-radius:12px;margin:16px 0}.opblock{border:1px solid var(--b);border-radius:12px;overflow:hidden;margin:12px 0;background:#fff}.opblock-summary{padding:14px;display:flex;gap:14px;align-items:center}.opblock-summary-method{padding:6px 14px;border-radius:6px;font-weight:700;color:#fff;font-size:12px}';
+        s.textContent='.swagger-ui{font-family:Inter,Segoe UI,sans-serif}.swagger-ui .topbar{display:none}.swagger-ui .info{padding:20px;background:#fff;border:1px solid var(--border);border-radius:14px;margin:16px 0}.opblock{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:12px 0;background:#fff}.opblock-summary{padding:14px;display:flex;gap:14px;align-items:center}.opblock-summary-method{padding:7px 16px;border-radius:8px;font-weight:700;color:#fff;font-size:12px}';
         document.head.appendChild(s); }catch(e){}
       }
     }, 4000);
@@ -254,7 +366,7 @@ loadScript('https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js',
       })
       .catch(function(err){
         if(got) return; got=true; clearTimeout(ft);
-        showFriendlyFallback('تعذر تحميل المواصفات: '+(err&&err.message?err.message:String(err))+'. جرّبي الخيارات أدناه وهي بتشتغل تمام.');
+        showFriendlyFallback('تعذر تحميل المواصفات: '+(err&&err.message?err.message:String(err))+'. جرّبي الخيارات وهي بتشتغل تمام.');
       });
   },
   function uiFailed(){
@@ -270,7 +382,6 @@ function render(spec){
         try{ presets.push(SwaggerUIStandalonePreset); }catch(_){} initSwagger(spec, presets);
       }, function(){ initSwagger(spec, presets); });
     }catch(_){ initSwagger(spec, presets); }
-    // Safety: init anyway after 1s even if standalone preset net barks
     setTimeout(function(){ if(!state.rendered) initSwagger(spec, presets); }, 1200);
   }catch(e){ showFriendlyFallback('خطأ أثناء تهيئة الواجهة: '+(e&&e.message?e.message:String(e))); }
 }
@@ -305,18 +416,30 @@ function applyStyle(){
   try{
     var a=document.querySelectorAll('.swagger-ui .topbar a'); if(a) a.forEach(function(el){el.style.display='none';});
     var tp=document.querySelector('.swagger-ui .topbar .wrapper');
-    if(tp){var lg=document.createElement('div');lg.style.cssText='font-size:26px;font-weight:800;color:var(--g);font-family:Tajawal,Inter,sans-serif;letter-spacing:-.8px';lg.textContent='نور';tp.insertBefore(lg,tp.firstChild);}
+    if(tp){
+      var lg=document.createElement('div');
+      lg.style.cssText='display:inline-flex;align-items:center;gap:12px';
+      lg.innerHTML='<img src="${LOGO}" alt="نور" style="width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(26,16,64,.15))" onerror="this.style.display=\\'none\\'"/>' +
+        '<span style="font-size:26px;font-weight:800;color:#1A1040;font-family:Tajawal,Inter,sans-serif;letter-spacing:-.5px">نور</span>';
+      tp.insertBefore(lg,tp.firstChild);
+    }
     document.querySelectorAll('.opblock-summary-method').forEach(function(m){
       var t=(m.textContent||'').trim();
-      if(t==='GET')m.style.background='#1F8A59';
-      else if(t==='POST')m.style.background='#2D5FB0';
-      else if(t==='PUT')m.style.background='#B38521';
-      else if(t==='PATCH')m.style.background='#6C5AA8';
-      else if(t==='DELETE')m.style.background='#BD3B2F';
-      m.style.borderRadius='6px'; m.style.padding='6px 14px'; m.style.fontWeight='700'; m.style.color='#fff';
+      if(t==='GET')m.style.background='linear-gradient(180deg,#34A276,#2D8A61)';
+      else if(t==='POST')m.style.background='linear-gradient(180deg,#3E63C2,#3555AE)';
+      else if(t==='PUT')m.style.background='linear-gradient(180deg,#C49A47,#A97D1F)';
+      else if(t==='PATCH')m.style.background='linear-gradient(180deg,#7866B5,#65529F)';
+      else if(t==='DELETE')m.style.background='linear-gradient(180deg,#D15247,#B83A2F)';
+      m.style.borderRadius='10px'; m.style.padding='7px 16px'; m.style.fontWeight='700'; m.style.color='#fff';
     });
-    document.querySelectorAll('.btn.authorize').forEach(function(b){b.style.background='var(--g)';b.style.border='1px solid var(--g2)';b.style.color='#fff';});
-    document.querySelectorAll('.btn.execute').forEach(function(b){b.style.background='var(--t)';b.style.border='1px solid var(--t)';b.style.color='#fff';});
+    document.querySelectorAll('.btn.authorize').forEach(function(b){
+      b.style.background='linear-gradient(180deg,#1A1040,#2A1B5C)';b.style.border='1px solid #1A1040';b.style.color='#fff';
+      b.style.borderRadius='10px';b.style.padding='10px 20px';b.style.fontWeight='700';b.style.boxShadow='0 3px 12px rgba(26,16,64,.25)';
+    });
+    document.querySelectorAll('.btn.execute').forEach(function(b){
+      b.style.background='linear-gradient(180deg,#C9A86A,#B39156)';b.style.border='1px solid #B39156';b.style.color='#1A1040';
+      b.style.borderRadius='10px';b.style.padding='10px 20px';b.style.fontWeight='800';b.style.boxShadow='0 3px 12px rgba(201,168,106,.35)';
+    });
   }catch(_){}
 }
 </script>
