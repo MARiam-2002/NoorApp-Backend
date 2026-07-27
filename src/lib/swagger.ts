@@ -1,7 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import fs from 'node:fs';
-import type { Express } from 'express';
+import type { Express, Request, Response, NextFunction } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { env, appConfig, getApiBasePath } from '../config';
@@ -183,29 +183,143 @@ function buildSwaggerSpec() {
 
 export const swaggerSpec = buildSwaggerSpec();
 
+function buildFallbackSwaggerHtml(specUrl: string): string {
+  const jsonSerialized = JSON.stringify(swaggerSpec);
+  return `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#C9A46E" />
+<title>${env.SWAGGER_TITLE} | توثيق API</title>
+<style>
+${NOOR_PREMIUM_CSS}
+#swagger-ui { max-width: 1280px; margin: 0 auto; padding: 0 24px 80px; }
+html,body{margin:0;background:#FAFAF8}
+.load-wrap{display:flex;align-items:center;justify-content:center;min-height:60vh;color:#8A8580;font-family:Inter,Segoe UI,Tajawal,sans-serif}
+.loader{display:inline-block;width:22px;height:22px;border:3px solid #EDE9E0;border-top-color:#C9A46E;border-radius:50%;animation:sp 1s linear infinite;margin-inline-end:12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css"
+      onerror="this.onerror=null;this.parentElement.insertAdjacentHTML('beforeend','<style>.swagger-ui .opblock-tag{display:flex!important}</style>');" />
+</head>
+<body>
+<div id="swagger-ui"><div class="load-wrap"><span class="loader"></span><span>جارٍ تحميل توثيق Noor API...</span></div></div>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"
+        onerror="this.onerror=null;
+        document.getElementById('swagger-ui').innerHTML='<div style=&quot;padding:40px;font-family:Segoe UI,Tajawal,sans-serif;color:#65605B&quot;><h2 style=&quot;color:#C9A46E&quot;>⚠ لا يمكن تحميل واجهة Swagger من الإنترنت</h2><p>استخدم خيارات أخرى:</p><ul><li>احفظي ملف <a href=&quot;${specUrl}&quot;>${specUrl}</a> وافتحيه في <a href=&quot;https://editor.swagger.io&quot; target=&quot;_blank&quot;>editor.swagger.io</a></li><li>أو استخدمي Postman: File → Import → رابط: <code>${specUrl}</code></li></ul></div>';"></script>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+<script>
+window.addEventListener('load', function(){
+  try {
+    var ui = SwaggerUIBundle({
+      spec: ${jsonSerialized},
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      persistAuthorization: true,
+      docExpansion: 'list',
+      filter: true,
+      tryItOutEnabled: false,
+      showRequestDuration: true,
+      supportedSubmitMethods: ['get','post','put','delete','patch'],
+      validatorUrl: null,
+      presets: [SwaggerUIBundle.presets.apis, (typeof SwaggerUIStandalonePreset !== 'undefined') ? SwaggerUIStandalonePreset : []],
+      layout: 'BaseLayout',
+      onComplete: function(){
+        var topb = document.querySelector('.swagger-ui .topbar');
+        if (topb) { topb.style.background = '#FFFFFF'; topb.style.padding='14px 0'; topb.style.boxShadow='none'; topb.style.margin='0 -24px 32px'; topb.style.paddingInline='24px'; }
+        var title = document.querySelector('.swagger-ui .topbar .wrapper a');
+        if (title) title.style.display='none';
+        var wrap = document.querySelector('.swagger-ui .topbar .wrapper');
+        if (wrap) { var l = document.createElement('div'); l.style.cssText='font-size:26px;font-weight:800;color:#C9A46E;font-family:Tajawal,Inter,sans-serif;letter-spacing:-0.8px;'; l.textContent='نور'; wrap.insertBefore(l, wrap.firstChild); }
+        document.querySelectorAll('.info').forEach(function(e){e.style.background='#FFFFFF';e.style.border='1px solid #EDE9E0';e.style.borderRadius='12px';e.style.padding='32px 36px';});
+        document.querySelectorAll('.opblock').forEach(function(e){e.style.border='1px solid #EDE9E0';e.style.borderRadius='12px';e.style.background='#FFFFFF';e.style.boxShadow='0 1px 2px rgba(26,24,22,0.04)';e.style.overflow='hidden';});
+        var m = document.querySelectorAll('.opblock-summary-method');
+        for (var i=0;i<m.length;i++){var t=m[i].textContent||'';if(t==='GET')m[i].style.background='#1F8A59';else if(t==='POST')m[i].style.background='#2D5FB0';else if(t==='PUT')m[i].style.background='#B38521';else if(t==='PATCH')m[i].style.background='#6C5AA8';else if(t==='DELETE')m[i].style.background='#BD3B2F';}
+        var b = document.querySelectorAll('.btn.authorize');
+        for (var i=0;i<b.length;i++){b[i].style.background='#C9A46E';b[i].style.border='1px solid #B08F56';b[i].style.color='#FFFFFF';}
+        var ex = document.querySelectorAll('.btn.execute');
+        for (var i=0;i<ex.length;i++){ex[i].style.background='#1A1816';ex[i].style.border='1px solid #1A1816';ex[i].style.color='#FFFFFF';}
+      }
+    });
+  } catch (e) {
+    document.getElementById('swagger-ui').innerHTML =
+      '<div style="padding:40px;font-family:Segoe UI,Tajawal,sans-serif;color:#65605B">' +
+      '<h2 style="color:#BD3B2F">⚠ خطأ أثناء تحميل Swagger</h2>' +
+      '<p>تفاصيل الخطأ: <code style="background:#F3ECDD;padding:4px 10px;border-radius:6px">' + String(e && e.message || e).replace(/[<>&]/g,'') + '</code></p>' +
+      '<p>تحميل مباشر للملف: <a href="${specUrl}">${specUrl}</a></p>' +
+      '</div>';
+  }
+});
+</script>
+</body>
+</html>`;
+}
+
 export function setupSwagger(app: Express): void {
   if (!env.SWAGGER_ENABLED) return;
-  const docsPath = `${getApiBasePath()}/docs`;
-  app.use(
-    docsPath,
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec, {
-      customSiteTitle: `${env.SWAGGER_TITLE} | توثيق API`,
-      customCss: NOOR_PREMIUM_CSS,
-      swaggerOptions: {
-        persistAuthorization: true,
-        docExpansion: 'list',
-        filter: true,
-        tryItOutEnabled: false,
-        showRequestDuration: true,
-        deepLinking: true,
-        supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
-        validatorUrl: null,
-      },
-    }),
-  );
+  const base = getApiBasePath();
+  const docsPath = `${base}/docs`;
+  const jsonPath = `${base}/swagger.json`;
+
+  app.get(jsonPath, (_req, res) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    res.send(swaggerSpec);
+  });
+
   app.get(`${docsPath}.json`, (_req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.send(swaggerSpec);
   });
+
+  function serveDocsHtml(req: Request, res: Response, next: NextFunction) {
+    if (req.method !== 'GET') return next();
+    const p = (req.path || '').replace(/\/+$/, '');
+    const clean = p === '' || p === '/index.html' || p === '/' || p.endsWith('/docs') || p.endsWith('/docs/');
+    if (!clean) return next();
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=86400');
+    res.send(buildFallbackSwaggerHtml(jsonPath));
+  }
+
+  try {
+    app.get(`${docsPath}/`, serveDocsHtml);
+    app.get(docsPath, serveDocsHtml);
+    app.get(`${docsPath}/index.html`, serveDocsHtml);
+
+    app.use(
+      docsPath,
+      (req: Request, res: Response, next: NextFunction) => {
+        if (req.method === 'GET') {
+          const rp = (req.path || '').replace(/\/+$/, '');
+          if (rp === '' || rp === '/index.html') {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.send(buildFallbackSwaggerHtml(jsonPath));
+            return;
+          }
+        }
+        next();
+      },
+      swaggerUi.serve,
+      swaggerUi.setup(swaggerSpec, {
+        customSiteTitle: `${env.SWAGGER_TITLE} | توثيق API`,
+        customCss: NOOR_PREMIUM_CSS,
+        swaggerOptions: {
+          persistAuthorization: true,
+          docExpansion: 'list',
+          filter: true,
+          tryItOutEnabled: false,
+          showRequestDuration: true,
+          deepLinking: true,
+          supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+          validatorUrl: null,
+        },
+      }),
+    );
+  } catch (err: any) {
+    logger.warn('[Swagger] swagger-ui-express setup failed, using inline fallback only', { err: err?.message });
+    app.get(`${docsPath}/`, serveDocsHtml);
+    app.get(docsPath, serveDocsHtml);
+  }
 }
