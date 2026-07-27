@@ -5,7 +5,7 @@
   "buildCommand": "npm run vercel-build",
   "installCommand": "npm install",
   "functions": {
-    "api/index.cjs": {
+    "api/index.js": {
       "includeFiles": "dist/**",
       "maxDuration": 60
     }
@@ -13,7 +13,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/index.cjs"
+      "destination": "/api/index.js"
     }
   ]
 }
