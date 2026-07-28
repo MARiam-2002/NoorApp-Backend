@@ -456,38 +456,41 @@ function buildSwaggerSpec() {
         },
         SignupRequest: {
           type: 'object',
-          required: ['username', 'email', 'password'],
+          required: ['fullName', 'email', 'password'],
           properties: {
-            username: {
+            fullName: {
               type: 'string',
-              example: 'noor_user',
-              minLength: 3,
-              description: 'اسم المستخدم الفريد',
+              example: 'أحمد محمد علي',
+              minLength: 2,
+              description:
+                'اسم المستخدم (مطلوب) — الاسم الكامل اللي بيظهر في الشاشة والبروفايل (الذى يظهر كـ "اسم المستخدم" في شاشة التسجيل)',
             },
             email: {
               type: 'string',
               format: 'email',
-              example: 'noor@example.com',
-              description: 'البريد الإلكتروني',
+              example: 'AhmedMohamed@gmail.com',
+              description: 'البريد الإلكتروني (مطلوب)',
             },
             password: {
               type: 'string',
               format: 'password',
               example: 'StrongPass123!',
               minLength: 6,
-              description: 'كلمة المرور (6 أحرف على الأقل)',
+              description: 'كلمة المرور (مطلوبة، 6 أحرف على الأقل، حرف + رقم)',
             },
-            fullName: {
+            username: {
               type: 'string',
-              example: 'مريم خالد',
-              description: 'الاسم الكامل للمستخدم (اختياري)',
+              example: 'ahmed_mohamed',
+              minLength: 2,
+              nullable: true,
+              description:
+                '(اختياري تماماً - لاتحتاج تبعته من الفلاتر) اسم المستخدم الفريد (الـ handle). لو متبعتوش النظام بيولده تلقائياً من جزء الـ email (مثال: ahmedmohamed_8472)',
             },
           },
           example: {
-            username: 'noor_user',
-            email: 'noor@example.com',
+            fullName: 'أحمد محمد',
+            email: 'AhmedMohamed@gmail.com',
             password: 'StrongPass123!',
-            fullName: 'مريم خالد',
           },
         },
         LoginRequest: {

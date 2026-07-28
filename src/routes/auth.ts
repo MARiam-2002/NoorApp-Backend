@@ -10,11 +10,19 @@ import { validate, passwordFieldSchema } from '../lib/validation';
 import * as authController from '../controllers/auth.controller';
 
 const signUpSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(2, 'Full name must be at least 2 characters')
+    .max(150, 'Full name must be at most 150 characters')
+    .optional()
+    .nullable(),
   username: z
     .string()
     .trim()
     .min(2, 'Username must be at least 2 characters')
-    .max(100, 'Username must be at most 100 characters'),
+    .max(100, 'Username must be at most 100 characters')
+    .optional(),
   email: z.string().trim().email('Invalid email'),
   password: passwordFieldSchema,
 });

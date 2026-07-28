@@ -7,12 +7,18 @@ import { ErrorCodes, HttpStatus } from '../config';
 import * as authService from '../services/auth.service';
 
 export const signUp = asyncHandler(async (req: Request, res: Response) => {
-  const { username, email, password } = req.body as {
-    username: string;
+  const { username, fullName, email, password } = req.body as {
+    username?: string | null;
+    fullName?: string | null;
     email: string;
     password: string;
   };
-  const result = await authService.signUp({ username, email, password });
+  const result = await authService.signUp({
+    ...(username ? { username } : {}),
+    ...(fullName ? { fullName } : {}),
+    email,
+    password,
+  });
 
   sendSuccess(res, result, 'Account created successfully', req, HttpStatus.CREATED);
 });

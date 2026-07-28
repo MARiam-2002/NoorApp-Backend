@@ -33,8 +33,18 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
     );
   }
 
-  const { username, email } = req.body as { username: string; email?: string };
-  const data = await profileService.updateProfile(userId, { username, email });
+  const { username, fullName, email, timezone } = req.body as {
+    username?: string;
+    fullName?: string | null;
+    email?: string;
+    timezone?: string;
+  };
+  const data = await profileService.updateProfile(userId, {
+    ...(username !== undefined && { username }),
+    ...(fullName !== undefined && { fullName: fullName === null ? null : fullName }),
+    ...(email !== undefined && { email }),
+    ...(timezone !== undefined && { timezone }),
+  });
 
   sendSuccess(res, data, 'User profile updated successfully', req);
 });

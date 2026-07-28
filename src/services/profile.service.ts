@@ -6,6 +6,7 @@ import { hashPassword, verifyPassword } from '../lib/auth';
 export type UserProfile = {
   id: string;
   username: string;
+  fullName: string | null;
   email: string;
   points: number;
   timezone: string | null;
@@ -19,6 +20,7 @@ export async function getProfile(userId: string): Promise<UserProfile> {
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       points: true,
       timezone: true,
@@ -40,7 +42,7 @@ export async function getProfile(userId: string): Promise<UserProfile> {
 
 export async function updateProfile(
   userId: string,
-  data: { username: string; email?: string },
+  data: { username?: string; fullName?: string | null; email?: string; timezone?: string },
 ): Promise<UserProfile> {
   if (data.email !== undefined) {
     const existingUser = await prisma.user.findUnique({
@@ -57,9 +59,30 @@ export async function updateProfile(
     }
   }
 
-  const updateData: { username?: string; email?: string } = {};
-  if (data.username !== undefined) updateData.username = data.username;
+  if (data.username !== undefined) {
+    const usernameExists = await prisma.user.count({
+      where: {
+        AND: [
+          { username: { equals: data.username.trim(), mode: 'insensitive' } },
+          { NOT: { id: userId } },
+        ],
+      },
+    });
+    if (usernameExists > 0) {
+      throw new AppError(
+        'Username is already taken',
+        HttpStatus.CONFLICT,
+        ErrorCodes.CONFLICT,
+        { field: 'username' },
+      );
+    }
+  }
+
+  const updateData: { username?: string; fullName?: string | null; email?: string; timezone?: string } = {};
+  if (data.username !== undefined) updateData.username = data.username.trim();
+  if (data.fullName !== undefined) updateData.fullName = data.fullName ? data.fullName.trim() : null;
   if (data.email !== undefined) updateData.email = data.email.toLowerCase();
+  if (data.timezone !== undefined) updateData.timezone = data.timezone;
 
   const updatedProfile = await prisma.user.update({
     where: { id: userId },
@@ -67,6 +90,7 @@ export async function updateProfile(
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       points: true,
       timezone: true,
@@ -159,6 +183,7 @@ export async function updateLocation(
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       points: true,
       timezone: true,

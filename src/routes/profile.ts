@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { authenticate } from '../middleware/auth';
 import { validate } from '../shared/utils/validator';
+import { ianaTimezoneSchema } from '../shared/schemas/validation.schemas';
 import * as profileController from '../controllers/profile.controller';
 
 const updateProfileSchema = z.object({
@@ -10,8 +11,17 @@ const updateProfileSchema = z.object({
     .string()
     .trim()
     .min(3, 'Username must be at least 3 characters')
-    .max(100, 'Username must be at most 100 characters'),
+    .max(100, 'Username must be at most 100 characters')
+    .optional(),
+  fullName: z
+    .string()
+    .trim()
+    .min(2, 'Full name must be at least 2 characters')
+    .max(150, 'Full name must be at most 150 characters')
+    .nullable()
+    .optional(),
   email: z.string().trim().email('Invalid email format').optional(),
+  timezone: ianaTimezoneSchema.optional(),
 });
 
 const changePasswordSchema = z.object({

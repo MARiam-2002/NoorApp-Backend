@@ -14,6 +14,32 @@ import {
 } from '../lib/auth';
 import { logger } from '../lib/logger';
 
+function generateUsernameFromEmail(email: string): string {
+  const localPart = email.toLowerCase().split('@')[0] || 'user';
+  const base = localPart.replace(/[^a-z0-9_]/gi, '_').slice(0, 20);
+  const suffix = Math.floor(1000 + Math.random() * 9000);
+  return `${base || 'user'}_${suffix}`;
+}
+
+function normalizeUsername(username: string): string {
+  return username.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 30);
+}
+
+async function ensureUniqueUsername(preferred: string, attempt = 0): Promise<string> {
+  let candidate = attempt === 0
+    ? normalizeUsername(preferred || generateUsernameFromEmail(preferred))
+    : `${normalizeUsername(preferred).slice(0, 24)}_${1000 + Math.floor(Math.random() * 9000)}`;
+  const exists = await prisma.user.count({
+    where: { username: { equals: candidate, mode: 'insensitive' } },
+  });
+  if (exists === 0) return candidate;
+  if (attempt > 10) {
+    const uuid = Math.random().toString(36).slice(2, 10);
+    return `user_${uuid}`;
+  }
+  return ensureUniqueUsername(preferred, attempt + 1);
+}
+
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
@@ -23,6 +49,7 @@ export type AuthTokens = {
 export type AuthUserProfile = {
   id: string;
   username: string;
+  fullName: string | null;
   email: string;
   role: string;
   provider: string;
@@ -65,6 +92,7 @@ function hashResetToken(token: string): string {
 function mapUserToProfile(user: {
   id: string;
   username: string;
+  fullName: string | null;
   email: string;
   role: UserRole;
   provider: string;
@@ -73,6 +101,7 @@ function mapUserToProfile(user: {
   return {
     id: user.id,
     username: user.username,
+    fullName: user.fullName ?? null,
     email: user.email,
     role: user.role,
     provider: user.provider,
@@ -83,6 +112,7 @@ function mapUserToProfile(user: {
 async function createAuthResultForUser(user: {
   id: string;
   username: string;
+  fullName: string | null;
   email: string;
   role: UserRole;
   provider: string;
@@ -111,7 +141,8 @@ async function createAuthResultForUser(user: {
 }
 
 export async function signUp(input: {
-  username: string;
+  username?: string;
+  fullName?: string | null;
   email: string;
   password: string;
 }): Promise<AuthResult> {
@@ -124,11 +155,18 @@ export async function signUp(input: {
     });
   }
 
+  const preferredUsername = input.username?.trim()
+    ? input.username.trim()
+    : generateUsernameFromEmail(emailLower);
+
+  const username = await ensureUniqueUsername(preferredUsername);
+
   const passwordHash = await hashPassword(input.password);
 
   const user = await prisma.user.create({
     data: {
-      username: input.username.trim(),
+      username,
+      fullName: input.fullName ? input.fullName.trim() : null,
       email: emailLower,
       password: passwordHash,
       provider: 'LOCAL',
@@ -137,6 +175,7 @@ export async function signUp(input: {
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       role: true,
       provider: true,
@@ -156,6 +195,7 @@ export async function login(input: {
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       role: true,
       provider: true,
@@ -226,6 +266,7 @@ export async function refreshToken(input: { refreshToken: string }): Promise<Aut
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       role: true,
       provider: true,
@@ -261,6 +302,7 @@ export async function getCurrentUser(userId: string): Promise<AuthUserProfile> {
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       role: true,
       provider: true,
@@ -440,6 +482,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
     select: {
       id: true,
       username: true,
+      fullName: true,
       email: true,
       role: true,
       provider: true,
@@ -462,12 +505,14 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
       data: {
         email: emailLower,
         username: (googlePayload.name || emailLower.split('@')[0]) as string,
+        fullName: googlePayload.name || null,
         provider: 'GOOGLE',
         role: UserRole.USER,
       },
       select: {
         id: true,
         username: true,
+        fullName: true,
         email: true,
         role: true,
         provider: true,
@@ -485,6 +530,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
       select: {
         id: true,
         username: true,
+        fullName: true,
         email: true,
         role: true,
         provider: true,

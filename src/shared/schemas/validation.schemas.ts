@@ -33,7 +33,19 @@ export const coordinatesSchema = z.object({
 
 // ============= Auth Schemas =============
 export const signUpSchema = z.object({
-  username: usernameSchema,
+  fullName: z
+    .string()
+    .trim()
+    .min(2, 'Full name must be at least 2 characters')
+    .max(150, 'Full name must be at most 150 characters')
+    .optional()
+    .nullable(),
+  username: z
+    .string()
+    .trim()
+    .min(2, 'Username must be at least 2 characters')
+    .max(100, 'Username must be at most 100 characters')
+    .optional(),
   email: emailSchema,
   password: passwordSchema,
 });
