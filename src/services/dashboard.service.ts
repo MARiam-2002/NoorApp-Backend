@@ -5,7 +5,7 @@ import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { calculateDailyPrayerSchedule } from './prayer.service';
 import type { DailyPrayerSchedule } from './prayer.service';
-import { getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import { DefaultTimezone, PrayerNameEnum } from '../utils/constants';
 
@@ -14,7 +14,15 @@ const DEFAULT_LONGITUDE = 31.2357;
 const TOTAL_QURAN_PAGES = 604;
 
 export type DashboardData = {
-  greeting: { username: string; points: number };
+  greeting: {
+    displayName: string;
+    fullName: string | null;
+    username: string;
+    points: number;
+    weekdayName: string;
+    hijriDate: string;
+    gregorianDate: string;
+  };
   prayers: DailyPrayerSchedule;
   verseOfTheDay: {
     textAr: string;
@@ -110,6 +118,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     select: {
       id: true,
       username: true,
+      fullName: true,
       points: true,
       timezone: true,
       latitude: true,
@@ -122,6 +131,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
   }
 
   const dayOfYear = getDayOfYear();
+  const todayInfo = formatArabicDateInfo();
 
   const [
     completedPrayers,
@@ -172,10 +182,18 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       )
     : false;
 
+  const displayName =
+    user.fullName?.trim() || user.username;
+
   return {
     greeting: {
+      displayName,
+      fullName: user.fullName ?? null,
       username: user.username,
       points: user.points,
+      weekdayName: todayInfo.weekdayName,
+      hijriDate: todayInfo.hijri,
+      gregorianDate: todayInfo.gregorian,
     },
     prayers,
     verseOfTheDay: verse

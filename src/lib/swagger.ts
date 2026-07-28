@@ -456,14 +456,15 @@ function buildSwaggerSpec() {
         },
         SignupRequest: {
           type: 'object',
-          required: ['fullName', 'email', 'password'],
+          required: ['email', 'password'],
           properties: {
             fullName: {
               type: 'string',
               example: 'أحمد محمد علي',
               minLength: 2,
+              nullable: true,
               description:
-                'اسم المستخدم (مطلوب) — الاسم الكامل اللي بيظهر في الشاشة والبروفايل (الذى يظهر كـ "اسم المستخدم" في شاشة التسجيل)',
+                '(اختياري في الـ API — مطلوب في شاشة الفلاتر) الاسم الكامل اللي بيظهر في الشاشة والبروفايل (الذى يظهر كـ "اسم المستخدم" في شاشة التسجيل). لو متبعتوش هيفضل null في الـ DB، وسيتم توليد displayName من username تلقائياً.',
             },
             email: {
               type: 'string',
@@ -484,7 +485,7 @@ function buildSwaggerSpec() {
               minLength: 2,
               nullable: true,
               description:
-                '(اختياري تماماً - لاتحتاج تبعته من الفلاتر) اسم المستخدم الفريد (الـ handle). لو متبعتوش النظام بيولده تلقائياً من جزء الـ email (مثال: ahmedmohamed_8472)',
+                '(اختياري تماماً — لا تحتاج تبعته من الفلاتر أبداً) اسم المستخدم الفريد (الـ handle). لو متبعتوش النظام بيولده تلقائياً من جزء الـ email (مثال: ahmedmohamed_8472)',
             },
           },
           example: {
@@ -791,164 +792,365 @@ function buildSwaggerSpec() {
           properties: {
             greeting: {
               type: 'object',
+              description: 'بيانات التحية في أعلى الشاشة (أهلاً بـ + اسم اليوم + التاريخ الهجري + النقاط)',
+              required: ['displayName', 'username', 'points', 'weekdayName', 'hijriDate', 'gregorianDate'],
               properties: {
-                text: { type: 'string', example: 'صباح الخير، مريم 🌸' },
-                points: { type: 'integer', example: 2450 },
-                level: { type: 'integer', example: 5 },
-                streakDays: { type: 'integer', example: 12 },
+                displayName: {
+                  type: 'string',
+                  example: 'أحمد محمد علي',
+                  description:
+                    'الاسم اللي بيظهر في "أهلا ..." في أعلى الشاشة. بياخد fullName لو موجود، غير كده بياخد الـ username (فاللوبي مش هيتعرض فيه قيمة فارغة أبداً)',
+                },
+                fullName: {
+                  type: 'string',
+                  example: 'أحمد محمد علي',
+                  nullable: true,
+                  description:
+                    'الاسم الكامل من قاعدة البيانات (nullable — لو المستخدم سجل بدون اسم بيكون null)',
+                },
+                username: {
+                  type: 'string',
+                  example: 'ahmed_mohamed_8472',
+                  description: 'اسم المستخدم الفريد (auto-generated من الـ email لو متبعتوش)',
+                },
+                points: { type: 'integer', example: 2450, description: 'إجمالي نقاط المستخدم' },
+                weekdayName: {
+                  type: 'string',
+                  example: 'السبت',
+                  description: 'اسم اليوم بالعربية (الأحد..السبت) — ده اللي في أعلى الشاشة يمين',
+                },
+                hijriDate: {
+                  type: 'string',
+                  example: '15 ذو القعدة 1447',
+                  description:
+                    'التاريخ الهجري بالعربية بتقويم أم القرى — زي ما هو موجود في أعلى الشاشة (بجوار اسم اليوم)',
+                },
+                gregorianDate: {
+                  type: 'string',
+                  example: '28 يوليو 2026',
+                  description: 'التاريخ الميلادي بالعربية (fallback للعرض لو محتاجاه)',
+                },
               },
             },
             prayers: {
               type: 'object',
+              description: 'كارت أوقات الصلاة الكامل — 5 صلوات + العداد التنازلي للصلاة القادمة',
+              required: ['date', 'timezone', 'nextPrayer', 'schedule', 'completedCount', 'totalCount'],
               properties: {
-                date: { type: 'string', example: '2026-07-27' },
-                currentPrayer: { type: 'string', example: 'DHUHR' },
-                nextPrayer: { type: 'string', example: 'ASR' },
-                nextPrayerAt: { type: 'string', example: '2026-07-27T15:24:00.000Z' },
-                countdownSeconds: { type: 'integer', example: 5830 },
-                list: {
+                date: { type: 'string', example: '2026-07-28', description: 'تاريخ اليوم YYYY-MM-DD' },
+                timezone: { type: 'string', example: 'Africa/Cairo' },
+                nextPrayer: {
+                  type: 'object',
+                  nullable: true,
+                  description:
+                    'الصلاة القادمة حالياً (للعرض في أعلى الكارت + العداد التنازلي). لو كل الصلوات خلصت بيظهر أول صلاة في اليوم التالي.',
+                  required: ['name', 'nameAr', 'time', 'countdownSeconds'],
+                  properties: {
+                    name: {
+                      type: 'string',
+                      enum: ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'],
+                      example: 'ASR',
+                    },
+                    nameAr: {
+                      type: 'string',
+                      example: 'صلاة العصر',
+                      description: 'الاسم بالعربي الظاهر في الشاشة (مثل "صلاة العصر")',
+                    },
+                    time: { type: 'string', example: '15:24', description: 'وقت الصلاة HH:mm' },
+                    countdownSeconds: {
+                      type: 'integer',
+                      example: 4468,
+                      description:
+                        'العدد بالثواني المتبقية حتى الصلاة القادمة — الفلاتر بيحولها لـ HH:MM:SS مباشرة (مثل 01:14:28 في الصورة)',
+                    },
+                  },
+                },
+                schedule: {
                   type: 'array',
+                  description:
+                    'مصفوفة 5 عناصر بالترتيب: الفجر، الظهر، العصر، المغرب، العشاء. لكل واحد الوقت و هل اتصلت ولا لا (النقطة الذهبية في الشاشة).',
                   items: {
                     type: 'object',
+                    required: ['name', 'nameAr', 'time', 'completed'],
                     properties: {
-                      id: { type: 'string', enum: ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'] },
+                      name: {
+                        type: 'string',
+                        enum: ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'],
+                      },
                       nameAr: { type: 'string', example: 'الظهر' },
-                      time: { type: 'string', example: '12:30' },
-                      completed: { type: 'boolean', example: true },
+                      time: { type: 'string', example: '12:30', description: 'الوقت HH:mm في الـ timezone بتاع المستخدم' },
+                      completed: {
+                        type: 'boolean',
+                        example: true,
+                        description:
+                          'لو true → النقطة تحت الاسم بتلون ذهبي ✅، لو false → رمادية ⚪ (زي ما هي في الشاشة تحت كل صلاة)',
+                      },
+                    },
+                  },
+                },
+                completedCount: {
+                  type: 'integer',
+                  example: 2,
+                  description: 'عدد الصلوات اللي المستخدم سجلها اليوم (في رحلتك اليومية)',
+                },
+                totalCount: {
+                  type: 'integer',
+                  example: 5,
+                  description: 'إجمالي الصلوات في اليوم (ثابت 5)',
+                },
+              },
+            },
+            verseOfTheDay: {
+              type: 'object',
+              nullable: true,
+              description: 'آية اليوم (كارت منفصل في الشاشة)',
+              required: ['textAr', 'referenceAr', 'surahNumber', 'ayahNumber'],
+              properties: {
+                textAr: {
+                  type: 'string',
+                  example: 'الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ اللَّهِ ۗ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
+                  description: 'نص الآية بالعربية',
+                },
+                referenceAr: {
+                  type: 'string',
+                  example: '[ الرعد: 28 ]',
+                  description: 'المرجع بالعربية (اسم السورة + رقم الآية) زي ما هو موجود تحت الآية في الشاشة',
+                },
+                surahNumber: { type: 'integer', example: 13 },
+                ayahNumber: { type: 'integer', example: 28 },
+              },
+            },
+            hadithOfTheDay: {
+              type: 'object',
+              nullable: true,
+              description: 'حديث اليوم (الكارت الأخير في الأسفل)',
+              required: ['textAr', 'sourceAr'],
+              properties: {
+                textAr: {
+                  type: 'string',
+                  example: 'المؤمن للمؤمن كالبنيان يشد بعضه بعضاً',
+                },
+                sourceAr: {
+                  type: 'string',
+                  example: '[ متفق عليه ]',
+                  description: 'المصدر بالعربية (أقواس زي ما هو في الشاشة)',
+                },
+              },
+            },
+            dailyJourney: {
+              type: 'object',
+              description: 'رحلتك اليومية — 4 كروت صغيرة: الصلاة + القرآن + الذكار + الصدقة',
+              required: ['prayer', 'quran', 'adhkar', 'sadaqah'],
+              properties: {
+                prayer: {
+                  type: 'object',
+                  description: 'كارت الصلاة في رحلتك اليومية',
+                  required: ['completed', 'total', 'progress'],
+                  properties: {
+                    completed: { type: 'integer', example: 3 },
+                    total: { type: 'integer', example: 5 },
+                    progress: {
+                      type: 'integer',
+                      example: 60,
+                      description: 'نسبة التقدم 0-100 (للـ progress bar تحت الكارت)',
+                    },
+                  },
+                },
+                quran: {
+                  type: 'object',
+                  description: 'كارت القرآن (صفحات اليوم)',
+                  required: ['pagesRead'],
+                  properties: {
+                    pagesRead: {
+                      type: 'integer',
+                      example: 4,
+                      description: 'عدد صفحات القرآن اللي اقرأها المستخدم اليوم (اللي فوق الـ "صفحات اليوم")',
+                    },
+                  },
+                },
+                adhkar: {
+                  type: 'object',
+                  description: 'كارت الذكار',
+                  required: ['completed'],
+                  properties: {
+                    completed: {
+                      type: 'boolean',
+                      example: true,
+                      description: 'لو true → يظهر علامة ✓ "تم الانجاز" تحت اسم الذكار في الكارت',
+                    },
+                  },
+                },
+                sadaqah: {
+                  type: 'object',
+                  description: 'كارت الصدقة',
+                  required: ['amount'],
+                  properties: {
+                    amount: {
+                      type: 'number',
+                      example: 25,
+                      description: 'قيمة الصدقة اليوم (لو 0 → الـ progress bar فاضي)',
                     },
                   },
                 },
               },
             },
-            verseOfDay: {
+            khatmah: {
               type: 'object',
+              nullable: true,
+              description: 'كارت "استكمل الختمة" — سورة + صفحة + نسبة تقدم',
+              required: ['surahId', 'surahNameEn', 'surahNameAr', 'currentPage', 'progressPercent'],
               properties: {
-                surahNumber: { type: 'integer', example: 2 },
-                surahNameAr: { type: 'string', example: 'البقرة' },
-                verseNumber: { type: 'integer', example: 255 },
-                text: { type: 'string', example: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ...' },
-                translation: { type: 'string', example: 'الله - لا إله إلا هو الحي القيوم...' },
-              },
-            },
-            hadithOfDay: {
-              type: 'object',
-              properties: {
-                narrator: { type: 'string', example: 'عن أبي هريرة رضي الله عنه' },
-                text: { type: 'string', example: 'من سلك طريقاً يلتمس فيه علماً سهّل الله له به طريقاً إلى الجنة...' },
-                source: { type: 'string', example: 'صحيح مسلم' },
-              },
-            },
-            journeyToday: {
-              type: 'object',
-              properties: {
-                quranPages: { type: 'integer', example: 3 },
-                quranGoal: { type: 'integer', example: 4 },
-                adhkarCompleted: { type: 'boolean', example: false },
-                sadaqahAmount: { type: 'number', example: 25 },
-                prayersCompleted: { type: 'integer', example: 3 },
-                overallPercent: { type: 'number', example: 68.5 },
-              },
-            },
-            khatmahProgress: {
-              type: 'object',
-              properties: {
-                currentSurah: { type: 'string', example: 'النحل' },
-                currentPage: { type: 'integer', example: 278 },
-                totalPages: { type: 'integer', example: 604 },
-                percent: { type: 'number', example: 46.03 },
-              },
-            },
-            todayChallenge: {
-              type: 'object',
-              properties: {
-                id: { type: 'integer', example: 208 },
-                titleAr: { type: 'string', example: 'اقرأ صفحتين من القرآن' },
-                descriptionAr: { type: 'string', example: 'اقرأ صفحتين على الأقل من القرآن الكريم اليوم' },
-                type: { type: 'string', example: 'QURAN_PAGES' },
-                target: { type: 'integer', example: 2 },
-                currentValue: { type: 'integer', example: 3 },
-                completed: { type: 'boolean', example: true },
-                rewardPoints: { type: 'integer', example: 50 },
-                claimed: { type: 'boolean', example: false },
-              },
-            },
-            quickTools: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  key: { type: 'string', example: 'TASBIH' },
-                  labelAr: { type: 'string', example: 'المسبحة' },
+                surahId: { type: 'integer', example: 2 },
+                surahNameEn: { type: 'string', example: 'Al-Baqarah' },
+                surahNameAr: {
+                  type: 'string',
+                  example: 'البقرة',
+                  description: 'اسم السورة بالعربية (ليش يظهر في أعلى الكارت زي الشاشة)',
+                },
+                currentPage: {
+                  type: 'integer',
+                  example: 35,
+                  description: 'رقم الصفحة الحالية ("صفحة 35" تحت اسم السورة)',
+                },
+                progressPercent: {
+                  type: 'integer',
+                  example: 6,
+                  description: 'نسبة التقدم في الختمة من 604 صفحة (0-100) للـ progress bar تحت الزر',
                 },
               },
-              example: [
-                { key: 'TASBIH', labelAr: 'المسبحة' },
-                { key: 'QIBLA', labelAr: 'القبلة' },
-              ],
+            },
+            dailyChallenge: {
+              type: 'object',
+              nullable: true,
+              description: 'تحدي اليوم + المكافأة',
+              required: ['titleAr', 'descriptionAr', 'rewardPoints', 'targetValue', 'completed', 'claimed'],
+              properties: {
+                titleAr: {
+                  type: 'string',
+                  example: 'اقرأ 5 صفحات من القرآن',
+                  description: 'عنوان التحدي (اللي مكتوب في الكارت)',
+                },
+                descriptionAr: {
+                  type: 'string',
+                  example: 'اقرأ 5 صفحات من القرآن الكريم اليوم للحصول على 50 نقطة',
+                },
+                rewardPoints: {
+                  type: 'integer',
+                  example: 50,
+                  description: 'عدد النقاط اللي هيتسلمها المستخدم لما ينجز التحدي — زي "+ 50 نقطة" في الشاشة',
+                },
+                targetValue: { type: 'integer', example: 5, description: 'القيمة المطلوبة لتحقيق التحدي' },
+                completed: {
+                  type: 'boolean',
+                  example: false,
+                  description: 'لو true → زر "استلام المكافأة" يتفعل في الشاشة',
+                },
+                claimed: {
+                  type: 'boolean',
+                  example: false,
+                  description: 'لو true → الزر معطّل أو مخفي (النقاط اتسلمت بالفعل)',
+                },
+              },
+            },
+            utilities: {
+              type: 'object',
+              description: 'الأدوات السريعة في قسم "المزيد" — المسبحة + القبلة',
+              required: ['tasbih', 'qibla'],
+              properties: {
+                tasbih: {
+                  type: 'object',
+                  description: 'كارت المسبحة',
+                  required: ['enabled'],
+                  properties: {
+                    enabled: {
+                      type: 'boolean',
+                      enum: [true],
+                      example: true,
+                      description: 'آيماًً — هيا فتح شاشة المسبحة (/tasbih) عند الضغط على الأيقونة',
+                    },
+                  },
+                },
+                qibla: {
+                  type: 'object',
+                  description: 'كارت القبلة',
+                  required: ['enabled'],
+                  properties: {
+                    enabled: {
+                      type: 'boolean',
+                      enum: [true],
+                      example: true,
+                      description: 'آيماًً — هيا فتح شاشة القبلة (/qibla) عند الضغط على الأيقونة',
+                    },
+                  },
+                },
+              },
             },
           },
           example: {
             greeting: {
-              text: 'صباح الخير، مريم 🌸',
+              displayName: 'أحمد محمد علي',
+              fullName: 'أحمد محمد علي',
+              username: 'ahmed_mohamed_8472',
               points: 2450,
-              level: 5,
-              streakDays: 12,
+              weekdayName: 'السبت',
+              hijriDate: '15 ذو القعدة 1447',
+              gregorianDate: '28 يوليو 2026',
             },
             prayers: {
-              date: '2026-07-27',
-              currentPrayer: 'DHUHR',
-              nextPrayer: 'ASR',
-              nextPrayerAt: '2026-07-27T15:24:00.000Z',
-              countdownSeconds: 5830,
-              list: [
-                { id: 'FAJR', nameAr: 'الفجر', time: '03:42', completed: true },
-                { id: 'DHUHR', nameAr: 'الظهر', time: '12:30', completed: true },
-                { id: 'ASR', nameAr: 'العصر', time: '15:24', completed: false },
-                { id: 'MAGHRIB', nameAr: 'المغرب', time: '18:49', completed: false },
-                { id: 'ISHA', nameAr: 'العشاء', time: '20:18', completed: false },
+              date: '2026-07-28',
+              timezone: 'Africa/Cairo',
+              nextPrayer: {
+                name: 'ASR',
+                nameAr: 'صلاة العصر',
+                time: '15:24',
+                countdownSeconds: 4468,
+              },
+              schedule: [
+                { name: 'FAJR', nameAr: 'الفجر', time: '04:11', completed: true },
+                { name: 'DHUHR', nameAr: 'الظهر', time: '12:58', completed: true },
+                { name: 'ASR', nameAr: 'العصر', time: '15:24', completed: false },
+                { name: 'MAGHRIB', nameAr: 'المغرب', time: '18:49', completed: false },
+                { name: 'ISHA', nameAr: 'العشاء', time: '20:18', completed: false },
               ],
+              completedCount: 2,
+              totalCount: 5,
             },
-            verseOfDay: {
-              surahNumber: 2,
+            verseOfTheDay: {
+              textAr:
+                'الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ اللَّهِ ۗ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
+              referenceAr: '[ الرعد: 28 ]',
+              surahNumber: 13,
+              ayahNumber: 28,
+            },
+            hadithOfTheDay: {
+              textAr: 'المؤمن للمؤمن كالبنيان يشد بعضه بعضاً',
+              sourceAr: '[ متفق عليه ]',
+            },
+            dailyJourney: {
+              prayer: { completed: 2, total: 5, progress: 40 },
+              quran: { pagesRead: 4 },
+              adhkar: { completed: true },
+              sadaqah: { amount: 25 },
+            },
+            khatmah: {
+              surahId: 2,
+              surahNameEn: 'Al-Baqarah',
               surahNameAr: 'البقرة',
-              verseNumber: 255,
-              text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ',
-              translation: 'الله - لا إله إلا هو، الحي القيوم. لا تأخذه سنة ولا نوم. له ما في السماوات وما في الأرض',
+              currentPage: 35,
+              progressPercent: 6,
             },
-            hadithOfDay: {
-              narrator: 'عن أبي هريرة رضي الله عنه',
-              text: 'من سلك طريقاً يلتمس فيه علماً سهّل الله له به طريقاً إلى الجنة، وإن الملائكة لتضع أجنحتها لطالب العلم رضا بما يصنع',
-              source: 'صحيح مسلم',
-            },
-            journeyToday: {
-              quranPages: 3,
-              quranGoal: 4,
-              adhkarCompleted: false,
-              sadaqahAmount: 25,
-              prayersCompleted: 3,
-              overallPercent: 68.5,
-            },
-            khatmahProgress: {
-              currentSurah: 'النحل',
-              currentPage: 278,
-              totalPages: 604,
-              percent: 46.03,
-            },
-            todayChallenge: {
-              id: 208,
-              titleAr: 'اقرأ صفحتين من القرآن',
-              descriptionAr: 'اقرأ صفحتين على الأقل من القرآن الكريم اليوم',
-              type: 'QURAN_PAGES',
-              target: 2,
-              currentValue: 3,
-              completed: true,
+            dailyChallenge: {
+              titleAr: 'اقرأ 5 صفحات من القرآن',
+              descriptionAr: 'اقرأ 5 صفحات من القرآن الكريم اليوم للحصول على 50 نقطة',
               rewardPoints: 50,
+              targetValue: 5,
+              completed: false,
               claimed: false,
             },
-            quickTools: [
-              { key: 'TASBIH', labelAr: 'المسبحة' },
-              { key: 'QIBLA', labelAr: 'القبلة' },
-            ],
+            utilities: {
+              tasbih: { enabled: true },
+              qibla: { enabled: true },
+            },
           },
         },
       },
