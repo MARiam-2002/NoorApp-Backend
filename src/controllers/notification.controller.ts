@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
-import { asyncHandler, successResponse } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import {
   deleteNotification,
   getNotification,
@@ -10,16 +11,6 @@ import {
   markAllAsRead,
   markAsRead,
 } from '../services/notification.service';
-
-function sendSuccess<T>(
-  res: Response,
-  data: T,
-  message: string,
-  statusCode = HttpStatus.OK,
-  meta?: Record<string, unknown>,
-) {
-  return res.status(statusCode).json(successResponse(message, data, meta));
-}
 
 export const listNotificationsHandler = asyncHandler(
   async (req: Request, res: Response) => {
@@ -43,6 +34,7 @@ export const listNotificationsHandler = asyncHandler(
       res,
       result.data,
       'Notifications retrieved successfully',
+      req,
       HttpStatus.OK,
       result.meta,
     );
@@ -62,7 +54,7 @@ export const getUnreadCountHandler = asyncHandler(
     }
 
     const data = await getUnreadCount(userId);
-    sendSuccess(res, data, 'Unread count retrieved successfully');
+    sendSuccess(res, data, 'Unread count retrieved successfully', req);
   },
 );
 
@@ -80,7 +72,7 @@ export const markAsReadHandler = asyncHandler(
 
     const { id } = req.params as { id: string };
     const data = await markAsRead(userId, id);
-    sendSuccess(res, data, 'Notification marked as read successfully');
+    sendSuccess(res, data, 'Notification marked as read successfully', req);
   },
 );
 
@@ -97,7 +89,7 @@ export const markAllAsReadHandler = asyncHandler(
     }
 
     const data = await markAllAsRead(userId);
-    sendSuccess(res, data, 'All notifications marked as read successfully');
+    sendSuccess(res, data, 'All notifications marked as read successfully', req);
   },
 );
 
@@ -133,6 +125,6 @@ export const getNotificationHandler = asyncHandler(
 
     const { id } = req.params as { id: string };
     const data = await getNotification(userId, id);
-    sendSuccess(res, data, 'Notification retrieved successfully');
+    sendSuccess(res, data, 'Notification retrieved successfully', req);
   },
 );

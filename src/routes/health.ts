@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
-import { asyncHandler, sendSuccess } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import { prisma } from '../lib/prisma';
 import { appConfig, HttpStatus } from '../config';
 
@@ -101,6 +102,7 @@ healthRouter.get(
         requestId: req.requestId,
       } satisfies HealthData,
       'Service health check completed',
+      req,
       isHealthy ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE,
     );
   }),

@@ -11,7 +11,7 @@ export const calculateQiblaHandler = asyncHandler(async (req: Request, res: Resp
 
   const data = calculateQibla(Number(latitude), Number(longitude));
 
-  sendSuccess(res, data, 'Qibla direction calculated successfully');
+  sendSuccess(res, data, 'Qibla direction calculated successfully', req);
 });
 
 export const getMyQiblaHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -19,5 +19,5 @@ export const getMyQiblaHandler = asyncHandler(async (req: Request, res: Response
 
   const data = await getMyQibla(userId);
 
-  sendSuccess(res, data, 'Your Qibla direction retrieved successfully');
+  sendSuccess(res, data, 'Your Qibla direction retrieved successfully', req);
 });

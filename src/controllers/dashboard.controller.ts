@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 
-import { asyncHandler, sendSuccess } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import * as dashboardService from '../services/dashboard.service';
@@ -18,5 +19,5 @@ export const getDashboard = asyncHandler(async (req: Request, res: Response) => 
 
   const data = await dashboardService.getDashboard(userId);
 
-  sendSuccess(res, data, 'Dashboard loaded successfully');
+  sendSuccess(res, data, 'Dashboard loaded successfully', req);
 });

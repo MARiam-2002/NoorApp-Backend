@@ -351,9 +351,15 @@ function buildSwaggerSpec() {
           properties: {
             success: { type: 'boolean', example: true },
             message: { type: 'string', example: 'Operation completed successfully' },
-            data: { type: 'object' },
+            data: { type: 'object', nullable: true },
             meta: { type: 'object', nullable: true },
             timestamp: { type: 'string', format: 'date-time' },
+            requestId: {
+              type: 'string',
+              format: 'uuid',
+              example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+              description: 'معرف فريد للطلب لتتبع الأخطاء مع فريق الدعم',
+            },
           },
           example: {
             success: true,
@@ -361,6 +367,7 @@ function buildSwaggerSpec() {
             data: {},
             meta: { page: 1, limit: 10, total: 53 },
             timestamp: '2026-07-27T10:30:00.000Z',
+            requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
           },
         },
         PaginatedResponse: {
@@ -377,8 +384,8 @@ function buildSwaggerSpec() {
                     limit: { type: 'integer', example: 30 },
                     total: { type: 'integer', example: 120 },
                     totalPages: { type: 'integer', example: 4 },
-                    hasNext: { type: 'boolean', example: true },
-                    hasPrev: { type: 'boolean', example: false },
+                    hasNextPage: { type: 'boolean', example: true },
+                    hasPreviousPage: { type: 'boolean', example: false },
                   },
                 },
               },
@@ -396,10 +403,11 @@ function buildSwaggerSpec() {
               limit: 30,
               total: 120,
               totalPages: 4,
-              hasNext: true,
-              hasPrev: false,
+              hasNextPage: true,
+              hasPreviousPage: false,
             },
             timestamp: '2026-07-27T10:30:00.000Z',
+            requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
           },
         },
         ErrorResponse: {
@@ -408,17 +416,42 @@ function buildSwaggerSpec() {
             success: { type: 'boolean', example: false },
             code: { type: 'string', example: 'VALIDATION_ERROR' },
             message: { type: 'string', example: 'Invalid input provided' },
-            details: { type: 'array', items: { type: 'object' }, nullable: true },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  field: { type: 'string', example: 'password' },
+                  message: { type: 'string', example: 'String must contain at least 6 character(s)' },
+                  code: { type: 'string', example: 'too_small', nullable: true },
+                },
+              },
+              nullable: true,
+              description: 'مصفوفة تفاصيل أخطاء التحقق من صحة الحقول',
+            },
+            details: {
+              type: 'object',
+              nullable: true,
+              description: 'تفاصيل فنية إضافية (تظهر فقط في البيئة التطويرية)',
+            },
             timestamp: { type: 'string', format: 'date-time' },
+            requestId: {
+              type: 'string',
+              format: 'uuid',
+              example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+              description: 'معرف فريد للطلب — يُستخدم لتتبع الخطأ في السجلات',
+            },
           },
           example: {
             success: false,
             code: 'VALIDATION_ERROR',
-            message: 'كلمة المرور قصيرة جداً (6 أحرف على الأقل)',
-            details: [
-              { field: 'password', message: 'String must contain at least 6 character(s)' },
+            message: 'فشل التحقق من صحة البيانات المرسلة',
+            errors: [
+              { field: 'password', message: 'كلمة المرور قصيرة جداً (6 أحرف على الأقل)', code: 'too_small' },
+              { field: 'email', message: 'صيغة البريد الإلكتروني غير صالحة', code: 'invalid_string' },
             ],
             timestamp: '2026-07-27T10:30:00.000Z',
+            requestId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
           },
         },
         SignupRequest: {

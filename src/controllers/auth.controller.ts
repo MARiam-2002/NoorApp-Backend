@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 
-import { asyncHandler, sendSuccess } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import * as authService from '../services/auth.service';
@@ -13,28 +14,28 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
   };
   const result = await authService.signUp({ username, email, password });
 
-  sendSuccess(res, result, 'Account created successfully', HttpStatus.CREATED);
+  sendSuccess(res, result, 'Account created successfully', req, HttpStatus.CREATED);
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body as { email: string; password: string };
   const result = await authService.login({ email, password });
 
-  sendSuccess(res, result, 'Logged in successfully');
+  sendSuccess(res, result, 'Logged in successfully', req);
 });
 
 export const refreshToken = asyncHandler(async (req: Request, res: Response) => {
   const { refreshToken: token } = req.body as { refreshToken: string };
   const result = await authService.refreshToken({ refreshToken: token });
 
-  sendSuccess(res, result, 'Token refreshed successfully');
+  sendSuccess(res, result, 'Token refreshed successfully', req);
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   const { refreshToken: token } = req.body as { refreshToken: string };
   await authService.logout({ refreshToken: token });
 
-  sendSuccess(res, null, 'Logged out successfully');
+  sendSuccess(res, null, 'Logged out successfully', req);
 });
 
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
@@ -50,32 +51,32 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
 
   const user = await authService.getCurrentUser(userId);
 
-  sendSuccess(res, user, 'Current user retrieved successfully');
+  sendSuccess(res, user, 'Current user retrieved successfully', req);
 });
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   const { email } = req.body as { email: string };
   const result = await authService.forgotPassword(email);
 
-  sendSuccess(res, result, result.message);
+  sendSuccess(res, result, result.message, req);
 });
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
   const { token, password } = req.body as { token: string; password: string };
   await authService.resetPassword(token, password);
 
-  sendSuccess(res, null, 'Password reset successfully');
+  sendSuccess(res, null, 'Password reset successfully', req);
 });
 
-export const getGoogleAuthUrl = asyncHandler(async (_req: Request, res: Response) => {
+export const getGoogleAuthUrl = asyncHandler(async (req: Request, res: Response) => {
   const result = authService.getGoogleAuthUrl();
 
-  sendSuccess(res, result, result.message);
+  sendSuccess(res, result, result.message, req);
 });
 
 export const googleSignIn = asyncHandler(async (req: Request, res: Response) => {
   const { idToken } = req.body as { idToken: string };
   const result = await authService.googleSignIn(idToken);
 
-  sendSuccess(res, result, 'Logged in with Google successfully');
+  sendSuccess(res, result, 'Logged in with Google successfully', req);
 });

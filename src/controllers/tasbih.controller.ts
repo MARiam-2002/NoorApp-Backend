@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
-import { asyncHandler, sendSuccess } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import {
   getTodayTasbih,
   incrementTasbih,
@@ -20,6 +21,7 @@ export const getTodayHandler = asyncHandler(async (req: Request, res: Response) 
       dhikrAr: getDhikrArName(result.dhikr),
     },
     'Today tasbih retrieved successfully',
+    req,
   );
 });
 
@@ -35,6 +37,7 @@ export const incrementHandler = asyncHandler(async (req: Request, res: Response)
       dhikrAr: getDhikrArName(result.dhikr),
     },
     'Tasbih incremented successfully',
+    req,
   );
 });
 
@@ -49,6 +52,7 @@ export const resetTodayHandler = asyncHandler(async (req: Request, res: Response
       dhikrAr: getDhikrArName(result.dhikr),
     },
     'Today tasbih reset successfully',
+    req,
   );
 });
 
@@ -64,6 +68,7 @@ export const changeDhikrHandler = asyncHandler(async (req: Request, res: Respons
       dhikrAr: getDhikrArName(result.dhikr),
     },
     'Dhikr changed successfully',
+    req,
   );
 });
 
@@ -79,5 +84,6 @@ export const getHistoryHandler = asyncHandler(async (req: Request, res: Response
       dhikrAr: getDhikrArName(log.dhikr),
     })),
     'Tasbih history retrieved successfully',
+    req,
   );
 });

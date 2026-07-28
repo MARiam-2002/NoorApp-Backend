@@ -1,16 +1,13 @@
 import type { Request, Response } from 'express';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
-import { asyncHandler, successResponse } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import {
   getPrayerSchedule,
   getTodayPrayers,
   markPrayer,
 } from '../services/prayer.service';
-
-function sendSuccess<T>(res: Response, data: T, message: string, statusCode = HttpStatus.OK) {
-  return res.status(statusCode).json(successResponse(message, data));
-}
 
 export const getToday = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
@@ -24,7 +21,7 @@ export const getToday = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const data = await getTodayPrayers(userId);
-  sendSuccess(res, data, 'Prayer schedule retrieved successfully');
+  sendSuccess(res, data, 'Prayer schedule retrieved successfully', req);
 });
 
 export const markPrayerHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -40,7 +37,7 @@ export const markPrayerHandler = asyncHandler(async (req: Request, res: Response
 
   const { id } = req.params as { id: string };
   const data = await markPrayer(userId, id);
-  sendSuccess(res, data, 'Prayer status updated successfully');
+  sendSuccess(res, data, 'Prayer status updated successfully', req);
 });
 
 export const getSchedule = asyncHandler(async (req: Request, res: Response) => {
@@ -51,5 +48,5 @@ export const getSchedule = asyncHandler(async (req: Request, res: Response) => {
   const lng = longitude ? Number(longitude) : undefined;
 
   const data = await getPrayerSchedule(lat, lng, timezone, date);
-  sendSuccess(res, data, 'Prayer schedule calculated successfully');
+  sendSuccess(res, data, 'Prayer schedule calculated successfully', req);
 });

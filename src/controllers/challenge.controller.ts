@@ -1,17 +1,14 @@
 import type { Request, Response } from 'express';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
-import { asyncHandler, successResponse } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import {
   claimChallenge,
   getAllChallenges,
   getChallengeByDay,
   getTodayChallenge,
 } from '../services/challenge.service';
-
-function sendSuccess<T>(res: Response, data: T, message: string, statusCode = HttpStatus.OK) {
-  return res.status(statusCode).json(successResponse(message, data));
-}
 
 export const getChallenges = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
@@ -25,7 +22,7 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
   }
 
   const data = await getAllChallenges(userId);
-  sendSuccess(res, data, 'Challenges retrieved successfully');
+  sendSuccess(res, data, 'Challenges retrieved successfully', req);
 });
 
 export const getChallengeById = asyncHandler(async (req: Request, res: Response) => {
@@ -50,7 +47,7 @@ export const getChallengeById = asyncHandler(async (req: Request, res: Response)
     );
   }
 
-  sendSuccess(res, data, 'Challenge retrieved successfully');
+  sendSuccess(res, data, 'Challenge retrieved successfully', req);
 });
 
 export const claimChallengeHandler = asyncHandler(
@@ -67,7 +64,7 @@ export const claimChallengeHandler = asyncHandler(
 
     const { id } = req.params as { id: string };
     const data = await claimChallenge(userId, id);
-    sendSuccess(res, data, 'Challenge reward claimed successfully');
+    sendSuccess(res, data, 'Challenge reward claimed successfully', req);
   },
 );
 
@@ -92,7 +89,7 @@ export const claimToday = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const data = await claimChallenge(userId, today.dayOfYear.toString());
-  sendSuccess(res, data, 'Challenge reward claimed successfully');
+  sendSuccess(res, data, 'Challenge reward claimed successfully', req);
 });
 
 export const getToday = asyncHandler(async (req: Request, res: Response) => {
@@ -107,5 +104,5 @@ export const getToday = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const data = await getTodayChallenge(userId);
-  sendSuccess(res, data, 'Daily challenge retrieved successfully');
+  sendSuccess(res, data, 'Daily challenge retrieved successfully', req);
 });

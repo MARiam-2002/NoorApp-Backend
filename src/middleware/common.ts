@@ -1,9 +1,10 @@
-import type { RequestHandler, ErrorRequestHandler, Response } from 'express';
+import type { RequestHandler, ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import crypto from 'crypto';
 import { appConfig, ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { logger } from '../lib/logger';
+import { buildError, sendError } from '../shared/utils/response';
 
 type AsyncRequestHandler = (
   req: Parameters<RequestHandler>[0],
@@ -32,54 +33,6 @@ export const notFoundHandler: RequestHandler = (req, _res, next) => {
   );
 };
 
-export function errorResponse<T>(
-  message: string,
-  data?: T,
-  code?: string,
-  details?: unknown,
-) {
-  return {
-    success: false,
-    message,
-    code,
-    data,
-    details,
-    timestamp: new Date().toISOString(),
-  };
-}
-
-export function successResponse<T>(
-  message: string,
-  data?: T,
-  meta?: Record<string, unknown>,
-) {
-  return {
-    success: true,
-    message,
-    data,
-    meta,
-    timestamp: new Date().toISOString(),
-  };
-}
-
-export function sendSuccess<T>(
-  res: Response,
-  data: T,
-  message?: string,
-  statusCode: number = 200,
-): Response {
-  const body: any = {
-    success: true,
-    ...(message && { message }),
-    data,
-    timestamp: new Date().toISOString(),
-  };
-  if (statusCode === 204) {
-    return res.status(statusCode).send();
-  }
-  return res.status(statusCode).json(body);
-}
-
 const PRISMA_ERROR_MAP: Record<string, { statusCode: number; code: string; message: string }> = {
   P2002: { statusCode: HttpStatus.CONFLICT, code: ErrorCodes.CONFLICT, message: 'Unique constraint violation' },
   P2025: { statusCode: HttpStatus.NOT_FOUND, code: ErrorCodes.NOT_FOUND, message: 'Record not found' },
@@ -94,49 +47,66 @@ function mapPrismaError(err: any): { statusCode: number; code: string; message: 
   return { ...mapped, details: err.meta };
 }
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof ZodError) {
-    res.status(HttpStatus.BAD_REQUEST).json(
-      errorResponse(
-        'Validation Error',
-        err.issues.map(issue => ({
-          field: issue.path.join('.'),
-          message: issue.message,
-        })),
-        ErrorCodes.VALIDATION_ERROR,
-      ),
+    sendError(
+      res,
+      'Validation failed',
+      ErrorCodes.VALIDATION_ERROR,
+      HttpStatus.BAD_REQUEST,
+      req,
+      err.issues.map(issue => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+        code: issue.code,
+      })),
     );
     return;
   }
 
   const prismaError = mapPrismaError(err);
   if (prismaError) {
-    res.status(prismaError.statusCode).json(
-      errorResponse(prismaError.message, undefined, prismaError.code, prismaError.details),
+    sendError(
+      res,
+      prismaError.message,
+      prismaError.code,
+      prismaError.statusCode,
+      req,
+      undefined,
+      prismaError.details,
     );
     return;
   }
 
   if (err instanceof AppError) {
-    res.status(err.statusCode).json(errorResponse(err.message, undefined, err.code, err.details));
+    sendError(
+      res,
+      err.message,
+      err.code,
+      err.statusCode,
+      req,
+      undefined,
+      err.details,
+    );
     return;
   }
 
   logger.error('Unhandled error', {
     message: err instanceof Error ? err.message : 'Unknown error',
     stack: err instanceof Error ? err.stack : undefined,
+    requestId: (req as any).requestId,
   });
 
+  const message = appConfig.isProduction
+    ? 'Internal server error'
+    : err instanceof Error
+      ? err.message
+      : 'Unknown error';
+  const details = !appConfig.isProduction && err instanceof Error
+    ? { stack: err.stack }
+    : undefined;
+
   res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(
-    errorResponse(
-      appConfig.isProduction
-        ? 'Internal server error'
-        : err instanceof Error
-          ? err.message
-          : 'Unknown error',
-      undefined,
-      ErrorCodes.INTERNAL_SERVER_ERROR,
-      !appConfig.isProduction && err instanceof Error ? { stack: err.stack } : undefined,
-    ),
+    buildError(message, ErrorCodes.INTERNAL_SERVER_ERROR, req, undefined, details),
   );
 };

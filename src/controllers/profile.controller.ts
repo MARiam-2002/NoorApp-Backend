@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 
-import { asyncHandler, sendSuccess } from '../middleware/common';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import * as profileService from '../services/profile.service';
@@ -18,7 +19,7 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
 
   const data = await profileService.getProfile(userId);
 
-  sendSuccess(res, data, 'User profile retrieved successfully');
+  sendSuccess(res, data, 'User profile retrieved successfully', req);
 });
 
 export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
@@ -35,7 +36,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   const { username, email } = req.body as { username: string; email?: string };
   const data = await profileService.updateProfile(userId, { username, email });
 
-  sendSuccess(res, data, 'User profile updated successfully');
+  sendSuccess(res, data, 'User profile updated successfully', req);
 });
 
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
@@ -58,7 +59,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
     newPassword,
   });
 
-  sendSuccess(res, data, 'Password changed successfully');
+  sendSuccess(res, data, 'Password changed successfully', req);
 });
 
 export const updateLocation = asyncHandler(async (req: Request, res: Response) => {
@@ -83,5 +84,5 @@ export const updateLocation = asyncHandler(async (req: Request, res: Response) =
     timezone,
   });
 
-  sendSuccess(res, data, 'Location updated successfully');
+  sendSuccess(res, data, 'Location updated successfully', req);
 });

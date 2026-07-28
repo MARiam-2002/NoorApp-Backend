@@ -1,19 +1,26 @@
-export type ApiSuccessResponse<T> = {
-  success: true;
-  message?: string;
-  data: T;
-};
-
 export type ApiErrorItem = {
   field?: string;
   message: string;
+  code?: string;
 };
 
-export type ApiErrorResponse = {
+export type ApiBase = {
+  timestamp: string;
+  requestId: string;
+};
+
+export type ApiSuccessResponse<T> = ApiBase & {
+  success: true;
+  message: string;
+  data: T | null;
+  meta?: Record<string, unknown>;
+};
+
+export type ApiErrorResponse = ApiBase & {
   success: false;
   message: string;
+  code: string;
   errors?: ApiErrorItem[];
-  code?: string;
   details?: unknown;
 };
 
@@ -26,7 +33,7 @@ export type PaginationMeta = {
   hasPreviousPage: boolean;
 };
 
-export type PaginatedResponse<T> = ApiSuccessResponse<T> & {
+export type PaginatedResponse<T> = ApiSuccessResponse<T[]> & {
   meta: PaginationMeta;
 };
 
@@ -38,7 +45,7 @@ export type CursorPaginationMeta = {
   hasPreviousPage: boolean;
 };
 
-export type CursorPaginatedResponse<T> = ApiSuccessResponse<T> & {
+export type CursorPaginatedResponse<T> = ApiSuccessResponse<T[]> & {
   meta: CursorPaginationMeta;
 };
 
