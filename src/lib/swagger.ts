@@ -582,26 +582,40 @@ function buildSwaggerSpec() {
         TasbihToday: {
           type: 'object',
           properties: {
-            todayCount: { type: 'integer', example: 156, description: 'إجمالي التسبيحات اليوم' },
+            todayCount: {
+              type: 'integer',
+              example: 245,
+              description:
+                '(العدد في الأعلى يمين "مجموع التسبيحات") — العدد التراكمي اليومي لجميع الأذكار مجتمعة. لا يصفر إلا عند زر إعادة ضبط /tasbih/reset أو يوم جديد (لا يتأثر بتغيير الذكر).',
+            },
             currentDhikr: {
               type: 'string',
               enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH'],
               example: 'SUBHAN_ALLAH',
             },
-            currentDhikrAr: { type: 'string', example: 'سبحان الله' },
-            currentDhikrCount: { type: 'integer', example: 57, description: 'عدد تكرار الذكر الحالي' },
+            currentDhikrAr: {
+              type: 'string',
+              example: 'سبحان الله',
+              description: 'الاسم العربي للذكر الحالي — اللي يظهر في منتصف الدائرة الكبيرة فوق الرقم',
+            },
+            currentDhikrCount: {
+              type: 'integer',
+              example: 33,
+              description:
+                '(العدد اللي جوه الدائرة تحت اسم الذكر) — عدد تكرار الذكر الحالي فقط. يصفر تلقائياً عند تغيير الذكر via /change-dhikr أو عند /reset.',
+            },
             dailyGoal: { type: 'integer', example: 99, description: 'هدف اليوم (افتراضي 99)' },
-            progressPercent: { type: 'number', example: 57.58, description: 'نسبة التقدم نحو الهدف' },
-            lastDhikrChangeAt: { type: 'string', format: 'date-time', example: '2026-07-27T09:15:30.000Z' },
+            progressPercent: { type: 'number', example: 33.33, description: 'نسبة التقدم للذكر الحالي نحو الهدف (0..100)' },
+            lastDhikrChangeAt: { type: 'string', format: 'date-time', example: '2026-07-28T09:15:30.000Z' },
           },
           example: {
-            todayCount: 156,
+            todayCount: 245,
             currentDhikr: 'SUBHAN_ALLAH',
             currentDhikrAr: 'سبحان الله',
-            currentDhikrCount: 57,
+            currentDhikrCount: 33,
             dailyGoal: 99,
-            progressPercent: 57.58,
-            lastDhikrChangeAt: '2026-07-27T09:15:30.000Z',
+            progressPercent: 33.33,
+            lastDhikrChangeAt: '2026-07-28T09:15:30.000Z',
           },
         },
         TasbihIncrementRequest: {
@@ -612,7 +626,7 @@ function buildSwaggerSpec() {
               minimum: 1,
               default: 1,
               example: 1,
-              description: 'كمية الزيادة (افتراضي 1)',
+              description: 'كمية الزيادة (افتراضي 1). تؤثر على كل من todayCount و currentDhikrCount بنفس الوقت.',
             },
           },
           example: { amount: 1 },
@@ -625,7 +639,8 @@ function buildSwaggerSpec() {
               type: 'string',
               enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH'],
               example: 'ALHAMDULILLAH',
-              description: 'الذكر الجديد المراد التبديل إليه',
+              description:
+                'الذكر الجديد المراد التبديل إليه. التبديل يقوم تلقائياً بتصفير currentDhikrCount فقط (العدد داخل الدائرة) مع الحفاظ على todayCount كما هو (المجموع التراكمي).',
             },
           },
           example: { dhikr: 'ALHAMDULILLAH' },
