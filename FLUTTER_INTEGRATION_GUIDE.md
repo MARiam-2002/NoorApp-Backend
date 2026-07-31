@@ -1,5 +1,28 @@
 # Noor App — Flutter Integration Guide — 2026-07-31
 
+## 🔹 API Integration Changes Summary — 2026-07-31
+
+- **New**: `POST /auth/logout` — documented for the first time. Revokes the refresh token on the server so the pair cannot be rotated again. Flutter must additionally call `GoogleSignIn.signOut()` on the device when `user.provider === "GOOGLE"`.
+- **New**: `GET /auth/me` — documented for the first time. Verifies the current Bearer access token and returns the full `AuthUserProfile`. Used at app launch to confirm session validity and refresh the locally cached profile state.
+- **Updated**: Generic response envelope. Success (`2xx`) responses now formally use `{ success, message, data, meta, timestamp, requestId }`; error (`4xx` / `5xx`) responses use the same envelope plus `{ code, details }`. The two shapes were previously merged into one description (showing `code` / `details` inside success samples), which broke strict Dart sealed-class deserialization.
+- **Updated**: `requestId` semantics. A UUID v4 generated inside `buildSuccess` / `buildError` is now explicitly present in every single sample block (Sign-Up, Login, Google, Refresh, Logout, Me, Dashboard, all 4 Tasbih endpoints, Qibla, and every 4xx / 5xx example). Previously it was omitted everywhere.
+- **Updated**: Auth success response shapes for `POST /auth/sign-up`, `POST /auth/login`, `POST /auth/google`, `POST /auth/refresh`, and `GET /auth/me`. The token pair is now nested as `data.tokens: { accessToken, refreshToken, expiresIn }` instead of flat `data.accessToken` / `data.refreshToken` keys. This corrects a deserialization-breaking mismatch versus the real server `AuthResult` contract.
+- **Updated**: `expiresIn` semantics. Previously documented as a seconds integer (`900` for 15 minutes). It is now correctly shown as the raw duration string returned by `env.JWT_EXPIRES_IN` (default `"7d"`), and the guide instructs Flutter to decode the JWT `exp` claim directly or rotate on first `401`. The phantom `tokenType: "Bearer"` field, which is never emitted by the server, has been removed from all samples.
+- **Updated**: `POST /auth/refresh` — response body is now correctly documented as the full `{ user, tokens }` `AuthResult`, identical in shape to Sign-Up / Login, instead of the previous incorrect flat-tokens-only description.
+- **Updated**: `AuthUserProfile` samples. `providerId: string | null` is now present in every sample. For `LOCAL` users the value is `null`; for `GOOGLE` users it equals the `sub` claim (same as `googleId`), following the `googleId ?? providerId ?? null` precedence in the server's `mapUserToProfile`.
+- **Updated**: `POST /auth/google` Flutter contract. The guide now explicitly documents the **Hybrid Firebase scenario**: apps that already use Firebase for Crashlytics, Analytics, FCM, Remote Config or Performance are fully supported, but the `idToken` sent to Noor's backend MUST come from `google_sign_in`'s `GoogleSignInAuthentication.idToken`. Using `FirebaseAuth.instance.signInWithGoogle()` as the _source_ of the idToken is marked as FORBIDDEN. A commented optional step for `FirebaseAuth.instance.signInWithCredential(GoogleAuthProvider.credential(idToken:..., accessToken:...))` is now included in the Dart reference.
+- **Updated**: Tasbih (`/tasbih/today`, `/tasbih/increment`, `/tasbih/reset`, `/tasbih/change-dhikr`), Dashboard (`/dashboard`), and Qibla (`/qibla/calculate`) response samples. Every `2xx`, `4xx`, and `5xx` block now explicitly includes `message`, `timestamp`, and `requestId`.
+- **Updated**: Integration Totals and `Route Endpoint Index` table. The index expanded from 10 rows to 12: row 5 is now `POST /auth/logout`, row 6 is `GET /auth/me`, and all subsequent rows are renumbered. Totals now correctly report 12 endpoints total (6 Authenticated, 6 Public).
+- No endpoints were removed in this change set.
+
+### Change Totals
+
+- New endpoint documentation entries: 2
+- Updated documentation entries: 10
+- Removed documentation entries: 0
+
+---
+
 ## 🔹 API Integration Summary
 
 - **Base URLs (store these in `env` / flavors)**:
