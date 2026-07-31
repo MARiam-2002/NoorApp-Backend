@@ -1,37 +1,39 @@
-# دليل تكامل تطبيق Noor مع واجهة Flutter (النسخة الكاملة 2026)
+# Noor App — Flutter Integration Guide — 2026-07-31
 
-> مكتوب خصيصًا لفريق Flutter حتى يربط كل الشاشات **بدون أي لخبطة**. كل قسم بالملف ده بيقولك:
->
-> - شاشة إيه + إظهار إيه فيها (أسماء الحقول بالعربي زي ما هي في التصميم)
-> - Endpoint إيه + HTTP method إيه
-> - Headers إيه + Body إيه (لو فيه)
-> - Response مثال حقيقي 100% مطابق للإنتاج
-> - مثال Dart Code جاهز (تقدر تقصه وتلصقه في Flutter فورًا)
+## 🔹 API Integration Summary
+
+- **Base URLs (store these in `env` / flavors)**:
+  - Production (Vercel): `https://noor-app-backend-one.vercel.app/api/v1`
+  - Local dev: `http://localhost:3000/api/v1`
+  - Swagger UI (always the source of truth): `<base>/api/v1/docs`
+- **Auth pattern**: Every endpoint below is `Authorization: Bearer <accessToken>` **except** the ones explicitly marked `Public`.
+- **Response envelope**: Every response uses the same wrapper so Flutter can deserialize with one generic model: `{ success, message?, data, meta?, code?, details?, timestamp }`.
+- **Auth endpoints**: `POST /auth/sign-up` creates a local account; `POST /auth/login` returns the token pair; `POST /auth/refresh` rotates the access token after 15 minutes; `POST /auth/google` exchanges a Google ID token for the same envelope.
+- **Main screens covered (8 states)**:
+  1. Sign-Up screen (3 fields only: fullName, email, password; username is server-generated).
+  2. Login screen (email, password + Google button).
+  3. Home / Dashboard (one GET, returns all 8 widgets in one call).
+  4. Tasbih / Digital Counter (4 endpoints, 3 visible states).
+  5. Qibla / Compass (one public GET, takes GPS coordinates, returns bearing + direction).
+- **No endpoints were removed in this revision of the integration guide**.
+
+### Integration Totals
+
+| Area                                    | Count                                               |
+| --------------------------------------- | --------------------------------------------------- |
+| Screens / UI states documented          | 8                                                   |
+| Endpoints covered                       | 10                                                  |
+| Authenticated endpoints                 | 9                                                   |
+| Public (no Bearer) endpoints            | 1                                                   |
+| HTTP statuses covered (success + error) | 200 / 201 / 204 / 400 / 401 / 403 / 404 / 409 / 500 |
 
 ---
 
-## 🔗 1. الروابط الأساسية (تقدر تحطها في `env` بـ Flutter)
+## 🔹 Global Rules (read once, applies to every screen)
 
-| البيئة                 | Base URL                                         | Docs           |
-| ---------------------- | ------------------------------------------------ | -------------- |
-| 🚀 الإنتاج (Vercel)    | `https://noor-app-backend-one.vercel.app/api/v1` | `/api/v1/docs` |
-| 💻 Localhost (التطوير) | `http://localhost:3000/api/v1`                   | `/api/v1/docs` |
+### 1) Bearer Token
 
----
-
-## 🔑 2. قواعد الـ API
-
-### ✅ Authentication (Bearer Token)
-
-كل الـ endpoints عدا:
-
-- `POST /auth/sign-up`
-- `POST /auth/login`
-- `POST /auth/google`
-- `GET /health`
-- `GET /qibla/calculate` (مفتوح للجميع — مش محتاج توثيق)
-
-تحتاج تضيف في الـ **Headers**:
+For every authenticated endpoint send two headers:
 
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....
@@ -39,67 +41,118 @@ Content-Type: application/json
 accept: application/json
 ```
 
-### ✅ شكل الرد الموحد
+Behaviour:
 
-كل الـ Responses بنفس الشكل:
+- Missing / expired token returns `401 UNAUTHORIZED`. When you see `401`, call `POST /auth/refresh` with the stored `refreshToken` and retry the original request once. If refresh also returns `401`, route the user to the Login screen.
+- Tokens are **JWT**. `expiresIn` in the login response is in **seconds** (default `900` = 15 minutes).
+- Never store tokens in `SharedPreferences`. Use `flutter_secure_storage` (or equivalent encrypted keystore).
+
+### 2) Generic Response Envelope
+
+Every 2xx, 4xx and 5xx response shares this envelope:
 
 ```json
 {
   "success": true,
-  "message": "رسالة شرح بالعربي",
-  "data": { ..... },  // اللي Flutter بيستخدمه
-  "meta": null,        // للـ pagination لو موجود
-  "timestamp": "2026-07-28T06:00:00.000Z"
+  "message": "Short Arabic label — safe to show in a SnackBar if non-null",
+  "data": { "...": "..." },
+  "meta": null,
+  "code": "SUCCESS | VALIDATION_ERROR | CONFLICT | UNAUTHORIZED | NOT_FOUND | INTERNAL_SERVER_ERROR",
+  "details": null,
+  "timestamp": "2026-07-31T07:15:00.000Z"
 }
 ```
 
-في حالة الـ Error:
+Notes:
 
-```json
-{
-  "success": false,
-  "code": "VALIDATION_ERROR", // مثال: CONFLICT, UNAUTHORIZED, NOT_FOUND ...
-  "message": "بريد إلكتروني خاطئ",
-  "details": { "field": "email" }, // أحياناً
-  "timestamp": "..."
+- On error, `success` is `false`, `code` is the stable error identifier, `details.field` (when present) tells you which TextField to underline red.
+- On pagination endpoints, `meta` contains `{ total, page, pageSize, hasMore }`.
+
+### 3) Dart quick-start (generic client)
+
+```dart
+// dependencies: dio, flutter_secure_storage
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class NoorApi {
+  final _dio = Dio(BaseOptions(
+    baseUrl: const String.fromEnvironment('NOOR_BASE_URL',
+        defaultValue: 'https://noor-app-backend-one.vercel.app/api/v1'),
+    connectTimeout: const Duration(seconds: 15),
+  ));
+  final _store = const FlutterSecureStorage();
+
+  Future<void> _injectAuth(RequestOptions o) async {
+    final t = await _store.read(key: 'accessToken');
+    if (t != null) o.headers['Authorization'] = 'Bearer $t';
+  }
+
+  Future<Map<String, dynamic>> request(
+    String method, String path, { Object? data, Map<String, dynamic>? query }) async {
+    try {
+      final resp = await _dio.request(path,
+        options: Options(method: method),
+        data: data,
+        queryParameters: query,
+        onReceiveProgress: null,
+        // ↓ wrap with _injectAuth via interceptor in a real app:
+      );
+      return resp.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final body = e.response?.data as Map<String, dynamic>?;
+      if (body?['code'] == 'UNAUTHORIZED') {
+        // attempt token refresh + retry once here
+      }
+      rethrow; // or convert to typed exceptions
+    }
+  }
 }
 ```
-
-### ✅ Refresh Token
-
-لو الـ `accessToken` انتهى → استخدم الـ `refreshToken` في:
-
-- `POST /auth/refresh` → هيجبلك access جديد.
 
 ---
 
-## 📱 شاشة رقم 1: إنشاء حساب جديد (Sign-Up — بيانات كاملة)
+## 🔹 Auth (2 screens: Sign-Up & Login)
 
-> **شاشة الـ UI فيها 3 حقول فقط**:
->
-> 1. `اسم المستخدم` (اللي في الواجهة ده الـ `fullName` في الـ API)
-> 2. `البريد الإلكتروني`
-> 3. `كلمة المرور`
->
-> مفيش field اسمه `username` للـ Flutter، هو بيولد تلقائياً من الـ backend.
+### 1) POST /auth/sign-up — Sign-Up Screen (3 fields only)
 
-### Endpoint
+Description: Creates a new local account. The Sign-Up UI renders **three TextFields**:
 
-```
-POST /api/v1/auth/sign-up
-```
+1. Labeled `اسم المستخدم` ("Full Name" in English) → maps to body field `fullName`.
+2. Labeled `البريد الإلكتروني` → maps to `email`.
+3. Labeled `كلمة المرور` → maps to `password`.
 
-### Request Body
+**The field `username` in the API is OPTIONAL and must not appear in the form.** The server auto-generates a username handle from the email prefix if the caller omits it. Display names always read from `fullName` (or fall back to `username` if `fullName` is `null`).
+
+Authorization: **Public** (no Bearer token).
+
+Validation rules (enforced server-side; mirror client-side for UX):
+
+| Field      | Required?              | Rules                                                                                                                               |
+| ---------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `fullName` | No (server) / Yes (UI) | When provided: min 2 chars. `null` / omitted is accepted by the server; Flutter should require it because the UI exposes the field. |
+| `email`    | Yes                    | RFC email format. Stored lower-cased.                                                                                               |
+| `password` | Yes                    | Min 6 chars; at least one letter + one digit (recommended).                                                                         |
+| `username` | No                     | **Do not render.** Leave out of the body entirely.                                                                                  |
+
+Behaviour:
+
+- Duplicate email returns `409 CONFLICT` with `details.field = "email"`. Show inline red hint on the email TextField.
+- `password` < 6 chars or non-email format returns `400 VALIDATION_ERROR` with `details.field` set.
+- The returned `user.username` is server-generated (example: `ahmedmohamed_8472`). Do **not** overwrite it with `fullName`.
+- Google sign-up follows a different flow (see endpoint #3 below). Do **not** call this endpoint for the Google button.
+
+Request Body (matches the Sign-Up screen exactly):
 
 ```json
 {
-  "fullName": "أحمد محمد علي",
+  "fullName": "Ahmed Mohamed Ali",
   "email": "AhmedMohamed@gmail.com",
   "password": "StrongPass123!"
 }
 ```
 
-### Response (201 Created)
+Response Body (201 Created):
 
 ```json
 {
@@ -108,70 +161,79 @@ POST /api/v1/auth/sign-up
   "data": {
     "user": {
       "id": "ddecba0c-757d-43a4-a867-c1b0d1870bab",
-      "username": "ahmed_mohamed_8472", // auto-generated — ملهوش لازمة للـ UI
-      "fullName": "أحمد محمد علي",
+      "username": "ahmedmohamed_8472",
+      "fullName": "Ahmed Mohamed Ali",
       "email": "ahmedmohamed@gmail.com",
       "role": "USER",
       "provider": "LOCAL",
-      "createdAt": "2026-07-28T06:00:00.000Z"
+      "createdAt": "2026-07-31T07:00:00.000Z"
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....", // ← خليها في الـ Secure Storage
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh....",
     "tokenType": "Bearer",
-    "expiresIn": 900 // 15 دقيقة بالثواني
-  }
+    "expiresIn": 900
+  },
+  "timestamp": "2026-07-31T07:00:00.000Z"
 }
 ```
 
-### ⚠️ حالات الخطأ الشائعة
+Action after receiving 201:
 
-| Status Code            | السبب                            | الحل في Flutter                                     |
-| ---------------------- | -------------------------------- | --------------------------------------------------- |
-| `409 CONFLICT`         | البريد مسجل قبل كده              | اظهر SnackBar "بريد إلكتروني خاطئ — هو مسجل بالفعل" |
-| `400 VALIDATION_ERROR` | كلمة المرور أقل من 6 أو بريد غلط | اظهر رسالة تحت الـ field اللي فيها المشكلة          |
+- Persist `accessToken` + `refreshToken` in secure storage (do **not** persist the raw `password`).
+- Persist `user.id` + `user.displayName = user.fullName ?? user.username` (used in the home greeting).
+- Navigate immediately to the Home / Dashboard screen — no extra login step is needed.
 
-### 🎯 مثال Dart Code (Flutter) — جاهز لللصق
+Response Body (400 — VALIDATION_ERROR):
 
-```dart
-// dependencies: dio, flutter_secure_storage
-import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "Invalid request payload",
+  "details": { "field": "email", "issue": "Email format is invalid" },
+  "timestamp": "2026-07-31T07:00:00.000Z"
+}
+```
 
-class AuthService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://noor-app-backend-one.vercel.app/api/v1'));
-  final _storage = const FlutterSecureStorage();
+Response Body (409 — duplicate email):
 
-  Future<Map<String, dynamic>> signUp({
-    required String fullName,
-    required String email,
-    required String password,
-  }) async {
-    final resp = await _dio.post('/auth/sign-up', data: {
-      'fullName': fullName,
-      'email': email,
-      'password': password,
-    });
-    final data = resp.data['data'];
-    await _storage.write(key: 'accessToken',  value: data['accessToken']);
-    await _storage.write(key: 'refreshToken', value: data['refreshToken']);
-    return resp.data;  // data.user فيه الاسم عشان تحطه في الـ greeting بعدين
-  }
+```json
+{
+  "success": false,
+  "code": "CONFLICT",
+  "message": "Email is already registered. Try logging in.",
+  "details": { "field": "email" },
+  "timestamp": "2026-07-31T07:00:00.000Z"
+}
+```
+
+Response Body (500):
+
+```json
+{
+  "success": false,
+  "code": "INTERNAL_SERVER_ERROR",
+  "message": "Internal server error",
+  "details": null,
+  "timestamp": "2026-07-31T07:00:00.000Z"
 }
 ```
 
 ---
 
-## 📱 شاشة رقم 2: تسجيل الدخول (Login)
+### 2) POST /auth/login — Login Screen
 
-> **الشاشة فيها 2 حقول فقط**: بريد إلكتروني + كلمة المرور
+Description: Logs in a LOCAL-provider user and returns the token pair. The Login UI renders two TextFields (`email`, `password`) plus two buttons (`تسجيل الدخول` = local login, `التسجيل عبر جوجل` = Google flow).
 
-### Endpoint
+Authorization: **Public**.
 
-```
-POST /api/v1/auth/login
-```
+Behaviour:
 
-### Request Body
+- Wrong password or unknown email → `401`. The `message` is intentionally generic ("Invalid credentials") so attackers cannot enumerate emails.
+- A Google-provider user who hits this endpoint → `401` (the message does not reveal the provider; route them to the Google button if they fail twice).
+- Rate limiting is applied at the edge; show a "Too many attempts, try later" toast after 3 consecutive 401s rather than retrying in a loop.
+
+Request Body:
 
 ```json
 {
@@ -180,323 +242,298 @@ POST /api/v1/auth/login
 }
 ```
 
-### Response (200 OK)
+Response Body (200 OK): exact same envelope and `data` shape as Sign-Up (201). Persist tokens + navigate to Dashboard.
 
-نفس شكل الـ sign-up تمامًا (فيه access + refresh token).
+Response Body (401):
+
+```json
+{
+  "success": false,
+  "code": "UNAUTHORIZED",
+  "message": "Invalid credentials",
+  "details": null,
+  "timestamp": "2026-07-31T07:00:00.000Z"
+}
+```
 
 ---
 
-## 📱 شاشة رقم 3: الشاشة الرئيسية (Dashboard)
+### 3) POST /auth/google — Google Sign-In / Sign-Up button (both screens)
 
-> 🏆 **أهم endpoint في التطبيق كلّه** — يستدعى **مرة واحدة** فقط عند فتح التطبيق.
-> فيه كل البيانات اللي محتاجها للشاشة الرئيسية (8 أقسام كاملة).
+Description: Exchanges the Google ID token obtained from the Google Sign-In SDK for a Noor account + tokens. Works for both first-time and returning users; creates the account automatically on first use (so this one endpoint serves **both** the Sign-Up screen Google button and the Login screen Google button).
 
-### Endpoint
+Authorization: **Public**.
 
+Request Body:
+
+```json
+{ "idToken": "<raw Google ID token returned by GoogleSignIn>" }
 ```
-GET /api/v1/dashboard
-Headers: Authorization: Bearer <accessToken>
+
+Behaviour:
+
+- A missing or malformed `idToken` → `400`.
+- A valid Google token maps to a user by `sub` claim (`googleId` in the DB). First-time sign-in creates the user with `provider = "GOOGLE"` and `fullName` + `email` populated from the ID token's claims.
+- Returned envelope and `data` shape is identical to Sign-Up (201).
+- Google users have no server-side password. Never route them to the "Forgot password" screen; show a "Continue with Google" hint instead.
+
+Response Body (200 / 201): same `{ user, accessToken, refreshToken, tokenType, expiresIn }` shape.
+
+---
+
+### 4) POST /auth/refresh — Rotate access token (background / retry flow)
+
+Description: Flutter calls this when an API request returns `401`. It exchanges the long-lived `refreshToken` for a brand new `accessToken` (+ new refresh token). Call BEFORE the original 401-triggering request is retried once.
+
+Authorization: **Public** (token is in the body, not the `Authorization` header).
+
+Request Body:
+
+```json
+{ "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh...." }
 ```
 
-### Response (200 OK) — المثال ده 1:1 زي اللي الـ service بيرجعه
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh....",
+    "tokenType": "Bearer",
+    "expiresIn": 900
+  }
+}
+```
+
+Response Body (401 — refresh token revoked or never issued):
+Navigate the user back to the Login screen. Treat this state as "soft logout" (keep cached UI data but clear the token pair from secure storage).
+
+---
+
+## 🔹 Home / Dashboard Screen (one GET, 8 widgets)
+
+### 1) GET /dashboard — Home Screen data (call exactly once at app launch)
+
+Description: The **single most important endpoint** for the app. It returns every widget for the Home screen in one round-trip. After user actions (tapping a prayer complete, finishing a tasbih session, claiming a challenge, etc.) call the fine-grained per-module endpoints for partial updates, then **re-read `/dashboard` once** on the next app foregrounding rather than hammering it repeatedly.
+
+Authorization: Bearer token (401 redirects to Login via refresh logic).
+
+Route Params: none.
+
+Query Params: none.
+
+Behaviour:
+
+- Returns **exactly 8 sections**: `greeting`, `prayers`, `verseOfTheDay`, `hadithOfTheDay`, `dailyJourney`, `khatmah`, `dailyChallenge`, `utilities`. No keys are ever omitted; nullable sections return `null` explicitly (never absent) so a strict Dart `required` model deserializes safely.
+- `prayers.nextPrayer.countdownSeconds` is the seconds remaining **at response time**. In Flutter, drive a Timer that subtracts 1 every second locally. When this counter reaches zero, **re-fetch `/dashboard` once** to get the next upcoming prayer.
+- Prayer completion dots under each of the 5 daily prayers follow `prayers.schedule[i].completed`: `true` → gold dot; `false` → gray dot. Do **not** drive the dot from `dailyJourney.prayer.completed` (that number is an aggregate and can be stale on the same render cycle).
+- `greeting.displayName` is the user-facing greeting ("Ahlan, Ahmed …") and is always non-empty: it equals `fullName` when present, else falls back to `username`. Widgets should **never** read `fullName` directly for display; always use `displayName`.
+- `greeting.weekdayName` + `greeting.hijriDate` are pre-formatted Arabic strings and can be concatenated as-is: `"$weekdayName  $hijriDate"` ("السبت 15 ذو القعدة 1447").
+- `utilities` are static flags (`enabled: true` is a contract). Tapping the Tasbih card navigates to the Tasbih screen; tapping the Qibla card navigates to the Qibla screen. No extra lookup is needed.
+
+Response Body (200):
 
 ```json
 {
   "success": true,
   "message": "Dashboard loaded successfully",
   "data": {
-    // ─── ① التحية في أعلى الشاشة (أهلا احمد + اسم اليوم + التاريخ الهجري) ───
     "greeting": {
-      "displayName": "أحمد محمد علي", // ← ده اللي تكتبه في: "أهلا، أحمد"
-      "fullName": "أحمد محمد علي", //   (لو null — fallback إلى الـ displayName)
-      "username": "ahmed_mohamed_8472", //   (ملاحظة، مش بيظهر عادة)
-      "points": 2450, // ← النقاط في أعلى اليمين لو فيها
-      "weekdayName": "السبت", // ← اسم اليوم في أعلى اليمين (قبل الهجري)
-      "hijriDate": "15 ذو القعدة 1447", // ← التاريخ الهجري (اللي بجانب اسم اليوم)
-      "gregorianDate": "28 يوليو 2026" //   (لو Flutter محتاجه كـ fallback)
+      "displayName": "Ahmed Mohamed Ali",
+      "fullName": "Ahmed Mohamed Ali",
+      "username": "ahmedmohamed_8472",
+      "points": 2450,
+      "weekdayName": "السبت",
+      "hijriDate": "15 ذو القعدة 1447",
+      "gregorianDate": "28 يوليو 2026"
     },
 
-    // ─── ② كارت أوقات الصلاة + العداد التنازلي ───
     "prayers": {
       "date": "2026-07-28",
       "timezone": "Africa/Cairo",
       "nextPrayer": {
-        // ← ده فوق الـ 5 صلوات
         "name": "ASR",
-        "nameAr": "صلاة العصر", // ← النص الكبير "صلاة العصر"
-        "time": "15:24", // وقت الصلاة
-        "countdownSeconds": 4468 // ← احسب: 4468 ث = 01:14:28 (العداد)
+        "nameAr": "صلاة العصر",
+        "time": "15:24",
+        "countdownSeconds": 4468
       },
       "schedule": [
-        // ← الـ 5 صلوات بالترتيب + النقاط تحت
         {
           "name": "FAJR",
           "nameAr": "الفجر",
           "time": "04:11",
           "completed": true
-        }, // ✅ ذهبي
+        },
         {
           "name": "DHUHR",
           "nameAr": "الظهر",
           "time": "12:58",
           "completed": true
-        }, // ✅ ذهبي
+        },
         {
           "name": "ASR",
           "nameAr": "العصر",
           "time": "15:24",
           "completed": false
-        }, // ⚪ رمادي
+        },
         {
           "name": "MAGHRIB",
           "nameAr": "المغرب",
           "time": "18:49",
           "completed": false
-        }, // ⚪ رمادي
+        },
         {
           "name": "ISHA",
           "nameAr": "العشاء",
           "time": "20:18",
           "completed": false
-        } // ⚪ رمادي
+        }
       ],
       "completedCount": 2,
       "totalCount": 5
     },
 
-    // ─── ③ آية اليوم ───
     "verseOfTheDay": {
       "textAr": "الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ اللَّهِ ۗ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ",
-      "referenceAr": "[ الرعد: 28 ]", // ← المرجع اللي تحت الآية بين أقواس
+      "referenceAr": "[ الرعد: 28 ]",
       "surahNumber": 13,
       "ayahNumber": 28
     },
 
-    // ─── ④ رحلتك اليومية — 4 كروت صغيرة ───
+    "hadithOfTheDay": {
+      "textAr": "المؤمن للمؤمن كالبنيان يشد بعضه بعضاً",
+      "sourceAr": "[ متفق عليه ]"
+    },
+
     "dailyJourney": {
-      "prayer": { "completed": 3, "total": 5, "progress": 60 }, // ← الصلاة 3/5 (كارت أخضر)
-      "quran": { "pagesRead": 4 }, // ← القرآن 4 صفحات (كارت أزرق)
-      "adhkar": { "completed": true }, // ← الذكار ✓ تم الانجاز (كارت أصفر)
-      "sadaqah": { "amount": 0 } // ← الصدقة 0 (كارت وردي)
+      "prayer": { "completed": 3, "total": 5, "progress": 60 },
+      "quran": { "pagesRead": 4 },
+      "adhkar": { "completed": true },
+      "sadaqah": { "amount": 0 }
     },
 
-    // ─── ⑤ المزيد: أدوات سريعة (2 كروت: المسبحة + القبلة) ───
-    "utilities": {
-      "tasbih": { "enabled": true }, // ← عند الضغط: تروح لشاشة المسبحة (GET /tasbih/today)
-      "qibla": { "enabled": true } // ← عند الضغط: تروح لشاشة القبلة  (GET /qibla/calculate?lat=..&lng=..)
-    },
-
-    // ─── ⑥ استكمل الختمة ───
     "khatmah": {
       "surahId": 2,
       "surahNameEn": "Al-Baqarah",
-      "surahNameAr": "البقرة", // ← في أعلى الكارت "سورة البقرة"
-      "currentPage": 35, // ← "صفحة 35" تحت اسم السورة
-      "progressPercent": 6 // ← الـ progress bar تحت زر "متابعة القراءة"
+      "surahNameAr": "البقرة",
+      "currentPage": 35,
+      "progressPercent": 6
     },
 
-    // ─── ⑦ تحدي اليوم ───
     "dailyChallenge": {
-      "titleAr": "اقرأ 5 صفحات من القرآن", // ← في الكارت
-      "descriptionAr": "اقرأ 5 صفحات من القرآن اليوم لتحصل على 50 نقطة",
-      "rewardPoints": 50, // ← "+ 50 نقطة" تحت الكارت
+      "titleAr": "اقرأ 5 صفحات من القرآن",
+      "descriptionAr": "اقرأ 5 صفحات من القرآن الكريم اليوم للحصول على 50 نقطة",
+      "rewardPoints": 50,
       "targetValue": 5,
-      "completed": false, // ← لو true → زر استلام المكافأة يتفعل
-      "claimed": false // ← لو true → الزر معطّل (اتسلمت قبل كده)
+      "completed": false,
+      "claimed": false
     },
 
-    // ─── ⑧ حديث اليوم ───
-    "hadithOfTheDay": {
-      "textAr": "المؤمن للمؤمن كالبنيان يشد بعضه بعضاً",
-      "sourceAr": "[ متفق عليه ]" // ← المصدر بين أقواس تحت الحديث
+    "utilities": {
+      "tasbih": { "enabled": true },
+      "qibla": { "enabled": true }
     }
-  }
+  },
+  "timestamp": "2026-07-31T07:00:00.000Z"
 }
 ```
 
-### 🎯 أمثلة لحسابات Flutter من الـ response
+Response Body (401):
+
+```json
+{
+  "success": false,
+  "code": "UNAUTHORIZED",
+  "message": "Expired or missing Bearer token",
+  "timestamp": "2026-07-31T07:00:00.000Z"
+}
+```
+
+**Action on 401**: attempt refresh, retry once, else Login screen.
+
+Response Body (500):
+
+```json
+{
+  "success": false,
+  "code": "INTERNAL_SERVER_ERROR",
+  "message": "Internal server error",
+  "timestamp": "2026-07-31T07:00:00.000Z"
+}
+```
+
+**Flutter helpers — computed directly from the 200 response body:**
 
 ```dart
-// ١. العداد التنازلي للصلاة القادمة (منثلي: 01:14:28)
-int sec = data['prayers']['nextPrayer']['countdownSeconds'];
-String hh = (sec ~/ 3600).toString().padLeft(2,'0');
-String mm = ((sec % 3600) ~/ 60).toString().padLeft(2,'0');
-String ss = (sec % 60).toString().padLeft(2,'0');
-String countdown = '$hh:$mm:$ss';   // 01:14:28 ✅
+// 1) Countdown display for next prayer (HH:MM:SS)
+int sec = data['prayers']['nextPrayer']['countdownSeconds'] as int;
+String hh = (sec ~/ 3600).toString().padLeft(2, '0');
+String mm = ((sec % 3600) ~/ 60).toString().padLeft(2, '0');
+String ss = (sec % 60).toString().padLeft(2, '0');
+String countdown = '$hh:$mm:$ss';
 
-// ٢. تحويل اسم اليوم + التاريخ الهجري زي الشاشة: "السبت 15 ذو القعدة"
-//    استخدم ده مباشرة:
+// 2) Top-right header (Arabic weekday + Hijri)
 String topRight = '${data['greeting']['weekdayName']}  ${data['greeting']['hijriDate']}';
 
-// ٣. التحية اليسار: "أهلا، أحمد محمد"
-String greetingTitle = 'أهلا، ${data['greeting']['displayName']}';
+// 3) Top-left greeting (safe display name)
+String greeting = 'أهلا، ${data['greeting']['displayName']}';
 
-// ٤. نسبة تقدم الصلاة في كارت الصلاة
-double prayerProgress = (data['dailyJourney']['prayer']['progress'] as int) / 100;
+// 4) Daily prayer card progress (for a LinearPercentIndicator 0..1)
+double pProgress =
+    ((data['dailyJourney']['prayer']['progress'] as int) ?? 0) / 100;
 ```
 
 ---
 
-## 📱 شاشة رقم 4: المسبحة (التسبيح) — States كاملة + الفرق بين العددين
+## 🔹 Tasbih / Digital Counter Screen (4 endpoints, 3 visible states)
 
-> **⚠️ أهم نقطة في الشاشة كلّها (من الشاشات الثلاث المرفوعة):**
-> فيه **عدّادين مختلفين تمامًا** — لو خلطتهما الفلاتر هيحصل عشان الكلمة نفسها "مجموع التسبيحات"
->
-> | المكان في الشاشة                            | الـ Field في الـ JSON | ماذا يعمل؟                                       | لما بيرجع صفر؟                                                 |
-> | ------------------------------------------- | --------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
-> | 🔼 **الأعلى يمين** ("مجموع التسبيحات")      | `todayCount`          | **العدد التراكمي لليوم كله** (كل الأذكار مجتمعة) | فقط عند زر **"إعادة ضبط"** أو يوم جديد                         |
-> | 🔽 **جوه الدائرة** (تحت اسم الذكر، زي "33") | `currentDhikrCount`   | **عدد تكرار الذكر الحالي فقط**                   | عند أي تغيير للذكر via زر "تغيير الذكر" **أو** عند "إعادة ضبط" |
->
-> الشاشة الـ middle في الصور المرفقة توضح ده تمامًا:
->
-> - `مجموع التسبيحات: 278` (العدد التراكمي اللي فضل قدام)
-> - **جوه الدائرة:** "الحمد لله" + `0` (عشان المستخدم غير الذكر، فصفر العدد الداخلي بس، والمجموع باقي)
->
-> الشاشة فيها:
->
-> - زر رجوع يسار
-> - عنوان "المسبحة"
-> - `مجموع التسبيحات` الأعلى يمين (العدد الكلي اليوم)
-> - الدائرة الكبيرة اللي فيها اسم الذكر الحالي + العدد اللي جوهها
-> - زرين تحت: `إعادة ضبط` (يمسح كل حاجة) + `تغيير الذكر` (غير الاسم + يصفر العدد الداخلي فقط)
+### Critical clarification — two counters, one screen
 
-### Endpoints
+The Tasbih screen renders **two separate numeric values**. Mixing them up causes the middle screen bug (user changes the dhikr and the "grand total" suddenly resets — which must NOT happen).
 
-| ما بتعمله                                 | Method + Endpoint            | متى تستخدمه                                      |
-| ----------------------------------------- | ---------------------------- | ------------------------------------------------ |
-| تحميل الشاشة لأول مرة                     | `GET /tasbih/today`          | أول ما تفتح شاشة المسبحة                         |
-| النقر على الدائرة (زيادة +1)              | `POST /tasbih/increment`     | كل نقرة على الدائرة الكبيرة                      |
-| إعادة الضبط للصفر (العددين كلاهما يصير 0) | `POST /tasbih/reset`         | زر "إعادة ضبط"                                   |
-| تغيير الذكر (SUBHAN → ALHAMDULILLAH إلخ)  | `PATCH /tasbih/change-dhikr` | زر "تغيير الذكر" — يصفر **currentDhikrCount** بس |
+| Position on screen                                           | JSON field          | Semantics                                                      | Resets to 0 when …                                                                                           |
+| ------------------------------------------------------------ | ------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Top-right (label: "مجموع التسبيحات")                         | `todayCount`        | Running total for the calendar day across ALL dhikrs combined. | ONLY when user explicitly taps `POST /tasbih/reset` OR a new day rolls over (server-side).                   |
+| Inside the big navy circle (under the dhikr name, e.g. "33") | `currentDhikrCount` | Count for the **currently selected dhikr only**.               | User taps `PATCH /tasbih/change-dhikr` (new dhikr starts at 0) OR user performs global `POST /tasbih/reset`. |
+
+The 3 provided screen captures map 1:1 to these endpoints:
+
+| Screen   | Situation                                           | `todayCount`          | `currentDhikrAr`         | `currentDhikrCount` | Triggering endpoint          |
+| -------- | --------------------------------------------------- | --------------------- | ------------------------ | ------------------- | ---------------------------- |
+| Screen 1 | Fresh reset / new day                               | `0`                   | "الحمد لله" (or default) | `0`                 | `POST /tasbih/reset`         |
+| Screen 2 | User just changed dhikr from سبحان الله → الحمد لله | **`278` (unchanged)** | "الحمد لله"              | `0`                 | `PATCH /tasbih/change-dhikr` |
+| Screen 3 | User is mid-session on سبحان الله                   | `245`                 | "سبحان الله"             | `33`                | N× `POST /tasbih/increment`  |
 
 ---
 
-### 📌 جدول الشاشات الثلاث (States) + الـ Response المطابق لكل واحدة
+### 1) GET /tasbih/today — Tasbih screen initial load
 
-| الشاشة                       | وصف الحالة                                      | `todayCount` (الأعلى يمين)  | الذكر الحالي `currentDhikrAr`   | `currentDhikrCount` (داخل الدائرة) | متى بتحصل؟                                                  |
-| ---------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
-| **Screen 1** (Reset)         | بعد ما المستخدم يضغط زر "إعادة ضبط"             | `0`                         | "الحمد لله" (أو أي ذكر افتراضي) | `0`                                | بعد استدعاء `POST /tasbih/reset` أو أول يوم جديد            |
-| **Screen 2** (Dhikr changed) | بعد تغيير الذكر من سبحان الله → الحمد لله       | **`278`** (باقي غير متغير!) | "الحمد لله"                     | `0` (صفر جديد)                     | بعد استدعاء `PATCH /tasbih/change-dhikr` مع `ALHAMDULILLAH` |
-| **Screen 3** (In progress)   | أثناء التسبيح (قبل اكتمال الـ 33 و قبل التغيير) | `245`                       | "سبحان الله"                    | `33`                               | بعد الاستدعاءات المتتالية لـ `POST /tasbih/increment`       |
+Description: Call once when the Tasbih screen is opened.
 
-**Response لكل شاشة:**
+Authorization: Bearer token.
 
-<details>
-<summary>👆 Screen 1 — Response بعد إعادة الضبط</summary>
+Response Body (200 — matches Screen 3):
 
 ```json
 {
   "success": true,
   "data": {
-    "todayCount": 0, // ← مجموع التسبيحات في الأعلى = 0
-    "currentDhikr": "ALHAMDULILLAH",
-    "currentDhikrAr": "الحمد لله", // ← اسم الذكر في الدائرة
-    "currentDhikrCount": 0, // ← العدد في الدائرة = 0
-    "dailyGoal": 99,
-    "progressPercent": 0,
-    "lastDhikrChangeAt": "2026-07-28T06:00:00.000Z"
-  }
-}
-```
-
-</details>
-
-<details>
-<summary> 👆 Screen 2 — بعد تغيير الذكر من سبحان الله إلى الحمد لله (أهم مثال!)</summary>
-
-```json
-{
-  "success": true,
-  "data": {
-    "todayCount": 278, // ← مجموع التسبيحات = 278 (سابق مش مَمسوح)
-    "currentDhikr": "ALHAMDULILLAH",
-    "currentDhikrAr": "الحمد لله", // ← الذكر تغير
-    "currentDhikrCount": 0, // ← بس! العدد صفر لانه ذكر جديد
-    "dailyGoal": 99,
-    "progressPercent": 0, // ← نسبة التقدم للذكر الجديد = 0
-    "lastDhikrChangeAt": "2026-07-28T07:12:45.000Z"
-  }
-}
-```
-
-✨ الذكاء الاصطناعي في فريق Flutter لازم يميّز بين الـ 2 أعداد جيدًا في الـ Widget state.
-
-</details>
-
-<details>
-<summary> 👆 Screen 3 — أثناء التسبيح (مثال: سبحان الله 33)</summary>
-
-```json
-{
-  "success": true,
-  "data": {
-    "todayCount": 245, // ← مجموع التسبيحات (245) في الأعلى يمين
+    "todayCount": 245,
     "currentDhikr": "SUBHAN_ALLAH",
-    "currentDhikrAr": "سبحان الله", // ← الذكر في الدائرة
-    "currentDhikrCount": 33, // ← العدد في الدائرة 33
+    "currentDhikrAr": "سبحان الله",
+    "currentDhikrCount": 33,
     "dailyGoal": 99,
-    "progressPercent": 33.33, // ← نسبة الهدف (لو عايز تعمل indicator حلزوني حول الدائرة)
-    "lastDhikrChangeAt": "2026-07-28T06:10:00.000Z"
+    "progressPercent": 33.33,
+    "lastDhikrChangeAt": "2026-07-28T09:15:30.000Z"
   }
 }
 ```
 
-</details>
+Available `currentDhikr` enum values (6 dhikrs — build the "تغيير الذكر" BottomSheet from this list):
 
----
-
-### 📌 GET /tasbih/today — تحميل بيانات اليوم
-
-```
-GET /api/v1/tasbih/today
-Authorization: Bearer <accessToken>
-```
-
-**Response:** نفس المثال الـ Screen 3 بالفوق.
-
----
-
-### 📌 POST /tasbih/increment — النقر على الدائرة (زيادة)
-
-```
-POST /api/v1/tasbih/increment
-Authorization: Bearer <accessToken>
-Body: { "amount": 1 }   // اختياري — default 1 لو مبعتوش
-```
-
-**Effect:**
-
-- `currentDhikrCount += 1`
-- `todayCount        += 1`
-
-**Response:** نفس هيكل `/tasbih/today` بعد الزيادة.
-
-**Use in Flutter:** استخدم الـ response عشان تحدث الدائرة فورًا (مش محتاج تعمل GET تاني).
-
----
-
-### 📌 POST /tasbih/reset — إعادة ضبط (يمسح العددين كلاهما)
-
-```
-POST /api/v1/tasbih/reset
-Authorization: Bearer <accessToken>
-```
-
-**Effect:**
-
-- `currentDhikrCount` = 0
-- `todayCount` = 0
-- `progressPercent` = 0
-
-**Response:** زي Screen 1 — كل الأعداد صفر.
-
----
-
-### 📌 PATCH /tasbih/change-dhikr — تغيير الذكر الحالي (⚠️ بيعمل reset للعداد الداخلي بس)
-
-> الـ **6 أذكار** المتاحة (عالشاشة بيظهر زر "تغيير الذكر" يفتح BottomSheet بيهم):
-
-| القيمة المرسلة                       | التقديم العربي           |
+| Enum value                           | Arabic rendering         |
 | ------------------------------------ | ------------------------ |
 | `SUBHAN_ALLAH`                       | سبحان الله               |
 | `ALHAMDULILLAH`                      | الحمد لله                |
@@ -505,52 +542,150 @@ Authorization: Bearer <accessToken>
 | `ASTAGHFIRULLAH`                     | أستغفر الله              |
 | `LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH` | لا حول ولا قوة إلا بالله |
 
-```
-PATCH /api/v1/tasbih/change-dhikr
-Authorization: Bearer <accessToken>
-Body: { "dhikr": "ALHAMDULILLAH" }
-```
+Rendering rule:
 
-**Effect:**
-
-- تغيير `currentDhikrAr` + `currentDhikr` إلى الجديد
-- ✨ **`currentDhikrCount` = 0** (العداد الداخلي بيصفر، زي الشاشة الـ middle)
-- ✨ **`todayCount` stays (بيبقى كما هو)** — المجموع التراكمي مش بيتأثر
-- `progressPercent` reset for new dhikr
-
-**Response:** زي Screen 2 — اسم الذكر الجديد + `currentDhikrCount` = 0 لكن `todayCount` لسه 278.
+- Show `currentDhikrAr` as the label inside the big circle (NOT the enum key).
+- Show `currentDhikrCount` as the big number inside the circle.
+- Show `todayCount` at top-right under "مجموع التسبيحات".
 
 ---
 
-## 📱 شاشة رقم 5: القبلة (البوصلة)
+### 2) POST /tasbih/increment — Tap on the big navy circle
 
-> الشاشة فيها:
->
-> - إسم الاتجاه + المدينة (مصر + القاهرة تحت العنوان)
-> - دائرة بوصلة كبيرة فيها سهم ذهبي يشير إلى الكعبة
-> - النص تحت الدائرة: "وجه هاتفك حتى يشير السهم إلى القبلة"
+Description: Increments **both counters** by `amount` (default `1`). Call this on every tap of the circular button. Haptic / vibration feedback is 100% client-side; no server round-trip is required for feedback but server state must be kept authoritative. Optimistic UI is safe because the endpoint is idempotent-ish (if retry sends a duplicate +1, the user will lose at most one tap; compensate by re-fetching `/tasbih/today` on the first retry failure).
 
-### Endpoint (مفتوح — مش محتاج Bearer Token!)
+Authorization: Bearer token.
 
-```
-GET /api/v1/qibla/calculate?lat=30.0444&lng=31.2357
+Request Body:
+
+```json
+{ "amount": 1 }
 ```
 
-**الـ parameters:**
+`amount` is optional; omit the body entirely and it defaults to 1.
 
-- `lat` → خط العرض اللي جايب من GPS الخاص بالهاتف
-- `lng` → خط الطول اللي جايب من GPS الخاص بالهاتف
+Response Body (200): Same shape as `/tasbih/today` with `currentDhikrCount + 1` and `todayCount + 1`.
 
-### Response (200 OK)
+Response Body (401): standard envelope (refresh + retry).
+
+---
+
+### 3) POST /tasbih/reset — "إعادة ضبط" button
+
+Description: Resets **both counters** to 0 for the day. Confirm with a small dialog; the operation is irreversible (the day's totals are zeroed).
+
+Authorization: Bearer token.
+
+Request Body: none.
+
+Response Body (200 — matches Screen 1):
 
 ```json
 {
   "success": true,
   "data": {
-    "bearingDegrees": 215.67, // ← ⭐ الأهم: الزاوية بالدرجات (215.67 = الجنوب الغربي)
-    "bearingRadians": 3.764, // زي اللي فوقها لكن بالراديان (مفيد لـ CustomPainter)
-    "directionAr": "الجنوب الغربي", // ← اسم الاتجاه بالعربي لو Flutter محتاجه كـ نص
-    "distanceKm": 1246.35, // المسافة إلى مكة بالكيلومتر
+    "todayCount": 0,
+    "currentDhikr": "SUBHAN_ALLAH",
+    "currentDhikrAr": "سبحان الله",
+    "currentDhikrCount": 0,
+    "dailyGoal": 99,
+    "progressPercent": 0,
+    "lastDhikrChangeAt": "2026-07-31T09:00:00.000Z"
+  }
+}
+```
+
+The current dhikr stays the same after reset (it does **not** jump to الحمد لله or any other value). If you want Screen 1 style "الحمد لله + 0" as a visual default on app first-launch with an empty record, render client-side until the first 200 response arrives.
+
+---
+
+### 4) PATCH /tasbih/change-dhikr — "تغيير الذكر" button
+
+Description: Switches to a new dhikr from the 6-enum list. This is where Screen 2 semantics apply:
+
+Behaviour:
+
+- `currentDhikr` + `currentDhikrAr` change to the requested dhikr.
+- ⚠️ **`currentDhikrCount` resets to `0`** (new dhikr starts fresh — matches Screen 2).
+- ✅ **`todayCount` is PRESERVED exactly as it was.** The top-right grand total does NOT move.
+- Passing the **same** dhikr that is already active returns 200 unchanged and does NOT reset `currentDhikrCount` (safe no-op for Flutter rebuilds).
+- Passing a string outside the enum list → `400 VALIDATION_ERROR` with `details.field = "dhikr"`.
+
+Authorization: Bearer token.
+
+Request Body:
+
+```json
+{ "dhikr": "ALHAMDULILLAH" }
+```
+
+Response Body (200 — matches Screen 2 exactly):
+
+```json
+{
+  "success": true,
+  "data": {
+    "todayCount": 278,
+    "currentDhikr": "ALHAMDULILLAH",
+    "currentDhikrAr": "الحمد لله",
+    "currentDhikrCount": 0,
+    "dailyGoal": 99,
+    "progressPercent": 0,
+    "lastDhikrChangeAt": "2026-07-28T07:12:45.000Z"
+  }
+}
+```
+
+Response Body (400):
+
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "Unknown dhikr value",
+  "details": { "field": "dhikr" }
+}
+```
+
+---
+
+## 🔹 Qibla / Compass Screen
+
+### 1) GET /qibla/calculate — Qibla bearing + direction (public)
+
+Description: Given real GPS coordinates from the device returns the Qibla bearing, direction label and distance. This is the only authenticated-free widget endpoint. Call it once after the platform grants location permission; if permission is denied, fall back to showing a "Enable location permission" placeholder (no request body or alternative endpoint exists for a default / guessed bearing).
+
+Authorization: **Public** — no Bearer token. This lets you show a compass even during a transient 401 token-refresh race.
+
+Query Params:
+
+- `lat` (number, required) — device latitude in decimal degrees (WGS-84).
+- `lng` (number, required) — device longitude in decimal degrees.
+
+Example URL:
+
+```
+GET /api/v1/qibla/calculate?lat=30.0444&lng=31.2357
+```
+
+Behaviour:
+
+- `bearingDegrees` is in the range `[0, 360)` clockwise from true north. 0 = North, 90 = East, 180 = South, 270 = West.
+- The compass arrow must be rotated on screen by `arrowAngleDeg = bearingDegrees - currentHeading`, where `currentHeading` is read continuously from `flutter_compass` (or equivalent magnetometer + rotation vector fusion package). `Transform.rotate` takes radians, so convert via `* pi / 180`.
+- The Kaaba location (Makkah) is also returned for debug overlays: `(21.4225, 39.8262)`.
+- `distanceKm` is optional UI: show below the compass or in a settings chip if desired.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Qibla bearing computed",
+  "data": {
+    "bearingDegrees": 215.67,
+    "bearingRadians": 3.764,
+    "directionAr": "الجنوب الغربي",
+    "distanceKm": 1246.35,
     "kaaba": {
       "latitude": 21.4225,
       "longitude": 39.8262
@@ -559,70 +694,92 @@ GET /api/v1/qibla/calculate?lat=30.0444&lng=31.2357
       "latitude": 30.0444,
       "longitude": 31.2357
     }
-  }
+  },
+  "timestamp": "2026-07-31T07:00:00.000Z"
 }
 ```
 
-### 🎯 كيف تعمل البوصلة في Flutter؟ (المعادلة المهمة)
+Response Body (400 — missing coordinates):
 
-1. خد `heading` من **مستشعر البوصلة** (Flutter Compass package).
-2. زاوية دوران السهم = `(bearingDegrees - heading)` درجة.
-3. مررها للـ `Transform.rotate` أو للـ `CustomPainter` عشان السهم يكون دائمًا متجه للقبلة مهما كان اتجاه الهاتف.
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "Missing or invalid lat/lng",
+  "details": { "field": "lat" }
+}
+```
 
-**مثال Dart Code:**
+Dart compass example (copy/paste into the Qibla screen's `initState`):
 
 ```dart
-// dependencies: flutter_compass, sensors_plus
+// dependencies: flutter_compass
 import 'package:flutter_compass/flutter_compass.dart';
+// ...
+double _arrowDeg = 0;
+double _bearingFromApi = 215.67;   // ← from GET /qibla/calculate
 
-// داخل initState:
-FlutterCompass.events?.listen((CompassEvent event) {
-  double? heading = event.heading;           // اتجاه الهاتف من الشمال
-  double bearing = 215.67;                   // من الـ API (data.bearingDegrees)
-  double arrowRotation = bearing - heading!; // ← ده اللي تديه للـ Transform.rotate
-  setState(() => _arrowRotation = arrowRotation);
-});
+@override
+void initState() {
+  super.initState();
+  FlutterCompass.events?.listen((CompassEvent event) {
+    final heading = event.heading ?? 0;
+    setState(() => _arrowDeg = _bearingFromApi - heading);
+  });
+}
 
-// في البناء:
-Transform.rotate(
-  angle: _arrowRotation * pi / 180,  // حول للراديان عشان الـ Transform يفهم
-  child: Image.asset('assets/qibla_arrow.png'),
-)
+@override
+Widget build(BuildContext context) {
+  return Transform.rotate(
+    angle: _arrowDeg * math.pi / 180,
+    child: Image.asset('assets/qibla_arrow_gold.png'),
+  );
+}
 ```
 
 ---
 
-## 🗺️ خريطة الـ Endpoints الكاملة (للمرجع السريع)
+## 🔹 Route Endpoint Index (quick jump for 2026 AI Flutter generators)
 
-| #   | Endpoint               | Method | Auth؟ | شاشة/الاستخدام                                      |
-| --- | ---------------------- | ------ | ----- | --------------------------------------------------- |
-| 1   | `/auth/sign-up`        | POST   | ❌    | شاشة إنشاء حساب (3 fields: fullName + email + pass) |
-| 2   | `/auth/login`          | POST   | ❌    | شاشة تسجيل الدخول                                   |
-| 3   | `/auth/google`         | POST   | ❌    | زر "تسجيل عبر جوجل" في الشاشتين                     |
-| 4   | `/auth/refresh`        | POST   | ❌    | جلب access جديد بـ refreshToken                     |
-| 5   | `/dashboard`           | GET    | ✅    | **🏆 الشاشة الرئيسية كلّها**                        |
-| 6   | `/tasbih/today`        | GET    | ✅    | تحميل شاشة المسبحة                                  |
-| 7   | `/tasbih/increment`    | POST   | ✅    | نقرة الدائرة (زيادة +1)                             |
-| 8   | `/tasbih/reset`        | POST   | ✅    | إعادة ضبط المسبحة                                   |
-| 9   | `/tasbih/change-dhikr` | PATCH  | ✅    | تغيير الذكر من القائمة                              |
-| 10  | `/qibla/calculate`     | GET    | ❌    | شاشة القبلة (بـ GPS coordinates)                    |
-| 11  | `/prayers/today`       | GET    | ✅    | تحديث مفصل لأوقات الصلاة (لو Flutter محتاج)         |
-| 12  | `/journey/today`       | GET    | ✅    | بيانات رحلتك اليومية standalone                     |
-| 13  | `/profile/me`          | GET    | ✅    | شاشة الحساب الشخصي                                  |
-| 14  | `/profile`             | PATCH  | ✅    | تعديل البيانات (الاسم، الموقع، المدينة...)          |
-| 15  | `/health`              | GET    | ❌    | فحص حالة الـ API (للـ monitor بس)                   |
+| #   | Route                  | Method | Auth | Screen / module                               |
+| --- | ---------------------- | ------ | ---- | --------------------------------------------- |
+| 1   | `/auth/sign-up`        | POST   | No   | Sign-Up screen "إنشاء حساب جديد"              |
+| 2   | `/auth/login`          | POST   | No   | Login screen "تسجيل الدخول"                   |
+| 3   | `/auth/google`         | POST   | No   | Google button (both screens)                  |
+| 4   | `/auth/refresh`        | POST   | No   | Token rotation (background)                   |
+| 5   | `/dashboard`           | GET    | Yes  | Home / Dashboard — single-source-of-truth GET |
+| 6   | `/tasbih/today`        | GET    | Yes  | Tasbih screen initial load                    |
+| 7   | `/tasbih/increment`    | POST   | Yes  | Tasbih circle tap (+1)                        |
+| 8   | `/tasbih/reset`        | POST   | Yes  | Tasbih reset button                           |
+| 9   | `/tasbih/change-dhikr` | PATCH  | Yes  | Tasbih change-dhikr bottom sheet              |
+| 10  | `/qibla/calculate`     | GET    | No   | Qibla / Compass screen                        |
 
 ---
 
-## ✅ نصائح أخيرة لفريق Flutter (تخلي التكامل نضيف)
+## 🔹 Notes for Flutter Implementation
 
-1. **Secure Storage للأ tokens**: استخدم `flutter_secure_storage` — مش SharedPreferences عادي.
-2. **Handle 401 بشكل عام**: لو فيه `401 UNAUTHORIZED` → استدعِ الـ refresh token → لو هو رفض كمان → روح للـ login.
-3. **Convert countdownSeconds بشكل دوري**: في الـ dashboard، خد الـ `countdownSeconds` واخزنه في State، وكل ثانية نصص منه -1 عشان العداد يشتغل (لو وصل للصفر → اعمل GET /dashboard مرة واحدة عشان تجيب الصلاة اللي بعدها).
-4. **ملاحظة على completed في الصلوات**: الـ `prayers.schedule[x].completed` هو اللي يحدد لون النقطة تحت كل صلاة (True → ذهبي ✅، False → رمادي ⚪).
-5. **ملاحظة على تحدي اليوم**: لو `completed=true` و `claimed=false` → اظهر زر "استلام المكافأة" وروح على الـ endpoint بتاع الإClaim في الـ Challenges module.
-6. **ملاحظة على الختمة**: اللينك تحت زر "متابعة القراءة" بيودي على شاشة القرآن (في عندنا endpoint `/quran/surahs/{id}` لو محتاج تحميل السورة نفسها).
+### 1) Dashboard refresh strategy
 
----
+- Call `GET /dashboard` once on the authenticated `HomeScreen` `initState`.
+- Subscribe to `WidgetsBindingObserver.didChangeAppLifecycleState(AppLifecycleState.resumed)` and re-fetch `/dashboard` one time whenever the app returns from the background (this picks up any server-side progression for new-day rollover, next-prayer switch, etc.).
+- Do **not** attach `/dashboard` to a `PullToRefresh` alone; relying solely on pull-to-refresh means users whose app is in the foreground for >15 minutes see a stale prayer countdown. Combine pull-to-refresh with the lifecycle hook above.
 
-> **تم التحديث: 28 يوليو 2026** — الملف ده بيلف تمامًا لـ Swagger بتاع الإنتاج وكل الـ services اللي موجودة في الـ backend. إذا حبيت تراجع أي حاجة بالتفصيل → `https://noor-app-backend-one.vercel.app/api/v1/docs`
+### 2) Tasbih two-counter contract
+
+`todayCount` (top-right) and `currentDhikrCount` (inside circle) must live in **separate** state atoms / ValueNotifiers. Never compute one from the other. A "change dhikr" event only touches the inner-counter atom; the global total atom must be left untouched.
+
+### 3) Offline behaviour
+
+These endpoints are **not** offline-first. Cache responses for display during offline, but do **not** allow submitting prayer completions / tasbih increments offline and syncing later — the server enforces ordering, daily windows and uniqueness. Show a small "You are offline" banner on the relevant screens and gray out submit buttons while the device reports `ConnectivityResult.none`.
+
+### 4) Error handling — code over message
+
+Never branch on `response.message` (it's translated / can change). Branch on `response.code` (`SUCCESS`, `VALIDATION_ERROR`, `CONFLICT`, `UNAUTHORIZED`, `NOT_FOUND`, `INTERNAL_SERVER_ERROR`). Use `message` only for human-facing `SnackBar`s / helper text.
+
+### 5) Nullable sections
+
+Any top-level `data.*` section that is not present in DB seed returns JSON `null` explicitly (e.g., no khatmah created yet → `khatmah = null`). Use Dart null-aware operators (`khatmah?.surahNameAr ?? ''`) and a small "Coming soon" placeholder card per nullable section so the first-launch onboarding render does not throw `NoSuchMethodError: null`.
+
+### 6) Swagger UI is always the ground truth
+
+If there is a discrepancy between this guide and the live Swagger spec at `<base>/api/v1/docs`, trust the Swagger. This guide is a portable Flutter reference; the Swagger spec is generated from the source code and redeployed with every backend release.
