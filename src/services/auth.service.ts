@@ -53,6 +53,13 @@ export type AuthUserProfile = {
   email: string;
   role: string;
   provider: string;
+  /**
+   * Stable provider-level user ID. For GOOGLE users this equals the `sub`
+   * claim in the Google ID token. Stored in User.googleId. Can be used by
+   * Flutter to distinguish first-time vs returning Google sign-ins alongside
+   * the response HTTP status (201 vs 200).
+   */
+  providerId: string | null;
   createdAt: Date;
 };
 
@@ -96,6 +103,8 @@ function mapUserToProfile(user: {
   email: string;
   role: UserRole;
   provider: string;
+  providerId: string | null;
+  googleId: string | null;
   createdAt: Date;
 }): AuthUserProfile {
   return {
@@ -105,6 +114,7 @@ function mapUserToProfile(user: {
     email: user.email,
     role: user.role,
     provider: user.provider,
+    providerId: user.googleId ?? user.providerId ?? null,
     createdAt: user.createdAt,
   };
 }
@@ -116,6 +126,8 @@ async function createAuthResultForUser(user: {
   email: string;
   role: UserRole;
   provider: string;
+  providerId: string | null;
+  googleId: string | null;
   createdAt: Date;
 }): Promise<AuthResult> {
   const accessToken = generateAccessToken({ userId: user.id, email: user.email });
@@ -179,6 +191,8 @@ export async function signUp(input: {
       email: true,
       role: true,
       provider: true,
+      providerId: true,
+      googleId: true,
       createdAt: true,
     },
   });
@@ -199,6 +213,8 @@ export async function login(input: {
       email: true,
       role: true,
       provider: true,
+      providerId: true,
+      googleId: true,
       createdAt: true,
       password: true,
       isActive: true,
@@ -270,6 +286,8 @@ export async function refreshToken(input: { refreshToken: string }): Promise<Aut
       email: true,
       role: true,
       provider: true,
+      providerId: true,
+      googleId: true,
       createdAt: true,
       isActive: true,
     },
@@ -306,6 +324,8 @@ export async function getCurrentUser(userId: string): Promise<AuthUserProfile> {
       email: true,
       role: true,
       provider: true,
+      providerId: true,
+      googleId: true,
       createdAt: true,
       isActive: true,
     },
@@ -491,20 +511,44 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
 
   const emailLower = googlePayload.email.toLowerCase();
 
-  // Find or create user
-  let user = await prisma.user.findUnique({
-    where: { email: emailLower },
-    select: {
-      id: true,
-      username: true,
-      fullName: true,
-      email: true,
-      role: true,
-      provider: true,
-      createdAt: true,
-      isActive: true,
-    },
-  });
+  // Priority lookup order:
+  //   1. By googleId (the sub claim from Google) — handles users who changed
+  //      their primary Google email but still own the same Google account.
+  //   2. By email — covers first-time sign-ins AND existing LOCAL users whose
+  //      email already matched.
+  let user =
+    (googlePayload.sub
+      ? await prisma.user.findUnique({
+          where: { googleId: googlePayload.sub },
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            email: true,
+            role: true,
+            provider: true,
+            providerId: true,
+            googleId: true,
+            createdAt: true,
+            isActive: true,
+          },
+        })
+      : null) ??
+    (await prisma.user.findUnique({
+      where: { email: emailLower },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        role: true,
+        provider: true,
+        providerId: true,
+        googleId: true,
+        createdAt: true,
+        isActive: true,
+      },
+    }));
 
   if (user && user.provider !== 'GOOGLE' && user.provider !== 'LOCAL') {
     throw new AppError(
@@ -515,13 +559,16 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
   }
 
   if (!user) {
-    // Create new user from Google profile
+    // Create new user from Google profile. Always store googleId so we can
+    // find this user back even if the primary Google email changes later.
     user = await prisma.user.create({
       data: {
         email: emailLower,
         username: (googlePayload.name || emailLower.split('@')[0]) as string,
         fullName: googlePayload.name || null,
         provider: 'GOOGLE',
+        providerId: googlePayload.sub || null,
+        googleId: googlePayload.sub || null,
         role: UserRole.USER,
       },
       select: {
@@ -531,28 +578,46 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
         email: true,
         role: true,
         provider: true,
+        providerId: true,
+        googleId: true,
         createdAt: true,
         isActive: true,
       },
     });
-  } else if (user.provider === 'LOCAL') {
-    // Update existing LOCAL user to support GOOGLE signin too
-    user = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        provider: 'LOCAL', // Keep LOCAL as primary
-      },
-      select: {
-        id: true,
-        username: true,
-        fullName: true,
-        email: true,
-        role: true,
-        provider: true,
-        createdAt: true,
-        isActive: true,
-      },
-    });
+  } else {
+    // Existing user (either GOOGLE or LOCAL provider).
+    // Back-fill googleId if missing (covers both a previously LOCAL user who
+    // now signs in with Google, and an older GOOGLE user whose googleId was
+    // never stored because the server did not persist it yet).
+    const needsGoogleId = !user.googleId && googlePayload.sub;
+    const needsProviderId = !user.providerId && googlePayload.sub;
+    const wantsName = !user.fullName && googlePayload.name;
+
+    if (needsGoogleId || needsProviderId || wantsName) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          ...(needsGoogleId ? { googleId: googlePayload.sub } : {}),
+          ...(needsProviderId ? { providerId: googlePayload.sub } : {}),
+          ...(wantsName ? { fullName: googlePayload.name } : {}),
+          // Keep whatever primary provider was set originally (LOCAL stays LOCAL,
+          // GOOGLE stays GOOGLE) — never demote a LOCAL user who later signs in
+          // via Google, so they can still use their password too.
+        },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          role: true,
+          provider: true,
+          providerId: true,
+          googleId: true,
+          createdAt: true,
+          isActive: true,
+        },
+      });
+    }
   }
 
   if (!user.isActive) {

@@ -7,8 +7,8 @@
   - Local dev: `http://localhost:3000/api/v1`
   - Swagger UI (always the source of truth): `<base>/api/v1/docs`
 - **Auth pattern**: Every endpoint below is `Authorization: Bearer <accessToken>` **except** the ones explicitly marked `Public`.
-- **Response envelope**: Every response uses the same wrapper so Flutter can deserialize with one generic model: `{ success, message?, data, meta?, code?, details?, timestamp }`.
-- **Auth endpoints**: `POST /auth/sign-up` creates a local account; `POST /auth/login` returns the token pair; `POST /auth/refresh` rotates the access token after 15 minutes; `POST /auth/google` exchanges a Google ID token for the same envelope.
+- **Response envelope**: Every response uses the same wrapper so Flutter can deserialize with one generic model: `{ success, message?, data, meta?, timestamp, requestId }` for 2xx, plus `{ code, details? }` for 4xx/5xx.
+- **Auth endpoints (6 total)**: `POST /auth/sign-up` creates a local account; `POST /auth/login` returns the token pair; `POST /auth/google` exchanges a Google ID token; `POST /auth/refresh` rotates the access token; `POST /auth/logout` revokes the refresh token server-side; `GET /auth/me` returns the current user profile from the Bearer token.
 - **Main screens covered (8 states)**:
   1. Sign-Up screen (3 fields only: fullName, email, password; username is server-generated).
   2. Login screen (email, password + Google button).
@@ -22,10 +22,10 @@
 | Area                                    | Count                                               |
 | --------------------------------------- | --------------------------------------------------- |
 | Screens / UI states documented          | 8                                                   |
-| Endpoints covered                       | 10                                                  |
-| Authenticated endpoints                 | 9                                                   |
-| Public (no Bearer) endpoints            | 1                                                   |
-| HTTP statuses covered (success + error) | 200 / 201 / 204 / 400 / 401 / 403 / 404 / 409 / 500 |
+| Endpoints covered                       | 12                                                  |
+| Authenticated endpoints (Bearer)        | 6 (/auth/me, dashboard, 4 × tasbih)                 |
+| Public (no Bearer) endpoints            | 6 (sign-up, login, google, refresh, logout, qibla)  |
+| HTTP statuses covered (success + error) | 200 / 201 / 400 / 401 / 403 / 404 / 409 / 500 / 503 |
 
 ---
 
@@ -44,12 +44,14 @@ accept: application/json
 Behaviour:
 
 - Missing / expired token returns `401 UNAUTHORIZED`. When you see `401`, call `POST /auth/refresh` with the stored `refreshToken` and retry the original request once. If refresh also returns `401`, route the user to the Login screen.
-- Tokens are **JWT**. `expiresIn` in the login response is in **seconds** (default `900` = 15 minutes).
+- Tokens are **JWT**. Do **NOT** rely on `data.tokens.expiresIn` (it is a raw duration string like `"7d"` or `"15m"` passed verbatim from the server env). Instead, decode the `exp` claim from the access-token JWT payload to get the real Unix-timestamp expiry in seconds, or simply refresh on the first 401.
 - Never store tokens in `SharedPreferences`. Use `flutter_secure_storage` (or equivalent encrypted keystore).
 
 ### 2) Generic Response Envelope
 
-Every 2xx, 4xx and 5xx response shares this envelope:
+Every 2xx, 4xx and 5xx response shares a common outer envelope. The **success** envelope and **error** envelope differ slightly in which keys appear.
+
+**Success envelope (2xx status codes):**
 
 ```json
 {
@@ -57,16 +59,30 @@ Every 2xx, 4xx and 5xx response shares this envelope:
   "message": "Short Arabic label — safe to show in a SnackBar if non-null",
   "data": { "...": "..." },
   "meta": null,
-  "code": "SUCCESS | VALIDATION_ERROR | CONFLICT | UNAUTHORIZED | NOT_FOUND | INTERNAL_SERVER_ERROR",
+  "timestamp": "2026-07-31T07:15:00.000Z",
+  "requestId": "a1b2c3d4-5678-90ef-ghij-klmnopqrstuv"
+}
+```
+
+**Error envelope (4xx / 5xx status codes):**
+
+```json
+{
+  "success": false,
+  "message": "Human-readable error description (Arabic)",
+  "code": "VALIDATION_ERROR | CONFLICT | UNAUTHORIZED | NOT_FOUND | INTERNAL_SERVER_ERROR | FORBIDDEN",
   "details": null,
-  "timestamp": "2026-07-31T07:15:00.000Z"
+  "timestamp": "2026-07-31T07:15:00.000Z",
+  "requestId": "a1b2c3d4-5678-90ef-ghij-klmnopqrstuv"
 }
 ```
 
 Notes:
 
-- On error, `success` is `false`, `code` is the stable error identifier, `details.field` (when present) tells you which TextField to underline red.
-- On pagination endpoints, `meta` contains `{ total, page, pageSize, hasMore }`.
+- `success = false` always means the HTTP status is 4xx or 5xx.
+- On error, `code` is the stable error identifier (branch on it, not on `message`). `details.field` (when present) tells you which TextField to underline red.
+- On pagination endpoints, `meta` contains `{ total, page, pageSize, hasMore }` and is always a JSON object (never omitted).
+- `requestId` is always present (a UUID v4) and can be sent to backend support to trace the exact failing request in server logs.
 
 ### 3) Dart quick-start (generic client)
 
@@ -166,20 +182,23 @@ Response Body (201 Created):
       "email": "ahmedmohamed@gmail.com",
       "role": "USER",
       "provider": "LOCAL",
+      "providerId": null,
       "createdAt": "2026-07-31T07:00:00.000Z"
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh....",
-    "tokenType": "Bearer",
-    "expiresIn": 900
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh....",
+      "expiresIn": "7d"
+    }
   },
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0001-aaaa-bbbb-000000000001"
 }
 ```
 
 Action after receiving 201:
 
-- Persist `accessToken` + `refreshToken` in secure storage (do **not** persist the raw `password`).
+- Persist `data.tokens.accessToken` + `data.tokens.refreshToken` in secure storage (do **not** persist the raw `password`).
 - Persist `user.id` + `user.displayName = user.fullName ?? user.username` (used in the home greeting).
 - Navigate immediately to the Home / Dashboard screen — no extra login step is needed.
 
@@ -191,7 +210,8 @@ Response Body (400 — VALIDATION_ERROR):
   "code": "VALIDATION_ERROR",
   "message": "Invalid request payload",
   "details": { "field": "email", "issue": "Email format is invalid" },
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0002-aaaa-bbbb-000000000002"
 }
 ```
 
@@ -203,7 +223,8 @@ Response Body (409 — duplicate email):
   "code": "CONFLICT",
   "message": "Email is already registered. Try logging in.",
   "details": { "field": "email" },
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0003-aaaa-bbbb-000000000003"
 }
 ```
 
@@ -215,7 +236,8 @@ Response Body (500):
   "code": "INTERNAL_SERVER_ERROR",
   "message": "Internal server error",
   "details": null,
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0004-aaaa-bbbb-000000000004"
 }
 ```
 
@@ -242,7 +264,7 @@ Request Body:
 }
 ```
 
-Response Body (200 OK): exact same envelope and `data` shape as Sign-Up (201). Persist tokens + navigate to Dashboard.
+Response Body (200 OK): exact same envelope and `data` shape as Sign-Up (201): `{ user, tokens: { accessToken, refreshToken, expiresIn } }`. Persist `data.tokens.*` in secure storage + navigate to Dashboard. The HTTP status differs (200 vs 201) but the JSON keys are identical.
 
 Response Body (401):
 
@@ -252,7 +274,8 @@ Response Body (401):
   "code": "UNAUTHORIZED",
   "message": "Invalid credentials",
   "details": null,
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0005-aaaa-bbbb-000000000005"
 }
 ```
 
@@ -260,24 +283,427 @@ Response Body (401):
 
 ### 3) POST /auth/google — Google Sign-In / Sign-Up button (both screens)
 
-Description: Exchanges the Google ID token obtained from the Google Sign-In SDK for a Noor account + tokens. Works for both first-time and returning users; creates the account automatically on first use (so this one endpoint serves **both** the Sign-Up screen Google button and the Login screen Google button).
+Description: Exchanges the **full Google ID token JWT** obtained from the official
+`google_sign_in` Flutter SDK for a Noor account + the same JWT token pair
+(`accessToken` + `refreshToken`) returned by the normal email/password Sign-Up.
+Works for **both** first-time users (account auto-created) and returning users.
+This single endpoint serves the Google button on **both** the Sign-Up screen and
+the Login screen — the backend decides internally whether to insert or to sign in.
 
-Authorization: **Public**.
+> ##### ⚠️ Critical 2026 Do / Do-Not contract for Flutter
+>
+> | Action                                                                  | Status                                           | Why                                                                                                                                                                                          |
+> | ----------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | Send `{ idToken: "<full Google JWT>" }` (1000+ char string with 2 dots) | ✅ **REQUIRED**                                  | Digitally signed by Google. Only this is verifiable server-side.                                                                                                                             |
+> | Send `{ googleId: "103456789..." }` (raw UID string only)               | ❌ **FORBIDDEN — will 400 or silently be wrong** | UID-only strings are not signed. Anyone could forge them to hijack accounts.                                                                                                                 |
+> | Use package `google_sign_in` from pub.dev                               | ✅ **REQUIRED**                                  | Official Google SDK that performs the native picker and gives you the real `idToken`.                                                                                                        |
+> | Use `firebase_auth` **instead of** `google_sign_in` to obtain `idToken` | ❌ **DO NOT USE as the source of idToken**       | `FirebaseAuth.instance.signInWithGoogle()` gives you a Firebase auth session, but the raw Google `idToken` claim you need for Noor still comes from `google_sign_in`. See hybrid note below. |
+> | Send `accessToken` instead of `idToken`                                 | ❌ **DO NOT SEND**                               | Different token meant for Google API calls, not OIDC identity verification.                                                                                                                  |
+> | Set any Google env vars on the Noor backend                             | ⚪ **OPTIONAL**                                  | `POST /auth/google` works with **zero backend env vars**. `GOOGLE_CLIENT_ID` only enables an optional extra strict `aud` check for production hardening (see below).                         |
+>
+> ##### 🔀 Hybrid Firebase note (very common in 2026 Flutter shops)
+>
+> If your Flutter team already uses Firebase for other services (**Crashlytics,
+> Analytics, FCM push notifications, Remote Config, Performance Monitoring**
+> etc.) you are fully supported. The correct order is:
+>
+> 1. First call the official `GoogleSignIn().signIn()` + `.authentication` as
+>    documented below to get a real `GoogleSignInAuthentication` object. This
+>    gives you the raw **Google `idToken` JWT** that Noor's backend requires.
+> 2. Send that same `idToken` to **`POST /auth/google`** against Noor's API
+>    (this is what creates / authenticates the user inside Noor's database).
+> 3. **Optionally, as step 3 only**, feed the identical `idToken` + the
+>    accompanying `accessToken` into
+>    `FirebaseAuth.instance.signInWithCredential(GoogleAuthProvider.credential(...))`
+>    so the Firebase side of the app also gets a signed-in session for the
+>    extra services you want from Google/Firebase.
+>
+> Never skip step 1 and never take a "Firebase Custom Token" or the
+> `FirebaseAuth.instance.currentUser.uid` string and send that as `idToken` to
+> Noor's backend — it will fail verification.
 
-Request Body:
+Authorization: **Public**. No Bearer token needed before calling this.
+
+Validation / Request Body shape:
 
 ```json
-{ "idToken": "<raw Google ID token returned by GoogleSignIn>" }
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE0NT...<long 3-part JWT with two dots>"
+}
 ```
+
+- `idToken` is **required** and must be a non-empty string. Empty, blank, or
+  omitted values are rejected by model validation as `400` before the endpoint
+  is reached.
 
 Behaviour:
 
-- A missing or malformed `idToken` → `400`.
-- A valid Google token maps to a user by `sub` claim (`googleId` in the DB). First-time sign-in creates the user with `provider = "GOOGLE"` and `fullName` + `email` populated from the ID token's claims.
-- Returned envelope and `data` shape is identical to Sign-Up (201).
-- Google users have no server-side password. Never route them to the "Forgot password" screen; show a "Continue with Google" hint instead.
+- The server sends the received token to Google's public
+  `https://www.googleapis.com/oauth2/v3/tokeninfo` endpoint. If Google returns
+  anything other than `200 OK`, the request fails with `401` and the
+  `Invalid Google ID token` message. **No database write occurs in that case.**
+- The decoded, verified token contains claims: `{ sub, email, name, aud, exp, iss, ... }`.
+- **Account lookup priority (new, secure):**
+  1. First the server tries `prisma.user.findUnique({ where: { googleId: sub } })`
+     using the unique-indexed `googleId` column. This ensures that users who
+     later **change their primary Google email** still land on their original
+     Noor account (they never lose their points / tasbih history).
+  2. Only if no such `googleId` match exists does the server fall back to
+     matching by `email`. This path covers (a) brand-new sign-ups and (b)
+     pre-existing **LOCAL** password users whose email already matched before
+     they first clicked Continue with Google.
+- On **first Google sign-in ever for this Google account**:
+  - A new user row is inserted with:
+    - `provider = "GOOGLE"`,
+    - `googleId  = sub` claim (non-null, unique indexed),
+    - `providerId = sub` claim,
+    - `fullName = name` claim when present, otherwise `null`,
+    - `email    = email` claim **lowercased**,
+    - `username` is auto-generated from the Google display name (same
+      server-side generator as local sign-up — guaranteed unique via retries).
+  - HTTP response status is **`201 Created`**.
+- On **returning Google sign-in** (googleId already in DB), or on a
+  **LOCAL password user who matches by email**:
+  - The server **back-fills any missing columns on the user row atomically**:
+    - If `googleId` was `null` it gets set to the `sub` claim (both for
+      previously-LOCAL users whose email matched, and for legacy GOOGLE users
+      created before the server started persisting the field).
+    - If `fullName` was `null` and Google sent a name, it is populated.
+  - The primary `provider` column is **never downgraded**. A user who
+    originally registered with email+password keeps `provider = LOCAL` so they
+    can still sign in with their password AND via Google going forward.
+  - HTTP response status is **`200 OK`**.
+- A matching email whose `provider` is **neither** `LOCAL` **nor** `GOOGLE`
+  (e.g. `APPLE`) fails with `409 Conflict` so the user is directed to sign in
+  via the provider they originally used.
+- Returned `data.user.providerId` holds the `sub` claim so Flutter can use it
+  as an immutable stable identifier alongside the HTTP status code
+  (`201` → show onboarding tour; `200` → go straight to Home).
+- Returned envelope shape and token semantics (`expiresIn`, `tokenType`) are
+  identical to Sign-Up. Store them in `flutter_secure_storage` the same way.
+- Google-provider users have no server-side password. Never route them to the
+  "Forgot password" screen. If they see "Invalid credentials" twice, show a
+  hint: `"This email was registered with Google — tap Continue with Google."`
 
-Response Body (200 / 201): same `{ user, accessToken, refreshToken, tokenType, expiresIn }` shape.
+#### ① Flutter Google Sign-In — required setup steps (NO FIREBASE REQUIRED, Firebase optional for extras)
+
+Before you write a single line of Dart, the Flutter engineer must perform these
+3 one-time tasks. Without them `auth.idToken` will always be `null` and the
+endpoint cannot be called.
+
+You are free to also add `firebase_core`, `firebase_crashlytics`,
+`firebase_analytics`, `firebase_messaging`, or any other Firebase Flutter
+packages to your project for their respective features — they do not conflict
+with this integration. The only rule is: **the `idToken` you send to Noor's
+backend must come from the `google_sign_in` package's `.authentication.idToken`
+property, never from any Firebase package.**
+
+1. **Create 3 OAuth 2.0 Client IDs on Google Cloud Console**
+   (console.cloud.google.com → APIs & Services → Credentials, same Google Cloud
+   project the Noor backend team uses):
+
+   | Client type | Fields to fill                                                                                 | Output                                                                                                                           |
+   | ----------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+   | **Android** | Package name (`com.noor.app`) + **SHA-1 fingerprint of the debug AND release keystore**        | A numeric Client ID (no downloadable file needed).                                                                               |
+   | **iOS**     | Bundle ID (`com.noor.app`) + optional App Store ID + Team ID                                   | A plist `GoogleService-Info.plist` plus numeric Client ID.                                                                       |
+   | **Web**     | Authorized JavaScript origins (e.g. `http://localhost:3000`, the production Web domain if any) | A numeric **Web Client ID string of the form** `123456-abcdef.apps.googleusercontent.com`. **Copy this string — Dart needs it.** |
+
+   > **CRITICAL Android gotcha (90% of "idToken is null" support tickets come from this):**
+   > In Google Cloud Console → **OAuth Consent Screen** → Publishing status must be set to
+   > **"In production" (PUBLISHED)** with "Testing" user list containing nothing useful.
+   > If left in "Testing" with no users added, every Google account that is not
+   > explicitly whitelisted will silently authenticate but return a **null** idToken.
+   > Same symptom happens if the Android SHA-1 or package name is a typo.
+
+2. **Project files** (Flutter engineer owns these):
+   - **Android:** add the Android OAuth Client ID to
+     `android/app/src/main/res/values/strings.xml` under the key
+     `default_web_client_id`. Also make sure `android/app/build.gradle` applies
+     the Google services plugin only if you _really_ need it — with
+     `google_sign_in: ^6.x` you can actually **skip** the whole google-services
+     gradle plugin if this string exists.
+   - **iOS:** Add the `CFBundleURLSchemes` entry from
+     `GoogleService-Info.plist` → `REVERSED_CLIENT_ID` into your `Info.plist`
+     file, and drop the `GoogleService-Info.plist` file into the Runner
+     project via Xcode.
+   - **Web:** Add the Web Client ID to `index.html` meta tag
+     `google-signin-client_id`.
+
+3. **pubspec.yaml dependencies** (the 3 below are required for the Noor
+   integration; add any Firebase extras separately if you need them — e.g.
+   `firebase_core`, `firebase_crashlytics`, `firebase_analytics`,
+   `firebase_messaging`, `firebase_remote_config`):
+
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_secure_storage: ^9.2.2
+  dio: ^5.7.0
+  google_sign_in: ^6.3.0 # 👈 OFFICIAL ONLY — source of the real Google idToken JWT.
+```
+
+#### ② Production-hardening optional backend env var
+
+The endpoint works with **zero backend env vars set**. Optionally, the backend
+team may add to Vercel (and nowhere else — not in the Flutter app):
+
+```
+GOOGLE_CLIENT_ID=123456-abcdefghijkl.apps.googleusercontent.com   # the WEB client ID, copied verbatim
+```
+
+When present, the server performs one extra check _after_ Google already
+verified the signature: it compares the `aud` claim in the token to the
+configured value and rejects the call with `401` if they differ. This
+guarantees that a valid Google token issued for a completely different
+third-party app cannot be replayed against Noor. **This is never mandatory for
+integration to work; leave it out while the Flutter team is wiring things up.**
+
+#### ③ Reference Dart implementation (copy-paste-ready)
+
+```dart
+// lib/core/auth/google_sign_in_service.dart
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+class NoorGoogleAuth {
+  static const String _kWebClientId = String.fromEnvironment(
+    'NOOR_GOOGLE_WEB_CLIENT_ID',
+    // 👈 Pass via --dart-define=NOOR_GOOGLE_WEB_CLIENT_ID=xxxx at build time.
+    // NEVER commit this to git. For Android-only builds you can leave it empty.
+    defaultValue: '',
+  );
+
+  static final GoogleSignIn _signIn = GoogleSignIn(
+    // clientId is required on iOS & Web; on Android the SDK reads it from
+    // the strings.xml default_web_client_id resource so passing it here is
+    // harmless but redundant.
+    clientId: _kWebClientId.isEmpty ? null : _kWebClientId,
+    scopes: const <String>[
+      'openid',
+      'email',
+      'profile',
+    ],
+    // Force the account picker to appear every time — avoids silently
+    // re-signing the user in with a stale account during testing.
+    forceCodeForRefreshToken: true,
+  );
+
+  final Dio _dio;
+  final FlutterSecureStorage _storage;
+
+  NoorGoogleAuth(this._dio, this._storage);
+
+  /// Returns the raw HTTP status so callers can distinguish 201 (new user)
+  /// from 200 (returning user). Throws typed Dart errors for all 4xx/5xx.
+  Future<int> signInOrSignUp() async {
+    final GoogleSignInAccount? account = await _signIn.signIn();
+    if (account == null) {
+      throw const UserCancelledGoogleSignInException(); // handle in UI
+    }
+
+    final GoogleSignInAuthentication auth = await account.authentication;
+    final String? idToken = auth.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      // 99% of the time this means:
+      //   Android  → wrong SHA-1 in Google Cloud, wrong package name, or
+      //              OAuth consent screen still in "Testing" status without
+      //              the current account in the Test-users list.
+      //   iOS      → reversed URL scheme missing from Info.plist.
+      //   Any      → clientId passed to GoogleSignIn() is from the wrong
+      //              cloud project entirely.
+      throw const GoogleIdTokenNullException();
+    }
+
+    // *********************************************************
+    // ✅ ONLY this body is sent to Noor. Nothing else.
+    //    Do NOT send .id, do NOT send accessToken, do NOT send UID.
+    // *********************************************************
+    final Response<Map<String, dynamic>> resp = await _dio.post<Map<String, dynamic>>(
+      '/auth/google',
+      data: <String, dynamic>{'idToken': idToken},
+    );
+
+    final Map<String, dynamic> data = resp.data!['data'] as Map<String, dynamic>;
+    final Map<String, dynamic> tokens = data['tokens'] as Map<String, dynamic>;
+    await Future.wait(<Future<void>>[
+      _storage.write(key: 'accessToken', value: tokens['accessToken'] as String?),
+      _storage.write(key: 'refreshToken', value: tokens['refreshToken'] as String?),
+    ]);
+
+    // ******************************************************************
+    // 🔀 OPTIONAL HYBRID STEP — only if you also use Firebase services
+    //    (Crashlytics, Analytics, FCM, Remote Config, Performance, …).
+    //    You can delete this entire block if you don't use Firebase.
+    //
+    // import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth,
+    //   GoogleAuthProvider; // add at the top of the file if using.
+    //
+    // if (FirebaseAuth.instance.app.isInitialized) {
+    //   await FirebaseAuth.instance.signInWithCredential(
+    //     GoogleAuthProvider.credential(
+    //       idToken: idToken,                  // same idToken we sent to Noor
+    //       accessToken: auth.accessToken,     // companion token from Google
+    //     ),
+    //   );
+    // }
+    // ******************************************************************
+
+    // 201 → first-ever sign-in for this Google account → show onboarding.
+    // 200 → returning user → skip onboarding, navigate to Home.
+    return resp.statusCode!;
+  }
+
+  Future<void> signOut() async {
+    await _signIn.signOut();
+    await Future.wait(<Future<void>>[
+      _storage.delete(key: 'accessToken'),
+      _storage.delete(key: 'refreshToken'),
+    ]);
+  }
+}
+```
+
+#### ④ Common error branches (with their Flutter-side fix)
+
+Response Body (400 — idToken missing or model validation failed):
+
+```json
+{
+  "success": false,
+  "message": "Google ID token is required",
+  "code": "VALIDATION_ERROR",
+  "details": [
+    {
+      "field": "idToken",
+      "message": "Google ID token is required"
+    }
+  ],
+  "timestamp": "2026-07-31T12:00:00.000Z",
+  "requestId": "a1b2c3d4-0007-aaaa-bbbb-000000000007"
+}
+```
+
+Action for Flutter: the request body was serialized wrong. Ensure your request
+uses `jsonEncode({'idToken': token})` with exactly that key name and no extra
+top-level wrapper.
+
+---
+
+Response Body (401 — Google rejected the token / token expired / forged):
+
+```json
+{
+  "success": false,
+  "message": "Invalid Google ID token",
+  "code": "UNAUTHORIZED",
+  "timestamp": "2026-07-31T12:00:00.000Z",
+  "requestId": "a1b2c3d4-0008-aaaa-bbbb-000000000008"
+}
+```
+
+Action for Flutter: call `_signIn.signOut(); _signIn.disconnect();` and prompt
+the user to try again. If this is 100% reproducible and not an expiration
+issue, verify the token was not truncated when you serialized it (watch for
+buggy log-printers that cut long strings mid-JWT — compare length to >1000
+chars).
+
+---
+
+Response Body (401 — Optional strict `aud` mismatch, only when backend has
+`GOOGLE_CLIENT_ID` set):
+
+```json
+{
+  "success": false,
+  "message": "Google ID token audience does not match this server",
+  "code": "UNAUTHORIZED",
+  "timestamp": "2026-07-31T12:00:00.000Z",
+  "requestId": "a1b2c3d4-0009-aaaa-bbbb-000000000009"
+}
+```
+
+Action for Flutter: the Web Client ID string hard-coded in Google Cloud →
+Credentials, and the one the backend team copied into `GOOGLE_CLIENT_ID` env
+var on Vercel are from different cloud projects or different client types
+(e.g. backend pasted the Android ID instead of the Web ID). Ask both teams to
+paste each other the full string including `.apps.googleusercontent.com` and
+make sure byte-for-byte they are identical.
+
+---
+
+Response Body (409 — email registered with a non-Google, non-LOCAL provider):
+
+```json
+{
+  "success": false,
+  "message": "This email is already registered with a different provider",
+  "code": "CONFLICT",
+  "timestamp": "2026-07-31T12:00:00.000Z",
+  "requestId": "a1b2c3d4-0010-aaaa-bbbb-000000000010"
+}
+```
+
+Action for Flutter: show a dialog:
+`"This email is already signed up with Apple — please continue with Apple instead."`
+Do not auto-migrate anything.
+
+---
+
+Response Body (503 — only applies to the unrelated `GET /auth/google/url`
+web-redirect endpoint, NOT to this POST call. If you see it here it means you
+sent the request to the wrong path):
+
+```json
+{
+  "success": false,
+  "message": "Google authentication is not configured on the server... (Note: the POST /auth/google endpoint that accepts idToken works WITHOUT this env variable set)",
+  "code": "INTERNAL_SERVER_ERROR",
+  "timestamp": "2026-07-31T12:00:00.000Z",
+  "requestId": "a1b2c3d4-0011-aaaa-bbbb-000000000011"
+}
+```
+
+Action for Flutter: double-check your request URL ends with **exactly**
+`POST https://noor-app-backend-one.vercel.app/api/v1/auth/google` (no `/url`,
+no `/callback` suffix).
+
+---
+
+Response Body (200 / 201):
+
+```json
+{
+  "success": true,
+  "message": "Signed in via Google successfully",
+  "data": {
+    "user": {
+      "id": "03f9b4bb-1e8a-4654-9329-a157798e5b74",
+      "username": "ahmed_mohamed_4821",
+      "fullName": "Ahmed Mohamed Ali",
+      "email": "ahmed.mohamed.ali.1997@gmail.com",
+      "role": "USER",
+      "provider": "GOOGLE",
+      "providerId": "103456789012345678901",
+      "createdAt": "2026-07-18T10:23:11.000Z"
+    },
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.access....",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh....",
+      "expiresIn": "7d"
+    }
+  },
+  "timestamp": "2026-07-31T12:00:00.000Z",
+  "requestId": "a1b2c3d4-0006-aaaa-bbbb-000000000006"
+}
+```
+
+HTTP status is `201` when a brand-new user row was just inserted; `200` when
+the Google account already had a `googleId` row (or matched a LOCAL user by
+email). Use this difference inside Flutter to decide whether to show the
+onboarding carousel (`201`) or to jump straight to the Home screen (`200`).
+`data.user.providerId` holds the stable Google `sub` claim.
 
 ---
 
@@ -293,22 +719,143 @@ Request Body:
 { "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh...." }
 ```
 
+Response Body (200): Same `{ user, tokens }` shape as Sign-Up, Login, and Google. This lets you overwrite the stored user profile atomically alongside the token rotation.
+
+```json
+{
+  "success": true,
+  "message": "Token refreshed successfully",
+  "data": {
+    "user": {
+      "id": "ddecba0c-757d-43a4-a867-c1b0d1870bab",
+      "username": "ahmedmohamed_8472",
+      "fullName": "Ahmed Mohamed Ali",
+      "email": "ahmedmohamed@gmail.com",
+      "role": "USER",
+      "provider": "LOCAL",
+      "providerId": null,
+      "createdAt": "2026-07-31T07:00:00.000Z"
+    },
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.new-rotated....",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh.new-rotated....",
+      "expiresIn": "7d"
+    }
+  },
+  "timestamp": "2026-07-31T07:15:00.000Z",
+  "requestId": "a1b2c3d4-0012-aaaa-bbbb-000000000012"
+}
+```
+
+Action on 200: Overwrite `data.tokens.accessToken` + `data.tokens.refreshToken` in secure storage. Optionally re-apply `data.user` to profile state (catches username / fullName edits made server-side).
+
+Response Body (401 — refresh token revoked, never issued, or user account was deactivated):
+
+```json
+{
+  "success": false,
+  "code": "UNAUTHORIZED",
+  "message": "Invalid or expired refresh token",
+  "details": null,
+  "timestamp": "2026-07-31T07:15:00.000Z",
+  "requestId": "a1b2c3d4-0013-aaaa-bbbb-000000000013"
+}
+```
+
+Action on 401: Navigate the user back to the Login screen. Treat this state as "soft logout" (keep cached UI data but clear the token pair from secure storage).
+
+---
+
+### 5) POST /auth/logout — Sign out button (side drawer / profile screen)
+
+Description: Invalidates the refresh token server-side so it can never be re-used. Call this when the user explicitly taps "تسجيل خروج" in the profile menu. The Google SDK sign-out (local only) should be called in addition to this endpoint if the provider is GOOGLE.
+
+Authorization: **Public** (refresh token lives in the request body, not the Bearer header).
+
+Request Body:
+
+```json
+{ "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh...." }
+```
+
 Response Body (200):
 
 ```json
 {
   "success": true,
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.refresh....",
-    "tokenType": "Bearer",
-    "expiresIn": 900
-  }
+  "message": "Logged out successfully",
+  "data": null,
+  "timestamp": "2026-07-31T22:00:00.000Z",
+  "requestId": "a1b2c3d4-0014-aaaa-bbbb-000000000014"
 }
 ```
 
-Response Body (401 — refresh token revoked or never issued):
-Navigate the user back to the Login screen. Treat this state as "soft logout" (keep cached UI data but clear the token pair from secure storage).
+Response Body (400 — empty / malformed refresh token):
+
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "Invalid refresh token",
+  "details": null,
+  "timestamp": "2026-07-31T22:00:00.000Z",
+  "requestId": "a1b2c3d4-0015-aaaa-bbbb-000000000015"
+}
+```
+
+Action after 200 (or even 400, since the token is already unusable):
+
+1. Clear `accessToken` + `refreshToken` from `flutter_secure_storage`.
+2. If `user.provider == "GOOGLE"`, also call `GoogleSignIn().signOut()` so the next Google tap re-shows the account picker.
+3. Navigate to the Login screen (NOT the Sign-Up screen).
+
+---
+
+### 6) GET /auth/me — Current user profile (verify session + refresh profile state)
+
+Description: Returns the same `AuthUserProfile` shape that comes inside the sign-up/login/google/refresh responses. Useful to verify a stored access token is still valid after app cold-start, or to pick up server-side edits to `fullName` / `username` that happened after the last login. Returns 401 if the account was deactivated or the token expired without a refresh in flight.
+
+Authorization: **Bearer token** (must send the current access token).
+
+Query Params: none.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Current user retrieved successfully",
+  "data": {
+    "id": "ddecba0c-757d-43a4-a867-c1b0d1870bab",
+    "username": "ahmedmohamed_8472",
+    "fullName": "Ahmed Mohamed Ali",
+    "email": "ahmedmohamed@gmail.com",
+    "role": "USER",
+    "provider": "LOCAL",
+    "providerId": null,
+    "createdAt": "2026-07-31T07:00:00.000Z"
+  },
+  "timestamp": "2026-07-31T22:30:00.000Z",
+  "requestId": "a1b2c3d4-0016-aaaa-bbbb-000000000016"
+}
+```
+
+For GOOGLE users, `data.provider` equals `"GOOGLE"` and `data.providerId` holds the stable Google `sub` string.
+
+Response Body (401):
+
+```json
+{
+  "success": false,
+  "code": "UNAUTHORIZED",
+  "message": "Authentication required",
+  "details": null,
+  "timestamp": "2026-07-31T22:30:00.000Z",
+  "requestId": "a1b2c3d4-0017-aaaa-bbbb-000000000017"
+}
+```
+
+Action on 401: attempt the standard refresh flow; if that also 401s, go to Login.
 
 ---
 
@@ -436,7 +983,8 @@ Response Body (200):
       "qibla": { "enabled": true }
     }
   },
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0100-aaaa-bbbb-000000000100"
 }
 ```
 
@@ -447,7 +995,9 @@ Response Body (401):
   "success": false,
   "code": "UNAUTHORIZED",
   "message": "Expired or missing Bearer token",
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "details": null,
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0101-aaaa-bbbb-000000000101"
 }
 ```
 
@@ -460,7 +1010,9 @@ Response Body (500):
   "success": false,
   "code": "INTERNAL_SERVER_ERROR",
   "message": "Internal server error",
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "details": null,
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0102-aaaa-bbbb-000000000102"
 }
 ```
 
@@ -519,6 +1071,7 @@ Response Body (200 — matches Screen 3):
 ```json
 {
   "success": true,
+  "message": "Tasbih today loaded",
   "data": {
     "todayCount": 245,
     "currentDhikr": "SUBHAN_ALLAH",
@@ -527,7 +1080,9 @@ Response Body (200 — matches Screen 3):
     "dailyGoal": 99,
     "progressPercent": 33.33,
     "lastDhikrChangeAt": "2026-07-28T09:15:30.000Z"
-  }
+  },
+  "timestamp": "2026-07-31T09:00:00.000Z",
+  "requestId": "a1b2c3d4-0200-aaaa-bbbb-000000000200"
 }
 ```
 
@@ -583,6 +1138,7 @@ Response Body (200 — matches Screen 1):
 ```json
 {
   "success": true,
+  "message": "Tasbih reset for today",
   "data": {
     "todayCount": 0,
     "currentDhikr": "SUBHAN_ALLAH",
@@ -591,7 +1147,9 @@ Response Body (200 — matches Screen 1):
     "dailyGoal": 99,
     "progressPercent": 0,
     "lastDhikrChangeAt": "2026-07-31T09:00:00.000Z"
-  }
+  },
+  "timestamp": "2026-07-31T09:00:00.000Z",
+  "requestId": "a1b2c3d4-0201-aaaa-bbbb-000000000201"
 }
 ```
 
@@ -624,6 +1182,7 @@ Response Body (200 — matches Screen 2 exactly):
 ```json
 {
   "success": true,
+  "message": "Dhikr changed",
   "data": {
     "todayCount": 278,
     "currentDhikr": "ALHAMDULILLAH",
@@ -632,7 +1191,9 @@ Response Body (200 — matches Screen 2 exactly):
     "dailyGoal": 99,
     "progressPercent": 0,
     "lastDhikrChangeAt": "2026-07-28T07:12:45.000Z"
-  }
+  },
+  "timestamp": "2026-07-28T07:12:45.000Z",
+  "requestId": "a1b2c3d4-0202-aaaa-bbbb-000000000202"
 }
 ```
 
@@ -643,7 +1204,9 @@ Response Body (400):
   "success": false,
   "code": "VALIDATION_ERROR",
   "message": "Unknown dhikr value",
-  "details": { "field": "dhikr" }
+  "details": { "field": "dhikr" },
+  "timestamp": "2026-07-28T07:12:45.000Z",
+  "requestId": "a1b2c3d4-0203-aaaa-bbbb-000000000203"
 }
 ```
 
@@ -695,7 +1258,8 @@ Response Body (200):
       "longitude": 31.2357
     }
   },
-  "timestamp": "2026-07-31T07:00:00.000Z"
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0300-aaaa-bbbb-000000000300"
 }
 ```
 
@@ -706,7 +1270,9 @@ Response Body (400 — missing coordinates):
   "success": false,
   "code": "VALIDATION_ERROR",
   "message": "Missing or invalid lat/lng",
-  "details": { "field": "lat" }
+  "details": { "field": "lat" },
+  "timestamp": "2026-07-31T07:00:00.000Z",
+  "requestId": "a1b2c3d4-0301-aaaa-bbbb-000000000301"
 }
 ```
 
@@ -747,12 +1313,14 @@ Widget build(BuildContext context) {
 | 2   | `/auth/login`          | POST   | No   | Login screen "تسجيل الدخول"                   |
 | 3   | `/auth/google`         | POST   | No   | Google button (both screens)                  |
 | 4   | `/auth/refresh`        | POST   | No   | Token rotation (background)                   |
-| 5   | `/dashboard`           | GET    | Yes  | Home / Dashboard — single-source-of-truth GET |
-| 6   | `/tasbih/today`        | GET    | Yes  | Tasbih screen initial load                    |
-| 7   | `/tasbih/increment`    | POST   | Yes  | Tasbih circle tap (+1)                        |
-| 8   | `/tasbih/reset`        | POST   | Yes  | Tasbih reset button                           |
-| 9   | `/tasbih/change-dhikr` | PATCH  | Yes  | Tasbih change-dhikr bottom sheet              |
-| 10  | `/qibla/calculate`     | GET    | No   | Qibla / Compass screen                        |
+| 5   | `/auth/logout`         | POST   | No   | Sign-out button (profile drawer)              |
+| 6   | `/auth/me`             | GET    | Yes  | Verify session / refresh cached profile       |
+| 7   | `/dashboard`           | GET    | Yes  | Home / Dashboard — single-source-of-truth GET |
+| 8   | `/tasbih/today`        | GET    | Yes  | Tasbih screen initial load                    |
+| 9   | `/tasbih/increment`    | POST   | Yes  | Tasbih circle tap (+1)                        |
+| 10  | `/tasbih/reset`        | POST   | Yes  | Tasbih reset button                           |
+| 11  | `/tasbih/change-dhikr` | PATCH  | Yes  | Tasbih change-dhikr bottom sheet              |
+| 12  | `/qibla/calculate`     | GET    | No   | Qibla / Compass screen                        |
 
 ---
 
@@ -774,7 +1342,7 @@ These endpoints are **not** offline-first. Cache responses for display during of
 
 ### 4) Error handling — code over message
 
-Never branch on `response.message` (it's translated / can change). Branch on `response.code` (`SUCCESS`, `VALIDATION_ERROR`, `CONFLICT`, `UNAUTHORIZED`, `NOT_FOUND`, `INTERNAL_SERVER_ERROR`). Use `message` only for human-facing `SnackBar`s / helper text.
+Never branch on `response.message` (it's translated / can change). On error responses branch on `response.code` (`VALIDATION_ERROR`, `CONFLICT`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `INTERNAL_SERVER_ERROR`). Use `message` only for human-facing `SnackBar`s / helper text. `code` is only present when `success = false`; successful responses do not include a `code` key.
 
 ### 5) Nullable sections
 
