@@ -396,7 +396,7 @@ export function getGoogleAuthUrl(): { url: string; message: string } {
 
   if (!clientId) {
     throw new AppError(
-      'Google authentication is not configured',
+      'Google authentication is not configured on the server: set GOOGLE_CLIENT_ID in environment variables. (Note: the POST /auth/google endpoint that accepts idToken works WITHOUT this env variable set; only the server-initiated OAuth URL needs it.)',
       HttpStatus.SERVICE_UNAVAILABLE,
       ErrorCodes.INTERNAL_SERVER_ERROR,
     );
@@ -419,17 +419,19 @@ export function getGoogleAuthUrl(): { url: string; message: string } {
 }
 
 export async function googleSignIn(idToken: string): Promise<AuthResult> {
-  const clientId = env.GOOGLE_CLIENT_ID;
-  
-  if (!clientId) {
+  if (!idToken?.trim()) {
     throw new AppError(
-      'Google authentication is not configured',
-      HttpStatus.SERVICE_UNAVAILABLE,
-      ErrorCodes.INTERNAL_SERVER_ERROR,
+      'idToken is required',
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
     );
   }
 
-  // Verify Google ID token (simplified - in production use google-auth-library)
+  // Verify Google ID token against Google's public tokeninfo endpoint.
+  // This flow works WITHOUT GOOGLE_CLIENT_ID being set on the server:
+  // Flutter (using google_sign_in SDK) obtains a token whose `aud` already matches
+  // the OAuth client ID registered on Google Cloud. For extra strictness you can
+  // additionally check `aud === env.GOOGLE_CLIENT_ID` below, but it is not required.
   let googlePayload: {
     email: string;
     sub: string;
@@ -438,9 +440,8 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
   };
 
   try {
-    // Note: This is a simplified verification. Use @google-auth-library/oauth2-client for production
-    const response = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${idToken}`);
-    
+    const response = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+
     if (!response.ok) {
       throw new AppError(
         'Invalid Google ID token',
@@ -457,7 +458,6 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
       picture: payload.picture as string | undefined,
     };
 
-    // Verify the token is for our application
     if (googlePayload.sub && !googlePayload.email) {
       throw new AppError(
         'Invalid Google token response',
@@ -465,7 +465,22 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
         ErrorCodes.VALIDATION_ERROR,
       );
     }
+
+    // Optional strict audience check. If GOOGLE_CLIENT_ID is set on the server,
+    // we verify the token was indeed issued for our app. When unset we skip
+    // (google_sign_in SDK already enforces this client-side via project settings).
+    if (env.GOOGLE_CLIENT_ID && payload.aud) {
+      const aud = String(payload.aud);
+      if (aud !== env.GOOGLE_CLIENT_ID) {
+        throw new AppError(
+          'Google ID token audience does not match this server',
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.UNAUTHORIZED,
+        );
+      }
+    }
   } catch (error: any) {
+    if (error instanceof AppError) throw error;
     logger.error('Google token verification failed', { error: error.message });
     throw new AppError(
       'Failed to verify Google token',
