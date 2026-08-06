@@ -89,12 +89,33 @@ Every 2xx, 4xx and 5xx response shares a common outer envelope. The **success** 
 
 **Error envelope (4xx / 5xx status codes):**
 
+Two mutually exclusive error-detail keys may appear (never rely on both at once):
+
 ```json
 {
   "success": false,
-  "message": "Human-readable error description (Arabic)",
-  "code": "VALIDATION_ERROR | CONFLICT | UNAUTHORIZED | NOT_FOUND | INTERNAL_SERVER_ERROR | FORBIDDEN",
-  "details": null,
+  "message": "Human-readable error description",
+  "code": "VALIDATION_ERROR | CONFLICT | UNAUTHORIZED | NOT_FOUND | INTERNAL_SERVER_ERROR | FORBIDDEN | SERVICE_UNAVAILABLE",
+  "errors": [
+    {
+      "field": "password",
+      "message": "Password must be at least 8 characters",
+      "code": "too_small"
+    }
+  ],
+  "timestamp": "2026-07-31T07:15:00.000Z",
+  "requestId": "a1b2c3d4-5678-90ef-ghij-klmnopqrstuv"
+}
+```
+
+Alternative shape when the error is not a per-field schema issue:
+
+```json
+{
+  "success": false,
+  "message": "Email already exists",
+  "code": "CONFLICT",
+  "details": { "field": "email" },
   "timestamp": "2026-07-31T07:15:00.000Z",
   "requestId": "a1b2c3d4-5678-90ef-ghij-klmnopqrstuv"
 }
@@ -103,7 +124,9 @@ Every 2xx, 4xx and 5xx response shares a common outer envelope. The **success** 
 Notes:
 
 - `success = false` always means the HTTP status is 4xx or 5xx.
-- On error, `code` is the stable error identifier (branch on it, not on `message`). `details.field` (when present) tells you which TextField to underline red.
+- On error, `code` is the stable error identifier (branch on it, not on `message`).
+  - **`errors[]` is used for per-field validation failures** (Zod schema: bad email, password too short, etc.). Loop `errors[]`, read `.field` and `.message` to show inline red hints. Do **not** read `details` here.
+  - **`details` is used for application-level / Prisma-level errors** (duplicate email, missing exam, forbidden role…). Read `details.field` (when present) to know which TextField to highlight; `details` may be `null` for generic errors like `INTERNAL_SERVER_ERROR`.
 - On pagination endpoints, `meta` contains `{ total, page, pageSize, hasMore }` and is always a JSON object (never omitted).
 - `requestId` is always present (a UUID v4) and can be sent to backend support to trace the exact failing request in server logs.
 
@@ -115,12 +138,26 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class NoorApi {
+  static const String kDefaultBaseUrl = 'https://noor-app-backend-one.vercel.app/api/v1';
+
   final _dio = Dio(BaseOptions(
-    baseUrl: const String.fromEnvironment('NOOR_BASE_URL',
-        defaultValue: 'https://noor-app-backend-one.vercel.app/api/v1'),
+    baseUrl: const String.fromEnvironment('NOOR_BASE_URL', defaultValue: kDefaultBaseUrl),
     connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
+    // 👇 Always send JSON. Do NOT omit — otherwise some Dio versions send x-www-form-urlencoded.
+    contentType: Headers.jsonContentType,
+    responseType: ResponseType.json,
   ));
   final _store = const FlutterSecureStorage();
+
+  NoorApi() {
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        await _injectAuth(options);
+        return handler.next(options);
+      },
+    ));
+  }
 
   Future<void> _injectAuth(RequestOptions o) async {
     final t = await _store.read(key: 'accessToken');
@@ -131,11 +168,14 @@ class NoorApi {
     String method, String path, { Object? data, Map<String, dynamic>? query }) async {
     try {
       final resp = await _dio.request(path,
-        options: Options(method: method),
+        options: Options(
+          method: method,
+          // 👇 Explicit JSON content type on every request (belt-and-braces).
+          contentType: Headers.jsonContentType,
+          headers: <String, dynamic>{'Accept': 'application/json'},
+        ),
         data: data,
         queryParameters: query,
-        onReceiveProgress: null,
-        // ↓ wrap with _injectAuth via interceptor in a real app:
       );
       return resp.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -146,6 +186,26 @@ class NoorApi {
       rethrow; // or convert to typed exceptions
     }
   }
+
+  // ------------- Auth convenience helpers -------------
+
+  Future<Map<String, dynamic>> signUp({
+    required String fullName,
+    required String email,
+    required String password,
+  }) => request('POST', '/auth/sign-up', data: <String, dynamic>{
+    'fullName': fullName.trim(),
+    'email': email.trim().toLowerCase(),
+    'password': password,
+  });
+
+  Future<Map<String, dynamic>> logIn({
+    required String email,
+    required String password,
+  }) => request('POST', '/auth/login', data: <String, dynamic>{
+    'email': email.trim().toLowerCase(),
+    'password': password,
+  });
 }
 ```
 
@@ -167,19 +227,20 @@ Authorization: **Public** (no Bearer token).
 
 Validation rules (enforced server-side; mirror client-side for UX):
 
-| Field      | Required?              | Rules                                                                                                                               |
-| ---------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `fullName` | No (server) / Yes (UI) | When provided: min 2 chars. `null` / omitted is accepted by the server; Flutter should require it because the UI exposes the field. |
-| `email`    | Yes                    | RFC email format. Stored lower-cased.                                                                                               |
-| `password` | Yes                    | Min 6 chars; at least one letter + one digit (recommended).                                                                         |
-| `username` | No                     | **Do not render.** Leave out of the body entirely.                                                                                  |
+| Field      | Required?              | Rules                                                                                                                                                                                                                                                                                                        |
+| ---------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `fullName` | No (server) / Yes (UI) | When provided: min 2 chars, max 150 chars. `null` / omitted is accepted by the server; Flutter should require it because the UI exposes the field.                                                                                                                                                           |
+| `email`    | Yes                    | RFC email format (any valid `user@domain.tld`). Stored lower-cased. Client-side `.trim().toLowerCase()` before sending is recommended but not required (server already trims + lowers).                                                                                                                      |
+| `password` | Yes                    | **Min 8 chars, max 128 chars. Must contain at least one letter (A-Z or a-z) AND at least one digit (0-9).** This matches `z.string().min(8).regex(/^(?=.*[A-Za-z])(?=.*\d).+$/)` on the server. Example valid: `StrongPass123`, `MyP@ssw0rd`. Example invalid: `1234567` (no letter), `password` (no digit). |
+| `username` | No                     | **Do not render.** Leave out of the body entirely. Server auto-generates a unique handle.                                                                                                                                                                                                                    |
 
 Behaviour:
 
 - Duplicate email returns `409 CONFLICT` with `details.field = "email"`. Show inline red hint on the email TextField.
-- `password` < 6 chars or non-email format returns `400 VALIDATION_ERROR` with `details.field` set.
+- Server-side validation failures (bad email, password too short, password missing digit/letter, fullName too long) return **`400 VALIDATION_ERROR` with `errors[]` array** (one item per failing field, `.field`, `.message`, and `.code` set). Loop through `errors[]` and show `.message` under the matching `.field` TextField; never read a `details` object for Zod-style validation (that key is used for AppError / Prisma-level errors, _not_ per-field schema issues).
 - The returned `user.username` is server-generated (example: `ahmedmohamed_8472`). Do **not** overwrite it with `fullName`.
 - Google sign-up follows a different flow (see endpoint #3 below). Do **not** call this endpoint for the Google button.
+- **Rate limit**: Auth public endpoints are limited to **5 requests per IP per hour** at the Vercel edge (headers `Ratelimit-Limit: 5`, `Ratelimit-Remaining`, `Ratelimit-Reset`). If `Ratelimit-Remaining` reaches `0` during onboarding, show a toast: `"Too many attempts. Try again in one hour."` instead of retrying (retries will keep hitting 429).
 
 Request Body (matches the Sign-Up screen exactly):
 
@@ -225,26 +286,44 @@ Action after receiving 201:
 - Persist `user.id` + `user.displayName = user.fullName ?? user.username` (used in the home greeting).
 - Navigate immediately to the Home / Dashboard screen — no extra login step is needed.
 
-Response Body (400 — VALIDATION_ERROR):
+Response Body (400 — VALIDATION_ERROR, per-field via Zod errors[]):
 
 ```json
 {
   "success": false,
+  "message": "Validation failed",
   "code": "VALIDATION_ERROR",
-  "message": "Invalid request payload",
-  "details": { "field": "email", "issue": "Email format is invalid" },
-  "timestamp": "2026-07-31T07:00:00.000Z",
-  "requestId": "a1b2c3d4-0002-aaaa-bbbb-000000000002"
+  "errors": [
+    {
+      "field": "email",
+      "message": "Invalid email address",
+      "code": "invalid_string"
+    },
+    {
+      "field": "password",
+      "message": "Password must be at least 8 characters",
+      "code": "too_small"
+    },
+    {
+      "field": "password",
+      "message": "Password must contain at least one letter and one number",
+      "code": "invalid_format"
+    }
+  ],
+  "timestamp": "2026-08-07T21:47:00.149Z",
+  "requestId": "399dbf7a-f9a2-4cbf-8b41-877776efd3c1"
 }
 ```
 
-Response Body (409 — duplicate email):
+Flutter deserialization hint: `final List<dynamic> errs = (json['errors'] as List<dynamic>? ?? <dynamic>[]); for (final e in errs) { ... }`. Never try to read `json['details']['field']` for this status — `details` is a separate key used only for non-Zod AppError situations (see 409 below).
+
+Response Body (409 — duplicate email, AppError with details.field):
 
 ```json
 {
   "success": false,
+  "message": "Email already exists",
   "code": "CONFLICT",
-  "message": "Email is already registered. Try logging in.",
   "details": { "field": "email" },
   "timestamp": "2026-07-31T07:00:00.000Z",
   "requestId": "a1b2c3d4-0003-aaaa-bbbb-000000000003"
