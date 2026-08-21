@@ -42,13 +42,33 @@ export type DailyPrayerSchedule = {
   totalCount: number;
 };
 
+function resolveTimezone(timezone?: string | null): string {
+  const candidate = timezone?.trim() || DefaultTimezone;
+  try {
+    Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(new Date());
+    return candidate;
+  } catch {
+    return DefaultTimezone;
+  }
+}
+
 function formatTime(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: timezone,
-  }).format(date);
+  const tz = resolveTimezone(timezone);
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: tz,
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: DefaultTimezone,
+    }).format(date);
+  }
 }
 
 function getPrayerDateMap(prayerTimes: PrayerTimes): Record<PrayerNameEnum, Date> {
@@ -68,7 +88,10 @@ export function calculateDailyPrayerSchedule(
   completedPrayers: PrayerNameEnum[] = [],
   referenceDate = new Date(),
 ): DailyPrayerSchedule {
-  const coordinates = new Coordinates(latitude, longitude);
+  const tz = resolveTimezone(timezone);
+  const lat = Number.isFinite(latitude) ? latitude : DEFAULT_LATITUDE;
+  const lng = Number.isFinite(longitude) ? longitude : DEFAULT_LONGITUDE;
+  const coordinates = new Coordinates(lat, lng);
   const params = CalculationMethod.Egyptian();
   const prayerTimes = new PrayerTimes(coordinates, referenceDate, params);
   const prayerDateMap = getPrayerDateMap(prayerTimes);
@@ -79,7 +102,7 @@ export function calculateDailyPrayerSchedule(
     return {
       name,
       nameAr: prayerLabelsAr[name],
-      time: formatTime(timestamp, timezone),
+      time: formatTime(timestamp, tz),
       timestamp,
       completed: completedPrayers.includes(name),
     };
@@ -106,7 +129,7 @@ export function calculateDailyPrayerSchedule(
 
   return {
     date: referenceDate.toISOString().slice(0, 10),
-    timezone,
+    timezone: tz,
     nextPrayer,
     schedule,
     completedCount: completedPrayers.length,

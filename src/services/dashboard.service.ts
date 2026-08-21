@@ -13,6 +13,27 @@ const DEFAULT_LATITUDE = 30.0444;
 const DEFAULT_LONGITUDE = 31.2357;
 const TOTAL_QURAN_PAGES = 604;
 
+const FALLBACK_VERSE = {
+  textAr:
+    'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ',
+  referenceAr: 'آية الكرسي — سورة البقرة',
+  surahNumber: 2,
+  ayahNumber: 255,
+};
+
+const FALLBACK_HADITH = {
+  textAr: 'إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى',
+  sourceAr: 'رواه البخاري ومسلم',
+};
+
+const FALLBACK_CHALLENGE = {
+  titleAr: 'صفحتا قرآن',
+  descriptionAr: 'اقرأ صفحتين من القرآن الكريم اليوم',
+  type: 'QURAN_PAGES' as ChallengeType,
+  targetValue: 2,
+  rewardPoints: 50,
+};
+
 export type DashboardData = {
   greeting: {
     displayName: string;
@@ -29,8 +50,8 @@ export type DashboardData = {
     referenceAr: string;
     surahNumber: number;
     ayahNumber: number;
-  } | null;
-  hadithOfTheDay: { textAr: string; sourceAr: string } | null;
+  };
+  hadithOfTheDay: { textAr: string; sourceAr: string };
   dailyJourney: {
     prayer: { completed: number; total: number; progress: number };
     quran: { pagesRead: number };
@@ -51,7 +72,7 @@ export type DashboardData = {
     targetValue: number;
     completed: boolean;
     claimed: boolean;
-  } | null;
+  };
   utilities: { qibla: { enabled: true }; tasbih: { enabled: true } };
 };
 
@@ -68,30 +89,68 @@ async function findCompletedPrayers(
 }
 
 async function getOrCreateTodayJourney(userId: string, date: Date = getTodayDateOnly()) {
-  return prisma.dailyProgress.upsert({
-    where: { userId_date: { userId, date } },
-    create: { userId, date },
-    update: {},
-  });
+  try {
+    return await prisma.dailyProgress.upsert({
+      where: { userId_date: { userId, date } },
+      create: { userId, date },
+      update: {},
+    });
+  } catch {
+    return {
+      quranPagesRead: 0,
+      adhkarCompleted: false,
+      sadaqahAmount: 0,
+    };
+  }
 }
 
 async function getOrCreateKhatmah(userId: string) {
-  return prisma.khatmah.upsert({
-    where: { userId },
-    create: { userId, currentSurahId: 2, currentPage: 1 },
-    update: {},
-    include: { user: false },
-  });
+  try {
+    return await prisma.khatmah.upsert({
+      where: { userId },
+      create: { userId, currentSurahId: 2, currentPage: 1 },
+      update: {},
+    });
+  } catch {
+    try {
+      return await prisma.khatmah.findUnique({ where: { userId } });
+    } catch {
+      return null;
+    }
+  }
 }
 
 async function getSurah(surahId: number) {
-  return prisma.surah.findUnique({ where: { id: surahId } });
+  try {
+    return await prisma.surah.findUnique({ where: { id: surahId } });
+  } catch {
+    return null;
+  }
 }
 
 async function getVerseOfTheDay(dayOfYear: number) {
-  return prisma.verseOfTheDay.findFirst({
+  const stored = await prisma.verseOfTheDay.findFirst({
     where: { dayOfYear },
   });
+  if (stored) return stored;
+
+  const ayah = await prisma.ayah
+    .findUnique({
+      where: { surahId_ayahNumber: { surahId: 2, ayahNumber: 255 } },
+      include: { surah: { select: { nameAr: true } } },
+    })
+    .catch(() => null);
+
+  if (ayah) {
+    return {
+      textAr: ayah.textAr,
+      referenceAr: `آية الكرسي — ${ayah.surah.nameAr}`,
+      surahNumber: 2,
+      ayahNumber: 255,
+    };
+  }
+
+  return FALLBACK_VERSE;
 }
 
 async function getHadithOfTheDay(dayOfYear: number) {
@@ -142,45 +201,57 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     challengeTemplate,
     challengeCompletion,
   ] = await Promise.all([
-    findCompletedPrayers(userId),
+    findCompletedPrayers(userId).catch(() => [] as PrayerName[]),
     getOrCreateTodayJourney(userId),
     getOrCreateKhatmah(userId),
-    getVerseOfTheDay(dayOfYear),
-    getHadithOfTheDay(dayOfYear),
-    getDailyChallengeTemplate(dayOfYear),
-    getChallengeCompletion(userId, dayOfYear),
+    getVerseOfTheDay(dayOfYear).catch(() => null),
+    getHadithOfTheDay(dayOfYear).catch(() => null),
+    getDailyChallengeTemplate(dayOfYear).catch(() => null),
+    getChallengeCompletion(userId, dayOfYear).catch(() => null),
   ]);
 
-  const surah = khatmah.currentSurahId ? await getSurah(khatmah.currentSurahId) : null;
+  const surah = khatmah?.currentSurahId
+    ? await getSurah(khatmah.currentSurahId)
+    : null;
 
   const latitude = user.latitude ?? DEFAULT_LATITUDE;
   const longitude = user.longitude ?? DEFAULT_LONGITUDE;
   const timezone = user.timezone ?? DefaultTimezone;
 
-  const prayers = calculateDailyPrayerSchedule(
-    latitude,
-    longitude,
-    timezone,
-    completedPrayers as PrayerNameEnum[],
-  );
+  let prayers: DailyPrayerSchedule;
+  try {
+    prayers = calculateDailyPrayerSchedule(
+      latitude,
+      longitude,
+      timezone,
+      completedPrayers as PrayerNameEnum[],
+    );
+  } catch {
+    prayers = {
+      date: new Date().toISOString().slice(0, 10),
+      timezone: DefaultTimezone,
+      nextPrayer: null,
+      schedule: [],
+      completedCount: 0,
+      totalCount: 5,
+    };
+  }
 
   const prayerProgress =
     prayers.totalCount > 0
       ? Math.round((prayers.completedCount / prayers.totalCount) * 100)
       : 0;
 
-  const challengeCompleted = challengeTemplate
-    ? isDailyChallengeCompleted(
-        challengeTemplate.type as ChallengeType,
-        challengeTemplate.targetValue,
-        {
-          quranPagesRead: journey.quranPagesRead,
-          adhkarCompleted: journey.adhkarCompleted,
-          sadaqahAmount: journey.sadaqahAmount,
-        },
-        completedPrayers,
-      )
-    : false;
+  const challengeCompleted = isDailyChallengeCompleted(
+    (challengeTemplate?.type ?? FALLBACK_CHALLENGE.type) as ChallengeType,
+    challengeTemplate?.targetValue ?? FALLBACK_CHALLENGE.targetValue,
+    {
+      quranPagesRead: journey.quranPagesRead,
+      adhkarCompleted: journey.adhkarCompleted,
+      sadaqahAmount: journey.sadaqahAmount,
+    },
+    completedPrayers,
+  );
 
   const displayName =
     user.fullName?.trim() || user.username;
@@ -196,20 +267,16 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       gregorianDate: todayInfo.gregorian,
     },
     prayers,
-    verseOfTheDay: verse
-      ? {
-          textAr: verse.textAr,
-          referenceAr: verse.referenceAr,
-          surahNumber: verse.surahNumber,
-          ayahNumber: verse.ayahNumber,
-        }
-      : null,
-    hadithOfTheDay: hadith
-      ? {
-          textAr: hadith.textAr,
-          sourceAr: hadith.sourceAr,
-        }
-      : null,
+    verseOfTheDay: {
+      textAr: verse?.textAr ?? FALLBACK_VERSE.textAr,
+      referenceAr: verse?.referenceAr ?? FALLBACK_VERSE.referenceAr,
+      surahNumber: verse?.surahNumber ?? FALLBACK_VERSE.surahNumber,
+      ayahNumber: verse?.ayahNumber ?? FALLBACK_VERSE.ayahNumber,
+    },
+    hadithOfTheDay: {
+      textAr: hadith?.textAr ?? FALLBACK_HADITH.textAr,
+      sourceAr: hadith?.sourceAr ?? FALLBACK_HADITH.sourceAr,
+    },
     dailyJourney: {
       prayer: {
         completed: prayers.completedCount,
@@ -220,7 +287,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       adhkar: { completed: journey.adhkarCompleted },
       sadaqah: { amount: Number(journey.sadaqahAmount) },
     },
-    khatmah: surah
+    khatmah: surah && khatmah
       ? {
           surahId: surah.id,
           surahNameEn: surah.nameEn,
@@ -229,16 +296,14 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
           progressPercent: Math.round((khatmah.totalPagesRead / TOTAL_QURAN_PAGES) * 100),
         }
       : null,
-    dailyChallenge: challengeTemplate
-      ? {
-          titleAr: challengeTemplate.titleAr,
-          descriptionAr: challengeTemplate.descriptionAr,
-          rewardPoints: challengeTemplate.rewardPoints,
-          targetValue: challengeTemplate.targetValue,
-          completed: challengeCompleted,
-          claimed: Boolean(challengeCompletion?.claimedAt),
-        }
-      : null,
+    dailyChallenge: {
+      titleAr: challengeTemplate?.titleAr ?? FALLBACK_CHALLENGE.titleAr,
+      descriptionAr: challengeTemplate?.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,
+      rewardPoints: challengeTemplate?.rewardPoints ?? FALLBACK_CHALLENGE.rewardPoints,
+      targetValue: challengeTemplate?.targetValue ?? FALLBACK_CHALLENGE.targetValue,
+      completed: challengeCompleted,
+      claimed: Boolean(challengeCompletion?.claimedAt),
+    },
     utilities: {
       qibla: { enabled: true },
       tasbih: { enabled: true },
