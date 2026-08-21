@@ -1,7 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import fs from 'node:fs';
-import type { Express, Request, Response, NextFunction } from 'express';
+import type { Express } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { env, appConfig, getApiBasePath } from '../config';
@@ -49,7 +49,7 @@ html[lang="en"] body { direction: ltr; }
   content: "";
   display: inline-flex;
   width: 44px; height: 44px;
-  background-image: url("https://asset.cloudinary.com/dgzucjqgi/f9fbb8b99944054a0378125ae226ae60");
+  background-image: url("/brand/logo.png");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -208,21 +208,7 @@ html[lang="en"] body { direction: ltr; }
 ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--noor-gold), var(--noor-gold-dark)); }
 
 /* ---------- Hide Swagger's built-in Errors panel (red box) permanently ---------- */
-.swagger-ui .errors-wrapper,
-.swagger-ui [class*="errors"],
-.swagger-ui div.errors,
-.swagger-ui section.errors,
-.swagger-ui [role="alert"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  border: none !important;
-}
+.swagger-ui .errors-wrapper { display: none !important; }
 
 /* ---------- Remove blue-ish badges / default icons in scheme-container ---------- */
 .swagger-ui .scheme-container .schemes-server-container svg,
@@ -279,11 +265,22 @@ function resolveSwaggerFiles(): string[] {
 function buildSwaggerSpec() {
   const apiBasePath = getApiBasePath();
   const definition = {
-    openapi: '3.1.0',
+    openapi: '3.0.3',
     info: {
-      title: env.SWAGGER_TITLE,
+      title: 'نور — Noor API',
       version: env.SWAGGER_VERSION,
-      description: env.SWAGGER_DESCRIPTION,
+      description:
+        env.SWAGGER_DESCRIPTION === 'Noor REST API'
+          ? [
+              '**رفيقك اليومي في رحلتك الإيمانية**',
+              '',
+              'REST API لتطبيق نور: القرآن الكريم · مواقيت الصلاة · القبلة · التسبيح · الختمة · الرحلة اليومية.',
+              '',
+              'Authenticate with **Authorize** → paste the JWT access token (without the `Bearer` prefix).',
+              '',
+              `Base URL: \`${apiBasePath}\``,
+            ].join('\n')
+          : env.SWAGGER_DESCRIPTION,
       contact: { name: 'Noor Support', email: 'support@noor.app' },
     },
     servers: [
@@ -1471,10 +1468,20 @@ export function setupSwagger(app: Express): void {
   const base = getApiBasePath();
   const docsPath = `${base}/docs`;
   const jsonPath = `${base}/swagger.json`;
+  const logoFile = path.join(process.cwd(), 'public', 'logo.png');
+
+  app.get('/brand/logo.png', (_req, res) => {
+    if (!fs.existsSync(logoFile)) {
+      res.status(404).end();
+      return;
+    }
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    res.sendFile(logoFile);
+  });
 
   app.get(jsonPath, (_req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, max-age=60');
     res.send(swaggerSpec);
   });
 
@@ -1483,53 +1490,23 @@ export function setupSwagger(app: Express): void {
     res.send(swaggerSpec);
   });
 
-  function serveDocsHtml(req: Request, res: Response, next: NextFunction) {
-    if (req.method !== 'GET') return next();
-    const p = (req.path || '').replace(/\/+$/, '');
-    const clean = p === '' || p === '/index.html' || p === '/' || p.endsWith('/docs') || p.endsWith('/docs/');
-    if (!clean) return next();
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=86400');
-    res.send(buildFallbackSwaggerHtml(jsonPath));
-  }
-
-  try {
-    app.get(`${docsPath}/`, serveDocsHtml);
-    app.get(docsPath, serveDocsHtml);
-    app.get(`${docsPath}/index.html`, serveDocsHtml);
-
-    app.use(
-      docsPath,
-      (req: Request, res: Response, next: NextFunction) => {
-        if (req.method === 'GET') {
-          const rp = (req.path || '').replace(/\/+$/, '');
-          if (rp === '' || rp === '/index.html') {
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            res.send(buildFallbackSwaggerHtml(jsonPath));
-            return;
-          }
-        }
-        next();
+  app.use(
+    docsPath,
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customSiteTitle: 'نور | Noor API Docs',
+      customfavIcon: '/brand/logo.png',
+      customCss: NOOR_PREMIUM_CSS,
+      swaggerOptions: {
+        persistAuthorization: true,
+        docExpansion: 'list',
+        filter: true,
+        tryItOutEnabled: true,
+        displayRequestDuration: true,
+        deepLinking: true,
+        supportedSubmitMethods: ['get', 'post', 'put', 'patch', 'delete'],
+        validatorUrl: null,
       },
-      swaggerUi.serve,
-      swaggerUi.setup(swaggerSpec, {
-        customSiteTitle: `${env.SWAGGER_TITLE} | توثيق API`,
-        customCss: NOOR_PREMIUM_CSS,
-        swaggerOptions: {
-          persistAuthorization: true,
-          docExpansion: 'list',
-          filter: true,
-          tryItOutEnabled: false,
-          showRequestDuration: true,
-          deepLinking: true,
-          supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
-          validatorUrl: null,
-        },
-      }),
-    );
-  } catch (err: any) {
-    logger.warn('[Swagger] swagger-ui-express setup failed, using inline fallback only', { err: err?.message });
-    app.get(`${docsPath}/`, serveDocsHtml);
-    app.get(docsPath, serveDocsHtml);
-  }
+    }),
+  );
 }

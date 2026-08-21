@@ -75,7 +75,7 @@ code{font-family:ui-monospace,Consolas,monospace;background:rgba(244,235,219,.08
 }
 </style></head><body><main>
   <div class="brand">
-    <img src="https://asset.cloudinary.com/dgzucjqgi/f9fbb8b99944054a0378125ae226ae60" alt="نور" onerror="this.style.display='none'"/>
+    <img src="/brand/logo.png" alt="نور" onerror="this.style.display='none'"/>
     <span class="t"><span>نور</span></span>
   </div>
   <span class="b"><span class="d"></span> الخدمة تعمل — API Online</span>
@@ -508,40 +508,37 @@ module.exports = function noorHandler(req, res) {
     return;
   }
 
-  // ============ DOCS "/api/v1/docs" — INSTANT RESPONSE < 1ms (CRITICAL) ============
-  // NEVER wait for Express app to serve the docs page.
-  // We return a premium self-contained HTML that:
-  //  - instantly renders with loading pills + fallback cards (Swagger Editor / Postman / ...)
-  //  - then client-side attempts to upgrade to SwaggerUI bundle + fetch /api/v1/swagger.json
-  // This GUARANTEES no infinite spinner / blank white page for docs URLs.
-  if (isDocsPath(url)) {
-    sendHtml(res, 200, docsHubHtml());
-    return;
-  }
+  // Docs are served by Express + swagger-ui-express (local swagger-ui-dist, no unpkg).
+  // Intercepting /api/v1/docs here was why Swagger UI never loaded on Vercel.
 
-  // ============ WATCHDOG: PREVENT INFINITE SPINNER (for non-docs routes) ============
-  // If Express hasn't responded in 8.5 seconds, send a fallback.
-  // Vercel's default timeout for Hobby is 10s — we beat it by 1.5s.
+  // Docs / spec / brand: no 8.5s watchdog (swagger-ui-express serves local files).
+  const skipWatchdog =
+    isDocsPath(url) ||
+    url === "/api/v1/swagger.json" ||
+    url.startsWith("/brand/");
+
   let responded = false;
-  const timer = setTimeout(() => {
-    if (responded) return;
-    responded = true;
-    sendJson(res, 504, {
-      success: false,
-      error_code: "VERCEL_TIMEOUT",
-      message:
-        "تجاوز الوقت المسموح — إما قاعدة بيانات Neon بطيئة أو مشكلة في middleware",
-      hint_arabic:
-        "جربي تحديث الصفحة، أو تحققي من أن DATABASE_URL مأخوذ من Neon قسم Pooled connection",
-      timestamp: new Date().toISOString(),
-    });
-  }, 8500);
+  const timer = skipWatchdog
+    ? null
+    : setTimeout(() => {
+        if (responded) return;
+        responded = true;
+        sendJson(res, 504, {
+          success: false,
+          error_code: "VERCEL_TIMEOUT",
+          message:
+            "تجاوز الوقت المسموح — إما قاعدة بيانات Neon بطيئة أو مشكلة في middleware",
+          hint_arabic:
+            "جربي تحديث الصفحة، أو تحققي من أن DATABASE_URL مأخوذ من Neon قسم Pooled connection",
+          timestamp: new Date().toISOString(),
+        });
+      }, 8500);
 
   const origEnd = res.end.bind(res);
   res.end = function patchedEnd(chunk, enc, cb) {
     if (responded) return origEnd(chunk, enc, cb);
     responded = true;
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
     return origEnd(chunk, enc, cb);
   };
 
@@ -553,7 +550,7 @@ module.exports = function noorHandler(req, res) {
     } catch (syncErr) {
       if (responded) return;
       responded = true;
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       const msg = (syncErr && syncErr.message) || String(syncErr);
       sendJson(res, 500, {
         success: false,
@@ -566,7 +563,7 @@ module.exports = function noorHandler(req, res) {
   } catch (bootErr) {
     if (responded) return;
     responded = true;
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
     const msg = (bootErr && bootErr.message) || String(bootErr);
     sendJson(res, 500, {
       success: false,

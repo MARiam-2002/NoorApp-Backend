@@ -79,9 +79,9 @@ code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:rgba(
 </html>`);
   });
 
-  app.use(appConfig.apiPrefix, apiRateLimiter, v1Router);
-
   setupSwagger(app);
+
+  app.use(appConfig.apiPrefix, apiRateLimiter, v1Router);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

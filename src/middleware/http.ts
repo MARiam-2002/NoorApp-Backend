@@ -14,7 +14,17 @@ export function applySecurityMiddlewares(app: Express): void {
   app.set('trust proxy', 1);
   app.use(
     helmet({
-      contentSecurityPolicy: appConfig.isProduction ? undefined : false,
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          connectSrc: ["'self'"],
+        },
+      },
       crossOriginEmbedderPolicy: false,
     }),
   );
