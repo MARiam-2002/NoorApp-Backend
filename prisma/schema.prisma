@@ -33,23 +33,33 @@ enum ChallengeType {
   SADAQAH
 }
 
+enum RevelationType {
+  MAKKI
+  MADANI
+}
+
+
 model User {
-  id         String       @id @default(uuid())
-  username   String       @unique
-  fullName   String?
-  email      String       @unique
-  password   String?
-  provider   AuthProvider @default(LOCAL)
-  providerId String?
-  googleId   String?      @unique
-  role       UserRole     @default(USER)
-  isActive   Boolean      @default(true)
-  points     Int          @default(0)
-  timezone   String       @default("Africa/Cairo")
-  latitude   Float?
-  longitude  Float?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id              String       @id @default(uuid())
+  username        String       @unique
+  fullName        String?
+  email           String       @unique
+  password        String?
+  provider        AuthProvider @default(LOCAL)
+  providerId      String?
+  googleId        String?      @unique
+  role            UserRole     @default(USER)
+  isActive        Boolean      @default(true)
+  points          Int          @default(0)
+  timezone        String       @default("Africa/Cairo")
+  latitude        Float?
+  longitude       Float?
+  quranFontSize   Int          @default(28)
+  quranReciter    String       @default("Mishary_Alafasy")
+  quranTafsir     String       @default("Ibn_Kathir")
+  quranTranslation String      @default("Sahih_International")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   refreshTokens        RefreshToken[]
   passwordResetTokens  PasswordResetToken[]
@@ -125,11 +135,12 @@ model PrayerCompletion {
 }
 
 model Surah {
-  id         Int    @id
-  nameEn     String
-  nameAr     String
-  totalAyahs Int    @default(0)
-  totalPages Int    @default(0)
+  id              Int             @id
+  nameEn          String
+  nameAr          String
+  totalAyahs      Int             @default(0)
+  totalPages      Int             @default(0)
+  revelationType  RevelationType?
 
   ayahs          Ayah[]
   khatmahs       Khatmah[]
@@ -174,15 +185,17 @@ model QuranBookmark {
   id         String   @id @default(uuid())
   userId     String
   surahId    Int
-  ayahNumber Int
+  ayahNumber Int?
+  page       Int?
   note       String?
   createdAt  DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   surah Surah @relation(fields: [surahId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, surahId, ayahNumber])
   @@index([userId])
+  @@index([userId, surahId, ayahNumber])
+  @@index([userId, page])
   @@map("quran_bookmarks")
 }
 

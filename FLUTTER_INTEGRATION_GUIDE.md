@@ -15,10 +15,36 @@
 - **Updated**: Integration Totals and `Route Endpoint Index` table. The index expanded from 10 rows to 12: row 5 is now `POST /auth/logout`, row 6 is `GET /auth/me`, and all subsequent rows are renumbered. Totals now correctly report 12 endpoints total (6 Authenticated, 6 Public).
 - No endpoints were removed in this change set.
 
-### Change Totals
+### Change Totals (2026-07-31 batch)
 
 - New endpoint documentation entries: 2
 - Updated documentation entries: 10
+- Removed documentation entries: 0
+
+---
+
+## 🔹 API Integration Changes Summary — 2026-08-21 (Quran + Profile + Journey Expansion)
+
+- **New (8 module sections added below)**:
+  - **Forgot / Reset Password (Auth)** — `POST /auth/forgot-password` and `POST /auth/reset-password` (token emailed + reset form).
+  - **Full Profile screen** — `GET /profile/me`, `PATCH /profile/update`, `PATCH /profile/change-password`, `PUT /profile/location`, `GET/PATCH /profile/reading-preferences` (font size / reciter / tafsir / translation settings for the Quran reader bottom sheet).
+  - **Quran Browser / Reader (10 endpoints)** — Surah list with `revelationType` (MAKKI/MADANI for icons 🕋/🕌), Surah+Ayah list with pagination, **physical-page reader** (`/pages/:pageNumber` for 1..604 page-by-page Mushaf view), Juz 1–30 list + Juz Surahs, Quran search and random-ayah.
+  - **Quran Bookmarks / Favorites** (4 endpoints: list with `textAr` inline preview for the bookmark tab preview cards, create, patch note, delete).
+  - **Last Read / Resume pointer** (`GET /quran/last-read`, `PUT /quran/last-read`) — resumes exactly where the user stopped on the Mushaf page.
+  - **Khatmah tracker** (`GET /quran/khatmah`, `PATCH /quran/khatmah/progress`, `GET /quran/khatmah/stats` ⭐, `POST /quran/khatmah/reset`). Stats endpoint drives the "استكمال الختمة" screen hero with `dailyGoal` (pages read today vs 5-page target) + `stats.streakDays` + `stats.completedKhatmahCount` + `stats.totalPagesRead`.
+  - **Daily Journey tracker** (`GET /journey/today`, `GET /journey/progress`, `PATCH /journey/quran-pages`, `POST /journey/quran-pages/increment`, `PATCH /journey/adhkar`, `PATCH /journey/sadaqah`) — feeds the Home dashboard daily-progress widgets and keeps khatmah stats in sync.
+  - **Challenges + Notifications + My-Qibla** secondary modules.
+- **Updated (critical contracts)**:
+  - `errors[]` vs `details` distinction now applied consistently to **every** Zod-validated 400 sample in the document (the old Google 400 sample incorrectly used `details` for a schema issue; corrected below).
+  - Dashboard `dailyJourney` → now matches the `JourneyDailyView` struct (prayer/quran/adhkar/sadaqah). Dashboard `khatmah` → same shape as the khatmah-core response for safe `?`-navigation.
+  - **Reading settings are now server-side fields on User** (`quranFontSize: 12..60 default 28`, `quranReciter`, `quranTafsir`, `quranTranslation`) with dedicated `reading-preferences` endpoints. Flutter must not cache these settings locally only; the authoritative source is the backend so resuming on a second device picks them up.
+  - **Dual-page counter rule (critical for Khatmah–Journey consistency)**: When the user reads `N` new pages, Flutter MUST call **both** `POST /journey/quran-pages/increment {pages:N}` AND `PATCH /quran/khatmah/progress {pagesRead:N, currentPage, surahId}`. Omitting either leaves the Home daily card and the Khatmah stats screen out of sync.
+- **No endpoints were removed** in this 2026-08-21 revision.
+
+### Change Totals (2026-08-21 batch)
+
+- New endpoint documentation entries: **45**
+- Updated documentation entries: **3** (summary totals, Google 400 sample, Dashboard `khatmah` + `dailyJourney` notes)
 - Removed documentation entries: 0
 
 ---
@@ -30,25 +56,34 @@
   - Local dev: `http://localhost:3000/api/v1`
   - Swagger UI (always the source of truth): `<base>/api/v1/docs`
 - **Auth pattern**: Every endpoint below is `Authorization: Bearer <accessToken>` **except** the ones explicitly marked `Public`.
-- **Response envelope**: Every response uses the same wrapper so Flutter can deserialize with one generic model: `{ success, message?, data, meta?, timestamp, requestId }` for 2xx, plus `{ code, details? }` for 4xx/5xx.
-- **Auth endpoints (6 total)**: `POST /auth/sign-up` creates a local account; `POST /auth/login` returns the token pair; `POST /auth/google` exchanges a Google ID token; `POST /auth/refresh` rotates the access token; `POST /auth/logout` revokes the refresh token server-side; `GET /auth/me` returns the current user profile from the Bearer token.
-- **Main screens covered (8 states)**:
-  1. Sign-Up screen (3 fields only: fullName, email, password; username is server-generated).
-  2. Login screen (email, password + Google button).
-  3. Home / Dashboard (one GET, returns all 8 widgets in one call).
-  4. Tasbih / Digital Counter (4 endpoints, 3 visible states).
-  5. Qibla / Compass (one public GET, takes GPS coordinates, returns bearing + direction).
-- **No endpoints were removed in this revision of the integration guide**.
+- **Response envelope**: Every response uses the same wrapper so Flutter can deserialize with one generic model: `{ success, message?, data, meta?, timestamp, requestId }` for 2xx, plus `{ code, errors?, details? }` for 4xx/5xx.
+- **Auth endpoints (9 total)**:
+  - Sign-up / Login / Google exchange (tokens nested inside `data.tokens`).
+  - Refresh / Logout / `/auth/me`.
+  - **NEW** Forgot password + Reset password.
+- **Main screens covered (now 20 UI states)**:
+  1. Sign-Up screen.
+  2. Login screen (email + Google).
+  3. **NEW** Forgot Password (email input) & Reset Password (token form).
+  4. Home / Dashboard (one GET, returns 8 widgets — greeting, prayers, verse, hadith, dailyJourney, khatmah, challenge, utilities).
+  5. Tasbih / Digital Counter (4 endpoints, 3 visible states).
+  6. Qibla / Compass (public `GET /qibla/calculate` + authenticated `GET /qibla/my-qibla` that uses saved `user.latitude/longitude`).
+  7. **NEW** Full Profile screen — personal info, change password, location, **Quran Reading Preferences** bottom sheet (4 sliders/menus: AA font size, 🎧 reciter, ✍️ tafsir, 🌐 translation).
+  8. **NEW** Quran main screen — 3 tabs: المفضلة (bookmarks with inline text preview), السور (list with Makkah/Madinah icons), الاجزاء (Juz 1..30).
+  9. **NEW** Mushaf page reader (`GET /quran/pages/:pageNumber`) with السابق / التالي navigation that clamps to 1..604.
+  10. **NEW** Juz reader: tapping a Juz lists the Surahs of that Juz, tapping a Surah jumps to page=`startPage` of the Juz.
+  11. **NEW** استكمال الختمة screen — hero with current surah+page and progress bar, daily goal circular indicator (default 5 pages), 3 stat cards: streak days / completed khatmahs / total pages read, CTA "متابعة القراءة" that opens last-read page.
+- **No endpoints were removed** in this revision of the integration guide.
 
 ### Integration Totals
 
-| Area                                    | Count                                               |
-| --------------------------------------- | --------------------------------------------------- |
-| Screens / UI states documented          | 8                                                   |
-| Endpoints covered                       | 12                                                  |
-| Authenticated endpoints (Bearer)        | 6 (/auth/me, dashboard, 4 × tasbih)                 |
-| Public (no Bearer) endpoints            | 6 (sign-up, login, google, refresh, logout, qibla)  |
-| HTTP statuses covered (success + error) | 200 / 201 / 400 / 401 / 403 / 404 / 409 / 500 / 503 |
+| Area                                    | Count (2026-08-21)                                        |
+| --------------------------------------- | --------------------------------------------------------- |
+| Screens / UI states documented          | 20                                                        |
+| Endpoints covered                       | **67**                                                    |
+| Authenticated endpoints (Bearer)        | 45                                                        |
+| Public (no Bearer) endpoints            | 22                                                        |
+| HTTP statuses covered (success + error) | 200 / 201 / 204 / 400 / 401 / 403 / 404 / 409 / 500 / 503 |
 
 ---
 
@@ -669,27 +704,26 @@ class NoorGoogleAuth {
 
 #### ④ Common error branches (with their Flutter-side fix)
 
-Response Body (400 — idToken missing or model validation failed):
+Response Body (400 — idToken missing or Zod validation failed — **use `errors[]`, not `details`**):
 
 ```json
 {
   "success": false,
-  "message": "Google ID token is required",
+  "message": "Validation failed",
   "code": "VALIDATION_ERROR",
-  "details": [
+  "errors": [
     {
       "field": "idToken",
-      "message": "Google ID token is required"
+      "message": "Google ID token is required",
+      "code": "too_small"
     }
   ],
-  "timestamp": "2026-07-31T12:00:00.000Z",
+  "timestamp": "2026-08-21T12:00:00.000Z",
   "requestId": "a1b2c3d4-0007-aaaa-bbbb-000000000007"
 }
 ```
 
-Action for Flutter: the request body was serialized wrong. Ensure your request
-uses `jsonEncode({'idToken': token})` with exactly that key name and no extra
-top-level wrapper.
+Action for Flutter: the request body was serialized wrong. Ensure your request uses `jsonEncode({'idToken': token})` with exactly that key name and no extra top-level wrapper. Iterate `errors[]`, read `errors[i].field`, and highlight the matching input (there is only one field here anyway). Do **NOT** read `details` for a Zod validation error (that key is a separate channel used by AppError-level / Prisma-level failures, not schema rejects).
 
 ---
 
@@ -1407,22 +1441,1389 @@ Widget build(BuildContext context) {
 
 ---
 
+## 🔹 Auth Forgot / Reset Password (2 new endpoints)
+
+### 1) POST /auth/forgot-password — Request a reset link by email
+
+Description: User taps "نسيت كلمة المرور" on the Login screen and enters their email. This sends a one-time password-reset token (server stores it hashed). Flutter **never** receives the raw token; the token is delivered via email.
+
+Authorization: **Public** (no Bearer).
+
+Rate limit: Auth rate limiter (same 5/hour per IP).
+
+Request Body:
+
+```json
+{ "email": "AhmedMohamed@gmail.com" }
+```
+
+Response Body (200 — **always** the same message, even for unknown emails — to prevent enumeration):
+
+```json
+{
+  "success": true,
+  "message": "If an account exists for this email, a password reset link has been sent",
+  "data": null,
+  "timestamp": "2026-08-21T08:00:00.000Z",
+  "requestId": "a1b2c3d4-0018-aaaa-bbbb-000000000018"
+}
+```
+
+Response Body (400 — Zod invalid-email, use `errors[]`):
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Invalid email address",
+      "code": "invalid_string"
+    }
+  ],
+  "timestamp": "2026-08-21T08:00:00.000Z",
+  "requestId": "a1b2c3d4-0019-aaaa-bbbb-000000000019"
+}
+```
+
+---
+
+### 2) POST /auth/reset-password — Submit the new password using the token from the email
+
+Description: The deep link / URL in the email includes `?token=<raw-jwt-looking-token>` and opens Flutter; the form has two fields `newPassword` + `confirmNewPassword`; only `{ token, newPassword }` is sent to the backend.
+
+Authorization: **Public**.
+
+Request Body:
+
+```json
+{
+  "token": "<long token string from the email link>",
+  "newPassword": "NewStrongP@ss9!"
+}
+```
+
+Validation on `newPassword`: **same rules as sign-up** — min 8 chars, at least one letter AND at least one digit. Use the same client-side regex validator you already wrote for Sign-Up.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Password reset successfully",
+  "data": null,
+  "timestamp": "2026-08-21T08:05:00.000Z",
+  "requestId": "a1b2c3d4-0020-aaaa-bbbb-000000000020"
+}
+```
+
+Response Body (400 — token expired / malformed / already used):
+
+```json
+{
+  "success": false,
+  "code": "UNAUTHORIZED",
+  "message": "Invalid or expired reset token",
+  "details": { "field": "token" },
+  "timestamp": "2026-08-21T08:05:00.000Z",
+  "requestId": "a1b2c3d4-0021-aaaa-bbbb-000000000021"
+}
+```
+
+After 200: auto-navigate the user back to Login and show a SnackBar `"تم تغيير كلمة المرور. سجل دخول الآن."`. Do **not** auto-login the user; force one fresh Login so `refreshToken` is issued cleanly.
+
+---
+
+## 🔹 Profile / Settings Screen (6 endpoints — "حسابي" bottom-nav tab)
+
+This screen renders the editable personal info card, the 4-item Quran reading-settings bottom sheet, change-password, and update-location. Use `GET /profile/me` for the initial card content; send partial PATCHes on Save taps; use `PUT /profile/location` when the user grants fresh GPS permission.
+
+### 1) GET /profile/me — Full profile card load
+
+Authorization: Bearer.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Profile retrieved successfully",
+  "data": {
+    "id": "ddecba0c-757d-43a4-a867-c1b0d1870bab",
+    "username": "ahmedmohamed_8472",
+    "fullName": "Ahmed Mohamed Ali",
+    "email": "ahmedmohamed@gmail.com",
+    "points": 2450,
+    "timezone": "Africa/Cairo",
+    "latitude": 30.0444,
+    "longitude": 31.2357,
+    "quranFontSize": 28,
+    "quranReciter": "Mishary_Alafasy",
+    "quranTafsir": "Ibn_Kathir",
+    "quranTranslation": "Sahih_International"
+  },
+  "timestamp": "2026-08-21T08:10:00.000Z",
+  "requestId": "a1b2c3d4-0400-aaaa-bbbb-000000000400"
+}
+```
+
+Note: For the greeting display-name rule keep using the Dashboard's `greeting.displayName` (it falls back to `username` when `fullName` is null). Never read `username` as the primary display label.
+
+Response Body (401): standard envelope → refresh + retry.
+
+---
+
+### 2) PATCH /profile/update — Edit fullName + timezone (partial)
+
+Authorization: Bearer.
+
+Request Body (send only the fields you want updated — omitting a field leaves it unchanged):
+
+```json
+{ "fullName": "أحمد محمد علي", "timezone": "Africa/Cairo" }
+```
+
+Response Body (200): same shape as `GET /profile/me` (reflects the new merged state in DB).
+
+---
+
+### 3) PATCH /profile/change-password — Change password form (LOCAL users only)
+
+Authorization: Bearer.
+
+Request Body:
+
+```json
+{ "oldPassword": "StrongPass123!", "newPassword": "BrandNewP@ss9!" }
+```
+
+`newPassword` validation: min 8 chars / one letter + one digit (same global rule).
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Password changed successfully",
+  "data": null,
+  "timestamp": "2026-08-21T08:15:00.000Z",
+  "requestId": "a1b2c3d4-0401-aaaa-bbbb-000000000401"
+}
+```
+
+Response Body (400 — wrong old password, AppError → use `details`):
+
+```json
+{
+  "success": false,
+  "code": "UNAUTHORIZED",
+  "message": "Old password is incorrect",
+  "details": { "field": "oldPassword" },
+  "timestamp": "2026-08-21T08:15:00.000Z",
+  "requestId": "a1b2c3d4-0402-aaaa-bbbb-000000000402"
+}
+```
+
+Response Body (409 — GOOGLE users who never had a password):
+
+```json
+{
+  "success": false,
+  "code": "FORBIDDEN",
+  "message": "This account was registered with Google — password is not available",
+  "details": null,
+  "timestamp": "2026-08-21T08:15:00.000Z",
+  "requestId": "a1b2c3d4-0403-aaaa-bbbb-000000000403"
+}
+```
+
+UX rule for Flutter: when `user.provider === "GOOGLE"` hide the change-password card (or gray it out with a helper `"حسابك مسجل مع جوجل، لا توجد كلمة مرور محلية."`) — do **not** let the user waste a tap submitting this.
+
+---
+
+### 4) PUT /profile/location — Save fresh GPS + timezone (replaces, not partial)
+
+Authorization: Bearer.
+
+Use PUT (not PATCH) because the semantics are "overwrite device-reported location". Send this when the user presses "السماح بالموقع" and you get a real `Position` from the GPS package.
+
+Request Body:
+
+```json
+{ "latitude": 30.0444, "longitude": 31.2357, "timezone": "Africa/Cairo" }
+```
+
+Response Body (200): same shape as `GET /profile/me` (with updated lat/lng).
+
+Side-effect: after a successful PUT, the next `GET /qibla/my-qibla` call (authenticated variant below) uses the saved coordinates without requiring query params — ideal for onboarding flows where the GPS permission pop-up just closed.
+
+---
+
+### 5) GET /profile/reading-preferences — Open the "إعدادات القارئ" bottom sheet (4 rows: AA / 🎧 / ✍️ / 🌐)
+
+Authorization: Bearer.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Reading preferences retrieved successfully",
+  "data": {
+    "quranFontSize": 28,
+    "quranReciter": "Mishary_Alafasy",
+    "quranTafsir": "Ibn_Kathir",
+    "quranTranslation": "Sahih_International"
+  },
+  "timestamp": "2026-08-21T10:30:00.000Z",
+  "requestId": "a1b2c3d4-0410-aaaa-bbbb-000000000410"
+}
+```
+
+Default values if the record is fresh (new user, never opened the sheet):
+
+- `quranFontSize = 28` (in px). Clamp UI slider range **12..60** (backend rejects outside range with 400).
+- `quranReciter = "Mishary_Alafasy"` (suggested dropdown list: Mishary_Alafasy, Abdul_Basit, Saad_Al_Ghamdi, Maher_Al_Muaiqly, Sudais_And_Shuraim).
+- `quranTafsir = "Ibn_Kathir"` (suggested list: Ibn_Kathir, Al_Tabari, Al_Qurtubi, Al_Saadi).
+- `quranTranslation = "Sahih_International"` (suggested list: Sahih_International, Yusuf_Ali, Pickthall, Dr_Ghali).
+
+The actual list of reciter/tafsir/translation names that appear in the dropdown is **Flutter's responsibility** for now — the backend only stores the selected slug as a string. Keep slugs identical between the two sides so a later audio / tafsir lookup service can match them without a mapping step.
+
+---
+
+### 6) PATCH /profile/reading-preferences — User taps a new font size or selects a new reciter / tafsir / translation
+
+Authorization: Bearer.
+
+Partial update — send only the keys the user actually changed (no need to echo unchanged ones). The endpoint merges.
+
+Request Body — three realistic examples:
+
+```json
+{ "quranFontSize": 32 }
+```
+
+```json
+{ "quranReciter": "Saad_Al_Ghamdi", "quranTafsir": "Al_Tabari" }
+```
+
+```json
+{
+  "quranFontSize": 34,
+  "quranReciter": "Abdul_Basit",
+  "quranTafsir": "Ibn_Kathir",
+  "quranTranslation": "Yusuf_Ali"
+}
+```
+
+Response Body (200): returns all 4 keys in their merged post-update state (so Flutter can redraw all 4 rows without a second GET):
+
+```json
+{
+  "success": true,
+  "message": "Reading preferences updated successfully",
+  "data": {
+    "quranFontSize": 34,
+    "quranReciter": "Abdul_Basit",
+    "quranTafsir": "Ibn_Kathir",
+    "quranTranslation": "Yusuf_Ali"
+  },
+  "timestamp": "2026-08-21T10:32:00.000Z",
+  "requestId": "a1b2c3d4-0411-aaaa-bbbb-000000000411"
+}
+```
+
+Response Body (400 — fontSize outside 12..60 — Zod `errors[]`):
+
+```json
+{
+  "success": false,
+  "code": "VALIDATION_ERROR",
+  "message": "Validation failed",
+  "errors": [
+    {
+      "field": "quranFontSize",
+      "message": "Font size must be between 12 and 60",
+      "code": "too_big"
+    }
+  ],
+  "timestamp": "2026-08-21T10:32:00.000Z",
+  "requestId": "a1b2c3d4-0412-aaaa-bbbb-000000000412"
+}
+```
+
+Apply the new `data.quranFontSize` to the Mushaf page-reader's `TextStyle` immediately on the next page render.
+
+---
+
+## 🔹 Quran Main Screen + Reader (20 endpoints — the new core)
+
+The Quran module has a 3-tab main screen:
+
+- **Tab 1 — المفضلة** `GET /quran/bookmarks` (list with inline `textAr` preview, so the favorite card shows both `Surah: الآية N` + a snippet of the actual verse).
+- **Tab 2 — السور** `GET /quran/surahs` (114 rows, icons driven by `revelationType`).
+- **Tab 3 — الاجزاء** `GET /quran/juz` (30 rows).
+
+Plus:
+
+- **Page reader** `GET /quran/pages/:pageNumber` (the actual Mushaf view — السابق / التالي switch pages 1..604).
+- **By-Juz sub-flow** `GET /quran/juz/:juzNumber/surahs` (open a Juz → list its Surahs → tap a Surah → `GET /quran/pages/${thatSurah.startPage}`). There is **no** `/quran/juz/:juzNumber/ayahs` route.
+- **By-Surah reader** `GET /quran/surahs/:surahId` and `GET /quran/surahs/:surahId/ayahs?page&perPage` for continuous scroll by surah (Fatiha then next surah). `perPage` is capped at 100.
+- **Khatmah + Stats** (`/khatmah` / `/khatmah/stats` / `/khatmah/progress` / `/khatmah/reset`) for screen "استكمال الختمة".
+- **Last-read + reading history** (`GET/PUT /quran/last-read`, `GET/POST /quran/reading-history`).
+- **Search + Random ayah**.
+- **Reading preferences bottom sheet** (overflow ⋮ on the reader) is **not** under `/quran` — it is `GET/PATCH /profile/reading-preferences`.
+
+All Quran lookup endpoints (`/surahs`, `/juz`, `/pages/:pageNumber`, `/search`, `/ayahs/random`) are **public** so they work during the 401→refresh transient and for unauthenticated onboarding tours. Anything user-specific (bookmarks, last-read, khatmah, reading-history, stats) requires Bearer.
+
+**Screenshot → endpoint map (Quran UI):**
+
+| Screen | Flutter calls |
+| --- | --- |
+| Greeting `اهلا، احمد` | `GET /dashboard` → `greeting.displayName` (or `GET /profile/me` `fullName`) |
+| Tab السور | `GET /quran/surahs` → `revelationType` `MAKKI`/`MADANI` for Kaaba vs mosque icons |
+| Tab الاجزاء | `GET /quran/juz` → `nameAr` / `nameEn` |
+| Tab المفضلة | `GET /quran/bookmarks` → `surah.nameAr`, `textAr`, `ayahNumber` |
+| Mushaf page (السابق / رقم الصفحة / التالي) | `GET /quran/pages/:pageNumber` → `ayahs[]`, `surahs[]`, `page`, `juz` on each ayah |
+| Continuous surah scroll | `GET /quran/surahs/:id/ayahs?page&perPage` then next `surahId + 1` |
+| Reader ⋮ sheet | `GET/PATCH /profile/reading-preferences` |
+| استكمال الختمة | `GET /quran/khatmah/stats` + CTA → `GET /quran/last-read` then `/quran/pages/:page` |
+
+### 1) GET /quran/surahs — Tab "السور" (114 rows)
+
+Authorization: **Public**.
+
+Response Body (200 — icon-selection rule inline):
+
+```json
+{
+  "success": true,
+  "message": "Surahs retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "nameEn": "Al-Fatihah",
+      "nameAr": "الفاتحة",
+      "revelationType": "MAKKI",
+      "totalAyahs": 7,
+      "totalPages": 1
+    },
+    {
+      "id": 2,
+      "nameEn": "Al-Baqarah",
+      "nameAr": "البقرة",
+      "revelationType": "MADANI",
+      "totalAyahs": 286,
+      "totalPages": 48
+    },
+    {
+      "id": 3,
+      "nameEn": "Aal-i-Imran",
+      "nameAr": "آل عمران",
+      "revelationType": "MADANI",
+      "totalAyahs": 200,
+      "totalPages": 20
+    }
+  ],
+  "timestamp": "2026-08-21T09:00:00.000Z",
+  "requestId": "a1b2c3d4-0500-aaaa-bbbb-000000000500"
+}
+```
+
+Flutter icon rule: `revelationType === "MAKKI"` → 🕋 Kaaba icon (dark navy), `revelationType === "MADANI"` → 🟢 Qubbat al-Sakhra / green mosque icon. Do **NOT** fall back to a single generic Book icon — the UI design explicitly differentiates them.
+
+---
+
+### 2) GET /quran/surahs/:surahId — Surah metadata (name, ayah count, etc.)
+
+Authorization: **Public**.
+
+Example: `GET /quran/surahs/2` for البقرة.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Surah retrieved successfully",
+  "data": {
+    "id": 2,
+    "nameEn": "Al-Baqarah",
+    "nameAr": "البقرة",
+    "revelationType": "MADANI",
+    "totalAyahs": 286,
+    "totalPages": 48
+  },
+  "timestamp": "2026-08-21T09:01:00.000Z",
+  "requestId": "a1b2c3d4-0501-aaaa-bbbb-000000000501"
+}
+```
+
+Response Body (404 — surahId not in 1..114):
+
+```json
+{
+  "success": false,
+  "code": "NOT_FOUND",
+  "message": "Surah not found",
+  "details": { "field": "surahId" },
+  "timestamp": "2026-08-21T09:01:00.000Z",
+  "requestId": "a1b2c3d4-0502-aaaa-bbbb-000000000502"
+}
+```
+
+---
+
+### 3) GET /quran/surahs/:surahId/ayahs — Paginated ayahs inside a Surah (alternative view to pages)
+
+Authorization: **Public**.
+
+Query Params (optional):
+
+- `page` (int, default 1)
+- `perPage` (int, default 20, max 200)
+
+Example: `GET /quran/surahs/2/ayahs?page=11&perPage=3` → آيات 220..222 سورة البقرة.
+
+Response Body (200 — `meta.pagination` present because it is paginated):
+
+```json
+{
+  "success": true,
+  "message": "Ayahs retrieved successfully",
+  "data": [
+    {
+      "id": "uuid-1",
+      "surahId": 2,
+      "ayahNumber": 220,
+      "textAr": "فِي الدُّنْيَا وَالْآخِرَةِ...",
+      "page": 35,
+      "juz": 2
+    },
+    {
+      "id": "uuid-2",
+      "surahId": 2,
+      "ayahNumber": 221,
+      "textAr": "آيَاتِهِ لِلنَّاسِ لَعَلَّهُمْ يَتَذَكَّرُونَ...",
+      "page": 35,
+      "juz": 2
+    },
+    {
+      "id": "uuid-3",
+      "surahId": 2,
+      "ayahNumber": 222,
+      "textAr": "التَّوَّابِينَ وَيُحِبُّ الْمُتَطَهِّرِينَ",
+      "page": 35,
+      "juz": 2
+    }
+  ],
+  "meta": {
+    "pagination": { "total": 286, "page": 11, "pageSize": 3, "hasMore": true }
+  },
+  "timestamp": "2026-08-21T09:05:00.000Z",
+  "requestId": "a1b2c3d4-0503-aaaa-bbbb-000000000503"
+}
+```
+
+This endpoint is best for a per-surah scroll view. For the real Mushaf-style page reader (recommended per the Figma design, which shows "السابق 35 التالي") — use `/quran/pages/:pageNumber` below.
+
+---
+
+### 4) GET /quran/pages/:pageNumber — Physical Mushaf page reader (1..604 pages)
+
+Authorization: **Public**.
+
+This is the screen that matches the screenshots exactly (عنوان السورة → آيات → السابق / التالي navigation, with page number centered between them).
+
+`:pageNumber` path param is an integer. Clamp it client-side before calling to the range `[1, 604]`.
+
+Example: `GET /quran/pages/35`
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Quran page 35 retrieved successfully",
+  "data": {
+    "page": 35,
+    "totalPages": 604,
+    "ayahs": [
+      {
+        "id": "uuid-1",
+        "surahId": 2,
+        "ayahNumber": 220,
+        "textAr": "فِي الدُّنْيَا وَالْآخِرَةِ وَيَسْأَلُونَكَ عَنِ الْيَتَامَىٰ...",
+        "page": 35,
+        "juz": 2
+      },
+      {
+        "id": "uuid-2",
+        "surahId": 2,
+        "ayahNumber": 221,
+        "textAr": "آيَاتِهِ لِلنَّاسِ لَعَلَّهُمْ يَتَذَكَّرُونَ وَيَسْأَلُونَكَ عَنِ الْمَحِيضِ...",
+        "page": 35,
+        "juz": 2
+      },
+      {
+        "id": "uuid-3",
+        "surahId": 2,
+        "ayahNumber": 222,
+        "textAr": "التَّوَّابِينَ وَيُحِبُّ الْمُتَطَهِّرِينَ",
+        "page": 35,
+        "juz": 2
+      }
+    ],
+    "surahs": [
+      {
+        "id": 2,
+        "nameEn": "Al-Baqarah",
+        "nameAr": "البقرة",
+        "revelationType": "MADANI"
+      }
+    ]
+  },
+  "timestamp": "2026-08-21T09:10:00.000Z",
+  "requestId": "a1b2c3d4-0504-aaaa-bbbb-000000000504"
+}
+```
+
+Notes for the Mushaf page-reader UI:
+
+- Page number at **bottom center between buttons** = `data.page`.
+- "السابق" button → call `GET /quran/pages/${max(1, page - 1)}`.
+- "التالي" button → call `GET /quran/pages/${min(604, page + 1)}`.
+- Top title (اسم السورة / اسم الجزء):
+  - If `surahs.length === 1` → title = `surahs[0].nameAr`.
+  - If `surahs.length === 2` (some pages straddle the end of one surah and start of the next) → show separator `---` / Bismillah graphic in the middle, then show `surahs[1].nameAr` below it — exactly like the second screenshot in your request (the one with البقرة + البقرة 2).
+  - The Juz name ("الجزء الثاني") that appears above the page title comes from `ayahs[0].juz` → cross-reference with the Juz list (endpoint below) to fetch the Arabic label.
+- **Dual counter rule (MANDATORY on every `التالي` / "next page" tap)**: When the user reads a full new page (or flips N pages forward in one go), call BOTH:
+  1. `POST /journey/quran-pages/increment { pages: N }` (feeds the home daily card + streak).
+  2. `PATCH /quran/khatmah/progress { pagesRead: N, currentPage: newPage, surahId: firstSurahIdOnNewPage }` (feeds the Khatmah stats screen).
+     After both 200s, then `PUT /quran/last-read { surahId, page }` once to save the resume pointer. Skipping step 1 or step 2 makes the Home dashboard's `dailyJourney.quran.pagesRead` disagree with the استكمال الختمة screen's daily goal — you will get a bug report.
+
+Response Body (400 — page out of range):
+
+```json
+{
+  "success": false,
+  "code": "NOT_FOUND",
+  "message": "Invalid Quran page. Page number must be between 1 and 604",
+  "details": { "field": "pageNumber" },
+  "timestamp": "2026-08-21T09:10:00.000Z",
+  "requestId": "a1b2c3d4-0505-aaaa-bbbb-000000000505"
+}
+```
+
+---
+
+### 5) GET /quran/juz — Tab "الاجزاء" (30 rows, Arabic names match Figma exactly)
+
+Authorization: **Public**.
+
+Response Body (200 — first 13 rows exactly match the Figma list you shared):
+
+```json
+{
+  "success": true,
+  "message": "Juz list retrieved successfully",
+  "data": [
+    {
+      "juzNumber": 1,
+      "nameAr": "الجزء الأول",
+      "nameEn": "Juz' 1",
+      "totalAyahs": 148,
+      "startPage": 1,
+      "endPage": 22,
+      "firstSurah": { "id": 1, "nameEn": "Al-Fatihah", "nameAr": "الفاتحة" }
+    },
+    {
+      "juzNumber": 2,
+      "nameAr": "الجزء الثاني",
+      "nameEn": "Juz' 2",
+      "totalAyahs": 148,
+      "startPage": 23,
+      "endPage": 44,
+      "firstSurah": { "id": 2, "nameEn": "Al-Baqarah", "nameAr": "البقرة" }
+    },
+    {
+      "juzNumber": 3,
+      "nameAr": "الجزء الثالث",
+      "nameEn": "Juz' 3",
+      "totalAyahs": 148,
+      "startPage": 45,
+      "endPage": 63,
+      "firstSurah": { "id": 2, "nameEn": "Al-Baqarah", "nameAr": "البقرة" }
+    },
+    {
+      "juzNumber": 4,
+      "nameAr": "الجزء الرابع",
+      "nameEn": "Juz' 4",
+      "totalAyahs": 148,
+      "startPage": 64,
+      "endPage": 81,
+      "firstSurah": { "id": 3, "nameEn": "Aal-i-Imran", "nameAr": "آل عمران" }
+    },
+    {
+      "juzNumber": 5,
+      "nameAr": "الجزء الخامس",
+      "nameEn": "Juz' 5",
+      "totalAyahs": 148,
+      "startPage": 82,
+      "endPage": 101,
+      "firstSurah": { "id": 4, "nameEn": "An-Nisa", "nameAr": "النساء" }
+    },
+    {
+      "juzNumber": 6,
+      "nameAr": "الجزء السادس",
+      "nameEn": "Juz' 6",
+      "totalAyahs": 148,
+      "startPage": 102,
+      "endPage": 120,
+      "firstSurah": { "id": 5, "nameEn": "Al-Ma'idah", "nameAr": "المائدة" }
+    },
+    {
+      "juzNumber": 7,
+      "nameAr": "الجزء السابع",
+      "nameEn": "Juz' 7",
+      "totalAyahs": 148,
+      "startPage": 121,
+      "endPage": 141,
+      "firstSurah": { "id": 6, "nameEn": "Al-An'am", "nameAr": "الأنعام" }
+    },
+    {
+      "juzNumber": 8,
+      "nameAr": "الجزء الثامن",
+      "nameEn": "Juz' 8",
+      "totalAyahs": 148,
+      "startPage": 142,
+      "endPage": 161,
+      "firstSurah": { "id": 7, "nameEn": "Al-A'raf", "nameAr": "الأعراف" }
+    },
+    {
+      "juzNumber": 9,
+      "nameAr": "الجزء التاسع",
+      "nameEn": "Juz' 9",
+      "totalAyahs": 148,
+      "startPage": 162,
+      "endPage": 181,
+      "firstSurah": { "id": 8, "nameEn": "Al-Anfal", "nameAr": "الأنفال" }
+    },
+    {
+      "juzNumber": 10,
+      "nameAr": "الجزء العاشر",
+      "nameEn": "Juz' 10",
+      "totalAyahs": 148,
+      "startPage": 182,
+      "endPage": 200,
+      "firstSurah": { "id": 9, "nameEn": "At-Tawbah", "nameAr": "التوبة" }
+    },
+    {
+      "juzNumber": 11,
+      "nameAr": "الجزء الحادي عشر",
+      "nameEn": "Juz' 11",
+      "totalAyahs": 148,
+      "startPage": 201,
+      "endPage": 220,
+      "firstSurah": { "id": 10, "nameEn": "Yunus", "nameAr": "يونس" }
+    },
+    {
+      "juzNumber": 12,
+      "nameAr": "الجزء الثاني عشر",
+      "nameEn": "Juz' 12",
+      "totalAyahs": 148,
+      "startPage": 221,
+      "endPage": 238,
+      "firstSurah": { "id": 11, "nameEn": "Hud", "nameAr": "هود" }
+    },
+    {
+      "juzNumber": 13,
+      "nameAr": "الجزء الثالث عشر",
+      "nameEn": "Juz' 13",
+      "totalAyahs": 148,
+      "startPage": 239,
+      "endPage": 256,
+      "firstSurah": { "id": 12, "nameEn": "Yusuf", "nameAr": "يوسف" }
+    }
+  ],
+  "timestamp": "2026-08-21T09:15:00.000Z",
+  "requestId": "a1b2c3d4-0510-aaaa-bbbb-000000000510"
+}
+```
+
+The response returns all 30 Juz rows (not paginated — it is only 30 items). The Figma list stops at الجزء الثالث عشر for layout reasons; scroll in Flutter reveals Juz 14..30 automatically.
+
+Typical tap flow: user taps Juz 2 → call `GET /quran/juz/2/surahs` to show the Surahs inside that Juz → user taps one → open `GET /quran/pages/${thatSurah.startPage}`.
+
+---
+
+### 6) GET /quran/juz/:juzNumber/surahs — Surahs that fall within a single Juz (1..30)
+
+Authorization: **Public**.
+
+Example: `GET /quran/juz/2/surahs`
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Juz 2 surahs retrieved successfully",
+  "data": {
+    "juzNumber": 2,
+    "nameAr": "الجزء الثاني",
+    "nameEn": "Juz' 2",
+    "surahs": [
+      {
+        "id": 2,
+        "nameEn": "Al-Baqarah",
+        "nameAr": "البقرة",
+        "revelationType": "MADANI",
+        "totalAyahs": 286,
+        "totalPages": 48,
+        "fromAyah": 142,
+        "toAyah": 252,
+        "startPage": 22,
+        "endPage": 41,
+        "ayahsInJuz": 111
+      }
+    ]
+  },
+  "timestamp": "2026-08-21T09:16:00.000Z",
+  "requestId": "a1b2c3d4-0511-aaaa-bbbb-000000000511"
+}
+```
+
+---
+
+### 7) Quran Bookmarks / Tab "المفضلة" (4 endpoints with inline `textAr`)
+
+All require Bearer.
+
+#### 7-A) GET /quran/bookmarks — Tab 1 "المفضلة" initial load
+
+Response Body (200 — every bookmark has `textAr` populated so the preview card renders the actual verse without a second round-trip):
+
+```json
+{
+  "success": true,
+  "message": "Bookmarks retrieved successfully",
+  "data": [
+    {
+      "id": "bm-uuid-1",
+      "userId": "ddecba0c-757d-43a4-a867-c1b0d1870bab",
+      "surahId": 2,
+      "ayahNumber": 221,
+      "page": 35,
+      "note": null,
+      "textAr": "آيَاتِهِ لِلنَّاسِ لَعَلَّهُمْ يَتَذَكَّرُونَ وَيَسْأَلُونَكَ عَنِ الْمَحِيضِ فَقُلْ هُوَ أَذًى...",
+      "surah": { "id": 2, "nameEn": "Al-Baqarah", "nameAr": "البقرة" },
+      "createdAt": "2026-08-18T10:12:00.000Z"
+    },
+    {
+      "id": "bm-uuid-2",
+      "surahId": 3,
+      "ayahNumber": 8,
+      "page": 43,
+      "note": "Dua for parents",
+      "textAr": "رَبَّنَا لَا تُؤَاخِذْنِي إِن نَّسِيتُ أَوْ أَخْطَأْتُ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا...",
+      "surah": { "id": 3, "nameEn": "Aal-i-Imran", "nameAr": "آل عمران" },
+      "createdAt": "2026-08-19T11:00:00.000Z"
+    }
+  ],
+  "timestamp": "2026-08-21T09:20:00.000Z",
+  "requestId": "a1b2c3d4-0520-aaaa-bbbb-000000000520"
+}
+```
+
+Flutter rendering for each card (matches your screenshots' first tab):
+
+- Top-right heart icon → `♡` to `♥` (bookmarks are always favorited; the only bookmark-specific action is delete or edit note).
+- Title row → `surah.nameAr` on one line.
+- Body text → `textAr` (shows up to ~3 lines, `TextOverflow.ellipsis`).
+- Bottom subline → `الاية {ayahNumber}` (small, muted).
+
+The bookmark row may have `ayahNumber = null` if it was added for a full page rather than a specific verse; guard with `ayahNumber ?? ''` — in that case `textAr` also comes back as `null` so fall back to a placeholder `"صفحة رقم ${page}"`.
+
+#### 7-B) POST /quran/bookmarks — Tap heart on an ayah (create a new bookmark)
+
+Authorization: Bearer.
+
+Request Body (must pass either `{surahId, ayahNumber}` **or** `{page}`, at least one):
+
+```json
+{ "surahId": 2, "ayahNumber": 221, "page": 35, "note": "Dua for parents" }
+```
+
+Response Body (201 — includes `textAr`):
+
+```json
+{
+  "success": true,
+  "message": "Bookmark added successfully",
+  "data": {
+    "id": "bm-uuid-new",
+    "surahId": 2,
+    "ayahNumber": 221,
+    "page": 35,
+    "note": "Dua for parents",
+    "textAr": "آيَاتِهِ لِلنَّاسِ لَعَلَّهُمْ يَتَذَكَّرُونَ...",
+    "surah": { "id": 2, "nameEn": "Al-Baqarah", "nameAr": "البقرة" },
+    "createdAt": "2026-08-21T09:22:00.000Z"
+  },
+  "timestamp": "2026-08-21T09:22:00.000Z",
+  "requestId": "a1b2c3d4-0521-aaaa-bbbb-000000000521"
+}
+```
+
+Response Body (409 — duplicate bookmark — same user + same (surah,ayah) pair exists):
+
+```json
+{
+  "success": false,
+  "code": "CONFLICT",
+  "message": "Bookmark already exists for this ayah",
+  "details": { "field": "ayahNumber" },
+  "timestamp": "2026-08-21T09:22:00.000Z",
+  "requestId": "a1b2c3d4-0522-aaaa-bbbb-000000000522"
+}
+```
+
+Flutter UX on 409: toggle the heart OFF and call `DELETE /quran/bookmarks/:id` instead (user is "un-bookmarking"). Or safer: always read the list first before creating.
+
+#### 7-C) PATCH /quran/bookmarks/:bookmarkId — Edit note (swipe action → تعديل الملاحظة)
+
+Authorization: Bearer.
+
+Body: `{ "note": "اللهم تقبل منا" }`
+
+Response Body (200): updated bookmark with `textAr` included.
+
+#### 7-D) DELETE /quran/bookmarks/:bookmarkId — Swipe → حذف
+
+Authorization: Bearer.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Bookmark deleted successfully",
+  "data": null,
+  "timestamp": "2026-08-21T09:25:00.000Z",
+  "requestId": "a1b2c3d4-0523-aaaa-bbbb-000000000523"
+}
+```
+
+If another user's bookmark ID is used → 404 "Bookmark not found" (never returns 403 to avoid leaking that the ID even exists).
+
+---
+
+### 8) Last Read / Resume pointer (2 endpoints — saves one tap to resume the exact page)
+
+Both require Bearer.
+
+#### 8-A) GET /quran/last-read — "Continue where you left off" card in home / CTA in استكمال الختمة screen
+
+Response Body (200 — with `surah` so the hero card shows سورة البقرة صفحة 35):
+
+```json
+{
+  "success": true,
+  "message": "Last read position retrieved successfully",
+  "data": {
+    "id": "lr-uuid-1",
+    "userId": "ddecba0c-757d-43a4-a867-c1b0d1870bab",
+    "surahId": 2,
+    "ayahNumber": 221,
+    "page": 35,
+    "juz": 2,
+    "updatedAt": "2026-08-21T08:59:00.000Z",
+    "surah": { "id": 2, "nameEn": "Al-Baqarah", "nameAr": "البقرة" }
+  },
+  "timestamp": "2026-08-21T09:30:00.000Z",
+  "requestId": "a1b2c3d4-0530-aaaa-bbbb-000000000530"
+}
+```
+
+If the user has **never** opened Quran yet → returns 200 with `data = null` explicitly (not an error). In that case show CTA `"ابدأ قراءتك الأولى من سورة الفاتحة"` → navigate to page 1.
+
+#### 8-B) PUT /quran/last-read — Persist position (call after the dual-counter rule on every page flip)
+
+Request Body:
+
+```json
+{ "surahId": 2, "ayahNumber": 221, "page": 35 }
+```
+
+This is idempotent PUT (always overwrites). Required: `surahId` + `page`. Optional: `ayahNumber` (defaults to `1` if omitted). Response Body (200): same expanded shape as GET.
+
+---
+
+### 8-C) GET / POST /quran/reading-history — Session log (optional; not a Figma tab)
+
+Authorization: Bearer.
+
+`GET /quran/reading-history?page=1&limit=20` returns paginated `{ id, surahId, ayahFrom, ayahTo, readAt }` with `meta` = `{ page, limit, total, totalPages, hasNextPage, hasPreviousPage }`.
+
+`POST /quran/reading-history` body: `{ "surahId": 2, "fromAyah": 220, "toAyah": 222, "pagesRead": 35 }`. `pagesRead` here is the Mushaf page used to also upsert last-read. `fromAyah` / `toAyah` default to 1 if omitted.
+
+---
+
+### 9) Khatmah tracker (4 endpoints — "استكمال الختمة" screen)
+
+All 4 require Bearer.
+
+#### 9-A) GET /quran/khatmah — Core khatmah pointer (what surah/page I'm on now). This is what the Home dashboard `khatmah` widget mirrors.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Khatmah progress retrieved successfully",
+  "data": {
+    "surahId": 2,
+    "surahNameEn": "Al-Baqarah",
+    "surahNameAr": "البقرة",
+    "currentPage": 35,
+    "totalPagesRead": 258,
+    "progressPercent": 43
+  },
+  "timestamp": "2026-08-21T09:40:00.000Z",
+  "requestId": "a1b2c3d4-0540-aaaa-bbbb-000000000540"
+}
+```
+
+`progressPercent = round(totalPagesRead * 100 / 604)`. A full Quran (604 pages read) returns `progressPercent = 100`.
+
+The first `GET /quran/khatmah` **auto-creates** a row at Surah 2 / page 1 if none exists — it never returns `data = null`. Flutter can always paint the استكمال الختمة hero from this payload. `PATCH /quran/khatmah/progress { pagesRead: 1, currentPage: 1, surahId: 2 }` is still the correct first-page write.
+
+#### 9-B) PATCH /quran/khatmah/progress — Advance khatmah progress / update resume pointer (call together with Journey increment)
+
+Request Body:
+
+```json
+{ "surahId": 2, "currentPage": 37, "pagesRead": 2 }
+```
+
+Semantics: `pagesRead` is the **delta** to add to `totalPagesRead` (not the new absolute total). `currentPage` and `surahId` replace the pointer values.
+
+Response Body (200): updated Khatmah shape, same as GET. After every call the backend internally recomputes `progressPercent` → `completedKhatmahCount = floor(totalPagesRead/604)` (used by stats endpoint next).
+
+#### 9-C) ⭐ GET /quran/khatmah/stats — The **استكمال الختمة screen** endpoint (Hero + Daily goal circle + 3 stat cards + CTA)
+
+Response Body (200 — **matches Figma 1:1**):
+
+```json
+{
+  "success": true,
+  "message": "Khatmah with stats retrieved successfully",
+  "data": {
+    "surahId": 2,
+    "surahNameEn": "Al-Baqarah",
+    "surahNameAr": "البقرة",
+    "currentPage": 35,
+    "totalPagesRead": 258,
+    "progressPercent": 43,
+
+    "dailyGoal": {
+      "pagesTarget": 5,
+      "pagesReadToday": 4,
+      "completed": false,
+      "remainingToday": 1
+    },
+
+    "stats": {
+      "streakDays": 12,
+      "completedKhatmahCount": 0,
+      "totalPagesRead": 258
+    }
+  },
+  "timestamp": "2026-08-21T09:45:00.000Z",
+  "requestId": "a1b2c3d4-0541-aaaa-bbbb-000000000541"
+}
+```
+
+Exact screen ↔ JSON mapping:
+| Widget in Figma | JSON key |
+| --- | --- |
+| Hero title "سورة البقرة" | `surahNameAr` |
+| Hero subtitle "صفحة 35" | `currentPage` |
+| Hero progress bar | `progressPercent / 100` |
+| Green circular indicator "4 / 5 صفحات" (هدف اليوم) | `dailyGoal.pagesReadToday / dailyGoal.pagesTarget` |
+| Helper "تبقي صفحة واحدة لكمال هدف اليوم" | `if dailyGoal.remainingToday > 1 → "تبقي X صفحات" else "تبقي صفحة واحدة"` |
+| Card: ايام متتالية 12 يوم | `stats.streakDays` |
+| Card: الختمات 3 (placeholder in Figma) | `stats.completedKhatmahCount` |
+| Card: اجمالي الصفحات 258 | `stats.totalPagesRead` |
+| CTA "متابعة القراءة" | onPress → read `GET /quran/last-read`, if null → `page = data.currentPage`, then navigate to Mushaf page reader → `GET /quran/pages/${page}`. |
+
+The default daily goal is 5 pages (hardcoded server-side today as `5`; do not derive from env). When `dailyGoal.pagesReadToday >= dailyGoal.pagesTarget` the server flips `completed = true`. The "هدف اليوم" circle then shows "5 / 5" with 100% green and a check-mark helper `"أحسنت! لقد أكملت هدف اليوم 🎉"`.
+
+Where each stat actually comes from (so you know which endpoint updates what when debugging):
+
+- `dailyGoal.pagesReadToday` → `JourneyDailyRecord.quranPagesRead` for today's row (so if Journey increment is missing, the circle stays stale — enforce the dual-counter rule).
+- `stats.streakDays` → rolling window computed by Journey service.
+- `stats.completedKhatmahCount` → `floor(Khatmah.totalPagesRead / 604)`.
+- `stats.totalPagesRead` → `Khatmah.totalPagesRead` (same as dashboard widget).
+
+#### 9-D) POST /quran/khatmah/reset — "بدء ختمة جديدة" after completing 604 pages
+
+Authorization: Bearer.
+
+Soft behaviour: keeps historical data, zeroes pointer back to page 1 / surah 1 and resets `totalPagesRead` to start a new khatmah cycle.
+
+Response Body (200): core khatmah shape plus `"reset": true`. Call `GET /quran/khatmah/stats` afterwards if you need the dailyGoal / stats cards again.
+
+---
+
+### 10) GET /quran/search?q=الرحمن — Full-text Quran search
+
+Authorization: **Public**.
+
+Query: `q` required; `page` optional (default 1); `limit` optional (default 20, max 200).
+
+Example: `GET /quran/search?q=الرحمن&limit=20`
+
+Response Body (200) — `data` is an **object**, not an array:
+
+```json
+{
+  "success": true,
+  "message": "Quran search for \"الرحمن\" completed (45 matches)",
+  "data": {
+    "query": "الرحمن",
+    "total": 45,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 3,
+    "results": [
+      {
+        "id": "uuid",
+        "surahId": 1,
+        "ayahNumber": 3,
+        "textAr": "الرَّحْمَٰنِ الرَّحِيمِ",
+        "page": 1,
+        "juz": 1,
+        "surah": { "id": 1, "nameAr": "الفاتحة", "nameEn": "Al-Fatihah", "revelationType": "MAKKI" }
+      }
+    ]
+  },
+  "timestamp": "2026-08-21T09:50:00.000Z",
+  "requestId": "a1b2c3d4-0550-aaaa-bbbb-000000000550"
+}
+```
+
+Tap a result → navigate to Mushaf reader for `page = result.page`.
+
+Empty results → 200 with `data.results = []` and `data.total = 0` (never 404). Show "لا توجد نتائج للبحث".
+
+---
+
+### 11) GET /quran/ayahs/random — Random ayah widget (placeholder usage)
+
+Authorization: **Public**.
+
+Response Body (200) — nested `ayah` + `surah`:
+
+```json
+{
+  "success": true,
+  "message": "Random ayah from الرحمن:1 retrieved successfully",
+  "data": {
+    "ayah": {
+      "id": "uuid",
+      "surahId": 55,
+      "ayahNumber": 1,
+      "textAr": "الرَّحْمَٰنُ عَلَّمَ الْقُرْآنَ",
+      "page": 531,
+      "juz": 27
+    },
+    "surah": {
+      "id": 55,
+      "nameAr": "الرحمن",
+      "nameEn": "Ar-Rahman",
+      "totalAyahs": 78,
+      "revelationType": "MADANI"
+    }
+  },
+  "timestamp": "2026-08-21T09:55:00.000Z",
+  "requestId": "a1b2c3d4-0551-aaaa-bbbb-000000000551"
+}
+```
+
+---
+
+## 🔹 Daily Journey tracker (6 endpoints — Home daily widgets + streak)
+
+All require Bearer. This module owns today's "ماذا أنجزت اليوم؟" progress bar and the daily rolling numbers. The dual-counter rule is critical — the Quran page flip triggers BOTH `/journey/quran-pages/increment` AND `/quran/khatmah/progress` (see page-reader section above).
+
+### 1) GET /journey/today — Full today view
+
+Response Body (200 — **this is not the same shape as dashboard `dailyJourney`**):
+
+```json
+{
+  "success": true,
+  "message": "Daily journey retrieved successfully",
+  "data": {
+    "quranPagesRead": 4,
+    "adhkarCompleted": true,
+    "sadaqahAmount": 0
+  },
+  "timestamp": "2026-08-21T10:00:00.000Z",
+  "requestId": "a1b2c3d4-0600-aaaa-bbbb-000000000600"
+}
+```
+
+Home screen prayer/quran/adhkar/sadaqah cards should prefer `GET /dashboard` (`data.dailyJourney`). Use `/journey/today` only when you need today's raw counters.
+
+### 2) GET /journey/progress — Rolling history (`?days=7` default)
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Journey progress retrieved successfully",
+  "data": {
+    "periodDays": 7,
+    "records": [
+      { "date": "2026-08-15", "quranPagesRead": 5, "adhkarCompleted": true, "sadaqahAmount": 0 },
+      { "date": "2026-08-21", "quranPagesRead": 4, "adhkarCompleted": true, "sadaqahAmount": 0 }
+    ],
+    "summary": {
+      "totalQuranPages": 34,
+      "adhkarDaysCompleted": 6,
+      "totalSadaqah": 0
+    }
+  },
+  "timestamp": "2026-08-21T10:01:00.000Z",
+  "requestId": "a1b2c3d4-0601-aaaa-bbbb-000000000601"
+}
+```
+
+Render a bar chart from `records` using `quranPagesRead` as the primary series. Streak days for the Khatmah screen come from `GET /quran/khatmah/stats` (`stats.streakDays`), not from this payload.
+
+### 3) PATCH /journey/quran-pages — Explicit set (used when user selects from a date picker or corrects a mistake)
+
+Body: `{ "pages": 6 }` → sets today's pages to **exactly** 6. Response 200: `{ "quranPagesRead": 6 }`.
+
+### 4) POST /journey/quran-pages/increment — The one you call on every page flip + dual-counter rule
+
+Body (optional, omit to default `pages = 1`):
+
+```json
+{ "pages": 2 }
+```
+
+Response Body (200): `{ "quranPagesRead": 6 }` (new daily total). Re-fetch `/dashboard` or `/quran/khatmah/stats` to refresh Home / Khatmah UI.
+
+This is the **only endpoint** that bumps `dailyGoal.pagesReadToday` shown in the Khatmah stats circular indicator. Do not rely on the Khatmah module for daily totals.
+
+### 5) PATCH /journey/adhkar — Toggle "أذكار اليوم" completed
+
+Body: `{ "completed": true }`. Response 200: `{ "adhkarCompleted": true }`.
+
+### 6) PATCH /journey/sadaqah — Record sadaqah amount (optional)
+
+Body: `{ "amount": 50 }`. Response 200: `{ "sadaqahAmount": 50 }`.
+
+---
+
+## 🔹 My Qibla (authenticated variant — uses saved location)
+
+### 1) GET /qibla/my-qibla — Compute Qibla from the User's saved latitude/longitude (no query params needed)
+
+Authorization: Bearer.
+
+This endpoint exists specifically for the flow "user updates location once (`PUT /profile/location`) → forever after Qibla loads without Flutter needing to request GPS permission repeatedly." It reads the `user.latitude` / `user.longitude` saved in the DB and uses the same math engine as the public `/qibla/calculate`.
+
+Response Body (200) — **exact same shape as `/qibla/calculate`** so your Dart `QiblaResult` model deserializes both:
+
+```json
+{
+  "success": true,
+  "message": "Qibla bearing computed from saved location",
+  "data": {
+    "bearingDegrees": 215.67,
+    "bearingRadians": 3.764,
+    "directionAr": "الجنوب الغربي",
+    "distanceKm": 1246.35,
+    "kaaba": { "latitude": 21.4225, "longitude": 39.8262 },
+    "userLocation": { "latitude": 30.0444, "longitude": 31.2357 }
+  },
+  "timestamp": "2026-08-21T10:05:00.000Z",
+  "requestId": "a1b2c3d4-0700-aaaa-bbbb-000000000700"
+}
+```
+
+400 if location is not saved yet (`details.field = "latitude"`). UX rule for Flutter: always first try `/qibla/my-qibla`. If it 400s → fall back to the public `/qibla/calculate?lat=&lng=` live-GPS path. If GPS permission is also denied → show "افعل صلاحيات الموقع من الإعدادات" placeholder.
+
+---
+
+## 🔹 Challenges module (5 endpoints — Daily Challenge card + Challenges tab)
+
+All require Bearer.
+
+### 1) GET /challenges/today — Home `dailyChallenge` widget (mirror of what dashboard already includes)
+
+Useful when the user dismisses Home and returns directly to the Challenges bottom-nav to claim today's reward.
+
+Response Body (200):
+
+```json
+{
+  "success": true,
+  "message": "Today's challenge loaded",
+  "data": {
+    "id": "ch-uuid-1",
+    "titleAr": "اقرأ 5 صفحات من القرآن",
+    "descriptionAr": "اقرأ 5 صفحات من القرآن الكريم اليوم للحصول على 50 نقطة",
+    "rewardPoints": 50,
+    "targetValue": 5,
+    "completed": false,
+    "claimed": false
+  },
+  "timestamp": "2026-08-21T10:10:00.000Z",
+  "requestId": "a1b2c3d4-0800-aaaa-bbbb-000000000800"
+}
+```
+
+Rule: Dashboard's `dailyChallenge` section and this endpoint return the same struct — pick one source of truth, don't merge them. For consistency prefer Dashboard for Home initial screen, refresh Challenges tab with this endpoint.
+
+### 2) POST /challenges/today/claim — "استلم النقاط" button on the daily card
+
+Empty body. Response 201 (created, points added):
+
+```json
+{
+  "success": true,
+  "message": "Today's challenge reward claimed",
+  "data": { "challengeId": "ch-uuid-1", "pointsAwarded": 50, "claimed": true },
+  "timestamp": "2026-08-21T10:11:00.000Z",
+  "requestId": "a1b2c3d4-0801-aaaa-bbbb-000000000801"
+}
+```
+
+409 if already claimed (details.field = "challengeId"). Disable the button visually on `claimed = true` to avoid the round trip.
+
+403 if the challenge is not completed yet (`completed = false`). Show a SnackBar: `"أكمل الهدف أولاً ثم استلم النقاط 🎯"`.
+
+### 3) GET /challenges — Challenges list (Challenges bottom nav)
+
+Paginated? Today backend returns all active challenges in a single array.
+
+Response Body (200): `data = [ {id, titleAr, descriptionAr, rewardPoints, targetValue, completed, claimed} ]`.
+
+### 4) GET /challenges/:id — Individual challenge detail screen
+
+Response 200 same shape; 404 for unknown IDs.
+
+### 5) POST /challenges/:id/claim — Claim a specific (non-today) challenge by ID.
+
+Same 201 / 403 / 409 semantics as today's claim.
+
+---
+
+## 🔹 Notifications module (7 endpoints — "الاشعارات" bell)
+
+All require Bearer.
+
+| #   | Route                         | Method | Purpose                                               |
+| --- | ----------------------------- | ------ | ----------------------------------------------------- |
+| 1   | `/notifications`              | GET    | List notifications (paginated via `meta.pagination`). |
+| 2   | `/notifications/unread-count` | GET    | Unread badge for the bell icon.                       |
+| 3   | `/notifications/:id/read`     | PATCH  | Mark single notification as read.                     |
+| 4   | `/notifications/read-all`     | PATCH  | "قراءة الكل" button.                                  |
+| 5   | `/notifications/:id`          | GET    | Open one notification + mark read atomically.         |
+| 6   | `/notifications/:id`          | DELETE | Swipe delete.                                         |
+
+Typical shapes:
+
+- Unread count (200): `data = { unread: 4 }`
+- Notifications list (200): `data = [ { id, type, titleAr, bodyAr, isRead, createdAt, relatedEntityType, relatedEntityId } ]`
+- Mark read (200): `data = { id, isRead: true }`
+- Read all (200): `data = { marked: 4 }`
+- Delete (200): `data = { id, deleted: true }`
+
+Badge update rule: after `markAsRead` or `markAllAsRead` 200, immediately call `/notifications/unread-count` to keep the bell counter in sync.
+
+---
+
 ## 🔹 Route Endpoint Index (quick jump for 2026 AI Flutter generators)
 
-| #   | Route                  | Method | Auth | Screen / module                               |
-| --- | ---------------------- | ------ | ---- | --------------------------------------------- |
-| 1   | `/auth/sign-up`        | POST   | No   | Sign-Up screen "إنشاء حساب جديد"              |
-| 2   | `/auth/login`          | POST   | No   | Login screen "تسجيل الدخول"                   |
-| 3   | `/auth/google`         | POST   | No   | Google button (both screens)                  |
-| 4   | `/auth/refresh`        | POST   | No   | Token rotation (background)                   |
-| 5   | `/auth/logout`         | POST   | No   | Sign-out button (profile drawer)              |
-| 6   | `/auth/me`             | GET    | Yes  | Verify session / refresh cached profile       |
-| 7   | `/dashboard`           | GET    | Yes  | Home / Dashboard — single-source-of-truth GET |
-| 8   | `/tasbih/today`        | GET    | Yes  | Tasbih screen initial load                    |
-| 9   | `/tasbih/increment`    | POST   | Yes  | Tasbih circle tap (+1)                        |
-| 10  | `/tasbih/reset`        | POST   | Yes  | Tasbih reset button                           |
-| 11  | `/tasbih/change-dhikr` | PATCH  | Yes  | Tasbih change-dhikr bottom sheet              |
-| 12  | `/qibla/calculate`     | GET    | No   | Qibla / Compass screen                        |
+| #   | Route                            | Method | Auth | Screen / module                                                                                         |
+| --- | -------------------------------- | ------ | ---- | ------------------------------------------------------------------------------------------------------- |
+| 1   | `/auth/sign-up`                  | POST   | No   | Sign-Up screen "إنشاء حساب جديد"                                                                        |
+| 2   | `/auth/login`                    | POST   | No   | Login screen "تسجيل الدخول"                                                                             |
+| 3   | `/auth/google`                   | POST   | No   | Google button (both screens) — must send `idToken` JWT from `google_sign_in` SDK, never Firebase `uid`  |
+| 4   | `/auth/google/url`               | GET    | No   | Web-only Google OAuth redirect URL (Flutter apps **ignore** this one)                                   |
+| 5   | `/auth/forgot-password`          | POST   | No   | Forgot password email request                                                                           |
+| 6   | `/auth/reset-password`           | POST   | No   | Reset password submit with token from email                                                             |
+| 7   | `/auth/refresh`                  | POST   | No   | Token rotation (background / 401 retry flow)                                                            |
+| 8   | `/auth/logout`                   | POST   | No   | Sign-out button (revokes refresh token server-side)                                                     |
+| 9   | `/auth/me`                       | GET    | Yes  | Verify session / refresh cached AuthUserProfile                                                         |
+| 10  | `/dashboard`                     | GET    | Yes  | Home / Dashboard — single-source-of-truth GET (8 widgets)                                               |
+| 11  | `/profile/me`                    | GET    | Yes  | Profile screen "حسابي" initial card load                                                                |
+| 12  | `/profile/update`                | PATCH  | Yes  | Profile edit: fullName / timezone (partial)                                                             |
+| 13  | `/profile/change-password`       | PATCH  | Yes  | LOCAL users only: change password form                                                                  |
+| 14  | `/profile/location`              | PUT    | Yes  | Save GPS + timezone (replaces; then `/qibla/my-qibla` works)                                            |
+| 15  | `/profile/reading-preferences`   | GET    | Yes  | Quran Reader settings bottom sheet: AA / 🎧 / ✍️ / 🌐                                                   |
+| 16  | `/profile/reading-preferences`   | PATCH  | Yes  | Apply new font size / reciter / tafsir / translation                                                    |
+| 17  | `/tasbih/today`                  | GET    | Yes  | Tasbih screen initial load                                                                              |
+| 18  | `/tasbih/history`                | GET    | Yes  | Tasbih daily history (bottom sheet / log view)                                                          |
+| 19  | `/tasbih/increment`              | POST   | Yes  | Tasbih circle tap (+1 or custom amount)                                                                 |
+| 20  | `/tasbih/reset`                  | POST   | Yes  | Tasbih reset button (zeros TODAY counter)                                                               |
+| 21  | `/tasbih/change-dhikr`           | PATCH  | Yes  | Tasbih change-dhikr bottom sheet                                                                        |
+| 22  | `/qibla/calculate`               | GET    | No   | Qibla / Compass screen (public, takes GPS via query)                                                    |
+| 23  | `/qibla/my-qibla`                | GET    | Yes  | Qibla using stored `user.latitude/longitude` (no GPS needed)                                            |
+| 24  | `/quran/surahs`                  | GET    | No   | Quran Main Tab 2 "السور" 114 rows (MAKKI/MADANI icons)                                                  |
+| 25  | `/quran/surahs/:surahId`         | GET    | No   | Single surah metadata                                                                                   |
+| 26  | `/quran/surahs/:surahId/ayahs`   | GET    | No   | Ayahs in a Surah, paginated                                                                             |
+| 27  | `/quran/pages/:pageNumber`       | GET    | No   | **Mushaf page reader 1..604** (السابق / التالي)                                                         |
+| 28  | `/quran/juz`                     | GET    | No   | Quran Main Tab 3 "الاجزاء" 30 rows (Arabic names)                                                       |
+| 29  | `/quran/juz/:juzNumber/surahs`   | GET    | No   | List of Surahs inside a Juz (tap Juz → list of Surahs)                                                  |
+| 30  | `/quran/reading-history`         | GET    | Yes  | Paginated reading-session log                                                                           |
+| 31  | `/quran/reading-history`         | POST   | Yes  | Record a reading session (also upserts last-read)                                                       |
+| 32  | `/quran/bookmarks`               | GET    | Yes  | Quran Main Tab 1 "المفضلة" (with inline `textAr` preview)                                               |
+| 33  | `/quran/bookmarks`               | POST   | Yes  | Bookmark a new ayah/page (duplicate returns 409)                                                        |
+| 34  | `/quran/bookmarks/:bookmarkId`   | PATCH  | Yes  | Edit bookmark note                                                                                      |
+| 35  | `/quran/bookmarks/:bookmarkId`   | DELETE | Yes  | Remove bookmark (swipe-to-delete)                                                                       |
+| 36  | `/quran/last-read`               | GET    | Yes  | "استكمال الختمة" CTA "متابعة القراءة" resume pointer                                                    |
+| 37  | `/quran/last-read`               | PUT    | Yes  | Save resume pointer (call after page flip)                                                              |
+| 38  | `/quran/khatmah`                 | GET    | Yes  | Core khatmah pointer + `progressPercent`                                                                |
+| 39  | `/quran/khatmah/progress`        | PATCH  | Yes  | Advance khatmah (delta pages + update currentPage/surahId) — call with `/journey/quran-pages/increment` |
+| 40  | `/quran/khatmah/stats`           | GET    | Yes  | **⭐ استكمال الختمة screen full payload** (Hero + dailyGoal + stats)                                    |
+| 41  | `/quran/khatmah/reset`           | POST   | Yes  | Start a fresh khatmah cycle (zeroes pointer)                                                            |
+| 42  | `/quran/search`                  | GET    | No   | Full-text Quran search `?q=الرحمن&limit=20` (`data.results`)                                            |
+| 43  | `/quran/ayahs/random`            | GET    | No   | Random ayah widget (`data.ayah` + `data.surah`)                                                         |
+| 44  | `/journey/today`                 | GET    | Yes  | Today's raw counters `{ quranPagesRead, adhkarCompleted, sadaqahAmount }`                               |
+| 45  | `/journey/progress`              | GET    | Yes  | History `records[]` + `summary` (`?days=7`)                                                             |
+| 46  | `/journey/quran-pages`           | PATCH  | Yes  | Explicit set today's quran pages value (correction flow)                                                |
+| 47  | `/journey/quran-pages/increment` | POST   | Yes  | +N pages for today (call AFTER every Mushaf page flip)                                                  |
+| 48  | `/journey/adhkar`                | PATCH  | Yes  | Toggle "أذكار اليوم" complete                                                                           |
+| 49  | `/journey/sadaqah`               | PATCH  | Yes  | Record "صدقة" amount for today                                                                          |
+| 50  | `/challenges`                    | GET    | Yes  | Challenges list screen (bottom nav "التحديات")                                                          |
+| 51  | `/challenges/today`              | GET    | Yes  | Home daily challenge widget refresh                                                                     |
+| 52  | `/challenges/today/claim`        | POST   | Yes  | Claim today's reward points button                                                                      |
+| 53  | `/challenges/:id`                | GET    | Yes  | Challenge detail screen                                                                                 |
+| 54  | `/challenges/:id/claim`          | POST   | Yes  | Claim reward for specific challenge by id                                                               |
+| 55  | `/notifications`                 | GET    | Yes  | Notifications list screen (paginated)                                                                   |
+| 56  | `/notifications/unread-count`    | GET    | Yes  | Bell badge unread counter                                                                               |
+| 57  | `/notifications/:id/read`        | PATCH  | Yes  | Mark a single notification as read (swipe action)                                                       |
+| 58  | `/notifications/read-all`        | PATCH  | Yes  | "قراءة الكل" button                                                                                     |
+| 59  | `/notifications/:id`             | GET    | Yes  | Open single notification + mark read atomically                                                         |
+| 60  | `/notifications/:id`             | DELETE | Yes  | Delete single notification                                                                              |
+| 61  | `/prayers/today`                 | GET    | Yes  | Today's prayer times + completion flags                                                                 |
+| 62  | `/prayers/:id/mark`              | PATCH  | Yes  | Toggle FAJR/DHUHR/ASR/MAGHRIB/ISHA completed                                                            |
+| 63  | `/prayers/schedule`              | GET    | No   | Public prayer schedule by lat/lng                                                                       |
+| 64  | `/content/verse-of-day`          | GET    | No   | Standalone verse-of-day (also inside dashboard)                                                         |
+| 65  | `/content/hadith-of-day`         | GET    | No   | Standalone hadith-of-day                                                                                |
+| 66  | `/content/daily-challenge`       | GET    | No   | Standalone daily-challenge template                                                                     |
+| 67  | `/health`                       | GET    | No   | Liveness + database ping                                                                                |
 
 ---
 
@@ -1448,8 +2849,46 @@ Never branch on `response.message` (it's translated / can change). On error resp
 
 ### 5) Nullable sections
 
-Any top-level `data.*` section that is not present in DB seed returns JSON `null` explicitly (e.g., no khatmah created yet → `khatmah = null`). Use Dart null-aware operators (`khatmah?.surahNameAr ?? ''`) and a small "Coming soon" placeholder card per nullable section so the first-launch onboarding render does not throw `NoSuchMethodError: null`.
+Dashboard `verseOfTheDay`, `hadithOfTheDay`, and `dailyChallenge` may be JSON `null` if not seeded. `GET /quran/last-read` returns `data = null` when the user has never opened the Mushaf. `GET /quran/khatmah` **never** returns null (it auto-creates Al-Baqarah page 1). Use Dart null-aware operators so first-launch render does not throw.
 
 ### 6) Swagger UI is always the ground truth
 
 If there is a discrepancy between this guide and the live Swagger spec at `<base>/api/v1/docs`, trust the Swagger. This guide is a portable Flutter reference; the Swagger spec is generated from the source code and redeployed with every backend release.
+
+### 7) Dual-page counter (Khatmah + Journey)
+
+When the user finishes `N` new Mushaf pages, Flutter MUST fire **two** writes, then last-read:
+
+1. `POST /journey/quran-pages/increment` `{ "pages": N }` — updates today's `quranPagesRead` (Home daily card + Khatmah `dailyGoal.pagesReadToday`).
+2. `PATCH /quran/khatmah/progress` `{ "surahId", "currentPage", "pagesRead": N }` — updates lifetime `totalPagesRead` and the current pointer.
+3. `PUT /quran/last-read` `{ "surahId", "page" }` — resume pointer for "متابعة القراءة".
+
+Skipping (1) desyncs Home vs the circular daily goal. Skipping (2) desyncs the lifetime bar / total pages / completed-khatmah count.
+
+### 8) Counter rule (do not double-count)
+
+- Count **net new pages** only (35 → 37 is `N = 2`, not `N = 37`).
+- Debounce page flips: wait until the user leaves the page or after a short idle, then send one increment for the session delta.
+- `PATCH /journey/quran-pages` **sets** the absolute daily total. Use it only for corrections. The page-reader flow must use **increment**, not set.
+- `pagesRead` on khatmah progress is a **delta**, not an absolute total.
+- Do not call increment on "السابق" (going backwards).
+
+### 9) Reading Preferences (reader overflow ⋮ sheet)
+
+The 4-row sheet (حجم الخط / الاستماع / التفسير / الترجمة) is `GET/PATCH /profile/reading-preferences`:
+
+| UI row        | Field               | Default                 | Notes |
+| ------------- | ------------------- | ----------------------- | ----- |
+| حجم الخط AA   | `quranFontSize`     | `28` (range 12..60)     | Apply locally as font size in px. |
+| الاستماع 🎧   | `quranReciter`      | `Mishary_Alafasy`       | **Slug only.** Backend does not stream audio files. |
+| التفسير ✍️    | `quranTafsir`       | `Ibn_Kathir`            | **Slug only.** Backend does not return tafsir text. |
+| الترجمة 🌐    | `quranTranslation`  | `Sahih_International`   | **Slug only.** Backend does not return translation text. |
+
+Dropdown option lists live in Flutter. Persist every change with a partial PATCH so a second device picks up the same settings.
+
+### 10) Last-read (متابعة القراءة)
+
+- `GET /quran/last-read` → `data = null` until the first PUT. Fallback: `GET /quran/khatmah` → `currentPage`.
+- `PUT /quran/last-read` requires `surahId` + `page`. `ayahNumber` defaults to `1`.
+- Last-read is **not** the daily counter and **not** khatmah lifetime progress. It is only the resume pointer for the CTA and the reader restore.
+- After a successful dual-counter write, PUT last-read once with the page currently on screen.

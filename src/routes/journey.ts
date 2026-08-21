@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
+import { validate } from '../lib/validation';
 import {
   getProgress,
   getToday,
@@ -8,6 +10,22 @@ import {
   updateQuranPagesHandler,
   updateSadaqahHandler,
 } from '../controllers/journey.controller';
+
+const quranPagesSetSchema = z.object({
+  pages: z.coerce.number().int().min(0).max(604),
+});
+
+const quranPagesIncrementSchema = z.object({
+  pages: z.coerce.number().int().min(1).max(604).default(1),
+});
+
+const adhkarSchema = z.object({
+  completed: z.boolean(),
+});
+
+const sadaqahSchema = z.object({
+  amount: z.coerce.number().min(0),
+});
 
 export const journeyRouter = Router();
 
@@ -147,7 +165,7 @@ journeyRouter.get('/progress', authenticate, getProgress);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.patch('/quran-pages', authenticate, updateQuranPagesHandler);
+journeyRouter.patch('/quran-pages', authenticate, validate(quranPagesSetSchema), updateQuranPagesHandler);
 
 /**
  * @openapi
@@ -193,7 +211,12 @@ journeyRouter.patch('/quran-pages', authenticate, updateQuranPagesHandler);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.post('/quran-pages/increment', authenticate, incrementQuranPagesHandler);
+journeyRouter.post(
+  '/quran-pages/increment',
+  authenticate,
+  validate(quranPagesIncrementSchema),
+  incrementQuranPagesHandler,
+);
 
 /**
  * @openapi
@@ -235,7 +258,7 @@ journeyRouter.post('/quran-pages/increment', authenticate, incrementQuranPagesHa
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.patch('/adhkar', authenticate, updateAdhkarHandler);
+journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), updateAdhkarHandler);
 
 /**
  * @openapi
@@ -280,4 +303,4 @@ journeyRouter.patch('/adhkar', authenticate, updateAdhkarHandler);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.patch('/sadaqah', authenticate, updateSadaqahHandler);
+journeyRouter.patch('/sadaqah', authenticate, validate(sadaqahSchema), updateSadaqahHandler);

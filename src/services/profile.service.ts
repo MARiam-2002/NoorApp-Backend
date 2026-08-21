@@ -12,6 +12,17 @@ export type UserProfile = {
   timezone: string | null;
   latitude: number | null;
   longitude: number | null;
+  quranFontSize: number;
+  quranReciter: string;
+  quranTafsir: string;
+  quranTranslation: string;
+};
+
+export type ReadingPreferences = {
+  quranFontSize: number;
+  quranReciter: string;
+  quranTafsir: string;
+  quranTranslation: string;
 };
 
 export async function getProfile(userId: string): Promise<UserProfile> {
@@ -26,6 +37,10 @@ export async function getProfile(userId: string): Promise<UserProfile> {
       timezone: true,
       latitude: true,
       longitude: true,
+      quranFontSize: true,
+      quranReciter: true,
+      quranTafsir: true,
+      quranTranslation: true,
     },
   });
 
@@ -38,6 +53,69 @@ export async function getProfile(userId: string): Promise<UserProfile> {
   }
 
   return profile;
+}
+
+export async function getReadingPreferences(userId: string): Promise<ReadingPreferences> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      quranFontSize: true,
+      quranReciter: true,
+      quranTafsir: true,
+      quranTranslation: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(
+      'User profile not found',
+      HttpStatus.NOT_FOUND,
+      ErrorCodes.NOT_FOUND,
+    );
+  }
+
+  return user;
+}
+
+export async function updateReadingPreferences(
+  userId: string,
+  data: Partial<ReadingPreferences>,
+): Promise<ReadingPreferences> {
+  const updateData: any = {};
+  if (data.quranFontSize !== undefined) {
+    if (data.quranFontSize < 12 || data.quranFontSize > 60) {
+      throw new AppError(
+        'Font size must be between 12 and 60',
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.VALIDATION_ERROR,
+      );
+    }
+    updateData.quranFontSize = data.quranFontSize;
+  }
+  if (data.quranReciter !== undefined) updateData.quranReciter = data.quranReciter;
+  if (data.quranTafsir !== undefined) updateData.quranTafsir = data.quranTafsir;
+  if (data.quranTranslation !== undefined) updateData.quranTranslation = data.quranTranslation;
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+    select: {
+      quranFontSize: true,
+      quranReciter: true,
+      quranTafsir: true,
+      quranTranslation: true,
+    },
+  });
+
+  if (!updated) {
+    throw new AppError(
+      'User profile not found',
+      HttpStatus.NOT_FOUND,
+      ErrorCodes.NOT_FOUND,
+    );
+  }
+
+  return updated;
 }
 
 export async function updateProfile(
@@ -96,6 +174,10 @@ export async function updateProfile(
       timezone: true,
       latitude: true,
       longitude: true,
+      quranFontSize: true,
+      quranReciter: true,
+      quranTafsir: true,
+      quranTranslation: true,
     },
   });
 
@@ -189,6 +271,10 @@ export async function updateLocation(
       timezone: true,
       latitude: true,
       longitude: true,
+      quranFontSize: true,
+      quranReciter: true,
+      quranTafsir: true,
+      quranTranslation: true,
     },
   });
 

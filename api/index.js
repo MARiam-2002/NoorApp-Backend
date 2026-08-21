@@ -232,7 +232,7 @@ a.bx:hover{transform:translateY(-1.5px)}
   </div>
   <div class="ql">
     <a class="bx s" href="${JSON_URL}">OpenAPI JSON ↓</a>
-    <a class="bx n" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">Swagger Editor ↗</a>
+    <a class="bx n" target="_blank" onclick="window.location.href='https://editor.swagger.io/?url='+encodeURIComponent(window.location.origin+'${JSON_URL}');return false;" href="#">Swagger Editor ↗</a>
   </div>
 </div></div>
 <div class="main">
@@ -264,7 +264,7 @@ a.bx:hover{transform:translateY(-1.5px)}
       <div style="margin-top:30px;padding-top:24px;border-top:1px dashed var(--border);text-align:center;color:var(--subtle);font-size:13.5px">
         <p style="margin:4px 0">إذا استغرق أكثر من ١٠ ثواني — الخيارات التالية تعمل ١٠٠٪ بدون الحاجة للـ CDN:</p>
         <div class="gr" style="margin:16px auto 0;max-width:600px">
-          <div class="cd"><span class="tag">الأفضل للمطورين 💎</span><h3>Swagger Editor الرسمي</h3><p>نفس واجهة Swagger بالكامل على موقع الرسمي + الاتصال بمواصفاتنا مباشرة.</p><a class="bx n" style="width:100%" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">افتحي الآن ↗</a></div>
+          <div class="cd"><span class="tag">الأفضل للمطورين 💎</span><h3>Swagger Editor الرسمي</h3><p>نفس واجهة Swagger بالكامل على موقع الرسمي + الاتصال بمواصفاتنا مباشرة.</p><a class="bx n" style="width:100%" target="_blank" onclick="window.location.href='https://editor.swagger.io/?url='+encodeURIComponent(window.location.origin+'${JSON_URL}');return false;" href="#">افتحي الآن ↗</a></div>
           <div class="cd"><span class="tag">فريق Flutter 📮</span><h3>Postman Collection</h3><p>File → Import → رابط. ألصقي رابط الـ JSON بيولعلك 53 endpoint جاهزين.</p><a class="bx p" style="width:100%" href="${JSON_URL}">نسخ رابط الـ JSON ↓</a></div>
         </div>
       </div>
@@ -272,7 +272,7 @@ a.bx:hover{transform:translateY(-1.5px)}
   </div>
   <div id="swagger-ui"></div>
   <div class="basehint">
-    <b>💡 نصيحة لفريق Flutter:</b> Base URL للإستخدام في التطبيق هو <code>' + location.origin + '/api/v1</code>
+    <b>💡 نصيحة لفريق Flutter:</b> Base URL للإستخدام في التطبيق هو <code id="noorBaseUrlHint">/api/v1</code><script>(function(){try{var e=document.getElementById('noorBaseUrlHint');if(e&&window.location)e.textContent=window.location.origin+'/api/v1';}catch(_){}})();</script>
     <div class="ecs">
       <code>/quran/surahs</code><code>/quran/surah/1</code><code>/content/verse-of-day</code><code>/content/hadith-of-day</code><code>/prayers/today</code><code>/journey/today</code><code>/challenges</code><code>/tasbih</code><code>/qibla</code><code>/auth/login</code><code>/health</code>
     </div>
@@ -302,7 +302,7 @@ function showFriendlyFallback(reason){
       '<div style="max-width:920px;margin:0 auto;padding:6px 0 28px">' +
       '<div style="background:rgba(184,58,47,.08);border:1px solid rgba(184,58,47,.28);color:var(--bad);padding:13px 20px;border-radius:14px;font-size:14px;font-weight:700;margin-bottom:20px">⚠ ' + String(reason||'خطأ غير معروف').replace(/[<>&]/g,'') + '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">' +
-        '<div class="cd"><span class="tag">الخيار الأول 💎</span><h3>Swagger Editor الرسمي</h3><p>نفس الواجهة الأصلية مع نفس الـ 53 endpoints. زر Try it out شغال تمام.</p><a class="bx n" style="width:100%" target="_blank" href="https://editor.swagger.io/?url=' + encodeURIComponent(location.origin) + encodeURIComponent('${JSON_URL}') + '">افتحي في editor.swagger.io ↗</a></div>' +
+        '<div class="cd"><span class="tag">الخيار الأول 💎</span><h3>Swagger Editor الرسمي</h3><p>نفس الواجهة الأصلية مع نفس الـ 53 endpoints. زر Try it out شغال تمام.</p><a class="bx n" style="width:100%" target="_blank" onclick="window.location.href=\'https://editor.swagger.io/?url=\'+encodeURIComponent(window.location.origin+\'${JSON_URL}\');return false;" href="#">افتحي في editor.swagger.io ↗</a></div>' +
         '<div class="cd"><span class="tag">الخيار الثاني 📮</span><h3>استيراد لـ Postman</h3><p>File → Import → رابط. الصقي الـ URL تحت وبيجيبلك كل الـ endpoints مع parameters و responses.</p><a class="bx p" style="width:100%" href="${JSON_URL}">نسخ رابط الـ OpenAPI JSON ↓</a></div>' +
         '<div class="cd"><span class="tag">الخيار الثالث 🔧</span><h3>استكشاف سريع من المتصفح</h3><p>الروابط الأساسية اللي فريق Flutter بيحتاجها للتجربة المباشرة.</p><div style="display:flex;gap:7px;flex-wrap:wrap">' +
           '<a class="bx s" style="padding:6px 12px;font-size:12px" target="_blank" href="/api/v1/health">/health</a>' +

@@ -6,6 +6,13 @@ import { validate } from '../shared/utils/validator';
 import { ianaTimezoneSchema } from '../shared/schemas/validation.schemas';
 import * as profileController from '../controllers/profile.controller';
 
+const updateReadingPreferencesSchema = z.object({
+  quranFontSize: z.coerce.number().int().min(12).max(60).optional(),
+  quranReciter: z.string().trim().min(1).max(100).optional(),
+  quranTafsir: z.string().trim().min(1).max(100).optional(),
+  quranTranslation: z.string().trim().min(1).max(100).optional(),
+});
+
 const updateProfileSchema = z.object({
   username: z
     .string()
@@ -313,4 +320,111 @@ profileRouter.put(
   authenticate,
   validate(updateLocationSchema),
   profileController.updateLocation,
+);
+
+/**
+ * @openapi
+ * /profile/reading-preferences:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: إعدادات قراءة القرآن للمستخدم (شاشة إعدادات القارئ)
+ *     description: |
+ *       يعرض إعدادات القارئ الحالية المستخدمة في شاشة القرآن:
+ *       - حجم الخط (quranFontSize): افتراضي 28 (12..60)
+ *       - القارئ المفضل للاستماع (quranReciter): مثل Mishary_Alafasy
+ *       - مصدر التفسير (quranTafsir): مثل Ibn_Kathir
+ *       - مصدر الترجمة (quranTranslation): مثل Sahih_International
+ *     security: [ { bearerAuth: [] } ]
+ *     responses:
+ *       200:
+ *         description: ✅ إعدادات القراءة الحالية
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Reading preferences retrieved successfully
+ *               data:
+ *                 quranFontSize: 28
+ *                 quranReciter: Mishary_Alafasy
+ *                 quranTafsir: Ibn_Kathir
+ *                 quranTranslation: Sahih_International
+ *               timestamp: '2026-08-21T10:30:00.000Z'
+ *               requestId: uuid
+ */
+profileRouter.get(
+  '/reading-preferences',
+  authenticate,
+  profileController.getReadingPreferences,
+);
+
+/**
+ * @openapi
+ * /profile/reading-preferences:
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: تحديث إعدادات قراءة القرآن (حجم الخط، القارئ، التفسير، الترجمة)
+ *     description: |
+ *       يقبل أي حقل من الحقول الأربعة جزئياً (partial update).
+ *       يستخدم هذا عند ضغط المستخدم على أي خيار في شاشة إعدادات القارئ
+ *       (تكبير/تصغير الخط أو اختيار قارئ أو تفسير أو ترجمة جديدة).
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               quranFontSize:
+ *                 type: integer
+ *                 minimum: 12
+ *                 maximum: 60
+ *                 example: 32
+ *                 description: حجم الخط بالبكسل (AA icon)
+ *               quranReciter:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Abdul_Basit
+ *                 description: اسم القارئ المفضل للاستماع (🎧 icon)
+ *               quranTafsir:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Al_Tabari
+ *                 description: مصدر التفسير (✍️ icon)
+ *               quranTranslation:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Yusuf_Ali
+ *                 description: مصدر الترجمة (🌐 icon)
+ *           examples:
+ *             تكبير الخط فقط:
+ *               value:
+ *                 quranFontSize: 34
+ *             تغيير القارئ والتفسير:
+ *               value:
+ *                 quranReciter: Saad_Al_Ghamdi
+ *                 quranTafsir: Ibn_Kathir
+ *     responses:
+ *       200:
+ *         description: ✅ تم تحديث الإعدادات (يعرض كافة الإعدادات بعد التحديث)
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Reading preferences updated successfully
+ *               data:
+ *                 quranFontSize: 32
+ *                 quranReciter: Saad_Al_Ghamdi
+ *                 quranTafsir: Ibn_Kathir
+ *                 quranTranslation: Sahih_International
+ *               timestamp: '2026-08-21T10:30:00.000Z'
+ *               requestId: uuid
+ *       400:
+ *         description: ❌ قيمة حجم الخط خارج النطاق (12..60)
+ */
+profileRouter.patch(
+  '/reading-preferences',
+  authenticate,
+  validate(updateReadingPreferencesSchema),
+  profileController.updateReadingPreferences,
 );

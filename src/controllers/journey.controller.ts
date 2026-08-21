@@ -72,8 +72,8 @@ export const incrementQuranPagesHandler = asyncHandler(async (req: Request, res:
     );
   }
 
-  const { pages } = req.body as { pages: number };
-  const data = await incrementQuranPages(userId, pages);
+  const { pages } = req.body as { pages?: number };
+  const data = await incrementQuranPages(userId, pages ?? 1);
   sendSuccess(res, data, 'Quran pages incremented successfully', req);
 });
 

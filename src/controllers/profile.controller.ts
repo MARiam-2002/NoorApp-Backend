@@ -96,3 +96,46 @@ export const updateLocation = asyncHandler(async (req: Request, res: Response) =
 
   sendSuccess(res, data, 'Location updated successfully', req);
 });
+
+export const getReadingPreferences = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const data = await profileService.getReadingPreferences(userId);
+  sendSuccess(res, data, 'Reading preferences retrieved successfully', req);
+});
+
+export const updateReadingPreferences = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const { quranFontSize, quranReciter, quranTafsir, quranTranslation } = req.body as {
+    quranFontSize?: number;
+    quranReciter?: string;
+    quranTafsir?: string;
+    quranTranslation?: string;
+  };
+
+  const data = await profileService.updateReadingPreferences(userId, {
+    ...(quranFontSize !== undefined && { quranFontSize }),
+    ...(quranReciter !== undefined && { quranReciter }),
+    ...(quranTafsir !== undefined && { quranTafsir }),
+    ...(quranTranslation !== undefined && { quranTranslation }),
+  });
+
+  sendSuccess(res, data, 'Reading preferences updated successfully', req);
+});

@@ -8,6 +8,7 @@ import {
   listAyahsHandler,
   listBookmarksHandler,
   createBookmarkHandler,
+  updateBookmarkHandler,
   deleteBookmarkHandler,
   getLastReadHandler,
   updateLastReadHandler,
@@ -15,10 +16,25 @@ import {
   recordReadingHistoryHandler,
   getKhatmahHandler,
   updateKhatmahHandler,
+  resetKhatmahHandler,
+  listJuzHandler,
+  listJuzSurahsHandler,
+  listAyahsByPageHandler,
+  getKhatmahStatsHandler,
+  searchQuranHandler,
+  getRandomAyahHandler,
 } from '../controllers/quran.controller';
 
 const surahIdParamSchema = z.object({
   surahId: z.coerce.number().int().min(1).max(114),
+});
+
+const juzNumberParamSchema = z.object({
+  juzNumber: z.coerce.number().int().min(1).max(30),
+});
+
+const pageNumberParamSchema = z.object({
+  pageNumber: z.coerce.number().int().min(1).max(604),
 });
 
 const listAyahsQuerySchema = z.object({
@@ -31,6 +47,10 @@ const createBookmarkSchema = z.object({
   ayahNumber: z.coerce.number().int().min(1).optional(),
   page: z.coerce.number().int().min(1).max(604).optional(),
   note: z.string().max(500).optional(),
+}).refine((d) => d.ayahNumber != null || d.page != null, { message: 'Either ayahNumber or page is required for a bookmark', path: ['ayahNumber', 'page'] });
+
+const updateBookmarkSchema = z.object({
+  note: z.string().max(500).default(''),
 });
 
 const bookmarkIdParamSchema = z.object({
@@ -39,7 +59,7 @@ const bookmarkIdParamSchema = z.object({
 
 const updateLastReadSchema = z.object({
   surahId: z.coerce.number().int().min(1).max(114),
-  ayahNumber: z.coerce.number().int().min(1).optional(),
+  ayahNumber: z.coerce.number().int().min(1).optional().default(1),
   page: z.coerce.number().int().min(1).max(604),
 });
 
@@ -56,7 +76,15 @@ const recordReadingHistorySchema = z.object({
 });
 
 const updateKhatmahSchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
   currentPage: z.coerce.number().int().min(1).max(604),
+  pagesRead: z.coerce.number().int().min(1).max(604).optional(),
+});
+
+const searchQuranQuerySchema = z.object({
+  q: z.string().min(1).max(500),
+  page: z.coerce.number().int().min(1).default(1).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(20).optional(),
 });
 
 export const quranRouter = Router();
@@ -191,6 +219,39 @@ quranRouter.delete(
 
 /**
  * @openapi
+ * /quran/bookmarks/{bookmarkId}:
+ *   patch:
+ *     tags: ['Quran']
+ *     summary: تعديل ملاحظة علامة قرآن موجودة
+ *     description: تحديث حقل النص الملاحظة (note) لعلامة قرآن موجودة.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: path
+ *         name: bookmarkId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               note: { type: string, maxLength: 500, example: "آية الكرسي - قرأتها بعد صلاة الفجر" }
+ *     responses:
+ *       200: { description: ✅ تم تحديث الملاحظة }
+ *       404: { description: ❌ العلامة غير موجودة أو تنتمي لمستخدم آخر }
+ */
+quranRouter.patch(
+  '/bookmarks/:bookmarkId',
+  authenticate,
+  validate(bookmarkIdParamSchema, 'params'),
+  validate(updateBookmarkSchema),
+  updateBookmarkHandler,
+);
+
+/**
+ * @openapi
  * /quran/last-read:
  *   get:
  *     tags: ['Quran']
@@ -316,3 +377,141 @@ quranRouter.patch(
   validate(updateKhatmahSchema),
   updateKhatmahHandler,
 );
+
+/**
+ * @openapi
+ * /quran/juz:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: قائمة الأجزاء الثلاثين للقرآن الكريم (Tab شاشة الاجزاء)
+ *     description: |
+ *       يعرض 30 جزءاً (الجزء الأول..الجزء الثلاثون) مع الاسم العربي والإنجليزي،
+ *       عدد الآيات، الصفحة الأولى والأخيرة، والسورة الاولى داخل كل جزء (عرض بيانات شاشة 2).
+ *     responses:
+ *       200:
+ *         description: ✅ قائمة الأجزاء
+ */
+quranRouter.get('/juz', listJuzHandler);
+
+/**
+ * @openapi
+ * /quran/juz/{juzNumber}/surahs:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: سور الجزء المحدد (عند الضغط على جزء في القائمة)
+ *     parameters:
+ *       - in: path
+ *         name: juzNumber
+ *         required: true
+ *         schema: { type: integer, minimum: 1, maximum: 30, example: 2 }
+ *         description: رقم الجزء (1 إلى 30)
+ *     responses:
+ *       200: { description: ✅ سور الجزء }
+ *       400: { description: ❌ رقم جزء غير صالح (1..30) }
+ */
+quranRouter.get(
+  '/juz/:juzNumber/surahs',
+  validate(juzNumberParamSchema, 'params'),
+  listJuzSurahsHandler,
+);
+
+/**
+ * @openapi
+ * /quran/pages/{pageNumber}:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: صفحة قرآن مادية بالكامل حسب رقم صفحة المصحف (شاشة قارئ القرآن)
+ *     description: |
+ *       يعرض كل الآيات الموجودة فعلياً في الصفحة المادية رقم pageNumber من مصحف الملك فهد
+ *       (إجمالي الصفحات = 604). يستخدم هذا في شاشة القارئ بدلاً من pagination حسب عدد الآيات.
+ *     parameters:
+ *       - in: path
+ *         name: pageNumber
+ *         required: true
+ *         schema: { type: integer, minimum: 1, maximum: 604, example: 35 }
+ *         description: رقم الصفحة في المصحف (1..604)
+ *     responses:
+ *       200: { description: ✅ محتوى الصفحة (الآيات + السور التي تحتويها) }
+ *       400: { description: ❌ رقم صفحة غير صالح (1..604) }
+ */
+quranRouter.get(
+  '/pages/:pageNumber',
+  validate(pageNumberParamSchema, 'params'),
+  listAyahsByPageHandler,
+);
+
+/**
+ * @openapi
+ * /quran/khatmah/stats:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: بيانات شاشة استكمال الختمة الكاملة (هدف اليوم + ستريك + الإحصائيات)
+ *     description: |
+ *       المخصص لشاشة "استكمال الختمة": (1) بيانات الختمة الأساسية مثل السورة الحالية والتقدم،
+ *       (2) dailyGoal: هدف اليوم (صفحات/5 + ما قرأه اليوم + باقي للهدف)،
+ *       (3) stats: عدد الأيام المتتالية للقراءة + عدد الختمات المنتهية + إجمالي الصفحات المقروءة.
+ *     security: [ { bearerAuth: [] } ]
+ *     responses:
+ *       200: { description: ✅ بيانات الختمة مع الإحصائيات }
+ */
+quranRouter.get('/khatmah/stats', authenticate, getKhatmahStatsHandler);
+
+// ============================================================
+//  Round 2 NEW ENDPOINTS: Reset Khatmah, Quran Search, Random Ayah
+// ============================================================
+
+/**
+ * @openapi
+ * /quran/khatmah/reset:
+ *   post:
+ *     tags: ['Quran']
+ *     summary: تصفير الختمة وبداية ختمة جديدة (سورة البقرة صفحة 1)
+ *     description: |
+ *       يستخدم هذا بعد إكمال المستخدم الختمة الحالية وإتمام الصفحة 604،
+ *       لبدء ختمة جديدة من الصفر (سورة البقرة صفحة 1 وإجمالي صفحات مقروءة = 0).
+ *     security: [ { bearerAuth: [] } ]
+ *     responses:
+ *       200: { description: ✅ تم تصفير الختمة وبداية ختمة جديدة }
+ */
+quranRouter.post('/khatmah/reset', authenticate, resetKhatmahHandler);
+
+/**
+ * @openapi
+ * /quran/search:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: بحث نصي في آيات القرآن الكريم (case-insensitive)
+ *     description: |
+ *       يعيد الآيات التي تحوي عبارة البحث داخل نص الآية بالعربية. كل نتيجة
+ *       تشير إلى السورة التابعة لها وصفحة المصحف ورقم الجزء.
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string, minLength: 1, maxLength: 500, example: "الرحمن الرحيم" }
+ *         description: كلمة أو عبارة البحث داخل نص الآيات
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+ *     responses:
+ *       200: { description: ✅ نتائج البحث (عدد النتائج + الصفحات + الآيات المثراة) }
+ *       400: { description: ❌ مطلوب معامل q عبارة البحث (min 1 حرف) }
+ */
+quranRouter.get('/search', validate(searchQuranQuerySchema, 'query'), searchQuranHandler);
+
+/**
+ * @openapi
+ * /quran/ayahs/random:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: آية عشوائية من القرآن الكريم مع تفاصيل السورة
+ *     description: |
+ *       يوفر آية عشوائية لاستخدامها في (آية اليوم، عرض ويدجيت، لعبة تحدي اليوم،
+ *       أو اقتباس سريع). يضم تفاصيل السورة ورقم الصفحة والجزء.
+ *     responses:
+ *       200: { description: ✅ آية عشوائية مع تفاصيل السورة التابعة لها }
+ */
+quranRouter.get('/ayahs/random', getRandomAyahHandler);
