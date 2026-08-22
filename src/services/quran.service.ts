@@ -1,9 +1,38 @@
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
+import { ensureSurahCatalog, FALLBACK_KHATMAH } from '../lib/quran-catalog';
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
+import { getTodayDateOnly } from '../utils/date';
 
 const TOTAL_QURAN_PAGES = 604;
+
+function formatKhatmah(
+  khatmah: { currentSurahId: number; currentPage: number; totalPagesRead: number },
+  surah: { nameEn: string; nameAr: string } | null,
+  extra: Record<string, unknown> = {},
+) {
+  const total = khatmah.totalPagesRead;
+  const completedKhatmahCount = Math.floor(total / TOTAL_QURAN_PAGES);
+  const inCycle = total % TOTAL_QURAN_PAGES;
+  const isCompleted =
+    khatmah.currentPage >= TOTAL_QURAN_PAGES || (total > 0 && inCycle === 0);
+  const progressPercent = isCompleted
+    ? 100
+    : Math.min(100, Math.round((inCycle / TOTAL_QURAN_PAGES) * 100));
+
+  return {
+    surahId: khatmah.currentSurahId,
+    surahNameEn: surah?.nameEn ?? FALLBACK_KHATMAH.surahNameEn,
+    surahNameAr: surah?.nameAr ?? FALLBACK_KHATMAH.surahNameAr,
+    currentPage: Math.min(khatmah.currentPage, TOTAL_QURAN_PAGES),
+    totalPagesRead: total,
+    progressPercent,
+    isCompleted,
+    completedKhatmahCount,
+    ...extra,
+  };
+}
 
 export async function listSurahs() {
   return prisma.surah.findMany({
@@ -66,47 +95,67 @@ export async function listAyahs(surahId: number, page?: number, limit?: number) 
 }
 
 export async function listBookmarks(userId: string) {
-  const bookmarks = await prisma.quranBookmark.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      surah: {
-        select: { id: true, nameEn: true, nameAr: true },
+  try {
+    await ensureSurahCatalog();
+    const bookmarks = await prisma.quranBookmark.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        surahId: true,
+        ayahNumber: true,
+        page: true,
+        note: true,
+        createdAt: true,
       },
-    },
-  });
+    });
 
-  const needsAyah = bookmarks.filter(
-    (b): b is typeof b & { surahId: number; ayahNumber: number } =>
-      b.surahId != null && b.ayahNumber != null,
-  );
-  if (needsAyah.length > 0) {
-    const ayahKeys: { surahId: number; ayahNumber: number }[] = needsAyah.map((b) => ({
+    if (bookmarks.length === 0) return [];
+
+    const surahIds = [...new Set(bookmarks.map((b) => b.surahId))];
+    const surahRows = await prisma.surah.findMany({
+      where: { id: { in: surahIds } },
+      select: { id: true, nameEn: true, nameAr: true },
+    });
+    const surahById = new Map(surahRows.map((s) => [s.id, s] as const));
+
+    const ayahKeys = bookmarks
+      .filter((b) => b.ayahNumber != null)
+      .map((b) => ({ surahId: b.surahId, ayahNumber: b.ayahNumber as number }));
+
+    const ayahMap = new Map<string, string>();
+    if (ayahKeys.length > 0) {
+      const ayahRows = await prisma.ayah.findMany({
+        where: { OR: ayahKeys.map((k) => ({ surahId: k.surahId, ayahNumber: k.ayahNumber })) },
+        select: { surahId: true, ayahNumber: true, textAr: true },
+      });
+      for (const a of ayahRows) {
+        ayahMap.set(`${a.surahId}:${a.ayahNumber}`, a.textAr);
+      }
+    }
+
+    return bookmarks.map((b) => ({
+      id: b.id,
       surahId: b.surahId,
       ayahNumber: b.ayahNumber,
-    }));
-    const ayahRows = await prisma.ayah.findMany({
-      where: {
-        OR: ayahKeys.map((k) => ({ surahId: k.surahId, ayahNumber: k.ayahNumber })),
+      page: b.page,
+      note: b.note,
+      createdAt: b.createdAt.toISOString(),
+      surah: surahById.get(b.surahId) ?? {
+        id: b.surahId,
+        nameEn: 'Unknown',
+        nameAr: 'غير معروف',
       },
-      select: { surahId: true, ayahNumber: true, textAr: true },
-    });
-    const ayahMap = new Map(
-      ayahRows.map((a) => [`${a.surahId}:${a.ayahNumber}`, a.textAr] as const),
-    );
-    return bookmarks.map((b) => ({
-      ...b,
       textAr:
-        b.surahId != null && b.ayahNumber != null
-          ? ayahMap.get(`${b.surahId}:${b.ayahNumber}`) ?? null
-          : null,
+        b.ayahNumber != null ? ayahMap.get(`${b.surahId}:${b.ayahNumber}`) ?? null : null,
     }));
+  } catch {
+    return [];
   }
-
-  return bookmarks.map((b) => ({ ...b, textAr: null }));
 }
 
 export async function createBookmark(userId: string, surahId: number, ayahNumber?: number, note?: string, page?: number) {
+  await ensureSurahCatalog();
   const surah = await prisma.surah.findUnique({ where: { id: surahId } });
 
   if (!surah) {
@@ -180,29 +229,26 @@ export async function updateBookmark(userId: string, bookmarkId: string, note: s
 }
 
 export async function resetKhatmah(userId: string) {
-  await prisma.khatmah.updateMany({
-    where: { userId },
-    data: {
-      currentSurahId: 2,
-      currentPage: 1,
-      totalPagesRead: 0,
-    },
-  });
-  const khatmah = await prisma.khatmah.upsert({
-    where: { userId },
-    create: { userId, currentSurahId: 2, currentPage: 1 },
-    update: {},
-  });
-  const surah = await prisma.surah.findUnique({ where: { id: khatmah.currentSurahId } });
-  return {
-    surahId: khatmah.currentSurahId,
-    surahNameEn: surah?.nameEn ?? 'Al-Baqarah',
-    surahNameAr: surah?.nameAr ?? 'سورة البقرة',
-    currentPage: khatmah.currentPage,
-    totalPagesRead: khatmah.totalPagesRead,
-    progressPercent: 0,
-    reset: true,
-  };
+  await ensureSurahCatalog();
+  try {
+    await prisma.khatmah.updateMany({
+      where: { userId },
+      data: {
+        currentSurahId: 2,
+        currentPage: 1,
+        totalPagesRead: 0,
+      },
+    });
+    const khatmah = await prisma.khatmah.upsert({
+      where: { userId },
+      create: { userId, currentSurahId: 2, currentPage: 1 },
+      update: {},
+    });
+    const surah = await prisma.surah.findUnique({ where: { id: khatmah.currentSurahId } });
+    return formatKhatmah(khatmah, surah, { reset: true });
+  } catch {
+    return { ...FALLBACK_KHATMAH, reset: true };
+  }
 }
 
 export async function searchQuran(query: string, page = 1, limit = 20) {
@@ -273,17 +319,23 @@ export async function deleteBookmark(userId: string, bookmarkId: string) {
 }
 
 export async function getLastRead(userId: string) {
-  return prisma.quranLastRead.findUnique({
-    where: { userId },
-    include: {
-      surah: {
-        select: { id: true, nameEn: true, nameAr: true },
+  try {
+    await ensureSurahCatalog();
+    return await prisma.quranLastRead.findUnique({
+      where: { userId },
+      include: {
+        surah: {
+          select: { id: true, nameEn: true, nameAr: true },
+        },
       },
-    },
-  });
+    });
+  } catch {
+    return null;
+  }
 }
 
 export async function updateLastRead(userId: string, surahId: number, ayahNumber: number, page?: number) {
+  await ensureSurahCatalog();
   const surah = await prisma.surah.findUnique({ where: { id: surahId } });
 
   if (!surah) {
@@ -369,21 +421,18 @@ export async function recordReadingHistory(userId: string, surahId: number, ayah
 }
 
 export async function getKhatmah(userId: string) {
-  const khatmah = await prisma.khatmah.upsert({
-    where: { userId },
-    create: { userId, currentSurahId: 2, currentPage: 1 },
-    update: {},
-  });
-  const surah = await prisma.surah.findUnique({ where: { id: khatmah.currentSurahId } });
-
-  return {
-    surahId: khatmah.currentSurahId,
-    surahNameEn: surah?.nameEn ?? 'Al-Baqarah',
-    surahNameAr: surah?.nameAr ?? 'سورة البقرة',
-    currentPage: khatmah.currentPage,
-    totalPagesRead: khatmah.totalPagesRead,
-    progressPercent: Math.round((khatmah.totalPagesRead / TOTAL_QURAN_PAGES) * 100),
-  };
+  await ensureSurahCatalog();
+  try {
+    const khatmah = await prisma.khatmah.upsert({
+      where: { userId },
+      create: { userId, currentSurahId: 2, currentPage: 1 },
+      update: {},
+    });
+    const surah = await prisma.surah.findUnique({ where: { id: khatmah.currentSurahId } });
+    return formatKhatmah(khatmah, surah);
+  } catch {
+    return { ...FALLBACK_KHATMAH };
+  }
 }
 
 export async function updateKhatmah(userId: string, surahId: number, page: number, pagesRead = 1) {
@@ -395,25 +444,49 @@ export async function updateKhatmah(userId: string, surahId: number, page: numbe
     );
   }
 
-  const khatmah = await prisma.khatmah.upsert({
-    where: { userId },
-    create: { userId, currentSurahId: surahId, currentPage: page, totalPagesRead: pagesRead },
-    update: {
-      currentSurahId: surahId,
-      currentPage: page,
-      totalPagesRead: { increment: pagesRead },
-    },
-  });
-  const surah = await prisma.surah.findUnique({ where: { id: khatmah.currentSurahId } });
+  await ensureSurahCatalog();
 
-  return {
-    surahId: khatmah.currentSurahId,
-    surahNameEn: surah?.nameEn ?? 'Al-Baqarah',
-    surahNameAr: surah?.nameAr ?? 'سورة البقرة',
-    currentPage: khatmah.currentPage,
-    totalPagesRead: khatmah.totalPagesRead,
-    progressPercent: Math.round((khatmah.totalPagesRead / TOTAL_QURAN_PAGES) * 100),
-  };
+  let nextPage = page;
+  let nextSurahId = surahId;
+  if (page > TOTAL_QURAN_PAGES) {
+    nextPage = 1;
+    nextSurahId = 1;
+  }
+
+  const surahExists = await prisma.surah.findUnique({
+    where: { id: nextSurahId },
+    select: { id: true, nameEn: true, nameAr: true },
+  });
+  if (!surahExists) {
+    throw new AppError('Surah not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+  }
+
+  try {
+    const khatmah = await prisma.khatmah.upsert({
+      where: { userId },
+      create: {
+        userId,
+        currentSurahId: nextSurahId,
+        currentPage: nextPage,
+        totalPagesRead: pagesRead,
+      },
+      update: {
+        currentSurahId: nextSurahId,
+        currentPage: nextPage,
+        totalPagesRead: { increment: pagesRead },
+      },
+    });
+    return formatKhatmah(khatmah, surahExists);
+  } catch {
+    return formatKhatmah(
+      {
+        currentSurahId: nextSurahId,
+        currentPage: nextPage,
+        totalPagesRead: pagesRead,
+      },
+      surahExists,
+    );
+  }
 }
 
 // ============================================================
@@ -563,9 +636,8 @@ async function getReadingStreakDays(userId: string): Promise<number> {
 }
 
 async function getPagesReadToday(userId: string): Promise<number> {
-  const today = new Date();
   const row = await prisma.dailyProgress.findUnique({
-    where: { userId_date: { userId, date: startOfDay(today) } },
+    where: { userId_date: { userId, date: getTodayDateOnly() } },
     select: { quranPagesRead: true },
   });
   return row?.quranPagesRead ?? 0;
@@ -577,7 +649,7 @@ export async function getKhatmahWithStats(userId: string) {
     getReadingStreakDays(userId),
     getPagesReadToday(userId),
   ]);
-  const completedKhatmahCount = Math.floor((base.totalPagesRead ?? 0) / TOTAL_QURAN_PAGES);
+  const completedKhatmahCount = base.completedKhatmahCount;
   return {
     ...base,
     dailyGoal: {

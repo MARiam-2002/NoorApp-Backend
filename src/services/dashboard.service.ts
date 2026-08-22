@@ -8,6 +8,7 @@ import type { DailyPrayerSchedule } from './prayer.service';
 import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import { DefaultTimezone, PrayerNameEnum } from '../utils/constants';
+import { ensureSurahCatalog } from '../lib/quran-catalog';
 
 const DEFAULT_LATITUDE = 30.0444;
 const DEFAULT_LONGITUDE = 31.2357;
@@ -64,6 +65,8 @@ export type DashboardData = {
     surahNameAr: string;
     currentPage: number;
     progressPercent: number;
+    isCompleted: boolean;
+    completedKhatmahCount: number;
   } | null;
   dailyChallenge: {
     titleAr: string;
@@ -105,6 +108,7 @@ async function getOrCreateTodayJourney(userId: string, date: Date = getTodayDate
 }
 
 async function getOrCreateKhatmah(userId: string) {
+  await ensureSurahCatalog();
   try {
     return await prisma.khatmah.upsert({
       where: { userId },
@@ -293,7 +297,17 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
           surahNameEn: surah.nameEn,
           surahNameAr: surah.nameAr,
           currentPage: khatmah.currentPage,
-          progressPercent: Math.round((khatmah.totalPagesRead / TOTAL_QURAN_PAGES) * 100),
+          progressPercent: (() => {
+            const total = khatmah.totalPagesRead;
+            const inCycle = total % TOTAL_QURAN_PAGES;
+            const done =
+              khatmah.currentPage >= TOTAL_QURAN_PAGES || (total > 0 && inCycle === 0);
+            return done ? 100 : Math.min(100, Math.round((inCycle / TOTAL_QURAN_PAGES) * 100));
+          })(),
+          isCompleted:
+            khatmah.currentPage >= TOTAL_QURAN_PAGES ||
+            (khatmah.totalPagesRead > 0 && khatmah.totalPagesRead % TOTAL_QURAN_PAGES === 0),
+          completedKhatmahCount: Math.floor(khatmah.totalPagesRead / TOTAL_QURAN_PAGES),
         }
       : null,
     dailyChallenge: {
