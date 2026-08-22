@@ -1,6 +1,7 @@
 import type { RequestHandler, ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import crypto from 'crypto';
+import { JsonWebTokenError, NotBeforeError, TokenExpiredError } from 'jsonwebtoken';
 import { appConfig, ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { logger } from '../lib/logger';
@@ -87,6 +88,41 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
       req,
       undefined,
       err.details,
+    );
+    return;
+  }
+
+  if (err instanceof TokenExpiredError) {
+    sendError(
+      res,
+      'Token expired',
+      ErrorCodes.TOKEN_EXPIRED,
+      HttpStatus.UNAUTHORIZED,
+      req,
+    );
+    return;
+  }
+
+  if (err instanceof JsonWebTokenError || err instanceof NotBeforeError) {
+    sendError(
+      res,
+      'Invalid token',
+      ErrorCodes.INVALID_TOKEN,
+      HttpStatus.UNAUTHORIZED,
+      req,
+    );
+    return;
+  }
+
+  if (err && typeof err === 'object' && typeof (err as any).code === 'string' && (err as any).code.startsWith('P')) {
+    sendError(
+      res,
+      appConfig.isProduction ? 'Database error' : `Database error: ${(err as any).code}`,
+      ErrorCodes.DATABASE_ERROR,
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      req,
+      undefined,
+      !appConfig.isProduction ? { prismaCode: (err as any).code, meta: (err as any).meta } : undefined,
     );
     return;
   }

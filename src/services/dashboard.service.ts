@@ -191,18 +191,47 @@ async function getChallengeCompletion(userId: string, dayOfYear: number) {
 }
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      username: true,
-      fullName: true,
-      points: true,
-      timezone: true,
-      latitude: true,
-      longitude: true,
-    },
-  });
+  let user: {
+    id: string;
+    username: string;
+    fullName: string | null;
+    points: number;
+    timezone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  } | null = null;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        points: true,
+        timezone: true,
+        latitude: true,
+        longitude: true,
+      },
+    });
+  } catch (err: any) {
+    const prismaCode = (err && typeof err === 'object' && typeof (err as any).code === 'string')
+      ? (err as any).code
+      : null;
+    if (prismaCode) {
+      throw new AppError(
+        'Database error while loading user',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.DATABASE_ERROR,
+        prismaCode,
+      );
+    }
+    throw new AppError(
+      'Failed to load user',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      ErrorCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
 
   if (!user) {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
@@ -210,7 +239,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
 
   try {
     return await buildDashboardPayload(userId, user);
-  } catch {
+  } catch (_err) {
     const todayInfo = formatArabicDateInfo();
     return {
       greeting: {
