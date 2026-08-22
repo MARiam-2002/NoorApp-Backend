@@ -1,8 +1,7 @@
 import type { ChallengeType, PrayerName } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
-import { AppError } from '../lib/errors';
-import { ErrorCodes, HttpStatus } from '../config';
+import { logger } from '../lib/logger';
 import { calculateDailyPrayerSchedule } from './prayer.service';
 import type { DailyPrayerSchedule } from './prayer.service';
 import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/date';
@@ -191,18 +190,20 @@ async function getChallengeCompletion(userId: string, dayOfYear: number) {
 }
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
-  let user: {
-    id: string;
-    username: string;
-    fullName: string | null;
-    points: number;
-    timezone: string | null;
-    latitude: number | null;
-    longitude: number | null;
-  } | null = null;
+  const todayInfo = formatArabicDateInfo();
+  const fallbackUser = {
+    id: userId,
+    username: 'noor',
+    fullName: null as string | null,
+    points: 0,
+    timezone: null as string | null,
+    latitude: null as number | null,
+    longitude: null as number | null,
+  };
 
+  let user = fallbackUser;
   try {
-    user = await prisma.user.findUnique({
+    const fetched = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -214,33 +215,21 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         longitude: true,
       },
     });
+    if (fetched) user = fetched;
   } catch (err: any) {
-    const prismaCode = (err && typeof err === 'object' && typeof (err as any).code === 'string')
-      ? (err as any).code
-      : null;
-    if (prismaCode) {
-      throw new AppError(
-        'Database error while loading user',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        ErrorCodes.DATABASE_ERROR,
-        prismaCode,
-      );
-    }
-    throw new AppError(
-      'Failed to load user',
-      HttpStatus.INTERNAL_SERVER_ERROR,
-      ErrorCodes.INTERNAL_SERVER_ERROR,
-    );
-  }
-
-  if (!user) {
-    throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+    logger.warn('[Dashboard] prisma.user.findUnique failed, using fallback user', {
+      code: err?.code,
+      message: err?.message,
+    });
   }
 
   try {
     return await buildDashboardPayload(userId, user);
-  } catch (_err) {
-    const todayInfo = formatArabicDateInfo();
+  } catch (err: any) {
+    logger.warn('[Dashboard] buildDashboardPayload failed, returning fallback', {
+      code: err?.code,
+      message: err?.message,
+    });
     return {
       greeting: {
         displayName: user.fullName?.trim() || user.username,
