@@ -45,7 +45,24 @@ export type DashboardData = {
     hijriDate: string;
     gregorianDate: string;
   };
-  prayers: DailyPrayerSchedule;
+  prayers: {
+    date: string;
+    timezone: string;
+    nextPrayer: {
+      name: string;
+      nameAr: string;
+      time: string;
+      countdownSeconds: number;
+    } | null;
+    schedule: Array<{
+      name: string;
+      nameAr: string;
+      time: string;
+      completed: boolean;
+    }>;
+    completedCount: number;
+    totalCount: number;
+  };
   verseOfTheDay: {
     textAr: string;
     referenceAr: string;
@@ -65,9 +82,7 @@ export type DashboardData = {
     surahNameAr: string;
     currentPage: number;
     progressPercent: number;
-    isCompleted: boolean;
-    completedKhatmahCount: number;
-  } | null;
+  };
   dailyChallenge: {
     titleAr: string;
     descriptionAr: string;
@@ -76,7 +91,7 @@ export type DashboardData = {
     completed: boolean;
     claimed: boolean;
   };
-  utilities: { qibla: { enabled: true }; tasbih: { enabled: true } };
+  utilities: { tasbih: { enabled: true }; qibla: { enabled: true } };
 };
 
 async function findCompletedPrayers(
@@ -193,6 +208,71 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
 
+  try {
+    return await buildDashboardPayload(userId, user);
+  } catch {
+    const todayInfo = formatArabicDateInfo();
+    return {
+      greeting: {
+        displayName: user.fullName?.trim() || user.username,
+        fullName: user.fullName ?? null,
+        username: user.username,
+        points: user.points,
+        weekdayName: todayInfo.weekdayName,
+        hijriDate: todayInfo.hijri,
+        gregorianDate: todayInfo.gregorian,
+      },
+      prayers: {
+        date: new Date().toISOString().slice(0, 10),
+        timezone: user.timezone ?? DefaultTimezone,
+        nextPrayer: null,
+        schedule: [],
+        completedCount: 0,
+        totalCount: 5,
+      },
+      verseOfTheDay: FALLBACK_VERSE,
+      hadithOfTheDay: FALLBACK_HADITH,
+      dailyJourney: {
+        prayer: { completed: 0, total: 5, progress: 0 },
+        quran: { pagesRead: 0 },
+        adhkar: { completed: false },
+        sadaqah: { amount: 0 },
+      },
+      khatmah: {
+        surahId: 2,
+        surahNameEn: 'Al-Baqarah',
+        surahNameAr: 'البقرة',
+        currentPage: 1,
+        progressPercent: 0,
+      },
+      dailyChallenge: {
+        titleAr: FALLBACK_CHALLENGE.titleAr,
+        descriptionAr: FALLBACK_CHALLENGE.descriptionAr,
+        rewardPoints: FALLBACK_CHALLENGE.rewardPoints,
+        targetValue: FALLBACK_CHALLENGE.targetValue,
+        completed: false,
+        claimed: false,
+      },
+      utilities: {
+        tasbih: { enabled: true },
+        qibla: { enabled: true },
+      },
+    };
+  }
+}
+
+async function buildDashboardPayload(
+  userId: string,
+  user: {
+    username: string;
+    fullName: string | null;
+    points: number;
+    timezone: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  },
+): Promise<DashboardData> {
+
   const dayOfYear = getDayOfYear();
   const todayInfo = formatArabicDateInfo();
 
@@ -260,6 +340,15 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
   const displayName =
     user.fullName?.trim() || user.username;
 
+  const totalPagesRead = khatmah?.totalPagesRead ?? 0;
+  const khatmahPayload = {
+    surahId: surah?.id ?? 2,
+    surahNameEn: surah?.nameEn ?? 'Al-Baqarah',
+    surahNameAr: surah?.nameAr ?? 'البقرة',
+    currentPage: khatmah?.currentPage ?? 1,
+    progressPercent: Math.min(100, Math.round((totalPagesRead * 100) / TOTAL_QURAN_PAGES)),
+  };
+
   return {
     greeting: {
       displayName,
@@ -270,7 +359,26 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       hijriDate: todayInfo.hijri,
       gregorianDate: todayInfo.gregorian,
     },
-    prayers,
+    prayers: {
+      date: prayers.date,
+      timezone: prayers.timezone,
+      nextPrayer: prayers.nextPrayer
+        ? {
+            name: prayers.nextPrayer.name,
+            nameAr: prayers.nextPrayer.nameAr,
+            time: prayers.nextPrayer.time,
+            countdownSeconds: prayers.nextPrayer.countdownSeconds,
+          }
+        : null,
+      schedule: prayers.schedule.map((item) => ({
+        name: item.name,
+        nameAr: item.nameAr,
+        time: item.time,
+        completed: item.completed,
+      })),
+      completedCount: prayers.completedCount,
+      totalCount: prayers.totalCount,
+    },
     verseOfTheDay: {
       textAr: verse?.textAr ?? FALLBACK_VERSE.textAr,
       referenceAr: verse?.referenceAr ?? FALLBACK_VERSE.referenceAr,
@@ -289,27 +397,9 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       },
       quran: { pagesRead: journey.quranPagesRead },
       adhkar: { completed: journey.adhkarCompleted },
-      sadaqah: { amount: Number(journey.sadaqahAmount) },
+      sadaqah: { amount: Number(journey.sadaqahAmount) || 0 },
     },
-    khatmah: surah && khatmah
-      ? {
-          surahId: surah.id,
-          surahNameEn: surah.nameEn,
-          surahNameAr: surah.nameAr,
-          currentPage: khatmah.currentPage,
-          progressPercent: (() => {
-            const total = khatmah.totalPagesRead;
-            const inCycle = total % TOTAL_QURAN_PAGES;
-            const done =
-              khatmah.currentPage >= TOTAL_QURAN_PAGES || (total > 0 && inCycle === 0);
-            return done ? 100 : Math.min(100, Math.round((inCycle / TOTAL_QURAN_PAGES) * 100));
-          })(),
-          isCompleted:
-            khatmah.currentPage >= TOTAL_QURAN_PAGES ||
-            (khatmah.totalPagesRead > 0 && khatmah.totalPagesRead % TOTAL_QURAN_PAGES === 0),
-          completedKhatmahCount: Math.floor(khatmah.totalPagesRead / TOTAL_QURAN_PAGES),
-        }
-      : null,
+    khatmah: khatmahPayload,
     dailyChallenge: {
       titleAr: challengeTemplate?.titleAr ?? FALLBACK_CHALLENGE.titleAr,
       descriptionAr: challengeTemplate?.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,
@@ -319,8 +409,8 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       claimed: Boolean(challengeCompletion?.claimedAt),
     },
     utilities: {
-      qibla: { enabled: true },
       tasbih: { enabled: true },
+      qibla: { enabled: true },
     },
   };
 }

@@ -12,25 +12,50 @@ function formatKhatmah(
   surah: { nameEn: string; nameAr: string } | null,
   extra: Record<string, unknown> = {},
 ) {
-  const total = khatmah.totalPagesRead;
-  const completedKhatmahCount = Math.floor(total / TOTAL_QURAN_PAGES);
-  const inCycle = total % TOTAL_QURAN_PAGES;
-  const isCompleted =
-    khatmah.currentPage >= TOTAL_QURAN_PAGES || (total > 0 && inCycle === 0);
-  const progressPercent = isCompleted
-    ? 100
-    : Math.min(100, Math.round((inCycle / TOTAL_QURAN_PAGES) * 100));
+  const totalPagesRead = khatmah.totalPagesRead;
+  const progressPercent = Math.min(
+    100,
+    Math.round((totalPagesRead * 100) / TOTAL_QURAN_PAGES),
+  );
 
   return {
     surahId: khatmah.currentSurahId,
     surahNameEn: surah?.nameEn ?? FALLBACK_KHATMAH.surahNameEn,
     surahNameAr: surah?.nameAr ?? FALLBACK_KHATMAH.surahNameAr,
-    currentPage: Math.min(khatmah.currentPage, TOTAL_QURAN_PAGES),
-    totalPagesRead: total,
+    currentPage: Math.min(Math.max(khatmah.currentPage, 1), TOTAL_QURAN_PAGES),
+    totalPagesRead,
     progressPercent,
-    isCompleted,
-    completedKhatmahCount,
     ...extra,
+  };
+}
+
+function serializeBookmark(
+  row: {
+    id: string;
+    userId: string;
+    surahId: number;
+    ayahNumber: number | null;
+    page: number | null;
+    note: string | null;
+    createdAt: Date;
+    surah?: { id: number; nameEn: string; nameAr: string } | null;
+  },
+  textAr: string | null,
+) {
+  return {
+    id: row.id,
+    userId: row.userId,
+    surahId: row.surahId,
+    ayahNumber: row.ayahNumber,
+    page: row.page,
+    note: row.note,
+    textAr,
+    surah: row.surah ?? {
+      id: row.surahId,
+      nameEn: 'Unknown',
+      nameAr: 'غير معروف',
+    },
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -136,18 +161,19 @@ export async function listBookmarks(userId: string) {
 
     return bookmarks.map((b) => ({
       id: b.id,
+      userId,
       surahId: b.surahId,
       ayahNumber: b.ayahNumber,
       page: b.page,
       note: b.note,
-      createdAt: b.createdAt.toISOString(),
+      textAr:
+        b.ayahNumber != null ? ayahMap.get(`${b.surahId}:${b.ayahNumber}`) ?? null : null,
       surah: surahById.get(b.surahId) ?? {
         id: b.surahId,
         nameEn: 'Unknown',
         nameAr: 'غير معروف',
       },
-      textAr:
-        b.ayahNumber != null ? ayahMap.get(`${b.surahId}:${b.ayahNumber}`) ?? null : null,
+      createdAt: b.createdAt.toISOString(),
     }));
   } catch {
     return [];
@@ -202,7 +228,7 @@ export async function createBookmark(userId: string, surahId: number, ayahNumber
     });
     textAr = ayah?.textAr ?? null;
   }
-  return { ...created, textAr };
+  return serializeBookmark({ ...created, userId, surah: created.surah }, textAr);
 }
 
 export async function updateBookmark(userId: string, bookmarkId: string, note: string) {
@@ -225,7 +251,7 @@ export async function updateBookmark(userId: string, bookmarkId: string, note: s
     });
     textAr = ayah?.textAr ?? null;
   }
-  return { ...updated, textAr };
+  return serializeBookmark({ ...updated, userId }, textAr);
 }
 
 export async function resetKhatmah(userId: string) {
@@ -446,12 +472,8 @@ export async function updateKhatmah(userId: string, surahId: number, page: numbe
 
   await ensureSurahCatalog();
 
-  let nextPage = page;
-  let nextSurahId = surahId;
-  if (page > TOTAL_QURAN_PAGES) {
-    nextPage = 1;
-    nextSurahId = 1;
-  }
+  const nextPage = Math.min(page, TOTAL_QURAN_PAGES);
+  const nextSurahId = surahId;
 
   const surahExists = await prisma.surah.findUnique({
     where: { id: nextSurahId },
@@ -649,7 +671,7 @@ export async function getKhatmahWithStats(userId: string) {
     getReadingStreakDays(userId),
     getPagesReadToday(userId),
   ]);
-  const completedKhatmahCount = base.completedKhatmahCount;
+  const completedKhatmahCount = Math.floor((base.totalPagesRead ?? 0) / TOTAL_QURAN_PAGES);
   return {
     ...base,
     dailyGoal: {

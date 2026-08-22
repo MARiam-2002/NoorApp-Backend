@@ -98,7 +98,7 @@ export function calculateDailyPrayerSchedule(
   const now = referenceDate.getTime();
 
   const schedule: PrayerScheduleItem[] = PrayerOrder.map((name) => {
-    const timestamp = prayerDateMap[name];
+    const timestamp = prayerDateMap[name] ?? new Date();
     return {
       name,
       nameAr: prayerLabelsAr[name],
@@ -109,7 +109,9 @@ export function calculateDailyPrayerSchedule(
   });
 
   const nextPrayerEntry =
-    schedule.find((item) => item.timestamp.getTime() > now) ?? schedule[0] ?? null;
+    schedule.find((item) => item.timestamp instanceof Date && item.timestamp.getTime() > now) ??
+    schedule[0] ??
+    null;
 
   const nextPrayer: NextPrayerInfo | null = nextPrayerEntry
     ? {

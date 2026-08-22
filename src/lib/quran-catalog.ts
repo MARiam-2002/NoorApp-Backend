@@ -42,6 +42,4 @@ export const FALLBACK_KHATMAH = {
   currentPage: 1,
   totalPagesRead: 0,
   progressPercent: 0,
-  isCompleted: false,
-  completedKhatmahCount: 0,
 };
