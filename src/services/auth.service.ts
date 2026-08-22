@@ -4,7 +4,7 @@ import { UserRole } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
-import { ErrorCodes, HttpStatus, env } from '../config';
+import { ErrorCodes, HttpStatus, env, appConfig } from '../config';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -13,6 +13,7 @@ import {
   verifyRefreshToken as verifyRefreshTokenJwt,
 } from '../lib/auth';
 import { logger } from '../lib/logger';
+import { getEmailProviderStatus, sendPasswordResetEmail } from '../lib/email';
 
 function generateUsernameFromEmail(email: string): string {
   const localPart = email.toLowerCase().split('@')[0] || 'user';
@@ -338,14 +339,15 @@ export async function getCurrentUser(userId: string): Promise<AuthUserProfile> {
   return mapUserToProfile(user);
 }
 
-export async function forgotPassword(email: string): Promise<{ message: string }> {
+export async function forgotPassword(email: string): Promise<void> {
+  const normalized = email.toLowerCase().trim();
   const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
-    select: { id: true },
+    where: { email: normalized },
+    select: { id: true, email: true, isActive: true },
   });
 
-  if (!user) {
-    return { message: 'If the email exists, a reset link has been sent' };
+  if (!user || !user.isActive) {
+    return;
   }
 
   const rawToken = randomBytes(32).toString('hex');
@@ -361,16 +363,39 @@ export async function forgotPassword(email: string): Promise<{ message: string }
     data: { userId: user.id, tokenHash, expiresAt },
   });
 
-  logger.info('Password reset token generated', { userId: user.id });
-
-  if (env.NODE_ENV === 'development') {
-    logger.debug('Password reset token (development only)', {
+  try {
+    const delivery = await sendPasswordResetEmail(rawToken, user.email);
+    logger.info('Password reset email attempted', {
       userId: user.id,
-      resetToken: rawToken,
+      provider: delivery.provider,
+      sent: delivery.sent,
+    });
+
+    if (appConfig.isDevelopment) {
+      logger.debug('Password reset token (development only)', {
+        userId: user.id,
+        resetToken: rawToken,
+        deeplink: delivery.deeplink,
+      });
+    }
+
+    if (!delivery.sent) {
+      logger.error('Password reset email failed to send', {
+        userId: user.id,
+        provider: delivery.provider,
+        mail: getEmailProviderStatus(),
+      });
+    } else if (delivery.provider === 'mock' && (appConfig.isProduction || appConfig.isStaging)) {
+      logger.error('Password reset email is mocked — set RESEND_API_KEY and MAIL_FROM (verified domain)', {
+        mail: getEmailProviderStatus(),
+      });
+    }
+  } catch (err) {
+    logger.error('Password reset email threw; API still returns the generic success envelope', {
+      userId: user.id,
+      err: (err as Error)?.message || String(err),
     });
   }
-
-  return { message: 'If the email exists, a reset link has been sent' };
 }
 
 export async function resetPassword(token: string, password: string): Promise<void> {

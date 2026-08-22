@@ -63,10 +63,16 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
-export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Reset token is required'),
-  password: passwordSchema,
-});
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, 'Reset token is required'),
+    password: passwordSchema.optional(),
+    newPassword: passwordSchema.optional(),
+  })
+  .refine((body) => Boolean(body.password || body.newPassword), {
+    message: 'Password is required',
+    path: ['password'],
+  });
 
 export const googleSignInSchema = z.object({
   idToken: z.string().min(1, 'Google ID token is required'),

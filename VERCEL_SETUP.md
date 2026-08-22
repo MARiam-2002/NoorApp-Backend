@@ -79,7 +79,6 @@ SWAGGER_ENABLED            = true
 SWAGGER_TITLE              = Noor API
 SWAGGER_DESCRIPTION        = Noor Islamic Lifestyle API
 SWAGGER_VERSION            = 1.0.0
-MAIL_ENABLED               = false
 STORAGE_PROVIDER           = local
 CACHE_PROVIDER             = memory
 CACHE_DEFAULT_TTL_SECONDS  = 300
@@ -93,6 +92,26 @@ GOOGLE_CLIENT_SECRET       = (اختياري)
 3. اختر البيئات: Production, Preview, Development
 4. اضغط "Save"
 5. كرر لكل متغير
+
+### Password-reset email (Brevo Free SMTP — production without a paid domain)
+
+Set these on **Production** (and Preview if you test forgot-password there). Do not commit real values.
+
+```
+EMAIL_PROVIDER             = smtp
+MAIL_ENABLED               = true
+MAIL_HOST                  = smtp-relay.brevo.com
+MAIL_PORT                  = 587
+MAIL_SECURE                = false
+MAIL_USER                  = (Brevo Settings → SMTP & API → Login, e.g. xxx@smtp-brevo.com)
+MAIL_PASSWORD              = (Brevo Settings → SMTP & API → SMTP key)
+MAIL_FROM                  = (verified sender only, e.g. Noor <you@gmail.com>)
+RESET_PASSWORD_DEEPLINK    = noorapp://auth/reset-password?token={{token}}
+```
+
+Leave `RESEND_API_KEY` unset (or unused) while `EMAIL_PROVIDER=smtp`. Resend remains available later by setting `EMAIL_PROVIDER=resend` plus a Resend key and a **verified domain** From address.
+
+**Brevo sender rule:** `MAIL_FROM` must be a sender you added under **Settings → Senders, Domains & IPs** and verified with the 6-digit code sent to that inbox. Unverified From addresses are rejected. Do not use the SMTP login (`@smtp-brevo.com`) as `MAIL_FROM`.
 
 ---
 

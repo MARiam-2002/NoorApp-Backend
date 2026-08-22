@@ -65,8 +65,8 @@ export async function incrementTasbih(userId: string, amount = 1) {
   const tasbihLog = await prisma.tasbihLog.update({
     where: { id: current.id },
     data: {
-      count: current.count + amount,
-      totalAllTime: current.totalAllTime + amount,
+      count: { increment: amount },
+      totalAllTime: { increment: amount },
     },
   });
 

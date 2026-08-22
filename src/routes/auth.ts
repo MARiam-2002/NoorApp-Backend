@@ -42,10 +42,16 @@ const forgotPasswordSchema = z.object({
   email: z.string().trim().email('Invalid email'),
 });
 
-const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Reset token is required'),
-  password: passwordFieldSchema,
-});
+const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, 'Reset token is required'),
+    password: passwordFieldSchema.optional(),
+    newPassword: passwordFieldSchema.optional(),
+  })
+  .refine((body) => Boolean(body.password || body.newPassword), {
+    message: 'Password is required',
+    path: ['password'],
+  });
 
 const googleSignInSchema = z.object({
   idToken: z.string().min(1, 'Google ID token is required'),

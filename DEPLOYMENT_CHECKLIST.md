@@ -26,11 +26,18 @@ GOOGLE_CLIENT_ID=[from Google Cloud Console]
 GOOGLE_CLIENT_SECRET=[from Google Cloud Console]
 GOOGLE_CALLBACK_URL=https://[your-domain]/api/v1/auth/google/callback
 
-# Optional - Third Party Services
-MAIL_HOST=smtp.gmail.com
+# Password reset — Brevo Free SMTP (Vercel Production)
+EMAIL_PROVIDER=smtp
+MAIL_ENABLED=true
+MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
-MAIL_USER=[your-email]
-MAIL_PASSWORD=[app-password]
+MAIL_SECURE=false
+MAIL_USER=[Brevo SMTP login, xxx@smtp-brevo.com]
+MAIL_PASSWORD=[Brevo SMTP key]
+MAIL_FROM=[verified Brevo sender, never the SMTP login]
+RESET_PASSWORD_DEEPLINK=noorapp://auth/reset-password?token={{token}}
+
+# Optional - other services
 STORAGE_PROVIDER=s3
 CACHE_PROVIDER=redis
 REDIS_URL=redis://[host]:[port]
