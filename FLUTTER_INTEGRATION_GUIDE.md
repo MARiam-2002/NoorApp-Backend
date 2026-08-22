@@ -49,6 +49,27 @@
 
 ---
 
+## 🔹 API Integration Changes Summary — 2026-08-22 (Quran Text Hygiene Patch)
+
+- **Updated (Ayah text contract — backward compatible):**
+  - **Opening-phrase stripping convention formalized for the first time.** Every ayah returned by the backend now carries **only the verse body**. The decorative opening phrase (the standard one that precedes 112 of the 114 surahs) is **excluded from `textAr` on ayah #1 of every surah EXCEPT the two explicit surah-level exceptions listed below**. Flutter must render the decorative header itself as a separate styled widget. This matches the 2026 standard used by Quran.com / Muslim Pro / Ayah and keeps `textAr` search- and bookmark-clean.
+  - **Exception Surah 1 (Al-Fatihah):** The opening phrase is part of the actual seven verses and remains inside `data[0].textAr` as ayah 1. Flutter does NOT prepend an extra header on this surah (doing so would duplicate it).
+  - **Exception Surah 9 (At-Tawbah):** No opening phrase exists in the Mushaf. Flutter renders no header here either.
+  - **All 112 remaining surahs (ids 2..8 and 10..114):** Opening phrase is stripped from `data[0].textAr`. Flutter prepends its own styled center-aligned decorative header widget above the ayah ListView (gold / cream typography matching the brand kit).
+  - **Byte-Order-Mark (U+FEFF) invisible-character strip:** Backend now unconditionally drops the leading UTF-8 BOM glyph from any ayah text before returning it. Flutter no longer has to guard against the invisible `\uFEFF` prefix when measuring string width or running `contains()` lookups — the payload is guaranteed BOM-free for every returned ayah regardless of surah id or ayah number.
+- **Updated (listAyahs endpoint sample corrected):** The previous documentation sample incorrectly nested the pagination counters under `meta.pagination`. The real server payload places pagination keys directly on `meta` as flat siblings: `meta.page`, `meta.limit`, `meta.total`, `meta.totalPages`, `meta.hasNextPage`, `meta.hasPreviousPage`. Sample block for `GET /quran/surahs/:surahId/ayahs` has been updated below to match the actual wire format.
+- **New section added:** "Quran Text Hygiene Rules — Bismillah Convention + BOM-Free Guarantee" inserted between Ayahs-by-Surah endpoint and Physical Pages endpoint (see below after endpoint #3) with a complete Dart/Flutter reference implementation for the per-surah decorative header widget.
+- No endpoints were removed, renamed, or re-ordered; no JSON keys were added/removed from any response envelope.
+
+### Change Totals (2026-08-22 batch)
+
+- New documentation sections: **1** (Quran Text Hygiene Rules with Flutter sample code)
+- Updated documentation entries: **1** (listAyahs meta sample corrected from nested `meta.pagination` to flat `meta.*`)
+- Removed documentation entries: 0
+- Wire-level API changes: none — text hygiene is a pure data-cleanup pass inside the existing response envelope and existing JSON keys
+
+---
+
 ## 🔹 API Integration Summary
 
 - **Base URLs (store these in `env` / flavors)**:
@@ -1930,7 +1951,7 @@ Query Params (optional):
 
 Example: `GET /quran/surahs/2/ayahs?page=11&perPage=3` → آيات 220..222 سورة البقرة.
 
-Response Body (200 — `meta.pagination` present because it is paginated):
+Response Body (200 — flat `meta.*` pagination keys, NOT nested under a `pagination` wrapper):
 
 ```json
 {
@@ -1963,7 +1984,12 @@ Response Body (200 — `meta.pagination` present because it is paginated):
     }
   ],
   "meta": {
-    "pagination": { "total": 286, "page": 11, "pageSize": 3, "hasMore": true }
+    "page": 11,
+    "limit": 3,
+    "total": 286,
+    "totalPages": 96,
+    "hasNextPage": true,
+    "hasPreviousPage": true
   },
   "timestamp": "2026-08-21T09:05:00.000Z",
   "requestId": "a1b2c3d4-0503-aaaa-bbbb-000000000503"
@@ -1971,6 +1997,131 @@ Response Body (200 — `meta.pagination` present because it is paginated):
 ```
 
 This endpoint is best for a per-surah scroll view. For the real Mushaf-style page reader (recommended per the Figma design, which shows "السابق 35 التالي") — use `/quran/pages/:pageNumber` below.
+
+---
+
+### Important — Quran Text Hygiene Rules (Bismillah Convention + BOM-Free Guarantee)
+
+This section applies to every ayah returned by **all** Quran endpoints that carry a `textAr` field: by-Surah ayahs, by-Page ayahs, bookmark previews, search results, and random-ayah.
+
+#### Rule A — Opening decorative phrase (Bismillah) placement
+
+The backend guarantees the following behavior for `ayahNumber === 1` of every surah. Flutter does NOT need to attempt any string-level stripping of the opening phrase on its own — the payload is already clean. Instead, Flutter is responsible for rendering the decorative header UI where the convention says it should appear.
+
+| Surah id range                      | Exact ids                            | What backend does with `textAr` for ayah #1                                                                                                                                                                              | What Flutter renders ABOVE the ayah ListView                                                                                                                                                                                  |
+| ----------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exception #1 — Surah 1 (Al-Fatihah) | `surahId == 1`                       | Leaves the opening phrase as the verse body inside ayah 1 (it is canonically one of the seven verses).                                                                                                                   | **NO header widget.** Rendering one would duplicate the phrase.                                                                                                                                                               |
+| Exception #2 — Surah 9 (At-Tawbah)  | `surahId == 9`                       | No opening phrase exists in the Mushaf. First ayah body is returned as-is.                                                                                                                                               | **NO header widget.** None exists in the printed Mushaf.                                                                                                                                                                      |
+| All other 112 surahs                | `surahId` in `[2..8]` or `[10..114]` | Strips the opening decorative phrase from `data[0].textAr` so ayah 1 contains **only the real verse body**. Example: for Surah Al-Baqarah, `ayahNumber: 1` returns just `"الٓمٓ"` without any leading decorative prefix. | **YES — render a decorative Bismillah header widget** (center-aligned, brand cream/gold typography, 24–32 dp vertical padding, optionally with a small divider below). See reference Dart snippet at the end of this section. |
+
+Why this split? It follows the 2026 standard used by every top-tier Quran app (Quran.com, Muslim Pro, Ayah, Khatmah). Placing the decorative phrase in the UI layer (Flutter) instead of inside the verse-content field (`textAr`) gives three practical wins:
+
+1. **Clean bookmarks & search.** When a user bookmarks ayah #1 of Al-Baqarah, the preview text in the bookmark tab reads `"الٓمٓ"` as expected, not a long decorative prefix. Searching for `"الٓمٓ"` in the global Quran search also returns the ayah on the first result without substring ambiguity.
+2. **Independent styling.** Flutter can animate, scale, pin-on-scroll, or restyle the decorative phrase freely (e.g. make it look like a printed Mushaf page header with gold ink on cream background) without any backend change.
+3. **Single source of truth.** The ayah field means exactly one thing: the verse text as authored. Flutter owns the presentation chrome.
+
+#### Rule B — BOM-free guarantee (UTF-8 invisible prefix stripped)
+
+The backend unconditionally removes the leading U+FEFF byte-order-mark (BOM) from **every** ayah `textAr` before returning it, regardless of surah id, ayah number, or endpoint source (pages / surah-ayahs / bookmarks / search / random).
+
+Flutter-side impact:
+
+- You no longer need `if (text.startsWith('\uFEFF')) text = text.substring(1)` guards before measuring text width for RTL page layout, before `TextPainter`, or before calling `String.contains()` for client-side search-highlight.
+- `textAr.length` and `textAr.characters.first` now match what you see on screen (no invisible character consuming the first index).
+- The guarantee holds for **every returned ayah** — even Al-Fatihah ayah 1 and At-Tawbah ayah 1 come back BOM-free.
+
+#### Reference: Flutter Bismillah-header widget (copy, drop into your surah-view scaffold)
+
+```dart
+// lib/features/quran/presentation/widgets/surah_opening_header.dart
+import 'package:flutter/material.dart';
+
+/// Decorative centered header that Flutter renders above the ayah ListView
+/// for the 112 surahs that are neither Al-Fatihah (1) nor At-Tawbah (9).
+///
+/// Contract check: use ONLY `surah.id` (integer) to branch. Do NOT try to
+/// inspect or strip textAr strings on the client — the backend already
+/// guarantees the clean payload per Rule A above.
+class SurahOpeningHeader extends StatelessWidget {
+  final int surahId;
+
+  const SurahOpeningHeader({super.key, required this.surahId});
+
+  /// Returns true when Flutter should paint this widget. False means render
+  /// an empty SizedBox.shrink() (no decorative header for Fatihah / Tawbah).
+  static bool shouldShowFor(int surahId) =>
+      surahId != 1 && surahId != 9;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!shouldShowFor(surahId)) {
+      return const SizedBox.shrink();
+    }
+    final ThemeData theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: 28.0,
+        horizontal: 24.0,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            // Display-only string, hard-coded in Flutter. Do NOT read from
+            // the first ayah textAr — backend keeps it out of the payload.
+            'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(
+                  // Brand palette: Navy #1A1040 / Gold #C9A86A / Cream #FAF8F3
+                  color: const Color(0xFFC9A86A),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+          ),
+          const SizedBox(height: 18.0),
+          Container(
+            width: 120.0,
+            height: 1.0,
+            color: const Color(0xFFC9A86A).withOpacity(0.35),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+#### Wiring the header into your surah-screen scaffold
+
+```dart
+// lib/features/quran/presentation/screens/surah_reader_screen.dart
+Widget buildSurahReaderBody(SurahMeta surah, List<Ayah> ayahs) {
+  return CustomScrollView(
+    slivers: <Widget>[
+      // Existing app bar / surah title bar (unchanged).
+      SliverToBoxAdapter(
+        // 👇 The NEW decorative header. It is a pure UI widget.
+        //    Branching is done by surah.id — no string inspection needed.
+        child: SurahOpeningHeader(surahId: surah.id),
+      ),
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext ctx, int i) => AyahTile(ayah: ayahs[i]),
+          childCount: ayahs.length,
+        ),
+      ),
+    ],
+  );
+}
+```
+
+Quick behavior check (the Flutter engineer can verify these in 1 minute in the emulator):
+
+| Tap into surah… | Expected first visual lines on screen                                         | Ayah #1 `textAr` rendered inside AyahTile                                 |
+| --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 1 — Al-Fatihah  | No decorative header. First tile shows the opening phrase as verse 1.         | First tile text is the opening phrase itself.                             |
+| 2 — Al-Baqarah  | Decorative gold/cream Bismillah header widget, then divider, then ayah tiles. | First tile text is exactly `"الٓمٓ"` (no prefix).                         |
+| 9 — At-Tawbah   | No decorative header. Tiles start immediately at ayah 1.                      | First tile text is the real first verse of Tawbah (no decorative prefix). |
 
 ---
 

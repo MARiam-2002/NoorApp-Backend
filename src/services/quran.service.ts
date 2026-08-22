@@ -10,8 +10,9 @@ const TOTAL_QURAN_PAGES = 604;
 const AR_DIACRITICS =
   '\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u08D4-\u08E1\u08E3-\u0902\u08AB-\u08AD';
 
+const BOM = '\uFEFF';
 const BISMILLAH_REGEX = new RegExp(
-  '^' +
+  '^(?:' + BOM + ')?' +
     'ب' + '[' + AR_DIACRITICS + ']*' +
     'س' + '[' + AR_DIACRITICS + ']*' +
     'م' + '[' + AR_DIACRITICS + ']*' +
@@ -41,14 +42,21 @@ const BISMILLAH_REGEX = new RegExp(
   'u',
 );
 
+function stripBom(text: string): string {
+  if (text && text.charCodeAt(0) === 0xfeff) {
+    return text.slice(1);
+  }
+  return text;
+}
+
 function stripSurahOpeningBismillahIfNeeded(ayah: {
   surahId: number;
   ayahNumber: number;
   textAr: string;
 }): string {
-  if (ayah.ayahNumber !== 1) return ayah.textAr;
-  if (ayah.surahId === 1 || ayah.surahId === 9) return ayah.textAr;
-  const text = ayah.textAr ?? '';
+  if (ayah.ayahNumber !== 1) return stripBom(ayah.textAr ?? '');
+  if (ayah.surahId === 1 || ayah.surahId === 9) return stripBom(ayah.textAr ?? '');
+  const text = stripBom(ayah.textAr ?? '');
   return text.replace(BISMILLAH_REGEX, '');
 }
 
