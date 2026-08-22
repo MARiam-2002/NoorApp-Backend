@@ -2004,9 +2004,22 @@ This endpoint is best for a per-surah scroll view. For the real Mushaf-style pag
 
 This section applies to every ayah returned by **all** Quran endpoints that carry a `textAr` field: by-Surah ayahs, by-Page ayahs, bookmark previews, search results, and random-ayah.
 
+> ##### ⚠️ CRITICAL 2026 DO / DO-NOT CONTRACT for Flutter (Human or AI Agent)
+>
+> ##### Failure to follow Column 1 below WILL cause duplicate visuals or missing text on screen.
+>
+> | Action                                                                                                                              | Status           | Why                                                                                                                                                                                                                                                             |
+> | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | Branch header widget visibility by comparing `surah.id` (integer) against constants `1` and `9`.                                    | ✅ **REQUIRED**  | Integer comparison is O(1), deterministic, type-safe, and 100% matches the backend's three-bucket guarantees (Surah 1 / Surah 9 / everything else).                                                                                                             |
+> | Use the provided static helper `SurahOpeningHeader.shouldShowFor(surahId)` when possible instead of re-implementing the condition.  | ✅ **REQUIRED**  | The reference helper at the end of this section is copy-paste safe. Wrapping the boolean in a single static method guarantees all screens (by-surah view, page view, jump-to-ayah view) reach identical branching — no screen can drift from the contract.      |
+> | Render the decorative opening phrase as a **separate Flutter widget** in the Sliver/App-Body scaffold area ABOVE the Ayah ListView. | ✅ **REQUIRED**  | Isolates presentation chrome from verse content. Lets you restyle / animate / pin-on-scroll the header independently without ever touching the ayah data model.                                                                                                 |
+> | Inspect `ayah[0].textAr` / run `startsWith()` / run `RegExp` on the Arabic string to decide header visibility.                      | ❌ **FORBIDDEN** | String inspection is fragile against Unicode diacritics, regional Uthmani vs Hafs variants, and future backend data migrations. Even though the backend strips today, NEVER rely on text content for branching — the surah _id_ integer is the source of truth. |
+> | Try to strip / `replaceAll` / substring the opening phrase out of `ayah[0].textAr` on the Flutter client.                           | ❌ **FORBIDDEN** | Backend already guarantees a clean payload. Client-side stripping will silently corrupt ayah #1 on legitimate edge cases (e.g. a verse that naturally starts with بِسْمِ for stylistic reasons — the Quran has several such verses inside surahs).              |
+> | Manually strip `U+FEFF` (BOM invisible prefix) from `textAr` on the client using `.subString(1)` / `.trimLeft()`.                   | ❌ **FORBIDDEN** | Rule B below gives a BOM-free guarantee across all endpoints. Blind substring-shaving on the client will accidentally remove the first real Arabic glyph of any ayah, breaking layout metrics and user bookmarks.                                               |
+
 #### Rule A — Opening decorative phrase (Bismillah) placement
 
-The backend guarantees the following behavior for `ayahNumber === 1` of every surah. Flutter does NOT need to attempt any string-level stripping of the opening phrase on its own — the payload is already clean. Instead, Flutter is responsible for rendering the decorative header UI where the convention says it should appear.
+The backend guarantees the following behavior for `ayahNumber === 1` of every surah. Flutter does NOT need to attempt any string-level stripping of the opening phrase on its own — the payload is already clean. Instead, Flutter is responsible for rendering the decorative header UI where the convention says it should appear. **Branch visibility using ONLY the surah.id integer (see required DO/DON'T table above).**
 
 | Surah id range                      | Exact ids                            | What backend does with `textAr` for ayah #1                                                                                                                                                                              | What Flutter renders ABOVE the ayah ListView                                                                                                                                                                                  |
 | ----------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2026,9 +2039,11 @@ The backend unconditionally removes the leading U+FEFF byte-order-mark (BOM) fro
 
 Flutter-side impact:
 
-- You no longer need `if (text.startsWith('\uFEFF')) text = text.substring(1)` guards before measuring text width for RTL page layout, before `TextPainter`, or before calling `String.contains()` for client-side search-highlight.
+- You **no longer need** and **MUST NOT add** `if (text.startsWith('\uFEFF')) text = text.substring(1)` guards before measuring text width for RTL page layout, before `TextPainter`, or before calling `String.contains()` for client-side search-highlight.
 - `textAr.length` and `textAr.characters.first` now match what you see on screen (no invisible character consuming the first index).
 - The guarantee holds for **every returned ayah** — even Al-Fatihah ayah 1 and At-Tawbah ayah 1 come back BOM-free.
+
+Client-side BOM stripping (via `.substring(1)`, `.trimLeft()`, regex character classes, etc.) is explicitly listed as ❌ FORBIDDEN in the DO/DON'T contract block above. Doing so would shave off the first real Arabic glyph whenever the backend honorably fulfills its guarantee.
 
 #### Reference: Flutter Bismillah-header widget (copy, drop into your surah-view scaffold)
 
