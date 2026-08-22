@@ -7,8 +7,39 @@ import { getTodayDateOnly } from '../utils/date';
 
 const TOTAL_QURAN_PAGES = 604;
 
-const BISMILLAH_REGEX =
-  /^ب[ِ]*س[ْ]*م[ِ]* ٱلل[ّ]*ه[ِ]* ٱلر[َّ]*ح[ْ]*م[َٰ]*ن[ِ]* ٱلر[َّ]*ح[ْ]*ي[ِ]*م[ِ]*[\s\u200C-\u200F\u202A-\u202E\u00A0]*/u;
+const AR_DIACRITICS =
+  '\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u08D4-\u08E1\u08E3-\u0902\u08AB-\u08AD';
+
+const BISMILLAH_REGEX = new RegExp(
+  '^' +
+    'ب' + '[' + AR_DIACRITICS + ']*' +
+    'س' + '[' + AR_DIACRITICS + ']*' +
+    'م' + '[' + AR_DIACRITICS + ']*' +
+    '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
+    '[\\u0671\\u0627]?' +
+    'ل' + '[' + AR_DIACRITICS + ']*' +
+    'ل' + '[' + AR_DIACRITICS + ']*' +
+    'ه' + '[' + AR_DIACRITICS + ']*' +
+    '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
+    '[\\u0671\\u0627]?' +
+    'ل' + '[' + AR_DIACRITICS + ']*' +
+    'ر' + '[' + AR_DIACRITICS + ']*' +
+    'ح' + '[' + AR_DIACRITICS + ']*' +
+    'م' + '[' + AR_DIACRITICS + ']*' +
+    '[\\u0622\\u0623\\u0625\\u0627\\u0671]?' +
+    'ن' + '[' + AR_DIACRITICS + ']*' +
+    'ي' + '?' +
+    '[' + AR_DIACRITICS + ']*' +
+    '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
+    '[\\u0671\\u0627]?' +
+    'ل' + '[' + AR_DIACRITICS + ']*' +
+    'ر' + '[' + AR_DIACRITICS + ']*' +
+    'ح' + '[' + AR_DIACRITICS + ']*' +
+    'ي' + '[' + AR_DIACRITICS + ']*' +
+    'م' + '[' + AR_DIACRITICS + ']*' +
+    '(?:[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+|$)',
+  'u',
+);
 
 function stripSurahOpeningBismillahIfNeeded(ayah: {
   surahId: number;
