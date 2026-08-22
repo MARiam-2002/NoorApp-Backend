@@ -2,5 +2,10 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": null,
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }],
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "prisma/migrations/**,prisma/schema.prisma"
+    }
+  }
 }
