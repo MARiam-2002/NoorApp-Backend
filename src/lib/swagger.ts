@@ -1,13 +1,10 @@
 import path from 'node:path';
 import process from 'node:process';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import type { Express, Request, Response } from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { env, appConfig, getApiBasePath } from '../config';
 import { logger } from '../lib/logger';
-
-const require = createRequire(path.join(process.cwd(), 'package.json'));
 
 const NOOR_PREMIUM_CSS = `
 :root {
@@ -1195,7 +1192,23 @@ function buildSwaggerSpec() {
   }
 }
 
-export const swaggerSpec = buildSwaggerSpec();
+let cachedSpec: any = null;
+let buildError: any = null;
+
+export function getSwaggerSpec(): any {
+  if (cachedSpec !== null) return cachedSpec;
+  if (buildError !== null) return buildError;
+  try {
+    const spec = buildSwaggerSpec();
+    cachedSpec = spec;
+    return spec;
+  } catch (err: any) {
+    logger.warn('[Swagger] Lazy build failed', { err: err?.message });
+    const fallback = { openapi: '3.0.3', info: { title: 'Noor API', version: '1.0.0' }, paths: {} };
+    buildError = fallback;
+    return fallback;
+  }
+}
 
 function buildFallbackSwaggerHtml(specUrl: string): string {
   const safeSpecUrl = specUrl.replace(/[<>&"]/g, '');
@@ -1531,12 +1544,12 @@ export function setupSwagger(app: Express): void {
   app.get(jsonPath, (_req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=60');
-    res.send(swaggerSpec);
+    res.send(getSwaggerSpec());
   });
 
   app.get(`${docsPath}.json`, (_req, res) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.send(swaggerSpec);
+    res.send(getSwaggerSpec());
   });
 
   app.get(`${docsPath}/:asset`, (req, res, next) => {
