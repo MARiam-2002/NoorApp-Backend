@@ -45,6 +45,7 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.11.0",
     "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-dist": "^5.17.14",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",
     "zod": "^4.4.3",

@@ -1,11 +1,13 @@
 import path from 'node:path';
 import process from 'node:process';
 import fs from 'node:fs';
-import type { Express } from 'express';
-import swaggerUi from 'swagger-ui-express';
+import { createRequire } from 'node:module';
+import type { Express, Request, Response } from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { env, appConfig, getApiBasePath } from '../config';
 import { logger } from '../lib/logger';
+
+const require = createRequire(path.join(process.cwd(), 'package.json'));
 
 const NOOR_PREMIUM_CSS = `
 :root {
@@ -1469,6 +1471,53 @@ export function setupSwagger(app: Express): void {
   const docsPath = `${base}/docs`;
   const jsonPath = `${base}/swagger.json`;
   const logoFile = path.join(process.cwd(), 'public', 'logo.png');
+  const distDir = path.dirname(require.resolve('swagger-ui-dist/swagger-ui.css'));
+
+  const docAssets: Record<string, string> = {
+    'swagger-ui.css': 'text/css; charset=utf-8',
+    'swagger-ui-bundle.js': 'application/javascript; charset=utf-8',
+    'swagger-ui-standalone-preset.js': 'application/javascript; charset=utf-8',
+    'favicon-32x32.png': 'image/png',
+    'favicon-16x16.png': 'image/png',
+    'oauth2-redirect.html': 'text/html; charset=utf-8',
+  };
+
+  const sendDocsHtml = (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(`<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>نور | Noor API Docs</title>
+  <link rel="icon" href="/brand/logo.png" />
+  <link rel="stylesheet" href="${docsPath}/swagger-ui.css" />
+  <style>${NOOR_PREMIUM_CSS}</style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="${docsPath}/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = function () {
+      window.ui = SwaggerUIBundle({
+        url: ${JSON.stringify(jsonPath)},
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        persistAuthorization: true,
+        docExpansion: 'list',
+        filter: true,
+        tryItOutEnabled: true,
+        displayRequestDuration: true,
+        validatorUrl: null,
+        presets: [SwaggerUIBundle.presets.apis],
+        layout: 'BaseLayout'
+      });
+    };
+  </script>
+</body>
+</html>`);
+  };
 
   app.get('/brand/logo.png', (_req, res) => {
     if (!fs.existsSync(logoFile)) {
@@ -1490,23 +1539,25 @@ export function setupSwagger(app: Express): void {
     res.send(swaggerSpec);
   });
 
-  app.use(
-    docsPath,
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec, {
-      customSiteTitle: 'نور | Noor API Docs',
-      customfavIcon: '/brand/logo.png',
-      customCss: NOOR_PREMIUM_CSS,
-      swaggerOptions: {
-        persistAuthorization: true,
-        docExpansion: 'list',
-        filter: true,
-        tryItOutEnabled: true,
-        displayRequestDuration: true,
-        deepLinking: true,
-        supportedSubmitMethods: ['get', 'post', 'put', 'patch', 'delete'],
-        validatorUrl: null,
-      },
-    }),
-  );
+  app.get(`${docsPath}/:asset`, (req, res, next) => {
+    const asset = String(req.params.asset || '');
+    const contentType = docAssets[asset];
+    if (!contentType) {
+      next();
+      return;
+    }
+    const file = path.resolve(distDir, asset);
+    const distRoot = path.resolve(distDir);
+    if (!file.startsWith(distRoot) || !fs.existsSync(file)) {
+      res.status(404).end();
+      return;
+    }
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    res.end(fs.readFileSync(file));
+  });
+
+  app.get(docsPath, sendDocsHtml);
+  app.get(`${docsPath}/`, sendDocsHtml);
+  app.get(`${docsPath}/index.html`, sendDocsHtml);
 }
