@@ -7,6 +7,35 @@ import { getTodayDateOnly } from '../utils/date';
 
 const TOTAL_QURAN_PAGES = 604;
 
+const BISMILLAH_REGEX =
+  /^ب[ِ]*س[ْ]*م[ِ]* ٱلل[ّ]*ه[ِ]* ٱلر[َّ]*ح[ْ]*م[َٰ]*ن[ِ]* ٱلر[َّ]*ح[ْ]*ي[ِ]*م[ِ]*[\s\u200C-\u200F\u202A-\u202E\u00A0]*/u;
+
+function stripSurahOpeningBismillahIfNeeded(ayah: {
+  surahId: number;
+  ayahNumber: number;
+  textAr: string;
+}): string {
+  if (ayah.ayahNumber !== 1) return ayah.textAr;
+  if (ayah.surahId === 1 || ayah.surahId === 9) return ayah.textAr;
+  const text = ayah.textAr ?? '';
+  return text.replace(BISMILLAH_REGEX, '');
+}
+
+function sanitizeAyahText<T extends { surahId: number; ayahNumber: number; textAr: string }>(
+  ayah: T,
+): T {
+  const stripped = stripSurahOpeningBismillahIfNeeded(ayah);
+  if (stripped === ayah.textAr) return ayah;
+  return { ...ayah, textAr: stripped };
+}
+
+function sanitizeAyahList<
+  T extends { surahId: number; ayahNumber: number; textAr: string },
+>(ayahs: T[]): T[] {
+  if (!ayahs || ayahs.length === 0) return ayahs;
+  return ayahs.map(sanitizeAyahText);
+}
+
 function formatKhatmah(
   khatmah: { currentSurahId: number; currentPage: number; totalPagesRead: number },
   surah: { nameEn: string; nameAr: string } | null,
@@ -42,6 +71,14 @@ function serializeBookmark(
   },
   textAr: string | null,
 ) {
+  const sanitizedTextAr: string | null =
+    textAr != null && row.surahId != null && row.ayahNumber != null
+      ? stripSurahOpeningBismillahIfNeeded({
+          surahId: row.surahId,
+          ayahNumber: row.ayahNumber,
+          textAr,
+        })
+      : textAr;
   return {
     id: row.id,
     userId: row.userId,
@@ -49,7 +86,7 @@ function serializeBookmark(
     ayahNumber: row.ayahNumber,
     page: row.page,
     note: row.note,
-    textAr,
+    textAr: sanitizedTextAr,
     surah: row.surah ?? {
       id: row.surahId,
       nameEn: 'Unknown',
@@ -114,7 +151,7 @@ export async function listAyahs(surahId: number, page?: number, limit?: number) 
   ]);
 
   return {
-    items,
+    items: sanitizeAyahList(items),
     meta: buildPaginationMeta(pagination.page, pagination.limit, total),
   };
 }
@@ -155,7 +192,10 @@ export async function listBookmarks(userId: string) {
         select: { surahId: true, ayahNumber: true, textAr: true },
       });
       for (const a of ayahRows) {
-        ayahMap.set(`${a.surahId}:${a.ayahNumber}`, a.textAr);
+        ayahMap.set(
+          `${a.surahId}:${a.ayahNumber}`,
+          stripSurahOpeningBismillahIfNeeded(a),
+        );
       }
     }
 
@@ -307,7 +347,10 @@ export async function searchQuran(query: string, page = 1, limit = 20) {
     select: { id: true, nameAr: true, nameEn: true, revelationType: true },
   });
   const byId = new Map(surahs.map((s) => [s.id, s] as const));
-  const enriched = items.map((a) => ({ ...a, surah: byId.get(a.surahId) ?? null }));
+  const enriched = sanitizeAyahList(items).map((a) => ({
+    ...a,
+    surah: byId.get(a.surahId) ?? null,
+  }));
   return {
     query: query.trim(),
     total,
@@ -321,12 +364,13 @@ export async function searchQuran(query: string, page = 1, limit = 20) {
 export async function getRandomAyah() {
   const total = await prisma.ayah.count();
   const idx = Math.floor(Math.random() * total);
-  const ayah = await prisma.ayah.findFirst({
+  const raw = await prisma.ayah.findFirst({
     skip: idx,
     take: 1,
     select: { id: true, surahId: true, ayahNumber: true, textAr: true, page: true, juz: true },
   });
-  if (!ayah) throw new AppError('No ayahs found (seed DB first)', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+  if (!raw) throw new AppError('No ayahs found (seed DB first)', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+  const ayah = sanitizeAyahText(raw);
   const surah = await prisma.surah.findUnique({
     where: { id: ayah.surahId },
     select: { id: true, nameAr: true, nameEn: true, totalAyahs: true, revelationType: true },
@@ -624,13 +668,14 @@ export async function listAyahsByPage(pageNumber: number) {
       ErrorCodes.VALIDATION_ERROR,
     );
   }
-  const ayahs = await prisma.ayah.findMany({
+  const raw = await prisma.ayah.findMany({
     where: { page: pageNumber },
     orderBy: [{ surahId: 'asc' }, { ayahNumber: 'asc' }],
     select: {
       id: true, surahId: true, ayahNumber: true, textAr: true, page: true, juz: true,
     },
   });
+  const ayahs = sanitizeAyahList(raw);
   const surahIds = Array.from(new Set(ayahs.map((a) => a.surahId)));
   const surahs = await prisma.surah.findMany({
     where: { id: { in: surahIds } },

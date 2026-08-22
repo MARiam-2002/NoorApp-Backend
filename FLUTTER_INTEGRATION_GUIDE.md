@@ -130,7 +130,7 @@ Two mutually exclusive error-detail keys may appear (never rely on both at once)
 {
   "success": false,
   "message": "Human-readable error description",
-  "code": "VALIDATION_ERROR | CONFLICT | UNAUTHORIZED | NOT_FOUND | INTERNAL_SERVER_ERROR | FORBIDDEN | SERVICE_UNAVAILABLE",
+  "code": "VALIDATION_ERROR | CONFLICT | UNAUTHORIZED | TOKEN_EXPIRED | INVALID_TOKEN | NOT_FOUND | INTERNAL_SERVER_ERROR | DATABASE_ERROR | FORBIDDEN | SERVICE_UNAVAILABLE",
   "errors": [
     {
       "field": "password",
@@ -162,6 +162,13 @@ Notes:
 - On error, `code` is the stable error identifier (branch on it, not on `message`).
   - **`errors[]` is used for per-field validation failures** (Zod schema: bad email, password too short, etc.). Loop `errors[]`, read `.field` and `.message` to show inline red hints. Do **not** read `details` here.
   - **`details` is used for application-level / Prisma-level errors** (duplicate email, missing exam, forbidden role…). Read `details.field` (when present) to know which TextField to highlight; `details` may be `null` for generic errors like `INTERNAL_SERVER_ERROR`.
+  - **401 sub-types & refresh strategy (critical):** All three below share HTTP status `401`, but the `code` field changes Flutter's behaviour. The simplest correct rule is: **always attempt refresh on 401 first; only skip refresh when `code === "INVALID_TOKEN"`**.
+    | `code` | HTTP | Semantics | Flutter action |
+    | --------------- | ---- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+    | `TOKEN_EXPIRED` | 401 | Access token was valid but its `exp` claim is in the past. | ✅ Call `POST /auth/refresh`, then retry the original request **once**. |
+    | `UNAUTHORIZED` | 401 | Generic auth failure (wrong password / missing Bearer / deactivated user).| ✅ Attempt refresh + retry once. If refresh also 401 → navigate to Login. |
+    | `INVALID_TOKEN` | 401 | Token is forged / truncated / signed with a different secret. | ❌ Do NOT attempt refresh. Clear tokens and go to Login immediately (soft-logout, keep cached UI). |
+  - **500 `DATABASE_ERROR`:** Transient Neon/Prisma connection issue. Retry with 1–2s exponential backoff. Persistent failure → show "Try again later" helper.
 - On pagination endpoints, `meta` contains `{ total, page, pageSize, hasMore }` and is always a JSON object (never omitted).
 - `requestId` is always present (a UUID v4) and can be sent to backend support to trace the exact failing request in server logs.
 
@@ -215,8 +222,26 @@ class NoorApi {
       return resp.data as Map<String, dynamic>;
     } on DioException catch (e) {
       final body = e.response?.data as Map<String, dynamic>?;
-      if (body?['code'] == 'UNAUTHORIZED') {
-        // attempt token refresh + retry once here
+      final int? status = e.response?.statusCode;
+      final String? code = body?['code'] as String?;
+      // 👇 IMPORTANT: refresh flow triggers on ANY 401,
+      //    regardless of the specific sub-code (UNAUTHORIZED / TOKEN_EXPIRED).
+      //    Only INVALID_TOKEN (forged / tampered token) skips refresh and forces
+      //    a hard logout, since no amount of refreshing can fix it.
+      final bool isAuthError =
+          status == HttpStatus.unauthorized401 ||
+          const <String>{
+            'UNAUTHORIZED',
+            'TOKEN_EXPIRED',
+            'INVALID_TOKEN',
+          }.contains(code);
+      if (isAuthError) {
+        if (code == 'INVALID_TOKEN') {
+          // hard logout: clear tokens, navigate to Login immediately.
+        } else {
+          // attempt token refresh + retry the original request once here.
+          // if refresh itself also returns 401 → hard logout.
+        }
       }
       rethrow; // or convert to typed exceptions
     }
@@ -1778,18 +1803,36 @@ Plus:
 
 All Quran lookup endpoints (`/surahs`, `/juz`, `/pages/:pageNumber`, `/search`, `/ayahs/random`) are **public** so they work during the 401→refresh transient and for unauthenticated onboarding tours. Anything user-specific (bookmarks, last-read, khatmah, reading-history, stats) requires Bearer.
 
+#### Bismillah (بسم الله الرحمن الرحيم) — UI rendering rule (2026)
+
+Follow the printed Mushaf convention exactly as in your screenshots.
+
+| Case                                                   | Flutter must                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surahId = 1` (Al-Fatihah)                             | **Optional:** treat Bismillah as the unnumbered centered header (recommended for visual consistency with all other surahs). If Hafs-numbered layout is preferred, render it as ayah `{1}` — either is acceptable; the backend still ships the original `textAr` for ayah 1 unchanged.                                                                                                                                                       |
+| `surahId = 9` (At-Tawbah)                              | **❌ NEVER render a Bismillah header** for this surah. No exception.                                                                                                                                                                                                                                                                                                                                                                        |
+| `surahId = 2..8` or `10..114`                          | **Render Bismillah as a standalone, UN-NUMBERED, CENTERED header** (just below the surah name), then render `ayahs[]` starting at `ayahNumber = 1` directly under it. **Do not attach a `{1}` badge to the Bismillah header.**                                                                                                                                                                                                              |
+| `textAr` content (backend 2026 sanitization)           | The backend guarantees, for surahs `2..8` and `10..114`, that the `textAr` of `ayahNumber = 1` contains **only the real first numbered ayah**, with the opening Bismillah already removed. This means you will **never see Bismillah duplicated** between your header and the first numbered ayah, so you do **NOT** need to strip / split / substring any `textAr` on Flutter side — render every `ayah.textAr` field exactly as received. |
+| Page that straddles two surahs (`surahs.length === 2`) | After the last ayah belonging to `surahs[0]`, draw a divider, draw `surahs[1].nameAr`, then draw the Bismillah header (unless `surahs[1].id == 9`), then continue with ayahs whose `surahId == surahs[1].id`.                                                                                                                                                                                                                               |
+
+Recommended constant for the centered unnumbered header (use in a RichText / custom widget):
+
+```dart
+const quranBismillah = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+```
+
 **Screenshot → endpoint map (Quran UI):**
 
-| Screen | Flutter calls |
-| --- | --- |
-| Greeting `اهلا، احمد` | `GET /dashboard` → `greeting.displayName` (or `GET /profile/me` `fullName`) |
-| Tab السور | `GET /quran/surahs` → `revelationType` `MAKKI`/`MADANI` for Kaaba vs mosque icons |
-| Tab الاجزاء | `GET /quran/juz` → `nameAr` / `nameEn` |
-| Tab المفضلة | `GET /quran/bookmarks` → `surah.nameAr`, `textAr`, `ayahNumber` |
-| Mushaf page (السابق / رقم الصفحة / التالي) | `GET /quran/pages/:pageNumber` → `ayahs[]`, `surahs[]`, `page`, `juz` on each ayah |
-| Continuous surah scroll | `GET /quran/surahs/:id/ayahs?page&perPage` then next `surahId + 1` |
-| Reader ⋮ sheet | `GET/PATCH /profile/reading-preferences` |
-| استكمال الختمة | `GET /quran/khatmah/stats` + CTA → `GET /quran/last-read` then `/quran/pages/:page` |
+| Screen                                     | Flutter calls                                                                       |
+| ------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Greeting `اهلا، احمد`                      | `GET /dashboard` → `greeting.displayName` (or `GET /profile/me` `fullName`)         |
+| Tab السور                                  | `GET /quran/surahs` → `revelationType` `MAKKI`/`MADANI` for Kaaba vs mosque icons   |
+| Tab الاجزاء                                | `GET /quran/juz` → `nameAr` / `nameEn`                                              |
+| Tab المفضلة                                | `GET /quran/bookmarks` → `surah.nameAr`, `textAr`, `ayahNumber`                     |
+| Mushaf page (السابق / رقم الصفحة / التالي) | `GET /quran/pages/:pageNumber` → `ayahs[]`, `surahs[]`, `page`, `juz` on each ayah  |
+| Continuous surah scroll                    | `GET /quran/surahs/:id/ayahs?page&perPage` then next `surahId + 1`                  |
+| Reader ⋮ sheet                             | `GET/PATCH /profile/reading-preferences`                                            |
+| استكمال الختمة                             | `GET /quran/khatmah/stats` + CTA → `GET /quran/last-read` then `/quran/pages/:page` |
 
 ### 1) GET /quran/surahs — Tab "السور" (114 rows)
 
@@ -2507,7 +2550,12 @@ Response Body (200) — `data` is an **object**, not an array:
         "textAr": "الرَّحْمَٰنِ الرَّحِيمِ",
         "page": 1,
         "juz": 1,
-        "surah": { "id": 1, "nameAr": "الفاتحة", "nameEn": "Al-Fatihah", "revelationType": "MAKKI" }
+        "surah": {
+          "id": 1,
+          "nameAr": "الفاتحة",
+          "nameEn": "Al-Fatihah",
+          "revelationType": "MAKKI"
+        }
       }
     ]
   },
@@ -2591,8 +2639,18 @@ Response Body (200):
   "data": {
     "periodDays": 7,
     "records": [
-      { "date": "2026-08-15", "quranPagesRead": 5, "adhkarCompleted": true, "sadaqahAmount": 0 },
-      { "date": "2026-08-21", "quranPagesRead": 4, "adhkarCompleted": true, "sadaqahAmount": 0 }
+      {
+        "date": "2026-08-15",
+        "quranPagesRead": 5,
+        "adhkarCompleted": true,
+        "sadaqahAmount": 0
+      },
+      {
+        "date": "2026-08-21",
+        "quranPagesRead": 4,
+        "adhkarCompleted": true,
+        "sadaqahAmount": 0
+      }
     ],
     "summary": {
       "totalQuranPages": 34,
@@ -2823,7 +2881,7 @@ Badge update rule: after `markAsRead` or `markAllAsRead` 200, immediately call `
 | 64  | `/content/verse-of-day`          | GET    | No   | Standalone verse-of-day (also inside dashboard)                                                         |
 | 65  | `/content/hadith-of-day`         | GET    | No   | Standalone hadith-of-day                                                                                |
 | 66  | `/content/daily-challenge`       | GET    | No   | Standalone daily-challenge template                                                                     |
-| 67  | `/health`                       | GET    | No   | Liveness + database ping                                                                                |
+| 67  | `/health`                        | GET    | No   | Liveness + database ping                                                                                |
 
 ---
 
@@ -2877,12 +2935,12 @@ Skipping (1) desyncs Home vs the circular daily goal. Skipping (2) desyncs the l
 
 The 4-row sheet (حجم الخط / الاستماع / التفسير / الترجمة) is `GET/PATCH /profile/reading-preferences`:
 
-| UI row        | Field               | Default                 | Notes |
-| ------------- | ------------------- | ----------------------- | ----- |
-| حجم الخط AA   | `quranFontSize`     | `28` (range 12..60)     | Apply locally as font size in px. |
-| الاستماع 🎧   | `quranReciter`      | `Mishary_Alafasy`       | **Slug only.** Backend does not stream audio files. |
-| التفسير ✍️    | `quranTafsir`       | `Ibn_Kathir`            | **Slug only.** Backend does not return tafsir text. |
-| الترجمة 🌐    | `quranTranslation`  | `Sahih_International`   | **Slug only.** Backend does not return translation text. |
+| UI row      | Field              | Default               | Notes                                                    |
+| ----------- | ------------------ | --------------------- | -------------------------------------------------------- |
+| حجم الخط AA | `quranFontSize`    | `28` (range 12..60)   | Apply locally as font size in px.                        |
+| الاستماع 🎧 | `quranReciter`     | `Mishary_Alafasy`     | **Slug only.** Backend does not stream audio files.      |
+| التفسير ✍️  | `quranTafsir`      | `Ibn_Kathir`          | **Slug only.** Backend does not return tafsir text.      |
+| الترجمة 🌐  | `quranTranslation` | `Sahih_International` | **Slug only.** Backend does not return translation text. |
 
 Dropdown option lists live in Flutter. Persist every change with a partial PATCH so a second device picks up the same settings.
 
