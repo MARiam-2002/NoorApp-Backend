@@ -771,3 +771,129 @@ export async function getKhatmahWithStats(userId: string) {
     },
   };
 }
+
+// ============================================================
+//  NEW: Offline Catalog — Full Quran + Juz Ayahs for download
+// ============================================================
+
+export type CatalogSurahAyah = {
+  ayahNumber: number;
+  textAr: string;
+  page: number | null;
+  juz: number | null;
+};
+
+export type CatalogSurah = {
+  id: number;
+  nameAr: string;
+  nameEn: string;
+  revelationType: 'MAKKI' | 'MADANI' | null;
+  totalAyahs: number;
+  ayahs: CatalogSurahAyah[];
+};
+
+export type FullQuranCatalog = {
+  meta: {
+    catalogVersion: number;
+    totalSurahs: number;
+    totalAyahs: number;
+    totalPages: number;
+    totalJuz: number;
+    bismillahStripped: boolean;
+  };
+  surahs: CatalogSurah[];
+};
+
+export async function getFullQuranCatalog(): Promise<FullQuranCatalog> {
+  const surahRows = await prisma.surah.findMany({
+    orderBy: { id: 'asc' },
+    select: {
+      id: true,
+      nameEn: true,
+      nameAr: true,
+      totalAyahs: true,
+      revelationType: true,
+    },
+  });
+
+  const ayahRows = await prisma.ayah.findMany({
+    orderBy: [{ surahId: 'asc' }, { ayahNumber: 'asc' }],
+    select: {
+      surahId: true,
+      ayahNumber: true,
+      textAr: true,
+      page: true,
+      juz: true,
+    },
+  });
+
+  const sanitizedAyahs = sanitizeAyahList(ayahRows);
+  const bySurah = new Map<number, CatalogSurahAyah[]>();
+  let totalAyahs = 0;
+
+  for (const a of sanitizedAyahs) {
+    const arr = bySurah.get(a.surahId) ?? [];
+    arr.push({
+      ayahNumber: a.ayahNumber,
+      textAr: a.textAr,
+      page: a.page ?? null,
+      juz: a.juz ?? null,
+    });
+    bySurah.set(a.surahId, arr);
+    totalAyahs += 1;
+  }
+
+  const surahs: CatalogSurah[] = surahRows.map((s) => ({
+    id: s.id,
+    nameAr: s.nameAr,
+    nameEn: s.nameEn,
+    revelationType: (s.revelationType as 'MAKKI' | 'MADANI') ?? null,
+    totalAyahs: s.totalAyahs,
+    ayahs: bySurah.get(s.id) ?? [],
+  }));
+
+  return {
+    meta: {
+      catalogVersion: 1,
+      totalSurahs: surahs.length,
+      totalAyahs,
+      totalPages: TOTAL_QURAN_PAGES,
+      totalJuz: 30,
+      bismillahStripped: true,
+    },
+    surahs,
+  };
+}
+
+export async function listAyahsByJuz(juzNumber: number) {
+  if (juzNumber < 1 || juzNumber > 30) {
+    throw new AppError('Invalid juz number (1..30)', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  const raw = await prisma.ayah.findMany({
+    where: { juz: juzNumber },
+    orderBy: [{ surahId: 'asc' }, { ayahNumber: 'asc' }],
+    select: {
+      id: true,
+      surahId: true,
+      ayahNumber: true,
+      textAr: true,
+      page: true,
+      juz: true,
+    },
+  });
+  const ayahs = sanitizeAyahList(raw);
+  const surahIds = Array.from(new Set(ayahs.map((a) => a.surahId)));
+  const surahs = await prisma.surah.findMany({
+    where: { id: { in: surahIds } },
+    select: { id: true, nameAr: true, nameEn: true, revelationType: true },
+  });
+  return {
+    juzNumber,
+    nameAr: JUZ_ARABIC_NAMES[juzNumber - 1],
+    nameEn: JUZ_ENGLISH_NAMES[juzNumber - 1],
+    totalAyahs: ayahs.length,
+    ayahs,
+    surahs,
+  };
+}
+

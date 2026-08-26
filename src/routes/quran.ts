@@ -23,6 +23,8 @@ import {
   getKhatmahStatsHandler,
   searchQuranHandler,
   getRandomAyahHandler,
+  getFullQuranCatalogHandler,
+  listAyahsByJuzHandler,
 } from '../controllers/quran.controller';
 
 const surahIdParamSchema = z.object({
@@ -515,3 +517,50 @@ quranRouter.get('/search', validate(searchQuranQuerySchema, 'query'), searchQura
  *       200: { description: ✅ آية عشوائية مع تفاصيل السورة التابعة لها }
  */
 quranRouter.get('/ayahs/random', getRandomAyahHandler);
+
+// ============================================================
+//  Round 3 NEW ENDPOINTS: Offline Quran Catalog + Juz Ayahs
+// ============================================================
+
+/**
+ * @openapi
+ * /quran/full-catalog:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: كتالوج القرآن الكريم كاملاً (تحميل للقراءة بدون إنترنت)
+ *     description: |
+ *       يعرض كتالوج القرآن كاملاً (114 سورة + 6236 آية) في payload واحد
+ *       لتحميله على الجهاز وتخزينه محلياً لدعم وضع الأوفلاين (Offline Mode).
+ *       البيانات معالجة: البسمتلة المكررة مزالة من أول آية كل سورة عدا الفاتحة والتوبة،
+ *       ومزالة BOM من كل النصوص، عشان الفلاتر يستخدمها مباشرة في قاعدة البيانات المحلية.
+ *       الحجم المتوقع: ~3-4 MB غير مضغوط / ~800 KB مع Gzip/Brotli.
+ *     responses:
+ *       200:
+ *         description: ✅ كتالوج القرآن الكامل جاهز للتحميل
+ */
+quranRouter.get('/full-catalog', getFullQuranCatalogHandler);
+
+/**
+ * @openapi
+ * /quran/juz/{juzNumber}/ayahs:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: آيات جزء معين كاملة دفعة واحدة (تحميل جزء بدون إنترنت)
+ *     description: |
+ *       يعرض كل آيات الجزء المحدد (1 إلى 30) دفعة واحدة لتخزينها محلياً
+ *       أو عرضها في شاشة قراءة الجزء بدون طلبات متعددة. الآيات معالجة مثل كتالوج كامل.
+ *     parameters:
+ *       - in: path
+ *         name: juzNumber
+ *         required: true
+ *         schema: { type: integer, minimum: 1, maximum: 30, example: 1 }
+ *         description: رقم الجزء (1..30)
+ *     responses:
+ *       200: { description: ✅ آيات الجزء كاملة }
+ *       400: { description: ❌ رقم جزء غير صالح (1..30) }
+ */
+quranRouter.get(
+  '/juz/:juzNumber/ayahs',
+  validate(juzNumberParamSchema, 'params'),
+  listAyahsByJuzHandler,
+);

@@ -23,6 +23,8 @@ import {
   getKhatmahWithStats,
   searchQuran,
   getRandomAyah,
+  getFullQuranCatalog,
+  listAyahsByJuz,
 } from '../services/quran.service';
 
 export const listSurahsHandler = asyncHandler(async (_req: Request, res: Response) => {
@@ -181,4 +183,29 @@ export const searchQuranHandler = asyncHandler(async (req: Request, res: Respons
 export const getRandomAyahHandler = asyncHandler(async (req: Request, res: Response) => {
   const data = await getRandomAyah();
   sendSuccess(res, data, `Random ayah from ${data.surah?.nameAr ?? '?'}:${data.ayah.ayahNumber} retrieved successfully`, req);
+});
+
+// ============================================================
+//  NEW: Offline Catalog endpoints (Full Quran Download + Juz Ayahs)
+// ============================================================
+
+export const getFullQuranCatalogHandler = asyncHandler(async (req: Request, res: Response) => {
+  const data = await getFullQuranCatalog();
+  sendSuccess(
+    res,
+    data,
+    `Full Quran catalog ready for offline download (${data.meta.totalAyahs} ayahs, ${data.meta.totalSurahs} surahs)`,
+    req,
+  );
+});
+
+export const listAyahsByJuzHandler = asyncHandler(async (req: Request, res: Response) => {
+  const { juzNumber } = req.params as { juzNumber: string };
+  const data = await listAyahsByJuz(Number(juzNumber));
+  sendSuccess(
+    res,
+    data,
+    `Juz ${juzNumber} ayahs retrieved successfully (${data.totalAyahs} ayahs)`,
+    req,
+  );
 });
