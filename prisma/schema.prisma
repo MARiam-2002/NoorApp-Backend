@@ -328,6 +328,14 @@ enum DhikrCategoryKey {
   ENTERING_MOSQUE     // اذكار المسجد
   AFTER_PRAYER        // اذكار الصلاة (after fard salah)
   GENERAL_WIRD        // اذكار متنوعة / ورد يومي إضافي
+  TRAVEL              // اذكار السفر
+  SICK                // اذكار المريض والرقية الشرعية
+  FOOD                // اذكار الأكل والشرب
+  ISTIKHARA           // دعاء وصلاة الاستخارة
+  WUDU                // اذكار الوضوء (قبل/بعد)
+  ISTIGHFAR           // اذكار الاستغفار وسيد الاستغفار
+  QAYN                // ورد القين (عداد التسبيح)
+  MASJID_AFTER_SALAM  // اذكار بعد التسليم من الصلاة
 }
 
 model DhikrCategory {
