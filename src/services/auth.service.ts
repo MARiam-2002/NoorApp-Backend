@@ -44,7 +44,7 @@ async function ensureUniqueUsername(preferred: string, attempt = 0): Promise<str
 export type AuthTokens = {
   accessToken: string;
   refreshToken: string;
-  expiresIn: string;
+  expiresIn: number;
 };
 
 export type AuthUserProfile = {
@@ -148,7 +148,7 @@ async function createAuthResultForUser(user: {
     tokens: {
       accessToken,
       refreshToken,
-      expiresIn: env.JWT_EXPIRES_IN,
+      expiresIn: Math.floor(parseDurationToMs(env.JWT_EXPIRES_IN) / 1000),
     },
   };
 }

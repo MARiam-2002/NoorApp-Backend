@@ -6,6 +6,8 @@ import {
   getCategoriesWithDailyWird,
   getCategoryWithItems,
   getDailyWird,
+  getAdhkarProgress,
+  saveAdhkarProgress,
 } from '../services/adhkar.service';
 
 export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -27,4 +29,22 @@ export const getDhikrCategoryByKeyHandler = asyncHandler(async (req: Request, re
 export const getDailyWirdHandler = asyncHandler(async (req: Request, res: Response) => {
   const data = await getDailyWird();
   sendSuccess(res, data, 'Daily wird (ورد اليوم) retrieved successfully', req);
+});
+
+export const getAdhkarProgressHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const categoryKey = String(req.query.categoryKey ?? req.query.category ?? 'MORNING');
+  const data = await getAdhkarProgress(userId, categoryKey);
+  sendSuccess(res, data, `Adhkar progress for ${categoryKey} retrieved`, req);
+});
+
+export const saveAdhkarProgressHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const { categoryKey, itemId, tapCount } = req.body as {
+    categoryKey: string;
+    itemId: string;
+    tapCount: number;
+  };
+  const data = await saveAdhkarProgress(userId, categoryKey, itemId, tapCount);
+  sendSuccess(res, data, `Adhkar progress saved for ${categoryKey}`, req);
 });

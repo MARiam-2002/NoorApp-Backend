@@ -12,12 +12,58 @@ async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
 }
 
 export async function getTodayJourney(userId: string) {
+  const date = getTodayDateOnly();
   const progress = await getOrCreateToday(userId);
 
+  // Count today's prayer completions
+  let prayersCompleted = 0;
+  try {
+    prayersCompleted = await prisma.prayerCompletion.count({
+      where: { userId, date },
+    });
+  } catch {
+    // table may not exist yet
+  }
+
+  const totalPrayers = 5;
+  const quranGoal = 4; // default daily goal
+  const sadaqahGoal = 50;
+
+  const quranProgress = quranGoal > 0 ? Math.min(1, progress.quranPagesRead / quranGoal) : 0;
+  const prayerProgress = prayersCompleted / totalPrayers;
+  const adhkarDone = progress.adhkarCompleted;
+  const sadaqahAmount = Number(progress.sadaqahAmount);
+  const sadaqahProgress = sadaqahGoal > 0 ? Math.min(1, sadaqahAmount / sadaqahGoal) : 0;
+
+  const tasks = [
+    { key: 'quran', titleAr: 'قراءة القرآن', done: quranProgress >= 1, progress: Math.round(quranProgress * 100) / 100 },
+    { key: 'prayer', titleAr: 'الصلوات', done: prayersCompleted >= totalPrayers, progress: Math.round(prayerProgress * 100) / 100 },
+    { key: 'adhkar', titleAr: 'الأذكار', done: adhkarDone },
+    { key: 'sadaqah', titleAr: 'الصدقة', done: sadaqahAmount > 0, amount: sadaqahAmount },
+  ];
+
+  const overallPercent = Math.round(
+    ((quranProgress + prayerProgress + (adhkarDone ? 1 : 0) + sadaqahProgress) / 4) * 100,
+  );
+
+  // Get user points
+  let points = 0;
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { points: true } });
+    points = user?.points ?? 0;
+  } catch { /* */ }
+
   return {
+    date: date.toISOString().slice(0, 10),
+    tasks,
+    streakDays: 0, // TODO: calculate from consecutive daily progress
+    badges: [],
+    points,
+    overallPercent,
+    // Keep flat fields for backward compatibility
     quranPagesRead: progress.quranPagesRead,
     adhkarCompleted: progress.adhkarCompleted,
-    sadaqahAmount: Number(progress.sadaqahAmount),
+    sadaqahAmount,
   };
 }
 

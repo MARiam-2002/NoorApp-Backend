@@ -4,7 +4,10 @@ import {
   getDhikrCategoriesHandler,
   getDhikrCategoryByKeyHandler,
   getDhikrHomeHandler,
+  getAdhkarProgressHandler,
+  saveAdhkarProgressHandler,
 } from '../controllers/adhkar.controller';
+import { authenticate } from '../middleware/auth';
 
 export const adhkarRouter = Router();
 
@@ -130,6 +133,68 @@ adhkarRouter.get('/categories', getDhikrCategoriesHandler);
  *               requestId: uuid
  */
 adhkarRouter.get('/daily-wird', getDailyWirdHandler);
+
+/**
+ * @openapi
+ * /adhkar/progress:
+ *   get:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: تقدم المستخدم في فئة أذكار معينة لليوم
+ *     description: يُرجع حالة كل ذكر (tapCount + completed) + markedItemId للاستكمال.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: query
+ *         name: categoryKey
+ *         schema: { type: string, example: MORNING }
+ *         description: مفتاح الفئة (MORNING, EVENING, BEFORE_SLEEP, ...)
+ *     responses:
+ *       200:
+ *         description: ✅ تقدم الأذكار
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               data:
+ *                 categoryKey: MORNING
+ *                 markedItemId: item-uuid
+ *                 items:
+ *                   - itemId: item-uuid
+ *                     tapCount: 2
+ *                     completed: false
+ *                 progressItemsDone: 3
+ *                 progressItemsTotal: 20
+ *                 progressPercent: 15
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+adhkarRouter.get('/progress', authenticate, getAdhkarProgressHandler);
+
+/**
+ * @openapi
+ * /adhkar/progress:
+ *   put:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: حفظ تقدم ذكر معين (tap count)
+ *     description: يحفظ عدد النقرات لذكر معين لليوم الحالي ويُرجع التقدم الكامل.
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [categoryKey, itemId, tapCount]
+ *             properties:
+ *               categoryKey: { type: string, example: MORNING }
+ *               itemId: { type: string, example: item-uuid }
+ *               tapCount: { type: integer, example: 3 }
+ *     responses:
+ *       200:
+ *         description: ✅ تم حفظ التقدم
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
 
 /**
  * @openapi

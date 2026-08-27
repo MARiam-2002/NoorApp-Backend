@@ -1142,3 +1142,159 @@ export async function getCategoriesWithDailyWird() {
     categories,
   };
 }
+
+// ============================================================
+//  Adhkar Progress — resume mark + tap counts per user per day
+// ============================================================
+
+function getTodayDate(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+}
+
+export async function getAdhkarProgress(userId: string, categoryKey: string) {
+  const key = categoryKey.toUpperCase() as CategoryKey;
+  if (!CATEGORY_KEYS.includes(key as any)) {
+    throw new AppError(
+      `Invalid category key: ${categoryKey}`,
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+    );
+  }
+
+  const date = getTodayDate();
+
+  // Find the category (DB or fallback)
+  let category: { id: string; key: string; totalItems: number } | null = null;
+  let items: { id: string; orderInCategory: number; textAr: string; repeatCount: number }[] = [];
+
+  try {
+    const dbCat = await prisma.dhikrCategory.findFirst({
+      where: { key: key as any },
+      include: {
+        items: {
+          orderBy: { orderInCategory: 'asc' },
+          select: { id: true, orderInCategory: true, textAr: true, repeatCount: true },
+        },
+      },
+    });
+    if (dbCat) {
+      category = { id: dbCat.id, key: dbCat.key, totalItems: dbCat.items.length };
+      items = dbCat.items;
+    }
+  } catch {
+    // fallback
+  }
+
+  // Use fallback if DB didn't return
+  if (!category || items.length === 0) {
+    const fallbackItems = FALLBACK_ITEMS[key] ?? [];
+    items = fallbackItems.map((fi, idx) => ({
+      id: fi.id,
+      orderInCategory: fi.orderInCategory ?? idx + 1,
+      textAr: fi.textAr,
+      repeatCount: fi.repeatCount,
+    }));
+  }
+
+  // Get user's completions for today + this category
+  const completions = await prisma.dailyDhikrCompletion.findMany({
+    where: {
+      userId,
+      date,
+      categoryId: category?.id ?? undefined,
+    },
+  });
+
+  const completionMap = new Map(completions.map((c) => [c.itemId, c.countDone]));
+
+  const itemProgress = items.map((item) => {
+    const tapCount = completionMap.get(item.id) ?? 0;
+    return {
+      itemId: item.id,
+      tapCount,
+      completed: tapCount >= item.repeatCount,
+    };
+  });
+
+  const progressItemsDone = itemProgress.filter((ip) => ip.completed).length;
+  const progressItemsTotal = items.length;
+
+  // Find the first non-completed item as resume mark
+  const firstIncomplete = itemProgress.find((ip) => !ip.completed);
+  const markedItemId = firstIncomplete?.itemId ?? (items[items.length - 1]?.id ?? null);
+
+  return {
+    categoryKey: key,
+    markedItemId,
+    items: itemProgress,
+    progressItemsDone,
+    progressItemsTotal,
+    progressPercent: progressItemsTotal > 0
+      ? Math.round((progressItemsDone / progressItemsTotal) * 100)
+      : 0,
+  };
+}
+
+export async function saveAdhkarProgress(
+  userId: string,
+  categoryKey: string,
+  itemId: string,
+  tapCount: number,
+) {
+  const key = categoryKey.toUpperCase() as CategoryKey;
+  if (!CATEGORY_KEYS.includes(key as any)) {
+    throw new AppError(
+      `Invalid category key: ${categoryKey}`,
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+    );
+  }
+
+  if (tapCount < 0) {
+    throw new AppError(
+      'tapCount must be zero or greater',
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+    );
+  }
+
+  const date = getTodayDate();
+
+  // Resolve categoryId
+  let categoryId: string | null = null;
+  try {
+    const dbCat = await prisma.dhikrCategory.findFirst({
+      where: { key: key as any },
+      select: { id: true },
+    });
+    categoryId = dbCat?.id ?? null;
+  } catch {
+    // fallback categories have no DB id
+  }
+
+  // Upsert the completion
+  await prisma.dailyDhikrCompletion.upsert({
+    where: {
+      userId_date_categoryId_itemId: {
+        userId,
+        date,
+        categoryId: categoryId ?? '',
+        itemId,
+      },
+    },
+    create: {
+      userId,
+      date,
+      categoryId,
+      itemId,
+      countDone: tapCount,
+    },
+    update: {
+      countDone: tapCount,
+    },
+  });
+
+  // Return full progress
+  return getAdhkarProgress(userId, key);
+}

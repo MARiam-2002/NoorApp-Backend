@@ -118,6 +118,11 @@ function serializeBookmark(
           textAr,
         })
       : textAr;
+  const surahObj = row.surah ?? {
+    id: row.surahId,
+    nameEn: 'Unknown',
+    nameAr: 'غير معروف',
+  };
   return {
     id: row.id,
     userId: row.userId,
@@ -126,11 +131,8 @@ function serializeBookmark(
     page: row.page,
     note: row.note,
     textAr: sanitizedTextAr,
-    surah: row.surah ?? {
-      id: row.surahId,
-      nameEn: 'Unknown',
-      nameAr: 'غير معروف',
-    },
+    surahNameAr: surahObj.nameAr,
+    surah: surahObj,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -238,22 +240,26 @@ export async function listBookmarks(userId: string) {
       }
     }
 
-    return bookmarks.map((b) => ({
-      id: b.id,
-      userId,
-      surahId: b.surahId,
-      ayahNumber: b.ayahNumber,
-      page: b.page,
-      note: b.note,
-      textAr:
-        b.ayahNumber != null ? ayahMap.get(`${b.surahId}:${b.ayahNumber}`) ?? null : null,
-      surah: surahById.get(b.surahId) ?? {
+    return bookmarks.map((b) => {
+      const surahObj = surahById.get(b.surahId) ?? {
         id: b.surahId,
         nameEn: 'Unknown',
         nameAr: 'غير معروف',
-      },
-      createdAt: b.createdAt.toISOString(),
-    }));
+      };
+      return {
+        id: b.id,
+        userId,
+        surahId: b.surahId,
+        ayahNumber: b.ayahNumber,
+        page: b.page,
+        note: b.note,
+        textAr:
+          b.ayahNumber != null ? ayahMap.get(`${b.surahId}:${b.ayahNumber}`) ?? null : null,
+        surahNameAr: surahObj.nameAr,
+        surah: surahObj,
+        createdAt: b.createdAt.toISOString(),
+      };
+    });
   } catch {
     return [];
   }
