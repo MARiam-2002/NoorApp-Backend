@@ -73,6 +73,7 @@ model User {
   tasbihLogs           TasbihLog[]
   tasbihResetHistory   TasbihResetHistory[]
   notifications        Notification[]
+  dailyDhikrCompletions DailyDhikrCompletion[]
 
   @@map("users")
 }
@@ -313,6 +314,80 @@ model TasbihResetHistory {
 
   @@index([userId, date])
   @@map("tasbih_reset_history")
+}
+
+// ============================================================
+//  Adhkar / Hisnul Muslim Module (Morning, Evening, Sleep, Mosque, Prayer, Salat)
+//  Source: Fortress of the Muslim (حصن المسلم) — Authentic verified collection
+// ============================================================
+
+enum DhikrCategoryKey {
+  MORNING             // اذكار الصباح
+  EVENING             // اذكار المساء
+  BEFORE_SLEEP        // اذكار النوم
+  ENTERING_MOSQUE     // اذكار المسجد
+  AFTER_PRAYER        // اذكار الصلاة (after fard salah)
+  GENERAL_WIRD        // اذكار متنوعة / ورد يومي إضافي
+}
+
+model DhikrCategory {
+  id            String        @id @default(uuid())
+  key           DhikrCategoryKey @unique
+  nameAr        String
+  nameEn        String
+  descriptionAr String?
+  descriptionEn String?
+  iconCode      String        // e.g. "☀️" (just a UTF-8 emoji string; Flutter renders it inline)
+  sortOrder     Int           @default(0)
+  totalItems    Int           @default(0) // cache for the count of DhikrItem[] below
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items DhikrItem[]
+  completions DailyDhikrCompletion[]
+
+  @@index([sortOrder])
+  @@map("dhikr_categories")
+}
+
+model DhikrItem {
+  id              String        @id @default(uuid())
+  categoryId      String
+  orderInCategory Int           @default(0)
+  textAr          String        // the full dhikr / dua text in Arabic, full diacritics
+  textArPlain     String?       // optional — same text without diacritics, useful for search
+  repeatCount     Int           @default(1)  // "التكرار 3" from the detail screen card footer
+  referenceAr     String?       // e.g. "رواه البخاري ومسلم"
+  referenceEn     String?
+  sourceUrl       String?       // optional hotlink to Sunnah.com / IslamQA proof
+  benefitAr       String?       // optional short fadhilah / فضل الذكر
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  category    DhikrCategory       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  completions DailyDhikrCompletion[]
+
+  @@index([categoryId, orderInCategory])
+  @@map("dhikr_items")
+}
+
+model DailyDhikrCompletion {
+  id         String   @id @default(uuid())
+  userId     String
+  date       DateTime @db.Date
+  categoryId String?  // nullable — when null it means a "single-item standalone" mark
+  itemId     String?  // nullable — when set, it's a per-dhikr-item check
+  countDone  Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category DhikrCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  item     DhikrItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, date, categoryId, itemId])
+  @@index([userId, date])
+  @@map("daily_dhikr_completions")
 }
 
 enum NotificationType {

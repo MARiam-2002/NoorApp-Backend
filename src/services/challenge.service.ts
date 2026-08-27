@@ -3,6 +3,11 @@ import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
 import { getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { isDailyChallengeCompleted } from '../utils/challenge';
+import {
+  getOrCreateTodayJourney,
+  getDailyChallengeTemplate,
+} from './daily-content.service';
 
 type JourneySnapshot = {
   quranPagesRead: number;
@@ -10,32 +15,8 @@ type JourneySnapshot = {
   sadaqahAmount: unknown;
 };
 
-function isDailyChallengeCompleted(
-  type: ChallengeType,
-  targetValue: number,
-  journey: JourneySnapshot,
-  completedPrayers: PrayerName[] = [],
-): boolean {
-  switch (type) {
-    case 'QURAN_PAGES':
-      return journey.quranPagesRead >= targetValue;
-    case 'ADHKAR':
-      return journey.adhkarCompleted;
-    case 'SADAQAH':
-      return Number(journey.sadaqahAmount) >= targetValue;
-    case 'PRAYER':
-      return completedPrayers.length >= targetValue;
-    default:
-      return false;
-  }
-}
-
 async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
-  return prisma.dailyProgress.upsert({
-    where: { userId_date: { userId, date } },
-    create: { userId, date },
-    update: {},
-  });
+  return getOrCreateTodayJourney(userId, date);
 }
 
 async function findCompletedPrayers(userId: string, date = getTodayDateOnly()): Promise<PrayerName[]> {
@@ -47,9 +28,7 @@ async function findCompletedPrayers(userId: string, date = getTodayDateOnly()): 
 }
 
 export async function getChallengeByDay(userId: string, dayOfYear: number) {
-  const template = await prisma.dailyChallengeTemplate.findFirst({
-    where: { dayOfYear },
-  });
+  const template = await getDailyChallengeTemplate(dayOfYear);
   const completion = await prisma.challengeCompletion.findUnique({
     where: { userId_dayOfYear: { userId, dayOfYear } },
   });
@@ -72,7 +51,7 @@ export async function getChallengeByDay(userId: string, dayOfYear: number) {
     completed: isDailyChallengeCompleted(
       template.type,
       template.targetValue,
-      journey,
+      journey as unknown as JourneySnapshot,
       completedPrayers,
     ),
     claimed: Boolean(completion?.claimedAt),
@@ -95,9 +74,7 @@ export async function getAllChallenges(userId: string) {
 
 export async function claimChallenge(userId: string, dayOfYearStr: string) {
   const dayOfYear = Number(dayOfYearStr);
-  const template = await prisma.dailyChallengeTemplate.findFirst({
-    where: { dayOfYear },
-  });
+  const template = await getDailyChallengeTemplate(dayOfYear);
 
   if (!template) {
     throw new AppError(
@@ -112,7 +89,7 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
   const isCompleted = isDailyChallengeCompleted(
     template.type,
     template.targetValue,
-    journey,
+    journey as unknown as JourneySnapshot,
     completedPrayers,
   );
 

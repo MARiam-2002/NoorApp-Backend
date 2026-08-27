@@ -12,6 +12,7 @@ import { contentRouter } from './content';
 import { notificationsRouter } from './notifications';
 import { tasbihRouter } from './tasbih';
 import { qiblaRouter } from './qibla';
+import { adhkarRouter } from './adhkar';
 
 export const v1Router = Router();
 
@@ -27,3 +28,4 @@ v1Router.use('/content', contentRouter);
 v1Router.use('/notifications', notificationsRouter);
 v1Router.use('/tasbih', tasbihRouter);
 v1Router.use('/qibla', qiblaRouter);
+v1Router.use('/adhkar', adhkarRouter);

@@ -8,31 +8,21 @@ import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/d
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import { DefaultTimezone, PrayerNameEnum } from '../utils/constants';
 import { ensureSurahCatalog } from '../lib/quran-catalog';
+import {
+  FALLBACK_VERSE,
+  FALLBACK_HADITH,
+  FALLBACK_CHALLENGE,
+} from '../shared/constants/fallbacks';
+import {
+  getTodayJourneyWithFallback,
+  getVerseOfTheDayLite,
+  getHadithOfTheDayLite,
+  getDailyChallengeTemplate,
+} from './daily-content.service';
 
 const DEFAULT_LATITUDE = 30.0444;
 const DEFAULT_LONGITUDE = 31.2357;
 const TOTAL_QURAN_PAGES = 604;
-
-const FALLBACK_VERSE = {
-  textAr:
-    'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ',
-  referenceAr: 'آية الكرسي — سورة البقرة',
-  surahNumber: 2,
-  ayahNumber: 255,
-};
-
-const FALLBACK_HADITH = {
-  textAr: 'إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى',
-  sourceAr: 'رواه البخاري ومسلم',
-};
-
-const FALLBACK_CHALLENGE = {
-  titleAr: 'صفحتا قرآن',
-  descriptionAr: 'اقرأ صفحتين من القرآن الكريم اليوم',
-  type: 'QURAN_PAGES' as ChallengeType,
-  targetValue: 2,
-  rewardPoints: 50,
-};
 
 export type DashboardData = {
   greeting: {
@@ -105,22 +95,6 @@ async function findCompletedPrayers(
   return records.map((record) => record.prayer);
 }
 
-async function getOrCreateTodayJourney(userId: string, date: Date = getTodayDateOnly()) {
-  try {
-    return await prisma.dailyProgress.upsert({
-      where: { userId_date: { userId, date } },
-      create: { userId, date },
-      update: {},
-    });
-  } catch {
-    return {
-      quranPagesRead: 0,
-      adhkarCompleted: false,
-      sadaqahAmount: 0,
-    };
-  }
-}
-
 async function getOrCreateKhatmah(userId: string) {
   await ensureSurahCatalog();
   try {
@@ -144,43 +118,6 @@ async function getSurah(surahId: number) {
   } catch {
     return null;
   }
-}
-
-async function getVerseOfTheDay(dayOfYear: number) {
-  const stored = await prisma.verseOfTheDay.findFirst({
-    where: { dayOfYear },
-  });
-  if (stored) return stored;
-
-  const ayah = await prisma.ayah
-    .findUnique({
-      where: { surahId_ayahNumber: { surahId: 2, ayahNumber: 255 } },
-      include: { surah: { select: { nameAr: true } } },
-    })
-    .catch(() => null);
-
-  if (ayah) {
-    return {
-      textAr: ayah.textAr,
-      referenceAr: `آية الكرسي — ${ayah.surah.nameAr}`,
-      surahNumber: 2,
-      ayahNumber: 255,
-    };
-  }
-
-  return FALLBACK_VERSE;
-}
-
-async function getHadithOfTheDay(dayOfYear: number) {
-  return prisma.hadithOfTheDay.findFirst({
-    where: { dayOfYear },
-  });
-}
-
-async function getDailyChallengeTemplate(dayOfYear: number) {
-  return prisma.dailyChallengeTemplate.findFirst({
-    where: { dayOfYear },
-  });
 }
 
 async function getChallengeCompletion(userId: string, dayOfYear: number) {
@@ -304,10 +241,10 @@ async function buildDashboardPayload(
     challengeCompletion,
   ] = await Promise.all([
     findCompletedPrayers(userId).catch(() => [] as PrayerName[]),
-    getOrCreateTodayJourney(userId),
+    getTodayJourneyWithFallback(userId),
     getOrCreateKhatmah(userId),
-    getVerseOfTheDay(dayOfYear).catch(() => null),
-    getHadithOfTheDay(dayOfYear).catch(() => null),
+    getVerseOfTheDayLite(dayOfYear).catch(() => FALLBACK_VERSE),
+    getHadithOfTheDayLite(dayOfYear).catch(() => FALLBACK_HADITH),
     getDailyChallengeTemplate(dayOfYear).catch(() => null),
     getChallengeCompletion(userId, dayOfYear).catch(() => null),
   ]);
@@ -398,14 +335,14 @@ async function buildDashboardPayload(
       totalCount: prayers.totalCount,
     },
     verseOfTheDay: {
-      textAr: verse?.textAr ?? FALLBACK_VERSE.textAr,
-      referenceAr: verse?.referenceAr ?? FALLBACK_VERSE.referenceAr,
-      surahNumber: verse?.surahNumber ?? FALLBACK_VERSE.surahNumber,
-      ayahNumber: verse?.ayahNumber ?? FALLBACK_VERSE.ayahNumber,
+      textAr: verse.textAr,
+      referenceAr: verse.referenceAr,
+      surahNumber: verse.surahNumber,
+      ayahNumber: verse.ayahNumber,
     },
     hadithOfTheDay: {
-      textAr: hadith?.textAr ?? FALLBACK_HADITH.textAr,
-      sourceAr: hadith?.sourceAr ?? FALLBACK_HADITH.sourceAr,
+      textAr: hadith.textAr,
+      sourceAr: hadith.sourceAr,
     },
     dailyJourney: {
       prayer: {
