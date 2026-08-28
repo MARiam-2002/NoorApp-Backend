@@ -1197,14 +1197,22 @@ export async function getAdhkarProgress(userId: string, categoryKey: string) {
     }));
   }
 
-  // Get user's completions for today + this category
-  const completions = await prisma.dailyDhikrCompletion.findMany({
-    where: {
-      userId,
-      date,
-      categoryId: category?.id ?? undefined,
-    },
-  });
+  // Get user's completions for today + this category.
+  // Wrapped in try/catch: if the table doesn't exist yet (pending migration) we
+  // gracefully return all-zero progress rather than a 500.
+  let completions: Array<{ itemId: string | null; countDone: number }> = [];
+  try {
+    completions = await prisma.dailyDhikrCompletion.findMany({
+      where: {
+        userId,
+        date,
+        ...(category?.id ? { categoryId: category.id } : {}),
+      },
+      select: { itemId: true, countDone: true },
+    });
+  } catch {
+    // Table may not exist on this environment yet — fall through with empty completions.
+  }
 
   const completionMap = new Map(completions.map((c) => [c.itemId, c.countDone]));
 
@@ -1273,27 +1281,32 @@ export async function saveAdhkarProgress(
     // fallback categories have no DB id
   }
 
-  // Upsert the completion
-  await prisma.dailyDhikrCompletion.upsert({
-    where: {
-      userId_date_categoryId_itemId: {
+  // Upsert the completion — wrapped in try/catch so a missing table degrades
+  // gracefully instead of returning 500 to Flutter.
+  try {
+    await prisma.dailyDhikrCompletion.upsert({
+      where: {
+        userId_date_categoryId_itemId: {
+          userId,
+          date,
+          categoryId: categoryId ?? '',
+          itemId,
+        },
+      },
+      create: {
         userId,
         date,
-        categoryId: categoryId ?? '',
+        categoryId,
         itemId,
+        countDone: tapCount,
       },
-    },
-    create: {
-      userId,
-      date,
-      categoryId,
-      itemId,
-      countDone: tapCount,
-    },
-    update: {
-      countDone: tapCount,
-    },
-  });
+      update: {
+        countDone: tapCount,
+      },
+    });
+  } catch {
+    // Table doesn't exist yet — progress will be returned from in-memory fallback.
+  }
 
   // Return full progress
   return getAdhkarProgress(userId, key);

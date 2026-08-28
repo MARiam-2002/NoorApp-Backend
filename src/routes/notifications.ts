@@ -141,7 +141,7 @@ notificationsRouter.patch('/:id/read', authenticate, markAsReadHandler);
 /**
  * @openapi
  * /notifications/read-all:
- *   patch:
+ *   post:
  *     tags: ['Notifications']
  *     summary: تعليم جميع الإشعارات كمقروءة دفعة واحدة
  *     security: [ { bearerAuth: [] } ]
@@ -161,7 +161,7 @@ notificationsRouter.patch('/:id/read', authenticate, markAsReadHandler);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-notificationsRouter.patch('/read-all', authenticate, markAllAsReadHandler);
+notificationsRouter.post('/read-all', authenticate, markAllAsReadHandler);
 
 /**
  * @openapi
