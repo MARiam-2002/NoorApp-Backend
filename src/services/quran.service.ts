@@ -223,14 +223,16 @@ export async function listBookmarks(userId: string) {
   try {
     await ensureSurahCatalog();
 
-    // Probe whether the page column exists (migration may not have run yet)
-    let pageColumnExists = false;
-    try {
-      await prisma.$queryRawUnsafe(`SELECT "page" FROM "quran_bookmarks" LIMIT 0`);
-      pageColumnExists = true;
-    } catch {
-      pageColumnExists = false;
-    }
+    // Detect whether the page column exists using information_schema.
+    // The Prisma generated client always includes page in generated queries,
+    // so we must avoid using it at all when the column doesn't exist.
+    const colCheckList = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name   = 'quran_bookmarks'
+         AND column_name  = 'page'`,
+    ).catch(() => [] as Array<{ column_name: string }>);
+    const pageColumnExists = Array.isArray(colCheckList) && colCheckList.length > 0;
 
     const bookmarks = await prisma.quranBookmark.findMany({
       where: { userId },
@@ -323,47 +325,75 @@ export async function createBookmark(userId: string, surahId: number, ayahNumber
     );
   }
 
-  // Duplicate check — only use `page` column in WHERE if we have evidence the
-  // column exists (i.e., the migration has already run on this environment).
+  // Detect whether the page column exists in the live DB.
+  // We check information_schema rather than a SELECT probe because
+  // the Prisma client always includes page in every generated query,
+  // meaning even a probe SELECT via Prisma would fail the same way.
+  const colCheck = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name   = 'quran_bookmarks'
+       AND column_name  = 'page'`,
+  ).catch(() => [] as Array<{ column_name: string }>);
+  const pageColumnExists = Array.isArray(colCheck) && colCheck.length > 0;
+
+  // Duplicate check — only query page when the column exists
   const where: any = { userId, surahId };
   if (ayahNumber != null) where.ayahNumber = ayahNumber;
-  // Probe for the page column before using it in WHERE / INSERT to defend
-  // against environments where the migration hasn't applied yet.
-  let pageColumnExists = false;
-  try {
-    await prisma.$queryRawUnsafe(
-      `SELECT "page" FROM "quran_bookmarks" LIMIT 0`,
-    );
-    pageColumnExists = true;
-  } catch {
-    pageColumnExists = false;
-  }
   if (page != null && pageColumnExists) where.page = page;
-
   const existing = await prisma.quranBookmark.findFirst({ where });
   if (existing) {
     throw new AppError('This ayah/page is already bookmarked', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
   }
 
-  // Build the INSERT data map — only include page when the column exists.
-  const insertData: any = {
-    userId,
-    surahId,
-    ayahNumber: ayahNumber ?? null,
-    note,
-  };
+  // Use a raw INSERT so we never reference the page column when it doesn't exist.
+  const { v4: uuidv4 } = await import('crypto').then((m) => ({ v4: () => m.randomUUID() }));
+  const id = uuidv4();
+
   if (pageColumnExists) {
-    insertData.page = page ?? null;
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "quran_bookmarks" ("id","userId","surahId","ayahNumber","page","note","createdAt")
+       VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
+      id, userId, surahId,
+      ayahNumber ?? null,
+      page ?? null,
+      note ?? null,
+    );
+  } else {
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "quran_bookmarks" ("id","userId","surahId","ayahNumber","note","createdAt")
+       VALUES ($1,$2,$3,$4,$5,NOW())`,
+      id, userId, surahId,
+      ayahNumber ?? null,
+      note ?? null,
+    );
   }
 
-  const created = await prisma.quranBookmark.create({
-    data: insertData,
-    include: {
-      surah: {
-        select: { id: true, nameEn: true, nameAr: true },
-      },
-    },
-  });
+  // Fetch the created row via Prisma to get relations (page column may still be
+  // undefined when not in schema — normalise to null in serializeBookmark).
+  let created: any;
+  if (pageColumnExists) {
+    created = await prisma.quranBookmark.findUnique({
+      where: { id },
+      include: { surah: { select: { id: true, nameEn: true, nameAr: true } } },
+    });
+  } else {
+    // Fetch without triggering the page column — use raw, rebuild shape manually.
+    const rows = await prisma.$queryRawUnsafe<Array<{
+      id: string; userId: string; surahId: number; ayahNumber: number | null;
+      note: string | null; createdAt: Date;
+    }>>(
+      `SELECT "id","userId","surahId","ayahNumber","note","createdAt"
+       FROM "quran_bookmarks" WHERE "id" = $1`, id,
+    );
+    const row = rows[0];
+    const surahRow = await prisma.surah.findUnique({
+      where: { id: surahId },
+      select: { id: true, nameEn: true, nameAr: true },
+    });
+    created = { ...row, page: null, surah: surahRow };
+  }
+
   let textAr: string | null = null;
   if (ayahNumber != null) {
     const ayah = await prisma.ayah.findFirst({
@@ -376,26 +406,47 @@ export async function createBookmark(userId: string, surahId: number, ayahNumber
 }
 
 export async function updateBookmark(userId: string, bookmarkId: string, note: string) {
-  const row = await prisma.quranBookmark.findUnique({ where: { id: bookmarkId } });
-  if (!row || row.userId !== userId) {
+  // Use raw queries to avoid the Prisma client referencing the `page` column
+  // which may not exist in older production DB states.
+
+  // Verify ownership
+  const ownerRows = await prisma.$queryRawUnsafe<Array<{ userId: string }>>(
+    `SELECT "userId" FROM "quran_bookmarks" WHERE "id" = $1`, bookmarkId,
+  );
+  if (ownerRows.length === 0 || ownerRows[0]?.userId !== userId) {
     throw new AppError('Bookmark not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
-  const updated = await prisma.quranBookmark.update({
-    where: { id: bookmarkId },
-    data: { note },
-    include: {
-      surah: { select: { id: true, nameEn: true, nameAr: true } },
-    },
+
+  // Update the note
+  await prisma.$executeRawUnsafe(
+    `UPDATE "quran_bookmarks" SET "note" = $1 WHERE "id" = $2`,
+    note, bookmarkId,
+  );
+
+  // Read back without page column (may not exist)
+  const updRows = await prisma.$queryRawUnsafe<Array<{
+    id: string; userId: string; surahId: number; ayahNumber: number | null; note: string | null; createdAt: Date;
+  }>>(
+    `SELECT "id","userId","surahId","ayahNumber","note","createdAt" FROM "quran_bookmarks" WHERE "id" = $1`,
+    bookmarkId,
+  );
+  const upd = updRows[0];
+  if (!upd) throw new AppError('Bookmark not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+
+  const surahRow = await prisma.surah.findUnique({
+    where: { id: upd.surahId },
+    select: { id: true, nameEn: true, nameAr: true },
   });
+
   let textAr: string | null = null;
-  if (updated.surahId != null && updated.ayahNumber != null) {
+  if (upd.surahId != null && upd.ayahNumber != null) {
     const ayah = await prisma.ayah.findFirst({
-      where: { surahId: updated.surahId, ayahNumber: updated.ayahNumber },
+      where: { surahId: upd.surahId, ayahNumber: upd.ayahNumber },
       select: { textAr: true },
     });
     textAr = ayah?.textAr ?? null;
   }
-  return serializeBookmark({ ...updated, userId }, textAr);
+  return serializeBookmark({ ...upd, page: null, surah: surahRow }, textAr);
 }
 
 export async function resetKhatmah(userId: string) {
@@ -483,11 +534,14 @@ export async function getRandomAyah() {
 }
 
 export async function deleteBookmark(userId: string, bookmarkId: string) {
-  const result = await prisma.quranBookmark.deleteMany({
-    where: { id: bookmarkId, userId },
-  });
+  // Use raw DELETE to avoid Prisma's generated client referencing the `page`
+  // column which may not exist in older production database states.
+  const result = await prisma.$executeRawUnsafe(
+    `DELETE FROM "quran_bookmarks" WHERE "id" = $1 AND "userId" = $2`,
+    bookmarkId, userId,
+  );
 
-  if (result.count === 0) {
+  if (result === 0) {
     throw new AppError('Bookmark not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
 }
