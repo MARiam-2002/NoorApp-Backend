@@ -27,16 +27,14 @@ const TOTAL_QURAN_PAGES = 604;
 export type DashboardData = {
   greeting: {
     displayName: string;
-    fullName: string | null;
-    username: string;
-    points: number;
     weekdayName: string;
     hijriDate: string;
-    gregorianDate: string;
+    points: number;
+    fullName?: string | null;
+    username?: string;
+    gregorianDate?: string;
   };
   prayers: {
-    date: string;
-    timezone: string;
     nextPrayer: {
       name: string;
       nameAr: string;
@@ -49,14 +47,16 @@ export type DashboardData = {
       time: string;
       completed: boolean;
     }>;
-    completedCount: number;
-    totalCount: number;
+    date?: string;
+    timezone?: string;
+    completedCount?: number;
+    totalCount?: number;
   };
   verseOfTheDay: {
     textAr: string;
     referenceAr: string;
-    surahNumber: number;
-    ayahNumber: number;
+    surahNumber?: number;
+    ayahNumber?: number;
   };
   hadithOfTheDay: { textAr: string; sourceAr: string };
   dailyJourney: {
@@ -67,10 +67,10 @@ export type DashboardData = {
   };
   khatmah: {
     surahId: number;
-    surahNameEn: string;
     surahNameAr: string;
     currentPage: number;
     progressPercent: number;
+    surahNameEn?: string;
   };
   dailyChallenge: {
     titleAr: string;
@@ -80,7 +80,7 @@ export type DashboardData = {
     completed: boolean;
     claimed: boolean;
   };
-  utilities: { tasbih: { enabled: true }; qibla: { enabled: true } };
+  utilities: Record<string, unknown>;
 };
 
 async function findCompletedPrayers(
@@ -170,18 +170,18 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     return {
       greeting: {
         displayName: user.fullName?.trim() || user.username,
-        fullName: user.fullName ?? null,
-        username: user.username,
-        points: user.points,
         weekdayName: todayInfo.weekdayName,
         hijriDate: todayInfo.hijri,
+        points: user.points,
+        fullName: user.fullName ?? null,
+        username: user.username,
         gregorianDate: todayInfo.gregorian,
       },
       prayers: {
-        date: new Date().toISOString().slice(0, 10),
-        timezone: user.timezone ?? DefaultTimezone,
         nextPrayer: null,
         schedule: [],
+        date: new Date().toISOString().slice(0, 10),
+        timezone: user.timezone ?? DefaultTimezone,
         completedCount: 0,
         totalCount: 5,
       },
@@ -195,10 +195,10 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       },
       khatmah: {
         surahId: 2,
-        surahNameEn: 'Al-Baqarah',
         surahNameAr: 'البقرة',
         currentPage: 1,
         progressPercent: 0,
+        surahNameEn: 'Al-Baqarah',
       },
       dailyChallenge: {
         titleAr: FALLBACK_CHALLENGE.titleAr,
@@ -278,7 +278,7 @@ async function buildDashboardPayload(
 
   const prayerProgress =
     prayers.totalCount > 0
-      ? Math.round((prayers.completedCount / prayers.totalCount) * 100)
+      ? Math.round((prayers.completedCount / prayers.totalCount) * 100) / 100
       : 0;
 
   const challengeCompleted = isDailyChallengeCompleted(
@@ -307,16 +307,14 @@ async function buildDashboardPayload(
   return {
     greeting: {
       displayName,
-      fullName: user.fullName ?? null,
-      username: user.username,
-      points: user.points,
       weekdayName: todayInfo.weekdayName,
       hijriDate: todayInfo.hijri,
+      points: user.points,
+      fullName: user.fullName ?? null,
+      username: user.username,
       gregorianDate: todayInfo.gregorian,
     },
     prayers: {
-      date: prayers.date,
-      timezone: prayers.timezone,
       nextPrayer: prayers.nextPrayer
         ? {
             name: prayers.nextPrayer.name,
@@ -331,6 +329,8 @@ async function buildDashboardPayload(
         time: item.time,
         completed: item.completed,
       })),
+      date: prayers.date,
+      timezone: prayers.timezone,
       completedCount: prayers.completedCount,
       totalCount: prayers.totalCount,
     },
@@ -354,7 +354,13 @@ async function buildDashboardPayload(
       adhkar: { completed: journey.adhkarCompleted },
       sadaqah: { amount: Number(journey.sadaqahAmount) || 0 },
     },
-    khatmah: khatmahPayload,
+    khatmah: {
+      surahId: surah?.id ?? 2,
+      surahNameAr: surah?.nameAr ?? 'البقرة',
+      currentPage: khatmah?.currentPage ?? 1,
+      progressPercent: khatmahPayload.progressPercent,
+      surahNameEn: surah?.nameEn ?? 'Al-Baqarah',
+    },
     dailyChallenge: {
       titleAr: challengeTemplate?.titleAr ?? FALLBACK_CHALLENGE.titleAr,
       descriptionAr: challengeTemplate?.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,

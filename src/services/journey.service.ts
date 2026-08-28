@@ -15,7 +15,6 @@ export async function getTodayJourney(userId: string) {
   const date = getTodayDateOnly();
   const progress = await getOrCreateToday(userId);
 
-  // Count today's prayer completions
   let prayersCompleted = 0;
   try {
     prayersCompleted = await prisma.prayerCompletion.count({
@@ -26,7 +25,7 @@ export async function getTodayJourney(userId: string) {
   }
 
   const totalPrayers = 5;
-  const quranGoal = 4; // default daily goal
+  const quranGoal = 4;
   const sadaqahGoal = 50;
 
   const quranProgress = quranGoal > 0 ? Math.min(1, progress.quranPagesRead / quranGoal) : 0;
@@ -46,24 +45,42 @@ export async function getTodayJourney(userId: string) {
     ((quranProgress + prayerProgress + (adhkarDone ? 1 : 0) + sadaqahProgress) / 4) * 100,
   );
 
-  // Get user points
   let points = 0;
+  let streakDays = 0;
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { points: true } });
+    const [user, last30Progress] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { points: true } }),
+      prisma.dailyProgress.findMany({
+        where: { userId },
+        select: { date: true, quranPagesRead: true, adhkarCompleted: true, sadaqahAmount: true },
+      }),
+    ]);
     points = user?.points ?? 0;
+
+    const datesSet = new Set(
+      last30Progress
+        .filter((p) => p.quranPagesRead > 0 || p.adhkarCompleted || Number(p.sadaqahAmount) > 0)
+        .map((p) => p.date.toISOString().slice(0, 10)),
+    );
+    const cursor = new Date(date);
+    while (datesSet.has(cursor.toISOString().slice(0, 10))) {
+      streakDays += 1;
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    }
   } catch { /* */ }
 
   return {
     date: date.toISOString().slice(0, 10),
     tasks,
-    streakDays: 0, // TODO: calculate from consecutive daily progress
+    streakDays,
     badges: [],
     points,
     overallPercent,
-    // Keep flat fields for backward compatibility
     quranPagesRead: progress.quranPagesRead,
     adhkarCompleted: progress.adhkarCompleted,
     sadaqahAmount,
+    prayersCompleted,
+    prayersTotal: totalPrayers,
   };
 }
 
@@ -141,31 +158,88 @@ export async function getJourneyProgress(userId: string, days = 7) {
   const startDate = new Date(today);
   startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
 
-  const progress = await prisma.dailyProgress.findMany({
-    where: {
-      userId,
-      date: { gte: startDate, lte: today },
-    },
-    orderBy: { date: 'asc' },
+  const [progress, prayerCompletions] = await Promise.all([
+    prisma.dailyProgress.findMany({
+      where: {
+        userId,
+        date: { gte: startDate, lte: today },
+      },
+      orderBy: { date: 'asc' },
+    }),
+    prisma.prayerCompletion.findMany({
+      where: {
+        userId,
+        date: { gte: startDate, lte: today },
+      },
+    }),
+  ]);
+
+  const prayersByDate = new Map<string, number>();
+  for (const pc of prayerCompletions) {
+    const key = pc.date.toISOString().slice(0, 10);
+    prayersByDate.set(key, (prayersByDate.get(key) ?? 0) + 1);
+  }
+
+  const QURAN_GOAL = 4;
+  const SADAQAH_GOAL = 50;
+  const TOTAL_PRAYERS = 5;
+
+  const daily = progress.map((p) => {
+    const dateStr = p.date.toISOString().slice(0, 10);
+    const prayersCompleted = prayersByDate.get(dateStr) ?? 0;
+    const quranProgress = QURAN_GOAL > 0 ? Math.min(1, p.quranPagesRead / QURAN_GOAL) : 0;
+    const prayerProgress = prayersCompleted / TOTAL_PRAYERS;
+    const sadaqahProgress = SADAQAH_GOAL > 0 ? Math.min(1, Number(p.sadaqahAmount) / SADAQAH_GOAL) : 0;
+    const overallPercent = Math.round(
+      ((quranProgress + prayerProgress + (p.adhkarCompleted ? 1 : 0) + sadaqahProgress) / 4) * 100,
+    );
+
+    return {
+      date: dateStr,
+      quranPages: p.quranPagesRead,
+      quranPagesRead: p.quranPagesRead,
+      adhkarCompleted: p.adhkarCompleted,
+      sadaqah: Number(p.sadaqahAmount),
+      sadaqahAmount: Number(p.sadaqahAmount),
+      prayersCompleted,
+      overallPercent,
+    };
   });
+
+  const totalPrayersCompleted = prayerCompletions.length;
+  const daysStreak = computeDaysStreak(progress, today);
+
+  const summary = {
+    totalQuranPages: progress.reduce((sum, p) => sum + p.quranPagesRead, 0),
+    adhkarDaysCompleted: progress.filter((p) => p.adhkarCompleted).length,
+    totalSadaqah: progress.reduce(
+      (sum, p) => sum + Number(p.sadaqahAmount),
+      0,
+    ),
+    prayersCompletedCount: totalPrayersCompleted,
+    daysStreak,
+  };
 
   return {
     periodDays: days,
-    records: progress.map((p) => ({
-      date: p.date.toISOString().slice(0, 10),
-      quranPagesRead: p.quranPagesRead,
-      adhkarCompleted: p.adhkarCompleted,
-      sadaqahAmount: Number(p.sadaqahAmount),
-    })),
-    summary: {
-      totalQuranPages: progress.reduce((sum, p) => sum + p.quranPagesRead, 0),
-      adhkarDaysCompleted: progress.filter((p) => p.adhkarCompleted).length,
-      totalSadaqah: progress.reduce(
-        (sum, p) => sum + Number(p.sadaqahAmount),
-        0,
-      ),
-    },
+    daily,
+    records: daily,
+    summary,
   };
+}
+
+function computeDaysStreak(progress: Array<{ date: Date }>, today: Date): number {
+  if (progress.length === 0) return 0;
+  const datesSet = new Set(
+    progress.map((p) => p.date.toISOString().slice(0, 10)),
+  );
+  let streak = 0;
+  const cursor = new Date(today);
+  while (datesSet.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
 }
 
 const TOTAL_QURAN_PAGES = 604;

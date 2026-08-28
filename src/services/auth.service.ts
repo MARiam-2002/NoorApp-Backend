@@ -47,25 +47,19 @@ export type AuthTokens = {
   expiresIn: number;
 };
 
-export type AuthUserProfile = {
+export type ContractAuthUser = {
   id: string;
-  username: string;
   fullName: string | null;
   email: string;
-  role: string;
   provider: string;
-  /**
-   * Stable provider-level user ID. For GOOGLE users this equals the `sub`
-   * claim in the Google ID token. Stored in User.googleId. Can be used by
-   * Flutter to distinguish first-time vs returning Google sign-ins alongside
-   * the response HTTP status (201 vs 200).
-   */
   providerId: string | null;
-  createdAt: Date;
+  displayName?: string | null;
+  username?: string;
+  googleId?: string | null;
 };
 
 export type AuthResult = {
-  user: AuthUserProfile;
+  user: ContractAuthUser;
   tokens: AuthTokens;
 };
 
@@ -97,7 +91,7 @@ function hashResetToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-function mapUserToProfile(user: {
+function mapUserToContract(user: {
   id: string;
   username: string;
   fullName: string | null;
@@ -107,16 +101,17 @@ function mapUserToProfile(user: {
   providerId: string | null;
   googleId: string | null;
   createdAt: Date;
-}): AuthUserProfile {
+}): ContractAuthUser {
+  const displayName = user.fullName?.trim() || user.username;
   return {
     id: user.id,
-    username: user.username,
     fullName: user.fullName ?? null,
     email: user.email,
-    role: user.role,
     provider: user.provider,
     providerId: user.googleId ?? user.providerId ?? null,
-    createdAt: user.createdAt,
+    displayName,
+    username: user.username,
+    googleId: user.googleId ?? null,
   };
 }
 
@@ -144,7 +139,7 @@ async function createAuthResultForUser(user: {
   });
 
   return {
-    user: mapUserToProfile(user),
+    user: mapUserToContract(user),
     tokens: {
       accessToken,
       refreshToken,
@@ -315,7 +310,7 @@ export async function logout(input: { refreshToken: string }): Promise<void> {
   });
 }
 
-export async function getCurrentUser(userId: string): Promise<AuthUserProfile> {
+export async function getCurrentUser(userId: string): Promise<ContractAuthUser> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -336,7 +331,7 @@ export async function getCurrentUser(userId: string): Promise<AuthUserProfile> {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
 
-  return mapUserToProfile(user);
+  return mapUserToContract(user);
 }
 
 export async function forgotPassword(email: string): Promise<void> {

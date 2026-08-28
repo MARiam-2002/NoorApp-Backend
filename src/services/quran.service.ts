@@ -138,17 +138,38 @@ function serializeBookmark(
 }
 
 export async function listSurahs() {
-  return prisma.surah.findMany({
-    orderBy: { id: 'asc' },
-    select: {
-      id: true,
-      nameEn: true,
-      nameAr: true,
-      totalAyahs: true,
-      totalPages: true,
-      revelationType: true,
-    },
-  });
+  const [surahs, firstPages] = await Promise.all([
+    prisma.surah.findMany({
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        nameEn: true,
+        nameAr: true,
+        totalAyahs: true,
+        totalPages: true,
+        revelationType: true,
+      },
+    }),
+    prisma.ayah.groupBy({
+      by: ['surahId'],
+      _min: { page: true },
+    }),
+  ]);
+
+  const startPageById = new Map<number, number | null>();
+  for (const row of firstPages) {
+    if (row.surahId != null) startPageById.set(row.surahId, row._min.page ?? null);
+  }
+
+  return surahs.map((s) => ({
+    id: s.id,
+    nameAr: s.nameAr,
+    nameEn: s.nameEn,
+    revelationType: s.revelationType,
+    totalAyahs: s.totalAyahs,
+    totalPages: s.totalPages,
+    startPage: startPageById.get(s.id) ?? 1,
+  }));
 }
 
 export async function getSurah(surahId: number) {
@@ -436,7 +457,7 @@ export async function deleteBookmark(userId: string, bookmarkId: string) {
 export async function getLastRead(userId: string) {
   try {
     await ensureSurahCatalog();
-    return await prisma.quranLastRead.findUnique({
+    const row = await prisma.quranLastRead.findUnique({
       where: { userId },
       include: {
         surah: {
@@ -444,6 +465,33 @@ export async function getLastRead(userId: string) {
         },
       },
     });
+
+    if (!row) return null;
+
+    let juz: number | null = null;
+    if (row.surahId != null && row.ayahNumber != null) {
+      try {
+        const ayahRow = await prisma.ayah.findFirst({
+          where: { surahId: row.surahId, ayahNumber: row.ayahNumber },
+          select: { juz: true },
+        });
+        juz = ayahRow?.juz ?? null;
+      } catch { /* */ }
+    }
+
+    const surahObj = row.surah ?? { id: row.surahId, nameEn: 'Unknown', nameAr: 'غير معروف' };
+    return {
+      surahId: row.surahId,
+      page: row.page,
+      ayahNumber: row.ayahNumber,
+      juz,
+      surahNameAr: surahObj.nameAr,
+      surah: {
+        id: surahObj.id,
+        nameAr: surahObj.nameAr,
+        nameEn: surahObj.nameEn,
+      },
+    };
   } catch {
     return null;
   }
@@ -473,7 +521,7 @@ export async function updateLastRead(userId: string, surahId: number, ayahNumber
     );
   }
 
-  return prisma.quranLastRead.upsert({
+  const saved = await prisma.quranLastRead.upsert({
     where: { userId },
     create: { userId, surahId, ayahNumber, page },
     update: { surahId, ayahNumber, page },
@@ -483,6 +531,29 @@ export async function updateLastRead(userId: string, surahId: number, ayahNumber
       },
     },
   });
+
+  let juz: number | null = null;
+  try {
+    const ayahRow = await prisma.ayah.findFirst({
+      where: { surahId, ayahNumber },
+      select: { juz: true },
+    });
+    juz = ayahRow?.juz ?? null;
+  } catch { /* */ }
+
+  const surahObj = saved.surah ?? { id: surahId, nameEn: surah.nameEn, nameAr: surah.nameAr };
+  return {
+    surahId: saved.surahId,
+    page: saved.page,
+    ayahNumber: saved.ayahNumber,
+    juz,
+    surahNameAr: surahObj.nameAr,
+    surah: {
+      id: surahObj.id,
+      nameAr: surahObj.nameAr,
+      nameEn: surahObj.nameEn,
+    },
+  };
 }
 
 export async function listReadingHistory(userId: string, page?: number, limit?: number) {

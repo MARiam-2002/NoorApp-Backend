@@ -30,6 +30,51 @@ export function getDhikrArName(dhikr: string): string {
   return dhikrArNamesMap[key] ?? dhikr;
 }
 
+const TASBIH_DAILY_GOAL = 99;
+
+export type ContractTasbih = {
+  count: number;
+  dhikr: string;
+  dhikrAr: string;
+  dailyGoal: number;
+  progressPercent: number;
+  todayCount?: number;
+  currentDhikr?: string;
+  currentDhikrAr?: string;
+  currentDhikrCount?: number;
+  id?: string;
+  date?: Date;
+  totalAllTime?: number;
+};
+
+function toContractTasbih(log: {
+  id: string;
+  date?: Date;
+  dhikr: TasbihDhikr | string;
+  count: number;
+  totalAllTime?: number;
+}): ContractTasbih {
+  const dhikrKey = (log.dhikr ?? Dhikr.SUBHAN_ALLAH) as string;
+  const dhikrAr = getDhikrArName(dhikrKey);
+  const progressPercent = TASBIH_DAILY_GOAL > 0
+    ? Math.min(100, Math.round((log.count * 100) / TASBIH_DAILY_GOAL))
+    : 0;
+  return {
+    count: log.count,
+    dhikr: dhikrKey,
+    dhikrAr,
+    dailyGoal: TASBIH_DAILY_GOAL,
+    progressPercent,
+    todayCount: log.count,
+    currentDhikr: dhikrKey,
+    currentDhikrAr: dhikrAr,
+    currentDhikrCount: log.count,
+    id: log.id,
+    date: log.date,
+    totalAllTime: (log as any).totalAllTime ?? log.totalAllTime ?? 0,
+  };
+}
+
 async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
   return prisma.tasbihLog.upsert({
     where: { userId_date: { userId, date } },
@@ -38,19 +83,12 @@ async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
   });
 }
 
-export async function getTodayTasbih(userId: string) {
+export async function getTodayTasbih(userId: string): Promise<ContractTasbih> {
   const tasbihLog = await getOrCreateToday(userId);
-
-  return {
-    id: tasbihLog.id,
-    date: tasbihLog.date,
-    dhikr: tasbihLog.dhikr,
-    count: tasbihLog.count,
-    totalAllTime: tasbihLog.totalAllTime,
-  };
+  return toContractTasbih(tasbihLog);
 }
 
-export async function incrementTasbih(userId: string, amount = 1) {
+export async function incrementTasbih(userId: string, amount = 1): Promise<ContractTasbih> {
   if (amount <= 0) {
     throw new AppError(
       'Amount must be greater than zero',
@@ -70,44 +108,22 @@ export async function incrementTasbih(userId: string, amount = 1) {
     },
   });
 
-  return {
-    id: tasbihLog.id,
-    dhikr: tasbihLog.dhikr,
-    count: tasbihLog.count,
-    totalAllTime: tasbihLog.totalAllTime,
-  };
+  return toContractTasbih(tasbihLog);
 }
 
-export async function resetTasbih(userId: string) {
+export async function resetTasbih(userId: string): Promise<ContractTasbih> {
   const date = getTodayDateOnly();
   const current = await getOrCreateToday(userId, date);
-
-  // TODO: After running "npx prisma migrate dev", uncomment to save reset history
-  // if (current.count > 0) {
-  //   await prisma.tasbihResetHistory.create({
-  //     data: {
-  //       userId,
-  //       tasbihLogId: current.id,
-  //       countBeforeReset: current.count,
-  //       date: new Date(),
-  //     },
-  //   });
-  // }
 
   const tasbihLog = await prisma.tasbihLog.update({
     where: { id: current.id },
     data: { count: 0 },
   });
 
-  return {
-    id: tasbihLog.id,
-    dhikr: tasbihLog.dhikr,
-    count: tasbihLog.count,
-    totalAllTime: tasbihLog.totalAllTime,
-  };
+  return toContractTasbih(tasbihLog);
 }
 
-export async function changeDhikr(userId: string, dhikr: TasbihDhikr) {
+export async function changeDhikr(userId: string, dhikr: TasbihDhikr): Promise<ContractTasbih> {
   const date = getTodayDateOnly();
   const tasbihLog = await prisma.tasbihLog.upsert({
     where: { userId_date: { userId, date } },
@@ -115,12 +131,7 @@ export async function changeDhikr(userId: string, dhikr: TasbihDhikr) {
     update: { dhikr },
   });
 
-  return {
-    id: tasbihLog.id,
-    dhikr: tasbihLog.dhikr,
-    count: tasbihLog.count,
-    totalAllTime: tasbihLog.totalAllTime,
-  };
+  return toContractTasbih(tasbihLog);
 }
 
 export async function getTasbihHistory(userId: string, limit = 30) {
