@@ -1311,3 +1311,152 @@ export async function saveAdhkarProgress(
   // Return full progress
   return getAdhkarProgress(userId, key);
 }
+
+
+// ============================================================
+// Adhkar Favorites (حفظ الأذكار المفضلة)
+// ============================================================
+
+/**
+ * List user's favorite adhkar
+ */
+export async function listAdhkarFavorites(userId: string) {
+  const favorites: any = await prisma.adhkarFavorite.findMany({
+    where: { userId },
+    include: {
+      item: {
+        include: {
+          category: {
+            select: {
+              id: true,
+              key: true,
+              nameAr: true,
+              nameEn: true,
+              iconCode: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return favorites.map((fav: any) => ({
+    id: fav.id,
+    itemId: fav.itemId,
+    dhikr: {
+      id: fav.item.id,
+      textAr: fav.item.textAr,
+      textArPlain: fav.item.textArPlain,
+      repeatCount: fav.item.repeatCount,
+      referenceAr: fav.item.referenceAr,
+      benefitAr: fav.item.benefitAr,
+      category: fav.item.category,
+    },
+    createdAt: fav.createdAt.toISOString(),
+  }));
+}
+
+/**
+ * Add adhkar to favorites
+ */
+export async function addAdhkarFavorite(userId: string, itemId: string) {
+  // Check if item exists
+  const item = await prisma.dhikrItem.findUnique({
+    where: { id: itemId },
+  });
+
+  if (!item) {
+    throw new AppError('Dhikr item not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+  }
+
+  // Check if already favorited
+  const existing = await prisma.adhkarFavorite.findUnique({
+    where: {
+      userId_itemId: {
+        userId,
+        itemId,
+      },
+    },
+  });
+
+  if (existing) {
+    throw new AppError('This dhikr is already in your favorites', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
+  }
+
+  // Create favorite
+  const favorite: any = await prisma.adhkarFavorite.create({
+    data: {
+      userId,
+      itemId,
+    },
+    include: {
+      item: {
+        include: {
+          category: {
+            select: {
+              id: true,
+              key: true,
+              nameAr: true,
+              nameEn: true,
+              iconCode: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const fav: any = favorite;
+
+  return {
+    id: fav.id,
+    itemId: fav.itemId,
+    dhikr: {
+      id: fav.item.id,
+      textAr: fav.item.textAr,
+      textArPlain: fav.item.textArPlain,
+      repeatCount: fav.item.repeatCount,
+      referenceAr: fav.item.referenceAr,
+      benefitAr: fav.item.benefitAr,
+      category: fav.item.category,
+    },
+    createdAt: fav.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Remove adhkar from favorites
+ */
+export async function removeAdhkarFavorite(userId: string, favoriteId: string) {
+  // Check ownership
+  const favorite = await prisma.adhkarFavorite.findUnique({
+    where: { id: favoriteId },
+  });
+
+  if (!favorite || favorite.userId !== userId) {
+    throw new AppError('Favorite not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+  }
+
+  await prisma.adhkarFavorite.delete({
+    where: { id: favoriteId },
+  });
+
+  return { message: 'Favorite removed successfully' };
+}
+
+/**
+ * Check if adhkar is favorited
+ */
+export async function isAdhkarFavorited(userId: string, itemId: string): Promise<boolean> {
+  const favorite = await prisma.adhkarFavorite.findUnique({
+    where: {
+      userId_itemId: {
+        userId,
+        itemId,
+      },
+    },
+  });
+
+  return !!favorite;
+}

@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
+import { HttpStatus } from '../shared/constants';
 import {
   getAllCategories,
   getCategoriesWithDailyWird,
@@ -8,6 +9,9 @@ import {
   getDailyWird,
   getAdhkarProgress,
   saveAdhkarProgress,
+  listAdhkarFavorites,
+  addAdhkarFavorite,
+  removeAdhkarFavorite,
 } from '../services/adhkar.service';
 
 export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -47,4 +51,25 @@ export const saveAdhkarProgressHandler = asyncHandler(async (req: Request, res: 
   };
   const data = await saveAdhkarProgress(userId, categoryKey, itemId, tapCount);
   sendSuccess(res, data, `Adhkar progress saved for ${categoryKey}`, req);
+});
+
+
+export const listAdhkarFavoritesHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const data = await listAdhkarFavorites(userId);
+  sendSuccess(res, data, 'Adhkar favorites retrieved successfully', req);
+});
+
+export const addAdhkarFavoriteHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const { itemId } = req.body as { itemId: string };
+  const data = await addAdhkarFavorite(userId, itemId);
+  sendSuccess(res, data, 'Dhikr added to favorites', req, HttpStatus.CREATED);
+});
+
+export const removeAdhkarFavoriteHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const { favoriteId } = req.params as { favoriteId: string };
+  const data = await removeAdhkarFavorite(userId, favoriteId);
+  sendSuccess(res, data, 'Favorite removed successfully', req);
 });

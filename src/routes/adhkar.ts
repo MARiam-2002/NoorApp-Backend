@@ -6,6 +6,9 @@ import {
   getDhikrHomeHandler,
   getAdhkarProgressHandler,
   saveAdhkarProgressHandler,
+  listAdhkarFavoritesHandler,
+  addAdhkarFavoriteHandler,
+  removeAdhkarFavoriteHandler,
 } from '../controllers/adhkar.controller';
 import { authenticate } from '../middleware/auth';
 
@@ -260,3 +263,113 @@ adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
  *               timestamp: '2026-08-27T03:15:00.000Z'
  */
 adhkarRouter.get('/categories/:key', getDhikrCategoryByKeyHandler);
+
+
+/**
+ * @openapi
+ * /adhkar/favorites:
+ *   get:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: قائمة الأذكار المفضلة للمستخدم
+ *     description: يُرجع كل الأذكار التي حفظها المستخدم في المفضلة مع تفاصيل كل ذكر.
+ *     security: [ { bearerAuth: [] } ]
+ *     responses:
+ *       200:
+ *         description: ✅ قائمة المفضلة
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Adhkar favorites retrieved successfully
+ *               data:
+ *                 - id: fav-uuid
+ *                   itemId: item-uuid
+ *                   dhikr:
+ *                     id: item-uuid
+ *                     textAr: لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ
+ *                     repeatCount: 100
+ *                     referenceAr: رواه البخاري
+ *                     benefitAr: كنز من كنوز الجنة
+ *                     category:
+ *                       key: MORNING
+ *                       nameAr: اذكار الصباح
+ *                   createdAt: '2026-08-28T10:00:00.000Z'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+adhkarRouter.get('/favorites', authenticate, listAdhkarFavoritesHandler);
+
+/**
+ * @openapi
+ * /adhkar/favorites:
+ *   post:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: إضافة ذكر للمفضلة
+ *     description: حفظ ذكر معين في قائمة المفضلة للمستخدم.
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [itemId]
+ *             properties:
+ *               itemId: { type: string, example: item-uuid }
+ *     responses:
+ *       201:
+ *         description: ✅ تمت الإضافة للمفضلة
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Dhikr added to favorites
+ *               data:
+ *                 id: fav-uuid
+ *                 itemId: item-uuid
+ *                 dhikr:
+ *                   id: item-uuid
+ *                   textAr: لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ
+ *                   repeatCount: 100
+ *                   referenceAr: رواه البخاري
+ *                   category:
+ *                     key: MORNING
+ *                     nameAr: اذكار الصباح
+ *                 createdAt: '2026-08-28T10:00:00.000Z'
+ *       409:
+ *         description: ❌ الذكر موجود في المفضلة
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+adhkarRouter.post('/favorites', authenticate, addAdhkarFavoriteHandler);
+
+/**
+ * @openapi
+ * /adhkar/favorites/{favoriteId}:
+ *   delete:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: إزالة ذكر من المفضلة
+ *     description: حذف ذكر من قائمة المفضلة.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: path
+ *         name: favoriteId
+ *         required: true
+ *         schema: { type: string }
+ *         description: معرف المفضلة (favorite ID)
+ *     responses:
+ *       200:
+ *         description: ✅ تمت الإزالة
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Favorite removed successfully
+ *               data:
+ *                 message: Favorite removed successfully
+ *       404:
+ *         description: ❌ المفضلة غير موجودة
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+adhkarRouter.delete('/favorites/:favoriteId', authenticate, removeAdhkarFavoriteHandler);
