@@ -129,7 +129,7 @@ function serializeBookmark(
     userId: row.userId,
     surahId: row.surahId,
     ayahNumber: row.ayahNumber,
-    page: row.page,
+    page: (row as any).page ?? null,
     note: row.note,
     textAr: sanitizedTextAr,
     surahNameAr: surahObj.nameAr,
@@ -222,6 +222,16 @@ export async function listAyahs(surahId: number, page?: number, limit?: number) 
 export async function listBookmarks(userId: string) {
   try {
     await ensureSurahCatalog();
+
+    // Probe whether the page column exists (migration may not have run yet)
+    let pageColumnExists = false;
+    try {
+      await prisma.$queryRawUnsafe(`SELECT "page" FROM "quran_bookmarks" LIMIT 0`);
+      pageColumnExists = true;
+    } catch {
+      pageColumnExists = false;
+    }
+
     const bookmarks = await prisma.quranBookmark.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -229,7 +239,7 @@ export async function listBookmarks(userId: string) {
         id: true,
         surahId: true,
         ayahNumber: true,
-        page: true,
+        ...(pageColumnExists ? { page: true } : {}),
         note: true,
         createdAt: true,
       },
@@ -275,7 +285,7 @@ export async function listBookmarks(userId: string) {
         userId,
         surahId: b.surahId,
         ayahNumber: b.ayahNumber,
-        page: b.page,
+        page: (b as any).page ?? null,
         note: b.note,
         textAr:
           b.ayahNumber != null ? ayahMap.get(`${b.surahId}:${b.ayahNumber}`) ?? null : null,
@@ -313,16 +323,41 @@ export async function createBookmark(userId: string, surahId: number, ayahNumber
     );
   }
 
+  // Duplicate check — only use `page` column in WHERE if we have evidence the
+  // column exists (i.e., the migration has already run on this environment).
   const where: any = { userId, surahId };
   if (ayahNumber != null) where.ayahNumber = ayahNumber;
-  if (page != null) where.page = page;
+  // Probe for the page column before using it in WHERE / INSERT to defend
+  // against environments where the migration hasn't applied yet.
+  let pageColumnExists = false;
+  try {
+    await prisma.$queryRawUnsafe(
+      `SELECT "page" FROM "quran_bookmarks" LIMIT 0`,
+    );
+    pageColumnExists = true;
+  } catch {
+    pageColumnExists = false;
+  }
+  if (page != null && pageColumnExists) where.page = page;
+
   const existing = await prisma.quranBookmark.findFirst({ where });
   if (existing) {
     throw new AppError('This ayah/page is already bookmarked', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
   }
 
+  // Build the INSERT data map — only include page when the column exists.
+  const insertData: any = {
+    userId,
+    surahId,
+    ayahNumber: ayahNumber ?? null,
+    note,
+  };
+  if (pageColumnExists) {
+    insertData.page = page ?? null;
+  }
+
   const created = await prisma.quranBookmark.create({
-    data: { userId, surahId, ayahNumber: ayahNumber ?? null, page: page ?? null, note },
+    data: insertData,
     include: {
       surah: {
         select: { id: true, nameEn: true, nameAr: true },

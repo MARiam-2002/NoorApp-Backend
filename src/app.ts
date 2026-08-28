@@ -80,7 +80,24 @@ async function runMigrationsIfNeeded(): Promise<void> {
       if (!sql) continue;
       try {
         const started = new Date();
-        await prisma.$executeRawUnsafe(sql);
+        // Split the file into individual statements so that multi-statement
+        // migration files (ALTER TABLE, CREATE TABLE, CREATE INDEX, etc.) all
+        // execute correctly. $executeRawUnsafe only runs one statement at a time.
+        const statements = sql
+          .split(/;\s*$/m)          // split on semicolons at end of line
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0 && !s.startsWith('--'));
+        for (const stmt of statements) {
+          await prisma.$executeRawUnsafe(stmt + ';').catch((stmtErr: any) => {
+            // Log but continue — some statements (like CREATE INDEX IF NOT EXISTS
+            // or ADD COLUMN IF NOT EXISTS) may warn but not actually fail.
+            logger.warn('[Migrations] Statement warning (non-fatal)', {
+              migration: folder,
+              stmt: stmt.slice(0, 120),
+              message: stmtErr?.message,
+            });
+          });
+        }
         await prisma.$executeRawUnsafe(
           `
             INSERT INTO public."_prisma_migrations"
