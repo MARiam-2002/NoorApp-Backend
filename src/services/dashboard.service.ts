@@ -39,12 +39,18 @@ export type DashboardData = {
       name: string;
       nameAr: string;
       time: string;
+      displayAr?: string;
+      displayEn?: string;
+      iso?: string;
       countdownSeconds: number;
     } | null;
     schedule: Array<{
       name: string;
       nameAr: string;
       time: string;
+      displayAr?: string;
+      displayEn?: string;
+      iso?: string;
       completed: boolean;
     }>;
     date?: string;
@@ -320,6 +326,9 @@ async function buildDashboardPayload(
             name: prayers.nextPrayer.name,
             nameAr: prayers.nextPrayer.nameAr,
             time: prayers.nextPrayer.time,
+            displayAr: prayers.nextPrayer.displayAr,
+            displayEn: prayers.nextPrayer.displayEn,
+            iso: prayers.nextPrayer.iso,
             countdownSeconds: prayers.nextPrayer.countdownSeconds,
           }
         : null,
@@ -327,6 +336,9 @@ async function buildDashboardPayload(
         name: item.name,
         nameAr: item.nameAr,
         time: item.time,
+        displayAr: item.displayAr,
+        displayEn: item.displayEn,
+        iso: item.iso,
         completed: item.completed,
       })),
       date: prayers.date,

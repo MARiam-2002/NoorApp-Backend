@@ -7,10 +7,19 @@ import {
   getMyQiblaHandler,
 } from '../controllers/qibla.controller';
 
-const calculateQiblaSchema = z.object({
-  latitude: z.coerce.number().min(-90).max(90),
-  longitude: z.coerce.number().min(-180).max(180),
-});
+const calculateQiblaSchema = z.preprocess(
+  (raw) => {
+    const q = (raw ?? {}) as Record<string, unknown>;
+    return {
+      latitude: q.latitude ?? q.lat,
+      longitude: q.longitude ?? q.lng,
+    };
+  },
+  z.object({
+    latitude: z.coerce.number().min(-90).max(90),
+    longitude: z.coerce.number().min(-180).max(180),
+  }),
+);
 
 export const qiblaRouter = Router();
 

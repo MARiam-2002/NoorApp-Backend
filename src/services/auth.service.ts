@@ -297,17 +297,22 @@ export async function refreshToken(input: { refreshToken: string }): Promise<Aut
 }
 
 export async function logout(input: { refreshToken: string }): Promise<void> {
+  let tokenHash: string | null = null;
   try {
     verifyRefreshTokenJwt(input.refreshToken);
+    tokenHash = hashRefreshToken(input.refreshToken);
   } catch {
-    throw new AppError('Invalid refresh token', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+    // Token is already invalid / expired — treat as already-logged-out.
+    // Do not throw: the contract says POST /auth/logout is always a public, fire-and-forget action.
+    return;
   }
 
-  const tokenHash = hashRefreshToken(input.refreshToken);
-  await prisma.refreshToken.updateMany({
-    where: { tokenHash, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  if (tokenHash) {
+    await prisma.refreshToken.updateMany({
+      where: { tokenHash, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
 }
 
 export async function getCurrentUser(userId: string): Promise<ContractAuthUser> {
@@ -539,20 +544,20 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
   let user =
     (googlePayload.sub
       ? await prisma.user.findUnique({
-          where: { googleId: googlePayload.sub },
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            email: true,
-            role: true,
-            provider: true,
-            providerId: true,
-            googleId: true,
-            createdAt: true,
-            isActive: true,
-          },
-        })
+        where: { googleId: googlePayload.sub },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          role: true,
+          provider: true,
+          providerId: true,
+          googleId: true,
+          createdAt: true,
+          isActive: true,
+        },
+      })
       : null) ??
     (await prisma.user.findUnique({
       where: { email: emailLower },

@@ -136,6 +136,7 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
   return {
     id: String(dayOfYear),
     rewardPoints: template.rewardPoints,
+    pointsAwarded: template.rewardPoints,
     claimed: true,
     claimedAt: updatedCompletion.claimedAt,
   };

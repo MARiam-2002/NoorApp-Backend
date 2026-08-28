@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { ensureSurahCatalog, FALLBACK_KHATMAH } from '../lib/quran-catalog';
+import { resolveSurahNameAr, resolveSurahNameEn, withResolvedSurahNames } from '../lib/surah-names';
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
 import { getTodayDateOnly } from '../utils/date';
 
@@ -13,32 +14,32 @@ const AR_DIACRITICS =
 const BOM = '\uFEFF';
 const BISMILLAH_REGEX = new RegExp(
   '^(?:' + BOM + ')?' +
-    'ب' + '[' + AR_DIACRITICS + ']*' +
-    'س' + '[' + AR_DIACRITICS + ']*' +
-    'م' + '[' + AR_DIACRITICS + ']*' +
-    '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
-    '[\\u0671\\u0627]?' +
-    'ل' + '[' + AR_DIACRITICS + ']*' +
-    'ل' + '[' + AR_DIACRITICS + ']*' +
-    'ه' + '[' + AR_DIACRITICS + ']*' +
-    '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
-    '[\\u0671\\u0627]?' +
-    'ل' + '[' + AR_DIACRITICS + ']*' +
-    'ر' + '[' + AR_DIACRITICS + ']*' +
-    'ح' + '[' + AR_DIACRITICS + ']*' +
-    'م' + '[' + AR_DIACRITICS + ']*' +
-    '[\\u0622\\u0623\\u0625\\u0627\\u0671]?' +
-    'ن' + '[' + AR_DIACRITICS + ']*' +
-    'ي' + '?' +
-    '[' + AR_DIACRITICS + ']*' +
-    '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
-    '[\\u0671\\u0627]?' +
-    'ل' + '[' + AR_DIACRITICS + ']*' +
-    'ر' + '[' + AR_DIACRITICS + ']*' +
-    'ح' + '[' + AR_DIACRITICS + ']*' +
-    'ي' + '[' + AR_DIACRITICS + ']*' +
-    'م' + '[' + AR_DIACRITICS + ']*' +
-    '(?:[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+|$)',
+  'ب' + '[' + AR_DIACRITICS + ']*' +
+  'س' + '[' + AR_DIACRITICS + ']*' +
+  'م' + '[' + AR_DIACRITICS + ']*' +
+  '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
+  '[\\u0671\\u0627]?' +
+  'ل' + '[' + AR_DIACRITICS + ']*' +
+  'ل' + '[' + AR_DIACRITICS + ']*' +
+  'ه' + '[' + AR_DIACRITICS + ']*' +
+  '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
+  '[\\u0671\\u0627]?' +
+  'ل' + '[' + AR_DIACRITICS + ']*' +
+  'ر' + '[' + AR_DIACRITICS + ']*' +
+  'ح' + '[' + AR_DIACRITICS + ']*' +
+  'م' + '[' + AR_DIACRITICS + ']*' +
+  '[\\u0622\\u0623\\u0625\\u0627\\u0671]?' +
+  'ن' + '[' + AR_DIACRITICS + ']*' +
+  'ي' + '?' +
+  '[' + AR_DIACRITICS + ']*' +
+  '[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+' +
+  '[\\u0671\\u0627]?' +
+  'ل' + '[' + AR_DIACRITICS + ']*' +
+  'ر' + '[' + AR_DIACRITICS + ']*' +
+  'ح' + '[' + AR_DIACRITICS + ']*' +
+  'ي' + '[' + AR_DIACRITICS + ']*' +
+  'م' + '[' + AR_DIACRITICS + ']*' +
+  '(?:[\\s\\u200C-\\u200F\\u202A-\\u202E\\u00A0]+|$)',
   'u',
 );
 
@@ -88,8 +89,8 @@ function formatKhatmah(
 
   return {
     surahId: khatmah.currentSurahId,
-    surahNameEn: surah?.nameEn ?? FALLBACK_KHATMAH.surahNameEn,
-    surahNameAr: surah?.nameAr ?? FALLBACK_KHATMAH.surahNameAr,
+    surahNameEn: resolveSurahNameEn(khatmah.currentSurahId, surah?.nameEn) || FALLBACK_KHATMAH.surahNameEn,
+    surahNameAr: resolveSurahNameAr(khatmah.currentSurahId, surah?.nameAr) || FALLBACK_KHATMAH.surahNameAr,
     currentPage: Math.min(Math.max(khatmah.currentPage, 1), TOTAL_QURAN_PAGES),
     totalPagesRead,
     progressPercent,
@@ -113,16 +114,16 @@ function serializeBookmark(
   const sanitizedTextAr: string | null =
     textAr != null && row.surahId != null && row.ayahNumber != null
       ? stripSurahOpeningBismillahIfNeeded({
-          surahId: row.surahId,
-          ayahNumber: row.ayahNumber,
-          textAr,
-        })
+        surahId: row.surahId,
+        ayahNumber: row.ayahNumber,
+        textAr,
+      })
       : textAr;
-  const surahObj = row.surah ?? {
+  const surahObj = withResolvedSurahNames(row.surah ?? {
     id: row.surahId,
     nameEn: 'Unknown',
     nameAr: 'غير معروف',
-  };
+  });
   return {
     id: row.id,
     userId: row.userId,
@@ -163,8 +164,8 @@ export async function listSurahs() {
 
   return surahs.map((s) => ({
     id: s.id,
-    nameAr: s.nameAr,
-    nameEn: s.nameEn,
+    nameAr: resolveSurahNameAr(s.id, s.nameAr),
+    nameEn: resolveSurahNameEn(s.id, s.nameEn),
     revelationType: s.revelationType,
     totalAyahs: s.totalAyahs,
     totalPages: s.totalPages,
@@ -189,7 +190,7 @@ export async function getSurah(surahId: number) {
     throw new AppError('Surah not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
 
-  return surah;
+  return withResolvedSurahNames(surah);
 }
 
 export async function listAyahs(surahId: number, page?: number, limit?: number) {
@@ -262,11 +263,13 @@ export async function listBookmarks(userId: string) {
     }
 
     return bookmarks.map((b) => {
-      const surahObj = surahById.get(b.surahId) ?? {
-        id: b.surahId,
-        nameEn: 'Unknown',
-        nameAr: 'غير معروف',
-      };
+      const surahObj = withResolvedSurahNames(
+        surahById.get(b.surahId) ?? {
+          id: b.surahId,
+          nameEn: 'Unknown',
+          nameAr: 'غير معروف',
+        },
+      );
       return {
         id: b.id,
         userId,
@@ -412,7 +415,7 @@ export async function searchQuran(query: string, page = 1, limit = 20) {
     where: { id: { in: surahIds } },
     select: { id: true, nameAr: true, nameEn: true, revelationType: true },
   });
-  const byId = new Map(surahs.map((s) => [s.id, s] as const));
+  const byId = new Map(surahs.map((s) => [s.id, withResolvedSurahNames(s)] as const));
   const enriched = sanitizeAyahList(items).map((a) => ({
     ...a,
     surah: byId.get(a.surahId) ?? null,
@@ -479,7 +482,9 @@ export async function getLastRead(userId: string) {
       } catch { /* */ }
     }
 
-    const surahObj = row.surah ?? { id: row.surahId, nameEn: 'Unknown', nameAr: 'غير معروف' };
+    const surahObj = withResolvedSurahNames(
+      row.surah ?? { id: row.surahId, nameEn: 'Unknown', nameAr: 'غير معروف' },
+    );
     return {
       surahId: row.surahId,
       page: row.page,
@@ -728,7 +733,10 @@ export async function listJuz() {
   const result = [];
   for (let i = 1; i <= 30; i++) {
     const g = byJuz.get(i);
-    const firstSurah = g?._min.surahId ? surahById.get(g._min.surahId) ?? null : null;
+    const rawFirstSurah = g?._min.surahId ? surahById.get(g._min.surahId) ?? null : null;
+    const firstSurah = rawFirstSurah
+      ? withResolvedSurahNames(rawFirstSurah)
+      : withResolvedSurahNames({ id: 1, nameEn: 'Al-Fatihah', nameAr: 'الفاتحة' });
     result.push({
       juzNumber: i,
       nameAr: JUZ_ARABIC_NAMES[i - 1],
@@ -736,7 +744,7 @@ export async function listJuz() {
       totalAyahs: g?._count?._all ?? 0,
       startPage: g?._min.page ?? null,
       endPage: g?._max.page ?? null,
-      firstSurah: firstSurah ?? { id: 1, nameEn: 'Al-Fatihah', nameAr: 'الفاتحة' },
+      firstSurah,
     });
   }
   return result;
@@ -763,8 +771,9 @@ export async function listJuzSurahs(juzNumber: number) {
         prisma.ayah.findFirst({ where: { juz: juzNumber, surahId }, orderBy: { ayahNumber: 'desc' }, select: { ayahNumber: true, page: true } }),
         prisma.ayah.count({ where: { juz: juzNumber, surahId } }),
       ]);
+      const resolvedSurah = surah ? withResolvedSurahNames(surah) : null;
       return {
-        ...surah,
+        ...resolvedSurah,
         fromAyah: first?.ayahNumber ?? 1,
         toAyah: last?.ayahNumber ?? 1,
         startPage: first?.page ?? null,
@@ -793,10 +802,11 @@ export async function listAyahsByPage(pageNumber: number) {
   });
   const ayahs = sanitizeAyahList(raw);
   const surahIds = Array.from(new Set(ayahs.map((a) => a.surahId)));
-  const surahs = await prisma.surah.findMany({
+  const surahRows = await prisma.surah.findMany({
     where: { id: { in: surahIds } },
     select: { id: true, nameAr: true, nameEn: true, revelationType: true },
   });
+  const surahs = surahRows.map((s) => withResolvedSurahNames(s));
   return { page: pageNumber, totalPages: TOTAL_QURAN_PAGES, ayahs, surahs };
 }
 
@@ -922,8 +932,8 @@ export async function getFullQuranCatalog(): Promise<FullQuranCatalog> {
 
   const surahs: CatalogSurah[] = surahRows.map((s) => ({
     id: s.id,
-    nameAr: s.nameAr,
-    nameEn: s.nameEn,
+    nameAr: resolveSurahNameAr(s.id, s.nameAr),
+    nameEn: resolveSurahNameEn(s.id, s.nameEn),
     revelationType: (s.revelationType as 'MAKKI' | 'MADANI') ?? null,
     totalAyahs: s.totalAyahs,
     ayahs: bySurah.get(s.id) ?? [],
@@ -960,10 +970,11 @@ export async function listAyahsByJuz(juzNumber: number) {
   });
   const ayahs = sanitizeAyahList(raw);
   const surahIds = Array.from(new Set(ayahs.map((a) => a.surahId)));
-  const surahs = await prisma.surah.findMany({
+  const surahRows = await prisma.surah.findMany({
     where: { id: { in: surahIds } },
     select: { id: true, nameAr: true, nameEn: true, revelationType: true },
   });
+  const surahs = surahRows.map((s) => withResolvedSurahNames(s));
   return {
     juzNumber,
     nameAr: JUZ_ARABIC_NAMES[juzNumber - 1],

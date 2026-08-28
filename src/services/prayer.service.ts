@@ -21,6 +21,9 @@ export type PrayerScheduleItem = {
   name: PrayerNameEnum;
   nameAr: string;
   time: string;
+  displayAr: string;
+  displayEn: string;
+  iso: string;
   timestamp: Date;
   completed: boolean;
 };
@@ -29,6 +32,9 @@ export type NextPrayerInfo = {
   name: PrayerNameEnum;
   nameAr: string;
   time: string;
+  displayAr: string;
+  displayEn: string;
+  iso: string;
   timestamp: Date;
   countdownSeconds: number;
 };
@@ -52,6 +58,12 @@ function resolveTimezone(timezone?: string | null): string {
   }
 }
 
+const ARABIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+function toArabicDigits(value: string): string {
+  return value.replace(/\d/g, (d) => ARABIC_DIGITS[Number(d)] ?? d);
+}
+
 function formatTime(date: Date, timezone: string): string {
   const tz = resolveTimezone(timezone);
   try {
@@ -69,6 +81,27 @@ function formatTime(date: Date, timezone: string): string {
       timeZone: DefaultTimezone,
     }).format(date);
   }
+}
+
+function formatDisplayEn(date: Date, timezone: string): string {
+  const tz = resolveTimezone(timezone);
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: tz,
+    }).format(date);
+  } catch {
+    return formatTime(date, timezone);
+  }
+}
+
+function formatDisplayAr(date: Date, timezone: string): string {
+  const en = formatDisplayEn(date, timezone);
+  const meridiem = /PM/i.test(en) ? 'م' : 'ص';
+  const clock = en.replace(/\s*(AM|PM)\s*/i, '').trim();
+  return `${toArabicDigits(clock)} ${meridiem}`;
 }
 
 function getPrayerDateMap(prayerTimes: PrayerTimes): Record<PrayerNameEnum, Date> {
@@ -103,6 +136,9 @@ export function calculateDailyPrayerSchedule(
       name,
       nameAr: prayerLabelsAr[name],
       time: formatTime(timestamp, tz),
+      displayEn: formatDisplayEn(timestamp, tz),
+      displayAr: formatDisplayAr(timestamp, tz),
+      iso: timestamp.toISOString(),
       timestamp,
       completed: completedPrayers.includes(name),
     };
@@ -121,6 +157,9 @@ export function calculateDailyPrayerSchedule(
             ? 'صلاة العصر'
             : `صلاة ${nextPrayerEntry.nameAr}`,
         time: nextPrayerEntry.time,
+        displayAr: nextPrayerEntry.displayAr,
+        displayEn: nextPrayerEntry.displayEn,
+        iso: nextPrayerEntry.iso,
         timestamp: nextPrayerEntry.timestamp,
         countdownSeconds: Math.max(
           0,

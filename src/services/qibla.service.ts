@@ -39,6 +39,36 @@ function getDirectionNames(angle: number): { directionAr: string; directionEn: s
   };
 }
 
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toContractQibla(latitude: number, longitude: number) {
+  const result = calculateQiblaDirection(latitude, longitude);
+  const distanceKm =
+    Math.round(haversineKm(latitude, longitude, KAABA_LATITUDE, KAABA_LONGITUDE) * 10) / 10;
+  return {
+    bearingDegrees: Math.round(result.angleDegrees * 10) / 10,
+    bearingRadians: Math.round(result.bearingRadians * 100) / 100,
+    directionAr: result.directionAr,
+    directionEn: result.directionEn,
+    distanceKm,
+    userLocation: { latitude, longitude },
+    userLatitude: latitude,
+    userLongitude: longitude,
+    kaabaLatitude: KAABA_LATITUDE,
+    kaabaLongitude: KAABA_LONGITUDE,
+    kaaba: { latitude: KAABA_LATITUDE, longitude: KAABA_LONGITUDE },
+  };
+}
+
 function calculateQiblaDirection(
   latitude: number,
   longitude: number,
@@ -78,16 +108,7 @@ export function calculateQibla(latitude: number, longitude: number) {
     );
   }
 
-  const result = calculateQiblaDirection(latitude, longitude);
-
-  return {
-    ...result,
-    bearingDegrees: result.angleDegrees,
-    userLatitude: latitude,
-    userLongitude: longitude,
-    kaabaLatitude: KAABA_LATITUDE,
-    kaabaLongitude: KAABA_LONGITUDE,
-  };
+  return toContractQibla(latitude, longitude);
 }
 
 export async function getMyQibla(userId: string) {
@@ -112,14 +133,5 @@ export async function getMyQibla(userId: string) {
     );
   }
 
-  const result = calculateQiblaDirection(user.latitude, user.longitude);
-
-  return {
-    ...result,
-    bearingDegrees: result.angleDegrees,
-    userLatitude: user.latitude,
-    userLongitude: user.longitude,
-    kaabaLatitude: KAABA_LATITUDE,
-    kaabaLongitude: KAABA_LONGITUDE,
-  };
+  return toContractQibla(user.latitude, user.longitude);
 }

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/common';
 import { HttpStatus } from '../config';
 import { sendPaginated, sendSuccess } from '../shared/utils/response';
+import { sendJsonWithRange } from '../lib/http-range';
 import {
   listSurahs,
   getSurah,
@@ -191,11 +192,12 @@ export const getRandomAyahHandler = asyncHandler(async (req: Request, res: Respo
 
 export const getFullQuranCatalogHandler = asyncHandler(async (req: Request, res: Response) => {
   const data = await getFullQuranCatalog();
-  sendSuccess(
+  // Support HTTP Range for resume-capable offline downloads (contract §3)
+  sendJsonWithRange(
+    req,
     res,
     data,
     `Full Quran catalog ready for offline download (${data.meta.totalAyahs} ayahs, ${data.meta.totalSurahs} surahs)`,
-    req,
   );
 });
 
