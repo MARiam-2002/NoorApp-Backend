@@ -5,14 +5,14 @@ import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
 import {
   getTodayJourney,
-  getJourneyProgress,
+  getJourneyProgress as getJourneyProgressService,
   updateQuranPages,
-  incrementQuranPages,
+  incrementQuranPages as incrementQuranPagesService,
   updateAdhkar,
   updateSadaqah,
 } from '../services/journey.service';
 
-export const getToday = asyncHandler(async (req: Request, res: Response) => {
+export const getJourneyToday = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
 
   if (!userId) {
@@ -27,7 +27,7 @@ export const getToday = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, data, 'Daily journey retrieved successfully', req);
 });
 
-export const getProgress = asyncHandler(async (req: Request, res: Response) => {
+export const getJourneyProgress = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
 
   if (!userId) {
@@ -41,7 +41,7 @@ export const getProgress = asyncHandler(async (req: Request, res: Response) => {
   const { days } = req.query as { days?: string };
   const daysNum = days ? Number(days) : 7;
 
-  const data = await getJourneyProgress(userId, daysNum);
+  const data = await getJourneyProgressService(userId, daysNum);
   sendSuccess(res, data, 'Journey progress retrieved successfully', req);
 });
 
@@ -61,7 +61,7 @@ export const updateQuranPagesHandler = asyncHandler(async (req: Request, res: Re
   sendSuccess(res, data, 'Quran pages updated successfully', req);
 });
 
-export const incrementQuranPagesHandler = asyncHandler(async (req: Request, res: Response) => {
+export const incrementQuranPages = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
 
   if (!userId) {
@@ -73,11 +73,11 @@ export const incrementQuranPagesHandler = asyncHandler(async (req: Request, res:
   }
 
   const { pages } = req.body as { pages?: number };
-  const data = await incrementQuranPages(userId, pages ?? 1);
+  const data = await incrementQuranPagesService(userId, pages ?? 1);
   sendSuccess(res, data, 'Quran pages incremented successfully', req);
 });
 
-export const updateAdhkarHandler = asyncHandler(async (req: Request, res: Response) => {
+export const patchAdhkar = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
 
   if (!userId) {
@@ -93,7 +93,7 @@ export const updateAdhkarHandler = asyncHandler(async (req: Request, res: Respon
   sendSuccess(res, data, 'Adhkar status updated successfully', req);
 });
 
-export const updateSadaqahHandler = asyncHandler(async (req: Request, res: Response) => {
+export const patchSadaqah = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
 
   if (!userId) {

@@ -26,6 +26,7 @@ import {
   getRandomAyah,
   getFullQuranCatalog,
   listAyahsByJuz,
+  importLocalData,
 } from '../services/quran.service';
 
 export const listSurahsHandler = asyncHandler(async (_req: Request, res: Response) => {
@@ -210,4 +211,28 @@ export const listAyahsByJuzHandler = asyncHandler(async (req: Request, res: Resp
     `Juz ${juzNumber} ayahs retrieved successfully (${data.totalAyahs} ayahs)`,
     req,
   );
+});
+
+// ============================================================
+//  NEW: Guest Data Merge (Contract §4, §13)
+// ============================================================
+
+export const importLocalDataHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const { bookmarks, lastRead } = req.body as {
+    bookmarks?: Array<{
+      surahId: number;
+      ayahNumber?: number;
+      page?: number;
+      note?: string;
+    }>;
+    lastRead?: {
+      surahId: number;
+      page: number;
+      ayahNumber?: number;
+    };
+  };
+
+  const data = await importLocalData(userId, { bookmarks, lastRead });
+  sendSuccess(res, data, data.message, req);
 });

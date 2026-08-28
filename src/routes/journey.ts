@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../lib/validation';
 import {
-  getProgress,
-  getToday,
-  incrementQuranPagesHandler,
-  updateAdhkarHandler,
+  getJourneyProgress,
+  getJourneyToday,
+  incrementQuranPages,
+  patchAdhkar,
   updateQuranPagesHandler,
-  updateSadaqahHandler,
+  patchSadaqah,
 } from '../controllers/journey.controller';
 
 const quranPagesSetSchema = z.object({
@@ -71,7 +71,7 @@ export const journeyRouter = Router();
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.get('/today', authenticate, getToday);
+journeyRouter.get('/today', authenticate, getJourneyToday);
 
 /**
  * @openapi
@@ -120,7 +120,7 @@ journeyRouter.get('/today', authenticate, getToday);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.get('/progress', authenticate, getProgress);
+journeyRouter.get('/progress', authenticate, getJourneyProgress);
 
 /**
  * @openapi
@@ -215,7 +215,7 @@ journeyRouter.post(
   '/quran-pages/increment',
   authenticate,
   validate(quranPagesIncrementSchema),
-  incrementQuranPagesHandler,
+  incrementQuranPages,
 );
 
 /**
@@ -258,7 +258,7 @@ journeyRouter.post(
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), updateAdhkarHandler);
+journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), patchAdhkar);
 
 /**
  * @openapi
@@ -303,4 +303,4 @@ journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), updateAdhka
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-journeyRouter.patch('/sadaqah', authenticate, validate(sadaqahSchema), updateSadaqahHandler);
+journeyRouter.patch('/sadaqah', authenticate, validate(sadaqahSchema), patchSadaqah);

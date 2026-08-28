@@ -5,6 +5,7 @@ import { ensureSurahCatalog, FALLBACK_KHATMAH } from '../lib/quran-catalog';
 import { resolveSurahNameAr, resolveSurahNameEn, withResolvedSurahNames } from '../lib/surah-names';
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
 import { getTodayDateOnly } from '../utils/date';
+import { logger } from '../lib/logger';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -544,6 +545,114 @@ export async function deleteBookmark(userId: string, bookmarkId: string) {
   if (result === 0) {
     throw new AppError('Bookmark not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
+}
+
+export async function importLocalData(
+  userId: string,
+  data: {
+    bookmarks?: Array<{
+      surahId: number;
+      ayahNumber?: number;
+      page?: number;
+      note?: string;
+    }>;
+    lastRead?: {
+      surahId: number;
+      page: number;
+      ayahNumber?: number;
+    };
+  },
+) {
+  const imported = {
+    bookmarks: 0,
+    lastRead: false,
+  };
+
+  // Import bookmarks (merge, skip duplicates)
+  if (data.bookmarks && Array.isArray(data.bookmarks)) {
+    for (const bm of data.bookmarks) {
+      if (!bm.surahId || bm.surahId < 1 || bm.surahId > 114) continue;
+
+      try {
+        // Check if already exists (same surah + ayah/page combo)
+        const where: any = { userId, surahId: bm.surahId };
+        if (bm.ayahNumber != null) where.ayahNumber = bm.ayahNumber;
+        if (bm.page != null) where.page = bm.page;
+
+        const existing = await prisma.quranBookmark.findFirst({ where });
+
+        if (!existing) {
+          // Use raw insert to handle optional page column
+          const id = crypto.randomUUID();
+          const pageColExists = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
+            `SELECT column_name FROM information_schema.columns
+             WHERE table_schema = 'public'
+               AND table_name   = 'quran_bookmarks'
+               AND column_name  = 'page'`,
+          ).catch(() => [] as Array<{ column_name: string }>);
+          const hasPage = Array.isArray(pageColExists) && pageColExists.length > 0;
+
+          if (hasPage && bm.page != null) {
+            await prisma.$executeRawUnsafe(
+              `INSERT INTO "quran_bookmarks" ("id","userId","surahId","ayahNumber","page","note","createdAt")
+               VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
+              id, userId, bm.surahId,
+              bm.ayahNumber ?? null,
+              bm.page,
+              bm.note ?? null,
+            );
+          } else {
+            await prisma.$executeRawUnsafe(
+              `INSERT INTO "quran_bookmarks" ("id","userId","surahId","ayahNumber","note","createdAt")
+               VALUES ($1,$2,$3,$4,$5,NOW())`,
+              id, userId, bm.surahId,
+              bm.ayahNumber ?? null,
+              bm.note ?? null,
+            );
+          }
+          imported.bookmarks += 1;
+        }
+      } catch (err: any) {
+        logger.warn('[importLocalData] Failed to import bookmark', {
+          userId,
+          surahId: bm.surahId,
+          error: err?.message,
+        });
+        // Skip invalid bookmark
+      }
+    }
+  }
+
+  // Import last-read (only if not already set)
+  if (data.lastRead && data.lastRead.surahId) {
+    try {
+      const existing = await prisma.quranLastRead.findUnique({
+        where: { userId },
+      });
+
+      if (!existing) {
+        await prisma.quranLastRead.create({
+          data: {
+            userId,
+            surahId: data.lastRead.surahId,
+            page: data.lastRead.page,
+            ayahNumber: data.lastRead.ayahNumber ?? 1,
+          },
+        });
+        imported.lastRead = true;
+      }
+    } catch (err: any) {
+      logger.warn('[importLocalData] Failed to import last-read', {
+        userId,
+        error: err?.message,
+      });
+    }
+  }
+
+  return {
+    imported,
+    message: `Imported ${imported.bookmarks} bookmark(s)${imported.lastRead ? ' and last-read position' : ''}`,
+  };
 }
 
 export async function getLastRead(userId: string) {

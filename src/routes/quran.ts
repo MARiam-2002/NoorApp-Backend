@@ -25,6 +25,7 @@ import {
   getRandomAyahHandler,
   getFullQuranCatalogHandler,
   listAyahsByJuzHandler,
+  importLocalDataHandler,
 } from '../controllers/quran.controller';
 
 const surahIdParamSchema = z.object({
@@ -563,4 +564,99 @@ quranRouter.get(
   '/juz/:juzNumber/ayahs',
   validate(juzNumberParamSchema, 'params'),
   listAyahsByJuzHandler,
+);
+
+// ============================================================
+//  Guest Data Merge (Contract §4, §13)
+// ============================================================
+
+const importLocalDataSchema = z.object({
+  bookmarks: z.array(z.object({
+    surahId: z.coerce.number().int().min(1).max(114),
+    ayahNumber: z.coerce.number().int().min(1).optional(),
+    page: z.coerce.number().int().min(1).max(604).optional(),
+    note: z.string().max(500).optional(),
+  })).optional(),
+  lastRead: z.object({
+    surahId: z.coerce.number().int().min(1).max(114),
+    page: z.coerce.number().int().min(1).max(604),
+    ayahNumber: z.coerce.number().int().min(1).optional(),
+  }).optional(),
+});
+
+/**
+ * @openapi
+ * /quran/import-local:
+ *   post:
+ *     tags: ['Quran']
+ *     summary: دمج بيانات القرآن المحلية (Guest → Account)
+ *     description: |
+ *       يستورد bookmarks و last-read من التطبيق المحلي (Guest) بعد تسجيل الدخول.
+ *       يتجنب التكرار — يضيف فقط bookmarks الجديدة ويحدّث last-read فقط إذا لم يكن موجوداً.
+ *       **Use case:** عندما يسجل guest دخوله لأول مرة، Flutter يرسل كل البيانات المحلية المحفوظة
+ *       في SharedPreferences لدمجها مع حسابه الجديد.
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bookmarks:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [surahId]
+ *                   properties:
+ *                     surahId: { type: integer, minimum: 1, maximum: 114 }
+ *                     ayahNumber: { type: integer, minimum: 1 }
+ *                     page: { type: integer, minimum: 1, maximum: 604 }
+ *                     note: { type: string, maxLength: 500 }
+ *               lastRead:
+ *                 type: object
+ *                 required: [surahId, page]
+ *                 properties:
+ *                   surahId: { type: integer, minimum: 1, maximum: 114 }
+ *                   page: { type: integer, minimum: 1, maximum: 604 }
+ *                   ayahNumber: { type: integer, minimum: 1 }
+ *           examples:
+ *             guestData:
+ *               summary: مثال على بيانات guest محلية
+ *               value:
+ *                 bookmarks:
+ *                   - surahId: 2
+ *                     ayahNumber: 255
+ *                     page: 42
+ *                     note: آية الكرسي
+ *                   - surahId: 36
+ *                     page: 442
+ *                 lastRead:
+ *                   surahId: 18
+ *                   page: 293
+ *                   ayahNumber: 1
+ *     responses:
+ *       200:
+ *         description: ✅ تم دمج البيانات المحلية بنجاح
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Imported 2 bookmark(s) and last-read position
+ *               data:
+ *                 imported:
+ *                   bookmarks: 2
+ *                   lastRead: true
+ *               timestamp: '2026-08-28T12:00:00.000Z'
+ *               requestId: uuid
+ *       400:
+ *         description: ❌ بيانات غير صالحة
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+quranRouter.post(
+  '/import-local',
+  authenticate,
+  validate(importLocalDataSchema),
+  importLocalDataHandler,
 );
