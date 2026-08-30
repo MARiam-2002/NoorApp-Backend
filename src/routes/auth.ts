@@ -99,11 +99,18 @@ const googleSignInSchema = z.object({
  *                   username: noor_user
  *                   email: noor@example.com
  *                   fullName: مريم خالد
+ *                   avatarUrl: null
+ *                   phone: null
+ *                   city: null
+ *                   country: null
+ *                   points: 0
+ *                   level: 1
+ *                   prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
  *                   createdAt: '2026-07-27T10:30:00.000Z'
- *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz
- *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
- *                 tokenType: Bearer
- *                 expiresIn: 900
+ *                 tokens:
+ *                   accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5OTAyMDB9.abc123xyz
+ *                   refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
+ *                   expiresIn: 3600
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:
@@ -172,11 +179,18 @@ const googleSignInSchema = z.object({
  *                   username: noor_user
  *                   email: noor@example.com
  *                   fullName: مريم خالد
+ *                   avatarUrl: null
+ *                   phone: null
+ *                   city: null
+ *                   country: null
+ *                   points: 250
+ *                   level: 2
+ *                   prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
  *                   createdAt: '2026-07-27T10:30:00.000Z'
- *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz
- *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
- *                 tokenType: Bearer
- *                 expiresIn: 900
+ *                 tokens:
+ *                   accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5OTAyMDB9.abc123xyz
+ *                   refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
+ *                   expiresIn: 3600
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
@@ -225,10 +239,10 @@ const googleSignInSchema = z.object({
  *               success: true
  *               message: تم تجديد التوكن بنجاح
  *               data:
- *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTk1MjAwLCJleHAiOjE3MjE5OTYxMDB9.newxyz123
- *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5OTA2MDAsImV4cCI6MTcyNDU4MjYwMH0.newrefresh456
- *                 tokenType: Bearer
- *                 expiresIn: 900
+ *                 tokens:
+ *                   accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTk1MjAwLCJleHAiOjE3MjE5OTg4MDB9.newxyz123
+ *                   refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5OTA2MDAsImV4cCI6MTcyNDU4MjYwMH0.newrefresh456
+ *                   expiresIn: 3600
  *               meta: null
  *               timestamp: '2026-07-27T13:00:00.000Z'
  *       401:
@@ -299,7 +313,21 @@ const googleSignInSchema = z.object({
  *                 username: noor_user
  *                 email: noor@example.com
  *                 fullName: مريم خالد
- *                 createdAt: '2026-05-10T08:00:00.000Z'
+ *                 avatarUrl: https://cdn.noor.app/avatars/user123.png
+ *                 phone: '+201001234567'
+ *                 city: القاهرة
+ *                 country: Egypt
+ *                 points: 250
+ *                 level: 2
+ *                 timezone: Africa/Cairo
+ *                 latitude: 30.0444
+ *                 longitude: 31.2357
+ *                 prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
+ *                 quranFontSize: 28
+ *                 quranReciter: Mishary_Alafasy
+ *                 quranTafsir: Ibn_Kathir
+ *                 quranTranslation: Sahih_International
+ *                 joinedAt: '2026-05-10T08:00:00.000Z'
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:
@@ -445,11 +473,18 @@ const googleSignInSchema = z.object({
  *                   username: noor_google
  *                   email: noor@gmail.com
  *                   fullName: مريم خالد
+ *                   avatarUrl: null
+ *                   phone: null
+ *                   city: null
+ *                   country: null
+ *                   points: 0
+ *                   level: 1
+ *                   prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
  *                   createdAt: '2026-07-27T10:30:00.000Z'
- *                 accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5ODc1MDB9.abc123xyz
- *                 refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
- *                 tokenType: Bearer
- *                 expiresIn: 900
+ *                 tokens:
+ *                   accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5OTAyMDB9.abc123xyz
+ *                   refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
+ *                   expiresIn: 3600
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:

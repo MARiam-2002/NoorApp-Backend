@@ -30,36 +30,44 @@ export async function getTodayJourney(userId: string) {
 
   const quranProgress = quranGoal > 0 ? Math.min(1, progress.quranPagesRead / quranGoal) : 0;
   const prayerProgress = prayersCompleted / totalPrayers;
-  const adhkarDone = progress.adhkarCompleted;
+  const morningCompleted = progress.morningAdhkarCompleted;
+  const eveningCompleted = progress.eveningAdhkarCompleted;
+  const overallAdhkar = morningCompleted && eveningCompleted;
+  const adhkarPercent = Math.round(((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2 * 100);
   const sadaqahAmount = Number(progress.sadaqahAmount);
   const sadaqahProgress = sadaqahGoal > 0 ? Math.min(1, sadaqahAmount / sadaqahGoal) : 0;
+
+  const quranPercent = Math.round(quranProgress * 100);
+  const prayerPercent = Math.round(prayerProgress * 100);
+  const sadaqahPercent = Math.round(sadaqahProgress * 100);
 
   const tasks = [
     { key: 'quran', titleAr: 'قراءة القرآن', done: quranProgress >= 1, progress: Math.round(quranProgress * 100) / 100 },
     { key: 'prayer', titleAr: 'الصلوات', done: prayersCompleted >= totalPrayers, progress: Math.round(prayerProgress * 100) / 100 },
-    { key: 'adhkar', titleAr: 'الأذكار', done: adhkarDone },
+    { key: 'adhkar', titleAr: 'الأذكار', done: overallAdhkar },
     { key: 'sadaqah', titleAr: 'الصدقة', done: sadaqahAmount > 0, amount: sadaqahAmount },
   ];
 
   const overallPercent = Math.round(
-    ((quranProgress + prayerProgress + (adhkarDone ? 1 : 0) + sadaqahProgress) / 4) * 100,
+    ((quranProgress + prayerProgress + ((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2 + sadaqahProgress) / 4) * 100,
   );
 
   let points = 0;
   let streakDays = 0;
   try {
     const [user, last30Progress] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { points: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { points: true, level: true } }),
       prisma.dailyProgress.findMany({
         where: { userId },
-        select: { date: true, quranPagesRead: true, adhkarCompleted: true, sadaqahAmount: true },
+        select: { date: true, quranPagesRead: true, morningAdhkarCompleted: true, eveningAdhkarCompleted: true, sadaqahAmount: true },
       }),
     ]);
     points = user?.points ?? 0;
+    const level = user?.level ?? 1;
 
     const datesSet = new Set(
       last30Progress
-        .filter((p) => p.quranPagesRead > 0 || p.adhkarCompleted || Number(p.sadaqahAmount) > 0)
+        .filter((p) => p.quranPagesRead > 0 || p.morningAdhkarCompleted || p.eveningAdhkarCompleted || Number(p.sadaqahAmount) > 0)
         .map((p) => p.date.toISOString().slice(0, 10)),
     );
     const cursor = new Date(date);
@@ -67,6 +75,8 @@ export async function getTodayJourney(userId: string) {
       streakDays += 1;
       cursor.setUTCDate(cursor.getUTCDate() - 1);
     }
+
+    void level;
   } catch { /* */ }
 
   return {
@@ -76,8 +86,30 @@ export async function getTodayJourney(userId: string) {
     badges: [],
     points,
     overallPercent,
+    quran: {
+      pages: progress.quranPagesRead,
+      goal: quranGoal,
+      percent: quranPercent,
+    },
+    adhkar: {
+      morningCompleted,
+      eveningCompleted,
+      overallCompleted: overallAdhkar,
+      percent: adhkarPercent,
+    },
+    sadaqah: {
+      amount: sadaqahAmount,
+      goal: sadaqahGoal,
+      percent: sadaqahPercent,
+      currency: 'EGP',
+    },
+    prayers: {
+      completed: prayersCompleted,
+      total: totalPrayers,
+      percent: prayerPercent,
+    },
     quranPagesRead: progress.quranPagesRead,
-    adhkarCompleted: progress.adhkarCompleted,
+    adhkarCompleted: overallAdhkar,
     sadaqahAmount,
     prayersCompleted,
     prayersTotal: totalPrayers,
@@ -127,11 +159,31 @@ export async function updateAdhkar(userId: string, completed: boolean) {
   const date = getTodayDateOnly();
   const progress = await prisma.dailyProgress.upsert({
     where: { userId_date: { userId, date } },
-    create: { userId, date, adhkarCompleted: completed },
-    update: { adhkarCompleted: completed },
+    create: {
+      userId,
+      date,
+      morningAdhkarCompleted: completed,
+      eveningAdhkarCompleted: completed,
+      adhkarCompleted: completed,
+    },
+    update: {
+      morningAdhkarCompleted: completed,
+      eveningAdhkarCompleted: completed,
+      adhkarCompleted: completed,
+    },
   });
 
-  return { adhkarCompleted: progress.adhkarCompleted };
+  const morningCompleted = progress.morningAdhkarCompleted;
+  const eveningCompleted = progress.eveningAdhkarCompleted;
+  const overallCompleted = morningCompleted && eveningCompleted;
+  const percent = Math.round(((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2 * 100);
+
+  return {
+    morningCompleted,
+    eveningCompleted,
+    overallCompleted,
+    percent,
+  };
 }
 
 export async function updateSadaqah(userId: string, amount: number) {
@@ -189,16 +241,22 @@ export async function getJourneyProgress(userId: string, days = 7) {
     const prayersCompleted = prayersByDate.get(dateStr) ?? 0;
     const quranProgress = QURAN_GOAL > 0 ? Math.min(1, p.quranPagesRead / QURAN_GOAL) : 0;
     const prayerProgress = prayersCompleted / TOTAL_PRAYERS;
+    const morningDone = p.morningAdhkarCompleted ?? p.adhkarCompleted;
+    const eveningDone = p.eveningAdhkarCompleted ?? p.adhkarCompleted;
+    const adhkarCompleted = morningDone && eveningDone;
+    const adhkarProgress = ((morningDone ? 1 : 0) + (eveningDone ? 1 : 0)) / 2;
     const sadaqahProgress = SADAQAH_GOAL > 0 ? Math.min(1, Number(p.sadaqahAmount) / SADAQAH_GOAL) : 0;
     const overallPercent = Math.round(
-      ((quranProgress + prayerProgress + (p.adhkarCompleted ? 1 : 0) + sadaqahProgress) / 4) * 100,
+      ((quranProgress + prayerProgress + adhkarProgress + sadaqahProgress) / 4) * 100,
     );
 
     return {
       date: dateStr,
       quranPages: p.quranPagesRead,
       quranPagesRead: p.quranPagesRead,
-      adhkarCompleted: p.adhkarCompleted,
+      adhkarCompleted,
+      morningAdhkarCompleted: morningDone,
+      eveningAdhkarCompleted: eveningDone,
       sadaqah: Number(p.sadaqahAmount),
       sadaqahAmount: Number(p.sadaqahAmount),
       prayersCompleted,
@@ -211,7 +269,11 @@ export async function getJourneyProgress(userId: string, days = 7) {
 
   const summary = {
     totalQuranPages: progress.reduce((sum, p) => sum + p.quranPagesRead, 0),
-    adhkarDaysCompleted: progress.filter((p) => p.adhkarCompleted).length,
+    adhkarDaysCompleted: progress.filter((p) => {
+      const morning = p.morningAdhkarCompleted ?? p.adhkarCompleted;
+      const evening = p.eveningAdhkarCompleted ?? p.adhkarCompleted;
+      return morning && evening;
+    }).length,
     totalSadaqah: progress.reduce(
       (sum, p) => sum + Number(p.sadaqahAmount),
       0,

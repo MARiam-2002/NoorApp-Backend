@@ -38,23 +38,36 @@ export const notificationsRouter = Router();
  *               message: قائمة الإشعارات
  *               data:
  *                 - id: 550e8400-e29b-41d4-a716-446655440000
- *                   type: CHALLENGE_REWARD
+ *                   type: CHALLENGE
  *                   titleAr: مبروك! حصلت على مكافأة التحدي
+ *                   titleEn: Congratulations! You earned the challenge reward
  *                   bodyAr: أكملت تحدي اليوم وحصلت على 50 نقطة
+ *                   bodyEn: You completed today's challenge and earned 50 points
+ *                   read: false
  *                   isRead: false
  *                   deepLink: /challenges
+ *                   payload:
+ *                     challengeId: '208'
+ *                     points: 50
  *                   createdAt: '2026-07-27T09:15:00.000Z'
  *                 - id: 550e8400-e29b-41d4-a716-446655440001
- *                   type: PRAYER_REMINDER
+ *                   type: AZAN
  *                   titleAr: حان وقت صلاة الظهر
+ *                   titleEn: It's time for Dhuhr prayer
  *                   bodyAr: اقضِ صلاتك الآن واحرص على الصلاة في وقتها
+ *                   bodyEn: Pray now and make sure to pray on time
+ *                   read: true
  *                   isRead: true
+ *                   readAt: '2026-07-27T05:35:00.000Z'
  *                   deepLink: /prayers
  *                   createdAt: '2026-07-27T05:30:00.000Z'
  *                 - id: 550e8400-e29b-41d4-a716-446655440002
- *                   type: VERSE_OF_DAY
+ *                   type: SYSTEM
  *                   titleAr: آية اليوم جاهزة
+ *                   titleEn: Verse of the Day is ready
  *                   bodyAr: 'اقرأ آية اليوم: آية الكرسي من سورة البقرة'
+ *                   bodyEn: 'Read today''s verse: Ayatul Kursi from Surah Al-Baqarah'
+ *                   read: true
  *                   isRead: true
  *                   deepLink: /content/verse-of-day
  *                   createdAt: '2026-07-27T03:00:00.000Z'

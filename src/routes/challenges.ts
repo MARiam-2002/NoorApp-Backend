@@ -122,9 +122,11 @@ challengesRouter.get('/today', authenticate, getToday);
  *               success: true
  *               message: تم استلام مكافأة تحدي اليوم بنجاح
  *               data:
- *                 challengeId: 208
- *                 pointsEarned: 50
- *                 totalPoints: 2500
+ *                 id: '208'
+ *                 rewardPoints: 50
+ *                 pointsAwarded: 50
+ *                 claimed: true
+ *                 claimedAt: '2026-07-27T10:30:00.000Z'
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:

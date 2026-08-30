@@ -13,7 +13,7 @@ export type ApiSuccessResponse<T> = ApiBase & {
   success: true;
   message: string;
   data: T | null;
-  meta?: Record<string, unknown>;
+  meta: Record<string, unknown>;
 };
 
 export type ApiErrorResponse = ApiBase & {

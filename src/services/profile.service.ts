@@ -8,14 +8,21 @@ export type UserProfile = {
   username: string;
   fullName: string | null;
   email: string;
+  avatarUrl: string | null;
+  phone: string | null;
+  city: string | null;
+  country: string | null;
   points: number;
+  level: number;
   timezone: string | null;
   latitude: number | null;
   longitude: number | null;
+  prayerCalculationMethod: string;
   quranFontSize: number;
   quranReciter: string;
   quranTafsir: string;
   quranTranslation: string;
+  joinedAt: Date | null;
 };
 
 export type ReadingPreferences = {
@@ -33,14 +40,21 @@ export async function getProfile(userId: string): Promise<UserProfile> {
       username: true,
       fullName: true,
       email: true,
+      avatarUrl: true,
+      phone: true,
+      city: true,
+      country: true,
       points: true,
+      level: true,
       timezone: true,
       latitude: true,
       longitude: true,
+      prayerCalculationMethod: true,
       quranFontSize: true,
       quranReciter: true,
       quranTafsir: true,
       quranTranslation: true,
+      createdAt: true,
     },
   });
 
@@ -52,7 +66,27 @@ export async function getProfile(userId: string): Promise<UserProfile> {
     );
   }
 
-  return profile;
+  return {
+    id: profile.id,
+    username: profile.username,
+    fullName: profile.fullName,
+    email: profile.email,
+    avatarUrl: profile.avatarUrl,
+    phone: profile.phone,
+    city: profile.city,
+    country: profile.country,
+    points: profile.points,
+    level: profile.level,
+    timezone: profile.timezone,
+    latitude: profile.latitude,
+    longitude: profile.longitude,
+    prayerCalculationMethod: profile.prayerCalculationMethod,
+    quranFontSize: profile.quranFontSize,
+    quranReciter: profile.quranReciter,
+    quranTafsir: profile.quranTafsir,
+    quranTranslation: profile.quranTranslation,
+    joinedAt: profile.createdAt,
+  };
 }
 
 export async function getReadingPreferences(userId: string): Promise<ReadingPreferences> {
@@ -120,7 +154,17 @@ export async function updateReadingPreferences(
 
 export async function updateProfile(
   userId: string,
-  data: { username?: string; fullName?: string | null; email?: string; timezone?: string },
+  data: {
+    username?: string;
+    fullName?: string | null;
+    email?: string;
+    timezone?: string;
+    avatarUrl?: string | null;
+    phone?: string | null;
+    city?: string | null;
+    country?: string | null;
+    prayerCalculationMethod?: string;
+  },
 ): Promise<UserProfile> {
   if (data.email !== undefined) {
     const existingUser = await prisma.user.findUnique({
@@ -156,13 +200,18 @@ export async function updateProfile(
     }
   }
 
-  const updateData: { username?: string; fullName?: string | null; email?: string; timezone?: string } = {};
+  const updateData: any = {};
   if (data.username !== undefined) updateData.username = data.username.trim();
   if (data.fullName !== undefined) updateData.fullName = data.fullName ? data.fullName.trim() : null;
   if (data.email !== undefined) updateData.email = data.email.toLowerCase();
   if (data.timezone !== undefined) updateData.timezone = data.timezone;
+  if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl ? data.avatarUrl.trim() : null;
+  if (data.phone !== undefined) updateData.phone = data.phone ? data.phone.trim() : null;
+  if (data.city !== undefined) updateData.city = data.city ? data.city.trim() : null;
+  if (data.country !== undefined) updateData.country = data.country ? data.country.trim() : null;
+  if (data.prayerCalculationMethod !== undefined) updateData.prayerCalculationMethod = data.prayerCalculationMethod.trim();
 
-  const updatedProfile = await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: updateData,
     select: {
@@ -170,18 +219,25 @@ export async function updateProfile(
       username: true,
       fullName: true,
       email: true,
+      avatarUrl: true,
+      phone: true,
+      city: true,
+      country: true,
       points: true,
+      level: true,
       timezone: true,
       latitude: true,
       longitude: true,
+      prayerCalculationMethod: true,
       quranFontSize: true,
       quranReciter: true,
       quranTafsir: true,
       quranTranslation: true,
+      createdAt: true,
     },
   });
 
-  if (!updatedProfile) {
+  if (!updated) {
     throw new AppError(
       'User profile not found',
       HttpStatus.NOT_FOUND,
@@ -189,7 +245,27 @@ export async function updateProfile(
     );
   }
 
-  return updatedProfile;
+  return {
+    id: updated.id,
+    username: updated.username,
+    fullName: updated.fullName,
+    email: updated.email,
+    avatarUrl: updated.avatarUrl,
+    phone: updated.phone,
+    city: updated.city,
+    country: updated.country,
+    points: updated.points,
+    level: updated.level,
+    timezone: updated.timezone,
+    latitude: updated.latitude,
+    longitude: updated.longitude,
+    prayerCalculationMethod: updated.prayerCalculationMethod,
+    quranFontSize: updated.quranFontSize,
+    quranReciter: updated.quranReciter,
+    quranTafsir: updated.quranTafsir,
+    quranTranslation: updated.quranTranslation,
+    joinedAt: updated.createdAt,
+  };
 }
 
 export async function changePassword(
@@ -244,22 +320,24 @@ export async function changePassword(
 
 export async function updateLocation(
   userId: string,
-  data: { latitude: number; longitude: number; timezone?: string },
-): Promise<UserProfile> {
-  const updateData: {
+  data: {
     latitude: number;
     longitude: number;
     timezone?: string;
-  } = {
+    city?: string | null;
+    country?: string | null;
+  },
+): Promise<UserProfile> {
+  const updateData: any = {
     latitude: data.latitude,
     longitude: data.longitude,
   };
 
-  if (data.timezone !== undefined) {
-    updateData.timezone = data.timezone;
-  }
+  if (data.timezone !== undefined) updateData.timezone = data.timezone;
+  if (data.city !== undefined) updateData.city = data.city ? data.city.trim() : null;
+  if (data.country !== undefined) updateData.country = data.country ? data.country.trim() : null;
 
-  const updatedProfile = await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: updateData,
     select: {
@@ -267,18 +345,25 @@ export async function updateLocation(
       username: true,
       fullName: true,
       email: true,
+      avatarUrl: true,
+      phone: true,
+      city: true,
+      country: true,
       points: true,
+      level: true,
       timezone: true,
       latitude: true,
       longitude: true,
+      prayerCalculationMethod: true,
       quranFontSize: true,
       quranReciter: true,
       quranTafsir: true,
       quranTranslation: true,
+      createdAt: true,
     },
   });
 
-  if (!updatedProfile) {
+  if (!updated) {
     throw new AppError(
       'User profile not found',
       HttpStatus.NOT_FOUND,
@@ -286,5 +371,25 @@ export async function updateLocation(
     );
   }
 
-  return updatedProfile;
+  return {
+    id: updated.id,
+    username: updated.username,
+    fullName: updated.fullName,
+    email: updated.email,
+    avatarUrl: updated.avatarUrl,
+    phone: updated.phone,
+    city: updated.city,
+    country: updated.country,
+    points: updated.points,
+    level: updated.level,
+    timezone: updated.timezone,
+    latitude: updated.latitude,
+    longitude: updated.longitude,
+    prayerCalculationMethod: updated.prayerCalculationMethod,
+    quranFontSize: updated.quranFontSize,
+    quranReciter: updated.quranReciter,
+    quranTafsir: updated.quranTafsir,
+    quranTranslation: updated.quranTranslation,
+    joinedAt: updated.createdAt,
+  };
 }

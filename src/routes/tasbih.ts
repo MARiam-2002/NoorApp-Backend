@@ -70,6 +70,9 @@ export const tasbihRouter = Router();
  *               success: true
  *               message: بيانات المسبحة لليوم
  *               data:
+ *                 count: 156
+ *                 dhikr: SUBHAN_ALLAH
+ *                 dhikrAr: سبحان الله
  *                 todayCount: 156
  *                 currentDhikr: SUBHAN_ALLAH
  *                 currentDhikrAr: سبحان الله

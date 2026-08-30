@@ -215,7 +215,7 @@ adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
  *         required: true
  *         schema:
  *           type: string
- *           enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD]
+ *           enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD, TRAVEL, SICK, FOOD, ISTIKHARA, WUDU, ISTIGHFAR, QAYN, MASJID_AFTER_SALAM]
  *           example: MORNING
  *         description: مفتاح الفئة (حرف كبير أو صغير - الـ backend يحول لحروف كبير)
  *     responses:

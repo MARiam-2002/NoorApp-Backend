@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
@@ -41,27 +42,32 @@ function serializeNotification(
     id: string;
     userId: string;
     titleAr: string;
+    titleEn?: string | null;
     bodyAr: string;
+    bodyEn?: string | null;
     type: string;
     readAt: Date | null;
+    deepLink?: string | null;
+    payload?: Record<string, unknown> | Prisma.JsonValue | null;
     createdAt: Date;
   },
   extra?: Record<string, unknown>,
 ): ContractNotification {
   const contractType = mapNotificationTypeToContract(String(row.type || 'GENERAL'));
   const isRead = row.readAt != null;
+  const rowPayload = row.payload as Record<string, unknown> | null | undefined;
   return {
     id: row.id,
     titleAr: row.titleAr,
-    titleEn: row.titleAr,
+    titleEn: (row.titleEn ?? (extra?.titleEn as string | undefined) ?? row.titleAr) as string,
     bodyAr: row.bodyAr,
-    bodyEn: row.bodyAr,
+    bodyEn: (row.bodyEn ?? (extra?.bodyEn as string | undefined) ?? row.bodyAr) as string,
     type: contractType,
     read: isRead,
     isRead,
     readAt: row.readAt ? row.readAt.toISOString() : null,
-    deepLink: (extra?.deepLink as string | undefined) ?? null,
-    payload: (extra?.payload as Record<string, unknown> | undefined) ?? null,
+    deepLink: (row.deepLink ?? (extra?.deepLink as string | undefined)) ?? null,
+    payload: rowPayload ?? ((extra?.payload as Record<string, unknown> | undefined) ?? null),
     createdAt: row.createdAt.toISOString(),
   };
 }

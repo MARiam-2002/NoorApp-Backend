@@ -26,7 +26,7 @@ export function buildSuccess<T>(
     success: true,
     message,
     data: data ?? null,
-    ...(meta && Object.keys(meta).length > 0 && { meta }),
+    meta: meta && Object.keys(meta).length > 0 ? meta : {},
     timestamp: new Date().toISOString(),
     requestId: getRequestId(req),
   };

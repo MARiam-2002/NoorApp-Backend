@@ -51,28 +51,28 @@ import * as dashboardController from '../controllers/dashboard.controller';
  *                   date: '2026-07-28'
  *                   timezone: 'Africa/Cairo'
  *                   nextPrayer:
- *                     name: 'ASR'
- *                     nameAr: 'صلاة العصر'
+ *                     name: 'Asr'
+ *                     nameAr: 'العصر'
  *                     time: '15:24'
  *                     countdownSeconds: 4468
  *                   schedule:
- *                     - name: 'FAJR'
+ *                     - name: 'Fajr'
  *                       nameAr: 'الفجر'
  *                       time: '04:11'
  *                       completed: true
- *                     - name: 'DHUHR'
+ *                     - name: 'Dhuhr'
  *                       nameAr: 'الظهر'
  *                       time: '12:58'
  *                       completed: true
- *                     - name: 'ASR'
+ *                     - name: 'Asr'
  *                       nameAr: 'العصر'
  *                       time: '15:24'
  *                       completed: false
- *                     - name: 'MAGHRIB'
+ *                     - name: 'Maghrib'
  *                       nameAr: 'المغرب'
  *                       time: '18:49'
  *                       completed: false
- *                     - name: 'ISHA'
+ *                     - name: 'Isha'
  *                       nameAr: 'العشاء'
  *                       time: '20:18'
  *                       completed: false
@@ -90,7 +90,7 @@ import * as dashboardController from '../controllers/dashboard.controller';
  *                   prayer:
  *                     completed: 2
  *                     total: 5
- *                     progress: 40
+ *                     progress: 0.4
  *                   quran:
  *                     pagesRead: 4
  *                   adhkar:
