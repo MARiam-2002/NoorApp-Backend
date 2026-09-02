@@ -1050,12 +1050,14 @@ export async function getCategoryWithItems(key: string) {
           id: it.id,
           orderInCategory: it.orderInCategory,
           textAr: it.textAr,
+          textEn: (it as any).textEn ?? '',
           textArPlain: it.textArPlain,
           repeatCount: it.repeatCount,
           referenceAr: it.referenceAr,
-          referenceEn: it.referenceEn,
+          referenceEn: it.referenceEn ?? '',
           sourceUrl: it.sourceUrl,
           benefitAr: it.benefitAr,
+          benefitEn: (it as any).benefitEn ?? '',
         })),
       };
     }
@@ -1113,19 +1115,25 @@ export async function getDailyWird() {
 
   return {
     titleAr: 'وردك اليوم',
+    titleEn: 'Your Daily Wird',
     subtitleAr: 'واذكر ربك إذا نسيت',
+    subtitleEn: 'And remember your Lord when you forget',
     progressItemsDone: progress,
     progressItemsTotal: goal,
     progressPercent: Math.round((progress / goal) * 100),
     ctaAr: 'اكمل وردك اليوم',
+    ctaEn: 'Complete today\'s wird',
     categoryKey: wirdCategoryKey,
     items: slice.map((it, idx) => ({
       id: it.id,
       orderInCategory: it.orderInCategory ?? idx + 1,
       textAr: it.textAr,
+      textEn: (it as any).textEn ?? '',
       repeatCount: it.repeatCount,
       referenceAr: it.referenceAr,
+      referenceEn: (it as any).referenceEn ?? '',
       benefitAr: it.benefitAr,
+      benefitEn: (it as any).benefitEn ?? '',
     })),
   };
 }
@@ -1138,6 +1146,7 @@ export async function getCategoriesWithDailyWird() {
 
   return {
     greeting: 'واذكر ربك إذا نسيت',
+    greetingEn: 'And remember your Lord when you forget',
     dailyWird,
     categories,
   };
@@ -1347,10 +1356,13 @@ export async function listAdhkarFavorites(userId: string) {
     dhikr: {
       id: fav.item.id,
       textAr: fav.item.textAr,
+      textEn: '',
       textArPlain: fav.item.textArPlain,
       repeatCount: fav.item.repeatCount,
       referenceAr: fav.item.referenceAr,
+      referenceEn: fav.item.referenceEn ?? '',
       benefitAr: fav.item.benefitAr,
+      benefitEn: '',
       category: fav.item.category,
     },
     createdAt: fav.createdAt.toISOString(),
@@ -1415,10 +1427,13 @@ export async function addAdhkarFavorite(userId: string, itemId: string) {
     dhikr: {
       id: fav.item.id,
       textAr: fav.item.textAr,
+      textEn: '',
       textArPlain: fav.item.textArPlain,
       repeatCount: fav.item.repeatCount,
       referenceAr: fav.item.referenceAr,
+      referenceEn: fav.item.referenceEn ?? '',
       benefitAr: fav.item.benefitAr,
+      benefitEn: '',
       category: fav.item.category,
     },
     createdAt: fav.createdAt.toISOString(),
@@ -1459,4 +1474,209 @@ export async function isAdhkarFavorited(userId: string, itemId: string): Promise
   });
 
   return !!favorite;
+}
+
+// ============================================================
+// Search adhkar across all categories (DB + fallback)
+// ============================================================
+
+function stripTashkeel(text: string): string {
+  return text
+    .normalize('NFKD')
+    .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+type SearchResultItem = {
+  id: string;
+  categoryKey: string;
+  categoryNameAr: string;
+  categoryNameEn: string;
+  orderInCategory: number;
+  textAr: string;
+  textEn: string;
+  textArPlain?: string;
+  repeatCount: number;
+  referenceAr?: string;
+  referenceEn?: string;
+  benefitAr?: string;
+  benefitEn?: string;
+  sourceUrl?: string;
+  matchScore: number;
+};
+
+/**
+ * Search across all DhikrItem (DB) + fallback items in all categories.
+ * Matches are scored on: textAr (plain/tashkeel-insensitive), referenceAr, benefitAr.
+ */
+export async function searchAdhkar(
+  qRaw: string,
+  options: { limit?: number; categoryKey?: string } = {},
+): Promise<{
+  query: string;
+  total: number;
+  limit: number;
+  items: SearchResultItem[];
+}> {
+  const queryRaw = (qRaw ?? '').trim();
+  const limit = Math.max(1, Math.min(100, options.limit ?? 50));
+
+  if (queryRaw.length === 0) {
+    return { query: queryRaw, total: 0, limit, items: [] };
+  }
+
+  const queryStripped = stripTashkeel(queryRaw).toLowerCase();
+  const queryTokens = queryStripped
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 1);
+
+  const categoryFilterKey = options.categoryKey
+    ? String(options.categoryKey).toUpperCase()
+    : null;
+
+  // 1) Aggregate a pool of items: DB rows first, fallback for any category
+  const pool: Array<Omit<SearchResultItem, 'matchScore'>> = [];
+
+  // 1a) DB DhikrItem rows (join category)
+  try {
+    const dbItems = await prisma.dhikrItem.findMany({
+      where: categoryFilterKey
+        ? {
+          category: { key: categoryFilterKey as any },
+        }
+        : undefined,
+      include: {
+        category: {
+          select: { key: true, nameAr: true, nameEn: true },
+        },
+      },
+      take: 2000,
+    });
+
+    for (const it of dbItems) {
+      if (!it.category) continue;
+      pool.push({
+        id: it.id,
+        categoryKey: String(it.category.key),
+        categoryNameAr: it.category.nameAr,
+        categoryNameEn: it.category.nameEn,
+        orderInCategory: it.orderInCategory,
+        textAr: it.textAr,
+        textEn: '',
+        textArPlain: it.textArPlain ?? undefined,
+        repeatCount: it.repeatCount,
+        referenceAr: it.referenceAr ?? undefined,
+        referenceEn: it.referenceEn ?? '',
+        benefitAr: it.benefitAr ?? undefined,
+        benefitEn: '',
+        sourceUrl: it.sourceUrl ?? undefined,
+      });
+    }
+  } catch (err: any) {
+    logger.warn('[Adhkar] searchAdhkar DB query failed, relying on hardcoded fallbacks only', {
+      code: err?.code,
+      message: err?.message,
+    });
+  }
+
+  // 1b) Add fallback items only for categories where the DB returned zero rows,
+  //     OR when no categoryFilter and pool is still small.
+  const fallbackKeysToInclude: CategoryKey[] = [];
+  for (const key of CATEGORY_KEYS) {
+    if (categoryFilterKey && key !== categoryFilterKey) continue;
+    const hasDbRowsForCategory = pool.some(
+      (p) => String(p.categoryKey).toUpperCase() === key,
+    );
+    if (!hasDbRowsForCategory) fallbackKeysToInclude.push(key);
+  }
+
+  for (const key of fallbackKeysToInclude) {
+    const fallback = buildCategoryFallback(key);
+    for (const it of fallback.items) {
+      pool.push({
+        id: it.id,
+        categoryKey: fallback.key,
+        categoryNameAr: fallback.nameAr,
+        categoryNameEn: fallback.nameEn,
+        orderInCategory: it.orderInCategory,
+        textAr: it.textAr,
+        textEn: '',
+        repeatCount: it.repeatCount,
+        referenceAr: it.referenceAr,
+        referenceEn: '',
+        benefitAr: it.benefitAr,
+        benefitEn: '',
+      });
+    }
+  }
+
+  // 2) Score and filter
+  const scored: SearchResultItem[] = [];
+  for (const item of pool) {
+    const haystack = stripTashkeel(
+      [
+        item.textAr,
+        item.textArPlain ?? '',
+        item.referenceAr ?? '',
+        item.referenceEn ?? '',
+        item.benefitAr ?? '',
+        item.benefitEn ?? '',
+        item.categoryNameAr,
+        item.categoryNameEn,
+      ]
+        .filter(Boolean)
+        .join(' \n '),
+    ).toLowerCase();
+
+    if (!haystack) continue;
+
+    // Exact substring on stripped haystack -> highest score
+    let score = 0;
+    if (queryStripped.length >= 2 && haystack.includes(queryStripped)) {
+      score += 100;
+    }
+
+    // Token matches
+    let tokenHits = 0;
+    for (const tok of queryTokens) {
+      if (haystack.includes(tok)) {
+        tokenHits += 1;
+        score += 10 * tok.length;
+      }
+    }
+
+    // Bonus if it's a match on textAr specifically (the main field)
+    const textStripped = stripTashkeel(item.textAr + ' ' + (item.textArPlain ?? ''))
+      .toLowerCase();
+    if (queryStripped.length >= 2 && textStripped.includes(queryStripped)) {
+      score += 50;
+    }
+    for (const tok of queryTokens) {
+      if (tok.length >= 2 && textStripped.includes(tok)) {
+        score += 15;
+      }
+    }
+
+    if (score > 0 || tokenHits >= 1) {
+      scored.push({ ...item, matchScore: score });
+    }
+  }
+
+  // 3) Sort desc by score, then apply limit
+  scored.sort((a, b) => {
+    if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+    if (a.categoryKey !== b.categoryKey) return a.categoryKey.localeCompare(b.categoryKey);
+    return a.orderInCategory - b.orderInCategory;
+  });
+
+  const items = scored.slice(0, limit);
+
+  return {
+    query: queryRaw,
+    total: scored.length,
+    limit,
+    items,
+  };
 }

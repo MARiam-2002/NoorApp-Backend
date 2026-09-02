@@ -9,6 +9,7 @@ import {
   patchAdhkar,
   updateQuranPagesHandler,
   patchSadaqah,
+  patchPrayer,
 } from '../controllers/journey.controller';
 
 const quranPagesSetSchema = z.object({
@@ -25,6 +26,13 @@ const adhkarSchema = z.object({
 
 const sadaqahSchema = z.object({
   amount: z.coerce.number().min(0),
+});
+
+const prayerSchema = z.object({
+  prayer: z.enum(['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'], {
+    message: 'Prayer must be one of: FAJR, DHUHR, ASR, MAGHRIB, ISHA',
+  }),
+  completed: z.boolean().optional().default(true),
 });
 
 export const journeyRouter = Router();
@@ -304,3 +312,104 @@ journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), patchAdhkar
  *         $ref: '#/components/responses/Unauthorized'
  */
 journeyRouter.patch('/sadaqah', authenticate, validate(sadaqahSchema), patchSadaqah);
+
+/**
+ * @openapi
+ * /journey/prayer:
+ *   patch:
+ *     tags: ['Journey']
+ *     summary: تسجيل أو إلغاء تسجيل صلاة معينة كـ "مكتملة" لليوم
+ *     description: >
+ *       يستخدم لوضع علامة "تم" على صلاة معينة (مثل الفجر أو الظهر) أو إزالة العلامة
+ *       من خلال completed=false. بعد كل تعديل يرجع التحديث الكامل للصلوات الخمس
+ *       مع حالة كل صلاة (detailedPrayers).
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [prayer]
+ *             properties:
+ *               prayer:
+ *                 type: string
+ *                 enum: [FAJR, DHUHR, ASR, MAGHRIB, ISHA]
+ *                 example: FAJR
+ *                 description: "مفتاح الصلاة (حروف كبيرة)"
+ *               completed:
+ *                 type: boolean
+ *                 default: true
+ *                 example: true
+ *                 description: "true = علامة تم (default)، false = إزالة العلامة"
+ *           examples:
+ *             markFajrDone:
+ *               summary: وضع علامة صلاة الفجر كـ "تم"
+ *               value:
+ *                 prayer: FAJR
+ *                 completed: true
+ *             unmarkDhuhr:
+ *               summary: إزالة علامة صلاة الظهر
+ *               value:
+ *                 prayer: DHUHR
+ *                 completed: false
+ *     responses:
+ *       200:
+ *         description: ✅ تم التحديث
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Prayer marked as completed successfully
+ *               data:
+ *                 date: '2026-07-27'
+ *                 prayer:
+ *                   key: FAJR
+ *                   nameAr: الفجر
+ *                   nameEn: Fajr
+ *                   timeHintAr: قبل شروق الشمس
+ *                   timeHintEn: Before sunrise
+ *                   completed: true
+ *                 prayers:
+ *                   completed: 3
+ *                   total: 5
+ *                   percent: 60
+ *                   detailedPrayers:
+ *                     - key: FAJR
+ *                       order: 1
+ *                       nameAr: الفجر
+ *                       nameEn: Fajr
+ *                       completed: true
+ *                       completedAt: '2026-07-27T04:21:00.000Z'
+ *                     - key: DHUHR
+ *                       order: 2
+ *                       nameAr: الظهر
+ *                       nameEn: Dhuhr
+ *                       completed: true
+ *                       completedAt: '2026-07-27T12:30:00.000Z'
+ *                     - key: ASR
+ *                       order: 3
+ *                       nameAr: العصر
+ *                       nameEn: Asr
+ *                       completed: true
+ *                       completedAt: '2026-07-27T16:02:00.000Z'
+ *                     - key: MAGHRIB
+ *                       order: 4
+ *                       nameAr: المغرب
+ *                       nameEn: Maghrib
+ *                       completed: false
+ *                       completedAt: null
+ *                     - key: ISHA
+ *                       order: 5
+ *                       nameAr: العشاء
+ *                       nameEn: Isha
+ *                       completed: false
+ *                       completedAt: null
+ *               meta: {}
+ *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       400:
+ *         description: ❌ prayer غير صحيح
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+journeyRouter.patch('/prayer', authenticate, validate(prayerSchema), patchPrayer);

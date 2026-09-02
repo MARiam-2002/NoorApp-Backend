@@ -9,6 +9,7 @@ import {
   listAdhkarFavoritesHandler,
   addAdhkarFavoriteHandler,
   removeAdhkarFavoriteHandler,
+  searchAdhkarHandler,
 } from '../controllers/adhkar.controller';
 import { authenticate } from '../middleware/auth';
 
@@ -372,4 +373,61 @@ adhkarRouter.post('/favorites', authenticate, addAdhkarFavoriteHandler);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
+/**
+ * @openapi
+ * /adhkar/search:
+ *   get:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: بحث شامل داخل كل الأذكار (كل الفئات + الورد اليومي) - تشكيل عربي insensitive
+ *     description: >
+ *       يبحث في نص الأذكار (textAr مع/بدون تشكيل) و المراجع (referenceAr) و الفضل (benefitAr)
+ *       و أسماء الفئات. يدعم فلترة بفئة واحدة عبر categoryKey، و تحديد عدد النتائج عبر limit.
+ *       البحث يعمل على بيانات قاعدة البيانات أولاً ثم fallback على hardcoded الأذكار
+ *       إذا كانت القاعدة فاضية أو الجدول ما موجودش بعد.
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string, example: 'اللهم بِكَ أَصْبَحْنَا' }
+ *         description: نص البحث (سواء عربي تشكيل أو بدون تشكيل أو إنجليزي)
+ *       - in: query
+ *         name: categoryKey
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD, TRAVEL, SICK, FOOD, ISTIKHARA, WUDU, ISTIGHFAR, QAYN, MASJID_AFTER_SALAM]
+ *         description: (اختياري) فلترة البحث داخل فئة معينة بس
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema: { type: integer, default: 50, minimum: 1, maximum: 100, example: 20 }
+ *         description: (اختياري) أقصى عدد نتيجة
+ *     responses:
+ *       200:
+ *         description: ✅ نتائج البحث (مرتبة حسب matchScore)
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: 'Adhkar search results for "أصبحنا" retrieved successfully'
+ *               data:
+ *                 query: أصبحنا
+ *                 total: 4
+ *                 limit: 50
+ *                 items:
+ *                   - id: fb-m-3
+ *                     categoryKey: MORNING
+ *                     categoryNameAr: اذكار الصباح
+ *                     categoryNameEn: Morning Dhikr
+ *                     orderInCategory: 3
+ *                     textAr: أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ...
+ *                     repeatCount: 1
+ *                     referenceAr: رواه مسلم
+ *                     benefitAr: من قالها حين يصبح أجير من الجن حتى يمسي
+ *                     matchScore: 180
+ *               meta: {}
+ *               timestamp: '2026-08-29T09:30:00.000Z'
+ */
+adhkarRouter.get('/search', searchAdhkarHandler);
+
 adhkarRouter.delete('/favorites/:favoriteId', authenticate, removeAdhkarFavoriteHandler);

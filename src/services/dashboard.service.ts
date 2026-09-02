@@ -66,10 +66,10 @@ export type DashboardData = {
   };
   hadithOfTheDay: { textAr: string; sourceAr: string };
   dailyJourney: {
-    prayer: { completed: number; total: number; progress: number };
-    quran: { pagesRead: number };
-    adhkar: { completed: boolean };
-    sadaqah: { amount: number };
+    prayer: { completed: number; total: number; progress: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
+    quran: { pagesRead: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
+    adhkar: { completed: boolean; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
+    sadaqah: { amount: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
   };
   khatmah: {
     surahId: number;
@@ -80,7 +80,9 @@ export type DashboardData = {
   };
   dailyChallenge: {
     titleAr: string;
+    titleEn: string;
     descriptionAr: string;
+    descriptionEn: string;
     rewardPoints: number;
     targetValue: number;
     completed: boolean;
@@ -194,10 +196,10 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       verseOfTheDay: FALLBACK_VERSE,
       hadithOfTheDay: FALLBACK_HADITH,
       dailyJourney: {
-        prayer: { completed: 0, total: 5, progress: 0 },
-        quran: { pagesRead: 0 },
-        adhkar: { completed: false },
-        sadaqah: { amount: 0 },
+        prayer: { completed: 0, total: 5, progress: 0, labelAr: 'الصلوات', labelEn: 'Prayers', captionAr: 'صلاة مكتملة اليوم', captionEn: 'prayers completed today' },
+        quran: { pagesRead: 0, labelAr: 'القرآن', labelEn: 'Quran', captionAr: 'صفحة مقروءة اليوم', captionEn: 'pages read today' },
+        adhkar: { completed: false, labelAr: 'الأذكار', labelEn: 'Adhkar', captionAr: 'اكمل وردك اليومي', captionEn: 'Complete your daily wird' },
+        sadaqah: { amount: 0, labelAr: 'الصدقة', labelEn: 'Sadaqah', captionAr: 'ج.م مصدقة اليوم', captionEn: 'EGP donated today' },
       },
       khatmah: {
         surahId: 2,
@@ -208,7 +210,9 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       },
       dailyChallenge: {
         titleAr: FALLBACK_CHALLENGE.titleAr,
+        titleEn: FALLBACK_CHALLENGE.titleEn ?? 'Daily Challenge',
         descriptionAr: FALLBACK_CHALLENGE.descriptionAr,
+        descriptionEn: FALLBACK_CHALLENGE.descriptionEn ?? 'Complete today\'s challenge to earn reward points.',
         rewardPoints: FALLBACK_CHALLENGE.rewardPoints,
         targetValue: FALLBACK_CHALLENGE.targetValue,
         completed: false,
@@ -361,10 +365,32 @@ async function buildDashboardPayload(
         completed: prayers.completedCount,
         total: prayers.totalCount,
         progress: prayerProgress,
+        labelAr: 'الصلوات',
+        labelEn: 'Prayers',
+        captionAr: `${prayers.completedCount} صلاة مكتملة اليوم`,
+        captionEn: `${prayers.completedCount} prayers completed today`,
       },
-      quran: { pagesRead: journey.quranPagesRead },
-      adhkar: { completed: journey.adhkarCompleted },
-      sadaqah: { amount: Number(journey.sadaqahAmount) || 0 },
+      quran: {
+        pagesRead: journey.quranPagesRead,
+        labelAr: 'القرآن',
+        labelEn: 'Quran',
+        captionAr: `${journey.quranPagesRead} صفحة مقروءة اليوم`,
+        captionEn: `${journey.quranPagesRead} pages read today`,
+      },
+      adhkar: {
+        completed: journey.adhkarCompleted,
+        labelAr: 'الأذكار',
+        labelEn: 'Adhkar',
+        captionAr: journey.adhkarCompleted ? 'تم الانتهاء من وردك اليومي ✅' : 'اكمل وردك اليومي',
+        captionEn: journey.adhkarCompleted ? 'Daily wird completed ✅' : 'Complete your daily wird',
+      },
+      sadaqah: {
+        amount: Number(journey.sadaqahAmount) || 0,
+        labelAr: 'الصدقة',
+        labelEn: 'Sadaqah',
+        captionAr: `${Number(journey.sadaqahAmount) || 0} ج.م مصدقة اليوم`,
+        captionEn: `${Number(journey.sadaqahAmount) || 0} EGP donated today`,
+      },
     },
     khatmah: {
       surahId: surah?.id ?? 2,
@@ -375,7 +401,9 @@ async function buildDashboardPayload(
     },
     dailyChallenge: {
       titleAr: challengeTemplate?.titleAr ?? FALLBACK_CHALLENGE.titleAr,
+      titleEn: challengeTemplate?.titleEn ?? FALLBACK_CHALLENGE.titleEn ?? 'Daily Challenge',
       descriptionAr: challengeTemplate?.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,
+      descriptionEn: challengeTemplate?.descriptionEn ?? FALLBACK_CHALLENGE.descriptionEn ?? 'Complete today\'s challenge to earn reward points.',
       rewardPoints: challengeTemplate?.rewardPoints ?? FALLBACK_CHALLENGE.rewardPoints,
       targetValue: challengeTemplate?.targetValue ?? FALLBACK_CHALLENGE.targetValue,
       completed: challengeCompleted,

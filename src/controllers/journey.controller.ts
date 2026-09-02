@@ -10,6 +10,7 @@ import {
   incrementQuranPages as incrementQuranPagesService,
   updateAdhkar,
   updateSadaqah,
+  togglePrayer,
 } from '../services/journey.service';
 
 export const getJourneyToday = asyncHandler(async (req: Request, res: Response) => {
@@ -107,4 +108,25 @@ export const patchSadaqah = asyncHandler(async (req: Request, res: Response) => 
   const { amount } = req.body as { amount: number };
   const data = await updateSadaqah(userId, amount);
   sendSuccess(res, data, 'Sadaqah updated successfully', req);
+});
+
+export const patchPrayer = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const { prayer, completed } = req.body as { prayer: string; completed?: boolean };
+  const data = await togglePrayer(userId, prayer, completed ?? true);
+  sendSuccess(
+    res,
+    data,
+    data.prayer.completed ? 'Prayer marked as completed successfully' : 'Prayer unmarked successfully',
+    req,
+  );
 });

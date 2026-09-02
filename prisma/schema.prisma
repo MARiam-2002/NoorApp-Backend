@@ -29,6 +29,7 @@ model User {
   quranReciter            String                 @default("Mishary_Alafasy")
   quranTafsir             String                 @default("Ibn_Kathir")
   quranTranslation        String                 @default("Sahih_International")
+  quranAutoScrollEnabled  Boolean                @default(false)
   avatarUrl               String?
   phone                   String?
   city                    String?
@@ -221,7 +222,9 @@ model DailyChallengeTemplate {
   id            String        @id @default(uuid())
   dayOfYear     Int           @unique
   titleAr       String
+  titleEn       String?
   descriptionAr String
+  descriptionEn String?
   type          ChallengeType
   targetValue   Int
   rewardPoints  Int           @default(50)
@@ -296,12 +299,14 @@ model DhikrItem {
   categoryId      String
   orderInCategory Int           @default(0)
   textAr          String
+  textEn          String?
   textArPlain     String?
   repeatCount     Int           @default(1)
   referenceAr     String?
   referenceEn     String?
   sourceUrl       String?
   benefitAr       String?
+  benefitEn       String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

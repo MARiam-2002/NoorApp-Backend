@@ -348,6 +348,7 @@ profileRouter.put(
  *                 quranReciter: Mishary_Alafasy
  *                 quranTafsir: Ibn_Kathir
  *                 quranTranslation: Sahih_International
+ *                 quranAutoScrollEnabled: false
  *               timestamp: '2026-08-21T10:30:00.000Z'
  *               requestId: uuid
  */
@@ -362,11 +363,11 @@ profileRouter.get(
  * /profile/reading-preferences:
  *   patch:
  *     tags: ['Profile']
- *     summary: تحديث إعدادات قراءة القرآن (حجم الخط، القارئ، التفسير، الترجمة)
+ *     summary: تحديث إعدادات قراءة القرآن (حجم الخط، القارئ، التفسير، الترجمة، Auto-Scroll)
  *     description: |
- *       يقبل أي حقل من الحقول الأربعة جزئياً (partial update).
+ *       يقبل أي حقل من الحقول الخمسة جزئياً (partial update).
  *       يستخدم هذا عند ضغط المستخدم على أي خيار في شاشة إعدادات القارئ
- *       (تكبير/تصغير الخط أو اختيار قارئ أو تفسير أو ترجمة جديدة).
+ *       (تكبير/تصغير الخط أو اختيار قارئ أو تفسير أو ترجمة أو تفعيل Auto-Scroll).
  *     security: [ { bearerAuth: [] } ]
  *     requestBody:
  *       required: true
@@ -396,14 +397,19 @@ profileRouter.get(
  *                 maxLength: 100
  *                 example: Yusuf_Ali
  *                 description: مصدر الترجمة (🌐 icon)
+ *               quranAutoScrollEnabled:
+ *                 type: boolean
+ *                 example: true
+ *                 description: تفعيل التمرير التلقائي أثناء قراءة القرآن (🔄 icon)
  *           examples:
  *             تكبير الخط فقط:
  *               value:
  *                 quranFontSize: 34
- *             تغيير القارئ والتفسير:
+ *             تغيير القارئ والتفسير + تفعيل Auto-Scroll:
  *               value:
  *                 quranReciter: Saad_Al_Ghamdi
  *                 quranTafsir: Ibn_Kathir
+ *                 quranAutoScrollEnabled: true
  *     responses:
  *       200:
  *         description: ✅ تم تحديث الإعدادات (يعرض كافة الإعدادات بعد التحديث)
@@ -417,6 +423,7 @@ profileRouter.get(
  *                 quranReciter: Saad_Al_Ghamdi
  *                 quranTafsir: Ibn_Kathir
  *                 quranTranslation: Sahih_International
+ *                 quranAutoScrollEnabled: true
  *               timestamp: '2026-08-21T10:30:00.000Z'
  *               requestId: uuid
  *       400:

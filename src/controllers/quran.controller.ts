@@ -27,6 +27,9 @@ import {
   getFullQuranCatalog,
   listAyahsByJuz,
   importLocalData,
+  listReciters,
+  listTafsirs,
+  listTranslations,
 } from '../services/quran.service';
 
 export const listSurahsHandler = asyncHandler(async (_req: Request, res: Response) => {
@@ -235,4 +238,19 @@ export const importLocalDataHandler = asyncHandler(async (req: Request, res: Res
 
   const data = await importLocalData(userId, { bookmarks, lastRead });
   sendSuccess(res, data, data.message, req);
+});
+
+export const listRecitersHandler = asyncHandler(async (_req: Request, res: Response) => {
+  const data = await listReciters();
+  sendSuccess(res, data, 'Quran reciter options retrieved successfully', _req);
+});
+
+export const listTafsirsHandler = asyncHandler(async (_req: Request, res: Response) => {
+  const data = await listTafsirs();
+  sendSuccess(res, data, 'Quran tafsir options retrieved successfully', _req);
+});
+
+export const listTranslationsHandler = asyncHandler(async (_req: Request, res: Response) => {
+  const data = await listTranslations();
+  sendSuccess(res, data, 'Quran translation options retrieved successfully', _req);
 });

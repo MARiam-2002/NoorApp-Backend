@@ -12,6 +12,7 @@ import {
   listAdhkarFavorites,
   addAdhkarFavorite,
   removeAdhkarFavorite,
+  searchAdhkar,
 } from '../services/adhkar.service';
 
 export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -72,4 +73,21 @@ export const removeAdhkarFavoriteHandler = asyncHandler(async (req: Request, res
   const { favoriteId } = req.params as { favoriteId: string };
   const data = await removeAdhkarFavorite(userId, favoriteId);
   sendSuccess(res, data, 'Favorite removed successfully', req);
+});
+
+export const searchAdhkarHandler = asyncHandler(async (req: Request, res: Response) => {
+  const query = String(req.query.q ?? req.query.query ?? '');
+  const categoryKey = req.query.categoryKey ? String(req.query.categoryKey) : undefined;
+  const limitRaw = Number(req.query.limit ?? req.query.perPage ?? 50);
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.round(limitRaw) : 50;
+
+  const data = await searchAdhkar(query, { limit, categoryKey });
+  sendSuccess(
+    res,
+    data,
+    query.length > 0
+      ? `Adhkar search results for "${query}" retrieved successfully`
+      : 'Adhkar search (empty query) — no results',
+    req,
+  );
 });

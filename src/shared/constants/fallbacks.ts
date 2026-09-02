@@ -21,7 +21,9 @@ export const FALLBACK_HADITH = {
 
 export const FALLBACK_CHALLENGE = {
   titleAr: 'صفحتا قرآن',
+  titleEn: 'Two Quran Pages',
   descriptionAr: 'اقرأ صفحتين من القرآن الكريم اليوم',
+  descriptionEn: 'Read two pages of the Holy Quran today',
   type: 'QURAN_PAGES' as ChallengeType,
   targetValue: 2,
   rewardPoints: 50,

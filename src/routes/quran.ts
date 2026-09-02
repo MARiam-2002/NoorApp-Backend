@@ -26,6 +26,9 @@ import {
   getFullQuranCatalogHandler,
   listAyahsByJuzHandler,
   importLocalDataHandler,
+  listRecitersHandler,
+  listTafsirsHandler,
+  listTranslationsHandler,
 } from '../controllers/quran.controller';
 
 const surahIdParamSchema = z.object({
@@ -660,3 +663,109 @@ quranRouter.post(
   validate(importLocalDataSchema),
   importLocalDataHandler,
 );
+
+/**
+ * @openapi
+ * /quran/reciters:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: قائمة خيارات القراء (Reciters) لقارئ القرآن
+ *     description: >
+ *       قائمة كاملة بجميع القراء المتاحين لتلاوة القرآن الكريم في قائمة الـ dropdown
+ *       بشاشة قارئ القرآن. كل قارئ يحتوي على id مطابق لقيمة الحقل quranReciter في profile،
+ *       مع الاسم بالعربي والإنجليزي ونوع القراءة (Murattal / Hudhuri / Tajweed).
+ *     responses:
+ *       200:
+ *         description: ✅ قائمة القراء
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Quran reciter options retrieved successfully
+ *               data:
+ *                 - id: Mishary_Alafasy
+ *                   nameAr: مشاري العفاسي
+ *                   nameEn: Mishary bin Rashid Al-Afasy
+ *                   style: Murattal
+ *                   isDefault: true
+ *                 - id: Abdul_Basit
+ *                   nameAr: عبد الباسط عبد الصمد
+ *                   nameEn: Abdul Basit Abd us-Samad
+ *                   style: Murattal
+ *               meta: {}
+ */
+quranRouter.get('/reciters', listRecitersHandler);
+
+/**
+ * @openapi
+ * /quran/tafsirs:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: قائمة خيارات التفاسير (Tafsirs) لقارئ القرآن
+ *     description: >
+ *       قائمة كاملة بجميع التفاسير المتاحة لتأويل آيات القرآن الكريم.
+ *       كل تفسير يحتوي على id مطابق لقيمة الحقل quranTafsir في profile،
+ *       مع الاسم بالعربي والإنجليزي واسم المؤلف وسنة النشر.
+ *     responses:
+ *       200:
+ *         description: ✅ قائمة التفاسير
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Quran tafsir options retrieved successfully
+ *               data:
+ *                 - id: Ibn_Kathir
+ *                   nameAr: تفسير ابن كثير
+ *                   nameEn: Tafsir Ibn Kathir
+ *                   authorAr: إسماعيل بن كثير الدمشقي
+ *                   authorEn: Ismail ibn Kathir al-Dimashqi
+ *                   yearHijri: 774
+ *                   yearGregorian: 1373
+ *                   isDefault: true
+ *                 - id: Al_Tabari
+ *                   nameAr: تفسير الطبري
+ *                   nameEn: Tafsir Al-Tabari
+ *                   authorAr: محمد بن جرير الطبري
+ *                   authorEn: Muhammad ibn Jarir Al-Tabari
+ *                   yearHijri: 310
+ *                   yearGregorian: 923
+ *               meta: {}
+ */
+quranRouter.get('/tafsirs', listTafsirsHandler);
+
+/**
+ * @openapi
+ * /quran/translations:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: قائمة خيارات ترجمات معاني القرآن (Translations)
+ *     description: >
+ *       قائمة بترجمات معاني القرآن الكريم للغات مختلفة. كل ترجمة تحتوي على id مطابق
+ *       لقيمة الحقل quranTranslation في profile، مع اسم الترجمة بالعربي والإنجليزي
+ *       واللغة واسم المترجم.
+ *     responses:
+ *       200:
+ *         description: ✅ قائمة الترجمات
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Quran translation options retrieved successfully
+ *               data:
+ *                 - id: Sahih_International
+ *                   nameAr: الترجمة الصحيحة الدولية
+ *                   nameEn: Saheeh International
+ *                   language: English
+ *                   languageCode: en
+ *                   authorAr: مجموعة من العلماء
+ *                   authorEn: Group of Saudi Scholars
+ *                   isDefault: true
+ *                 - id: Yusuf_Ali
+ *                   nameAr: ترجمة يوسف علي
+ *                   nameEn: Yusuf Ali
+ *                   language: English
+ *                   languageCode: en
+ *               meta: {}
+ */
+quranRouter.get('/translations', listTranslationsHandler);

@@ -3,6 +3,53 @@ import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
 import { getTodayDateOnly } from '../utils/date';
 
+const VALID_PRAYER_KEYS = ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'] as const;
+type ValidPrayerKey = typeof VALID_PRAYER_KEYS[number];
+
+const PRAYER_META: Record<ValidPrayerKey, {
+  order: number;
+  nameAr: string;
+  nameEn: string;
+  timeHintAr: string;
+  timeHintEn: string;
+}> = {
+  FAJR: {
+    order: 1,
+    nameAr: 'الفجر',
+    nameEn: 'Fajr',
+    timeHintAr: 'قبل شروق الشمس',
+    timeHintEn: 'Before sunrise',
+  },
+  DHUHR: {
+    order: 2,
+    nameAr: 'الظهر',
+    nameEn: 'Dhuhr',
+    timeHintAr: 'بعد زوال الشمس',
+    timeHintEn: 'After midday',
+  },
+  ASR: {
+    order: 3,
+    nameAr: 'العصر',
+    nameEn: 'Asr',
+    timeHintAr: 'بعد الظهر',
+    timeHintEn: 'Afternoon',
+  },
+  MAGHRIB: {
+    order: 4,
+    nameAr: 'المغرب',
+    nameEn: 'Maghrib',
+    timeHintAr: 'عند غروب الشمس',
+    timeHintEn: 'At sunset',
+  },
+  ISHA: {
+    order: 5,
+    nameAr: 'العشاء',
+    nameEn: 'Isha',
+    timeHintAr: 'بعد مغيب الشفق',
+    timeHintEn: 'After twilight',
+  },
+};
+
 async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
   return prisma.dailyProgress.upsert({
     where: { userId_date: { userId, date } },
@@ -15,14 +62,37 @@ export async function getTodayJourney(userId: string) {
   const date = getTodayDateOnly();
   const progress = await getOrCreateToday(userId);
 
+  let prayersCompletedRows: Array<{ prayer: any }> = [];
   let prayersCompleted = 0;
   try {
-    prayersCompleted = await prisma.prayerCompletion.count({
+    prayersCompletedRows = await prisma.prayerCompletion.findMany({
       where: { userId, date },
+      select: { prayer: true, completedAt: true },
     });
+    prayersCompleted = prayersCompletedRows.length;
   } catch {
     // table may not exist yet
   }
+
+  const completedPrayerKeys = new Set(
+    prayersCompletedRows.map((r) => String(r.prayer).toUpperCase()),
+  );
+
+  const detailedPrayers = VALID_PRAYER_KEYS.map((key) => {
+    const meta = PRAYER_META[key];
+    const completed = completedPrayerKeys.has(key);
+    const row = prayersCompletedRows.find((r) => String(r.prayer).toUpperCase() === key);
+    return {
+      key,
+      order: meta.order,
+      nameAr: meta.nameAr,
+      nameEn: meta.nameEn,
+      timeHintAr: meta.timeHintAr,
+      timeHintEn: meta.timeHintEn,
+      completed,
+      completedAt: completed && 'completedAt' in (row ?? {}) ? (row as any).completedAt : null,
+    };
+  });
 
   const totalPrayers = 5;
   const quranGoal = 4;
@@ -42,10 +112,67 @@ export async function getTodayJourney(userId: string) {
   const sadaqahPercent = Math.round(sadaqahProgress * 100);
 
   const tasks = [
-    { key: 'quran', titleAr: 'قراءة القرآن', done: quranProgress >= 1, progress: Math.round(quranProgress * 100) / 100 },
-    { key: 'prayer', titleAr: 'الصلوات', done: prayersCompleted >= totalPrayers, progress: Math.round(prayerProgress * 100) / 100 },
-    { key: 'adhkar', titleAr: 'الأذكار', done: overallAdhkar },
-    { key: 'sadaqah', titleAr: 'الصدقة', done: sadaqahAmount > 0, amount: sadaqahAmount },
+    {
+      key: 'quran',
+      titleAr: 'قراءة القرآن',
+      titleEn: 'Quran Reading',
+      captionAr: 'صفحات اليوم: ' + progress.quranPagesRead + ' / ' + quranGoal,
+      captionEn: 'Today pages: ' + progress.quranPagesRead + ' / ' + quranGoal,
+      labelAr: 'القرآن',
+      labelEn: 'Quran',
+      done: quranProgress >= 1,
+      progress: Math.round(quranProgress * 100) / 100,
+    },
+    {
+      key: 'prayer',
+      titleAr: 'الصلوات',
+      titleEn: 'Prayers',
+      captionAr: 'أتممت ' + prayersCompleted + ' من أصل ' + totalPrayers + ' صلوات',
+      captionEn: 'Completed ' + prayersCompleted + ' of ' + totalPrayers + ' prayers',
+      labelAr: 'الصلوات',
+      labelEn: 'Prayers',
+      done: prayersCompleted >= totalPrayers,
+      progress: Math.round(prayerProgress * 100) / 100,
+      completed: prayersCompleted,
+      total: totalPrayers,
+    },
+    {
+      key: 'adhkar',
+      titleAr: 'الأذكار',
+      titleEn: 'Adhkar',
+      captionAr: morningCompleted && eveningCompleted
+        ? 'تم أذكار الصباح والمساء ✓'
+        : morningCompleted
+          ? 'تم أذكار الصباح — باقي أذكار المساء'
+          : eveningCompleted
+            ? 'تم أذكار المساء — باقي أذكار الصباح'
+            : 'باقي أذكار الصباح والمساء',
+      captionEn: morningCompleted && eveningCompleted
+        ? 'Morning & Evening adhkar complete ✓'
+        : morningCompleted
+          ? 'Morning done — Evening remaining'
+          : eveningCompleted
+            ? 'Evening done — Morning remaining'
+            : 'Morning & Evening remaining',
+      labelAr: 'الأذكار',
+      labelEn: 'Adhkar',
+      done: overallAdhkar,
+    },
+    {
+      key: 'sadaqah',
+      titleAr: 'الصدقة',
+      titleEn: 'Sadaqah',
+      captionAr: sadaqahAmount > 0
+        ? 'صدقة اليوم: ' + sadaqahAmount + ' جنيه'
+        : 'صدقة اليوم: 0 جنيه — هدف ' + sadaqahGoal,
+      captionEn: sadaqahAmount > 0
+        ? 'Today sadaqah: ' + sadaqahAmount + ' EGP'
+        : 'Today sadaqah: 0 EGP — target ' + sadaqahGoal,
+      labelAr: 'الصدقة',
+      labelEn: 'Sadaqah',
+      done: sadaqahAmount > 0,
+      amount: sadaqahAmount,
+    },
   ];
 
   const overallPercent = Math.round(
@@ -107,12 +234,114 @@ export async function getTodayJourney(userId: string) {
       completed: prayersCompleted,
       total: totalPrayers,
       percent: prayerPercent,
+      detailedPrayers,
     },
     quranPagesRead: progress.quranPagesRead,
     adhkarCompleted: overallAdhkar,
     sadaqahAmount,
     prayersCompleted,
     prayersTotal: totalPrayers,
+  };
+}
+
+export async function togglePrayer(
+  userId: string,
+  prayerKeyRaw: string,
+  completed: boolean = true,
+) {
+  const prayerKey = prayerKeyRaw.trim().toUpperCase() as ValidPrayerKey;
+  if (!VALID_PRAYER_KEYS.includes(prayerKey)) {
+    throw new AppError(
+      `Invalid prayer key: ${prayerKeyRaw}. Must be one of: ${VALID_PRAYER_KEYS.join(', ')}`,
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+    );
+  }
+
+  const date = getTodayDateOnly();
+  const meta = PRAYER_META[prayerKey];
+
+  if (completed) {
+    await prisma.prayerCompletion.upsert({
+      where: {
+        userId_date_prayer: {
+          userId,
+          date,
+          prayer: prayerKey,
+        },
+      },
+      create: {
+        userId,
+        date,
+        prayer: prayerKey,
+      },
+      update: {},
+    });
+  } else {
+    try {
+      await prisma.prayerCompletion.deleteMany({
+        where: { userId, date, prayer: prayerKey },
+      });
+    } catch {
+      // no-op if record doesn't exist
+    }
+  }
+
+  let completedCount = 0;
+  let detailed: Array<{
+    key: ValidPrayerKey;
+    order: number;
+    nameAr: string;
+    nameEn: string;
+    timeHintAr: string;
+    timeHintEn: string;
+    completed: boolean;
+    completedAt: Date | null;
+  }> = [];
+  try {
+    const rows = await prisma.prayerCompletion.findMany({
+      where: { userId, date },
+      select: { prayer: true, completedAt: true },
+    });
+    completedCount = rows.length;
+    const completedSet = new Set(rows.map((r) => String(r.prayer).toUpperCase()));
+    detailed = VALID_PRAYER_KEYS.map((k) => {
+      const m = PRAYER_META[k];
+      const row = rows.find((r) => String(r.prayer).toUpperCase() === k);
+      return {
+        key: k,
+        order: m.order,
+        nameAr: m.nameAr,
+        nameEn: m.nameEn,
+        timeHintAr: m.timeHintAr,
+        timeHintEn: m.timeHintEn,
+        completed: completedSet.has(k),
+        completedAt: row ? (row as any).completedAt : null,
+      };
+    });
+  } catch {
+    /* ignore */
+  }
+
+  const total = 5;
+  const percent = Math.round((completedCount / total) * 100);
+
+  return {
+    date: date.toISOString().slice(0, 10),
+    prayer: {
+      key: prayerKey,
+      nameAr: meta.nameAr,
+      nameEn: meta.nameEn,
+      timeHintAr: meta.timeHintAr,
+      timeHintEn: meta.timeHintEn,
+      completed,
+    },
+    prayers: {
+      completed: completedCount,
+      total,
+      percent,
+      detailedPrayers: detailed,
+    },
   };
 }
 

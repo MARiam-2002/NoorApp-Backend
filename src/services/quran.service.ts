@@ -1077,6 +1077,20 @@ export type CatalogSurah = {
   ayahs: CatalogSurahAyah[];
 };
 
+export type CatalogJuz = {
+  juzNumber: number;
+  nameAr: string;
+  nameEn: string;
+  totalAyahs: number;
+  startPage: number | null;
+  endPage: number | null;
+  firstSurah: {
+    id: number;
+    nameAr: string;
+    nameEn: string;
+  };
+};
+
 export type FullQuranCatalog = {
   meta: {
     catalogVersion: number;
@@ -1087,6 +1101,7 @@ export type FullQuranCatalog = {
     bismillahStripped: boolean;
   };
   surahs: CatalogSurah[];
+  juzs: CatalogJuz[];
 };
 
 export async function getFullQuranCatalog(): Promise<FullQuranCatalog> {
@@ -1128,14 +1143,90 @@ export async function getFullQuranCatalog(): Promise<FullQuranCatalog> {
     totalAyahs += 1;
   }
 
-  const surahs: CatalogSurah[] = surahRows.map((s) => ({
+  const resolvedSurahRows = surahRows.map((s) => ({
     id: s.id,
     nameAr: resolveSurahNameAr(s.id, s.nameAr),
     nameEn: resolveSurahNameEn(s.id, s.nameEn),
-    revelationType: (s.revelationType as 'MAKKI' | 'MADANI') ?? null,
-    totalAyahs: s.totalAyahs,
-    ayahs: bySurah.get(s.id) ?? [],
   }));
+  const resolvedSurahById = new Map(
+    resolvedSurahRows.map((s) => [s.id, { id: s.id, nameAr: s.nameAr, nameEn: s.nameEn }] as const),
+  );
+
+  const surahs: CatalogSurah[] = surahRows.map((s) => {
+    const resolved = resolvedSurahById.get(s.id) ?? { id: s.id, nameAr: s.nameAr, nameEn: s.nameEn };
+    return {
+      id: s.id,
+      nameAr: resolved.nameAr,
+      nameEn: resolved.nameEn,
+      revelationType: (s.revelationType as 'MAKKI' | 'MADANI') ?? null,
+      totalAyahs: s.totalAyahs,
+      ayahs: bySurah.get(s.id) ?? [],
+    };
+  });
+
+  type JuzAgg = {
+    totalAyahs: number;
+    startPage: number | null;
+    endPage: number | null;
+    firstSurahId: number | null;
+    firstAyahNumber: number | null;
+  };
+  const juzAggs = new Map<number, JuzAgg>();
+  for (const a of sanitizedAyahs) {
+    const juz = a.juz ?? null;
+    if (juz == null) continue;
+    const page = a.page ?? null;
+    const existing = juzAggs.get(juz);
+    if (!existing) {
+      juzAggs.set(juz, {
+        totalAyahs: 1,
+        startPage: page,
+        endPage: page,
+        firstSurahId: a.surahId,
+        firstAyahNumber: a.ayahNumber,
+      });
+    } else {
+      existing.totalAyahs += 1;
+      if (existing.startPage == null || (page != null && page < existing.startPage)) {
+        existing.startPage = page;
+      }
+      if (existing.endPage == null || (page != null && page > existing.endPage)) {
+        existing.endPage = page;
+      }
+      const sameSurah = existing.firstSurahId === a.surahId;
+      const lowerAyahInSame = sameSurah &&
+        existing.firstAyahNumber != null &&
+        a.ayahNumber < existing.firstAyahNumber;
+      const lowerSurah = existing.firstSurahId == null || a.surahId < existing.firstSurahId;
+      if (lowerSurah || lowerAyahInSame) {
+        existing.firstSurahId = a.surahId;
+        existing.firstAyahNumber = a.ayahNumber;
+      }
+    }
+  }
+
+  const juzs: CatalogJuz[] = [];
+  for (let i = 1; i <= 30; i++) {
+    const g = juzAggs.get(i);
+    const rawFirstSurah =
+      g?.firstSurahId != null
+        ? resolvedSurahById.get(g.firstSurahId) ?? null
+        : null;
+    const firstSurah = rawFirstSurah ?? {
+      id: 1,
+      nameAr: resolveSurahNameAr(1, 'الفاتحة'),
+      nameEn: resolveSurahNameEn(1, 'Al-Fatihah'),
+    };
+    juzs.push({
+      juzNumber: i,
+      nameAr: JUZ_ARABIC_NAMES[i - 1] ?? `الجزء ${i}`,
+      nameEn: JUZ_ENGLISH_NAMES[i - 1] ?? `Juz' ${i}`,
+      totalAyahs: g?.totalAyahs ?? 0,
+      startPage: g?.startPage ?? null,
+      endPage: g?.endPage ?? null,
+      firstSurah,
+    });
+  }
 
   return {
     meta: {
@@ -1147,6 +1238,7 @@ export async function getFullQuranCatalog(): Promise<FullQuranCatalog> {
       bismillahStripped: true,
     },
     surahs,
+    juzs,
   };
 }
 
@@ -1182,4 +1274,87 @@ export async function listAyahsByJuz(juzNumber: number) {
     surahs,
   };
 }
+
+// ============================================================
+//  Quran Reader Option Lists (Reciters / Tafsirs / Translations)
+// ============================================================
+
+type ReciterOption = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  style?: string;
+  isDefault?: boolean;
+};
+
+const QURAN_RECITERS: ReciterOption[] = [
+  { id: 'Mishary_Alafasy', nameAr: 'مشاري العفاسي', nameEn: 'Mishary bin Rashid Al-Afasy', style: 'Murattal', isDefault: true },
+  { id: 'Abdul_Basit', nameAr: 'عبد الباسط عبد الصمد', nameEn: 'Abdul Basit Abd us-Samad', style: 'Murattal' },
+  { id: 'Saad_Al_Ghamdi', nameAr: 'سعد الغامدي', nameEn: 'Saad Al-Ghamdi', style: 'Murattal' },
+  { id: 'Ahmed_Al_Ajmi', nameAr: 'أحمد بن علي العجمي', nameEn: 'Ahmed Al-Ajmi', style: 'Hudhuri' },
+  { id: 'Ali_Al_Hudhaify', nameAr: 'علي الحذيفي', nameEn: 'Ali Al-Hudhaify', style: 'Hudhuri' },
+  { id: 'Maher_Al_Muaiqly', nameAr: 'ماهر المعيقلي', nameEn: 'Maher Al-Muaiqly', style: 'Murattal' },
+  { id: 'Salah_Al_Budair', nameAr: 'صلاح البدير', nameEn: 'Salah Al-Budair', style: 'Murattal' },
+  { id: 'Yasser_Al_Dosari', nameAr: 'ياسر الدوسري', nameEn: 'Yasser Al-Dosari', style: 'Murattal' },
+  { id: 'Khalid_Al_Jaleel', nameAr: 'خالد الجليل', nameEn: 'Khalid Al-Jaleel', style: 'Murattal' },
+  { id: 'Muhammad_Siddiq_Al_Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Muhammad Siddiq Al-Minshawi', style: 'Tajweed' },
+];
+
+export async function listReciters(): Promise<ReciterOption[]> {
+  return QURAN_RECITERS;
+}
+
+type TafsirOption = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  authorAr?: string;
+  authorEn?: string;
+  yearHijri?: number;
+  yearGregorian?: number;
+  isDefault?: boolean;
+};
+
+const QURAN_TAFSIRS: TafsirOption[] = [
+  { id: 'Ibn_Kathir', nameAr: 'تفسير ابن كثير', nameEn: 'Tafsir Ibn Kathir', authorAr: 'إسماعيل بن كثير الدمشقي', authorEn: 'Ismail ibn Kathir al-Dimashqi', yearHijri: 774, yearGregorian: 1373, isDefault: true },
+  { id: 'Al_Tabari', nameAr: 'تفسير الطبري', nameEn: 'Tafsir Al-Tabari', authorAr: 'محمد بن جرير الطبري', authorEn: 'Muhammad ibn Jarir Al-Tabari', yearHijri: 310, yearGregorian: 923 },
+  { id: 'Al_Qurtubi', nameAr: 'تفسير القرطبي', nameEn: 'Tafsir Al-Qurtubi', authorAr: 'أبو عبد الله القرطبي', authorEn: 'Abu Abdullah Al-Qurtubi', yearHijri: 671, yearGregorian: 1273 },
+  { id: 'Ibn_Kathir_Muyassar', nameAr: 'تفسير الميسر', nameEn: 'Tafsir Al-Muyassar', authorAr: 'وزارة التربية والتعليم السعودية', authorEn: 'Saudi Ministry of Education' },
+  { id: 'Saheeh_International', nameAr: 'تفسير الصحيح الدولي', nameEn: 'Saheeh International Explanation', authorAr: 'مجموعة العلماء', authorEn: 'Group of Scholars' },
+  { id: 'Al_Baghawi', nameAr: 'معالم التنزيل (البغوي)', nameEn: 'Ma\'alim Al-Tanzil (Al-Baghawi)', authorAr: 'حسين بن مسعود البغوي', authorEn: 'Husayn ibn Mas\'ud Al-Baghawi', yearHijri: 516, yearGregorian: 1122 },
+  { id: 'Al_Razi', nameAr: 'مفاتيح الغيب (الرازي)', nameEn: 'Mafatih Al-Ghayb (Al-Razi)', authorAr: 'فخر الدين الرازي', authorEn: 'Fakhr ad-Din ar-Razi', yearHijri: 606, yearGregorian: 1209 },
+  { id: 'Tafsir_Al_Usmani', nameAr: 'تفسير عثماني', nameEn: 'Tafsir Usmani', authorAr: 'محمد شكيب عثماني', authorEn: 'Muhammad Shafi Usmani', yearHijri: 1420, yearGregorian: 2000 },
+];
+
+export async function listTafsirs(): Promise<TafsirOption[]> {
+  return QURAN_TAFSIRS;
+}
+
+type TranslationOption = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  language: string;
+  languageCode: string;
+  authorAr?: string;
+  authorEn?: string;
+  isDefault?: boolean;
+};
+
+const QURAN_TRANSLATIONS: TranslationOption[] = [
+  { id: 'Sahih_International', nameAr: 'الترجمة الصحيحة الدولية', nameEn: 'Saheeh International', language: 'English', languageCode: 'en', authorAr: 'مجموعة من العلماء', authorEn: 'Group of Saudi Scholars', isDefault: true },
+  { id: 'Yusuf_Ali', nameAr: 'ترجمة يوسف علي', nameEn: 'Yusuf Ali', language: 'English', languageCode: 'en', authorAr: 'عبد الله يوسف علي', authorEn: 'Abdullah Yusuf Ali' },
+  { id: 'Pickthall', nameAr: 'ترجمة بيكثال', nameEn: 'Mohammed Marmaduke Pickthall', language: 'English', languageCode: 'en', authorAr: 'محمد بيكثال', authorEn: 'Mohammed Marmaduke William Pickthall' },
+  { id: 'Shakir', nameAr: 'ترجمة شاكر', nameEn: 'Mohammad Habib Shakir', language: 'English', languageCode: 'en', authorAr: 'محمد حبيب شاكر', authorEn: 'Mohammad Habib Shakir' },
+  { id: 'French_Hamidullah', nameAr: 'الترجمة الفرنسية (حميد الله)', nameEn: 'French (Hamidullah)', language: 'French', languageCode: 'fr', authorAr: 'محمد حامد الله', authorEn: 'Muhammad Hamidullah' },
+  { id: 'Turkish_Diyanet', nameAr: 'الترجمة التركية (الديانة)', nameEn: 'Turkish (Diyanet)', language: 'Turkish', languageCode: 'tr', authorAr: 'رئيسية الشؤون الدينية التركية', authorEn: 'Presidency of Religious Affairs, Turkey' },
+  { id: 'Malay_Basyuni_Imran', nameAr: 'الترجمة الملايوية', nameEn: 'Malay (Basuny Imran)', language: 'Malay', languageCode: 'ms', authorAr: 'باسوني عمران', authorEn: 'Basuny Imran' },
+  { id: 'Indonesian_Depag', nameAr: 'الترجمة الإندونيسية', nameEn: 'Indonesian (DEPKAG)', language: 'Indonesian', languageCode: 'id', authorAr: 'وزارة الأوقاف الإندونيسية', authorEn: 'Indonesian Ministry of Religious Affairs' },
+];
+
+export async function listTranslations(): Promise<TranslationOption[]> {
+  return QURAN_TRANSLATIONS;
+}
+
+export type { ReciterOption, TafsirOption, TranslationOption };
 

@@ -25,9 +25,37 @@ const dhikrArNamesMap: Record<Dhikr, string> = {
   [Dhikr.LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH]: 'لا حول ولا قوة إلا بالله',
 };
 
+const dhikrEnNamesMap: Record<Dhikr, string> = {
+  [Dhikr.SUBHAN_ALLAH]: 'Glory be to Allah',
+  [Dhikr.ALHAMDULILLAH]: 'All praise is due to Allah',
+  [Dhikr.LA_ILAHA_ILLA_ALLAH]: 'There is no god but Allah',
+  [Dhikr.ALLAHU_AKBAR]: 'Allah is the Greatest',
+  [Dhikr.ASTAGHFIRULLAH]: 'I seek forgiveness from Allah',
+  [Dhikr.LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH]: 'There is no power nor strength except through Allah',
+};
+
 export function getDhikrArName(dhikr: string): string {
   const key = dhikr as Dhikr;
   return dhikrArNamesMap[key] ?? dhikr;
+}
+
+export function getDhikrEnName(dhikr: string): string {
+  const key = dhikr as Dhikr;
+  return dhikrEnNamesMap[key] ?? dhikr;
+}
+
+export type DhikrOption = {
+  id: Dhikr;
+  dhikrAr: string;
+  dhikrEn: string;
+};
+
+export function listDhikrOptions(): DhikrOption[] {
+  return (Object.keys(Dhikr) as Dhikr[]).map((key) => ({
+    id: key,
+    dhikrAr: dhikrArNamesMap[key],
+    dhikrEn: dhikrEnNamesMap[key],
+  }));
 }
 
 const TASBIH_DAILY_GOAL = 99;
@@ -36,11 +64,13 @@ export type ContractTasbih = {
   count: number;
   dhikr: string;
   dhikrAr: string;
+  dhikrEn: string;
   dailyGoal: number;
   progressPercent: number;
   todayCount?: number;
   currentDhikr?: string;
   currentDhikrAr?: string;
+  currentDhikrEn?: string;
   currentDhikrCount?: number;
   id?: string;
   date?: Date;
@@ -56,6 +86,7 @@ function toContractTasbih(log: {
 }): ContractTasbih {
   const dhikrKey = (log.dhikr ?? Dhikr.SUBHAN_ALLAH) as string;
   const dhikrAr = getDhikrArName(dhikrKey);
+  const dhikrEn = getDhikrEnName(dhikrKey);
   const progressPercent = TASBIH_DAILY_GOAL > 0
     ? Math.min(100, Math.round((log.count * 100) / TASBIH_DAILY_GOAL))
     : 0;
@@ -63,11 +94,13 @@ function toContractTasbih(log: {
     count: log.count,
     dhikr: dhikrKey,
     dhikrAr,
+    dhikrEn,
     dailyGoal: TASBIH_DAILY_GOAL,
     progressPercent,
     todayCount: log.count,
     currentDhikr: dhikrKey,
     currentDhikrAr: dhikrAr,
+    currentDhikrEn: dhikrEn,
     currentDhikrCount: log.count,
     id: log.id,
     date: log.date,

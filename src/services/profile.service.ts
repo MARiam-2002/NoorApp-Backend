@@ -22,6 +22,7 @@ export type UserProfile = {
   quranReciter: string;
   quranTafsir: string;
   quranTranslation: string;
+  quranAutoScrollEnabled: boolean;
   joinedAt: Date | null;
 };
 
@@ -30,33 +31,68 @@ export type ReadingPreferences = {
   quranReciter: string;
   quranTafsir: string;
   quranTranslation: string;
+  quranAutoScrollEnabled: boolean;
 };
 
 export async function getProfile(userId: string): Promise<UserProfile> {
-  const profile = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      username: true,
-      fullName: true,
-      email: true,
-      avatarUrl: true,
-      phone: true,
-      city: true,
-      country: true,
-      points: true,
-      level: true,
-      timezone: true,
-      latitude: true,
-      longitude: true,
-      prayerCalculationMethod: true,
-      quranFontSize: true,
-      quranReciter: true,
-      quranTafsir: true,
-      quranTranslation: true,
-      createdAt: true,
-    },
-  });
+  let profile: any = null;
+  try {
+    profile = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        avatarUrl: true,
+        phone: true,
+        city: true,
+        country: true,
+        points: true,
+        level: true,
+        timezone: true,
+        latitude: true,
+        longitude: true,
+        prayerCalculationMethod: true,
+        quranFontSize: true,
+        quranReciter: true,
+        quranTafsir: true,
+        quranTranslation: true,
+        quranAutoScrollEnabled: true,
+        createdAt: true,
+      },
+    });
+  } catch (err: any) {
+    // Tolerate missing column for envs that haven't run the new migration yet
+    if (err?.code === 'P2022') {
+      profile = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          avatarUrl: true,
+          phone: true,
+          city: true,
+          country: true,
+          points: true,
+          level: true,
+          timezone: true,
+          latitude: true,
+          longitude: true,
+          prayerCalculationMethod: true,
+          quranFontSize: true,
+          quranReciter: true,
+          quranTafsir: true,
+          quranTranslation: true,
+          createdAt: true,
+        },
+      });
+    } else {
+      throw err;
+    }
+  }
 
   if (!profile) {
     throw new AppError(
@@ -85,20 +121,39 @@ export async function getProfile(userId: string): Promise<UserProfile> {
     quranReciter: profile.quranReciter,
     quranTafsir: profile.quranTafsir,
     quranTranslation: profile.quranTranslation,
+    quranAutoScrollEnabled: Boolean(profile.quranAutoScrollEnabled ?? false),
     joinedAt: profile.createdAt,
   };
 }
 
 export async function getReadingPreferences(userId: string): Promise<ReadingPreferences> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      quranFontSize: true,
-      quranReciter: true,
-      quranTafsir: true,
-      quranTranslation: true,
-    },
-  });
+  let user: any = null;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        quranFontSize: true,
+        quranReciter: true,
+        quranTafsir: true,
+        quranTranslation: true,
+        quranAutoScrollEnabled: true,
+      },
+    });
+  } catch (err: any) {
+    if (err?.code === 'P2022') {
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          quranFontSize: true,
+          quranReciter: true,
+          quranTafsir: true,
+          quranTranslation: true,
+        },
+      });
+    } else {
+      throw err;
+    }
+  }
 
   if (!user) {
     throw new AppError(
@@ -108,7 +163,13 @@ export async function getReadingPreferences(userId: string): Promise<ReadingPref
     );
   }
 
-  return user;
+  return {
+    quranFontSize: user.quranFontSize,
+    quranReciter: user.quranReciter,
+    quranTafsir: user.quranTafsir,
+    quranTranslation: user.quranTranslation,
+    quranAutoScrollEnabled: Boolean(user.quranAutoScrollEnabled ?? false),
+  };
 }
 
 export async function updateReadingPreferences(
@@ -129,17 +190,42 @@ export async function updateReadingPreferences(
   if (data.quranReciter !== undefined) updateData.quranReciter = data.quranReciter;
   if (data.quranTafsir !== undefined) updateData.quranTafsir = data.quranTafsir;
   if (data.quranTranslation !== undefined) updateData.quranTranslation = data.quranTranslation;
+  if (data.quranAutoScrollEnabled !== undefined) {
+    updateData.quranAutoScrollEnabled = data.quranAutoScrollEnabled;
+  }
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: updateData,
-    select: {
-      quranFontSize: true,
-      quranReciter: true,
-      quranTafsir: true,
-      quranTranslation: true,
-    },
-  });
+  let updated: any = null;
+  try {
+    updated = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        quranFontSize: true,
+        quranReciter: true,
+        quranTafsir: true,
+        quranTranslation: true,
+        quranAutoScrollEnabled: true,
+      },
+    });
+  } catch (err: any) {
+    if (err?.code === 'P2022') {
+      // Column may not exist on environments pending migration; ignore this field silently
+      const { quranAutoScrollEnabled: _ignore, ...rest } = updateData;
+      void _ignore;
+      updated = await prisma.user.update({
+        where: { id: userId },
+        data: rest,
+        select: {
+          quranFontSize: true,
+          quranReciter: true,
+          quranTafsir: true,
+          quranTranslation: true,
+        },
+      });
+    } else {
+      throw err;
+    }
+  }
 
   if (!updated) {
     throw new AppError(
@@ -149,7 +235,13 @@ export async function updateReadingPreferences(
     );
   }
 
-  return updated;
+  return {
+    quranFontSize: updated.quranFontSize,
+    quranReciter: updated.quranReciter,
+    quranTafsir: updated.quranTafsir,
+    quranTranslation: updated.quranTranslation,
+    quranAutoScrollEnabled: Boolean(updated.quranAutoScrollEnabled ?? data.quranAutoScrollEnabled ?? false),
+  };
 }
 
 export async function updateProfile(
@@ -233,6 +325,7 @@ export async function updateProfile(
       quranReciter: true,
       quranTafsir: true,
       quranTranslation: true,
+      quranAutoScrollEnabled: true,
       createdAt: true,
     },
   });
@@ -264,6 +357,7 @@ export async function updateProfile(
     quranReciter: updated.quranReciter,
     quranTafsir: updated.quranTafsir,
     quranTranslation: updated.quranTranslation,
+    quranAutoScrollEnabled: Boolean(updated.quranAutoScrollEnabled ?? false),
     joinedAt: updated.createdAt,
   };
 }
@@ -359,6 +453,7 @@ export async function updateLocation(
       quranReciter: true,
       quranTafsir: true,
       quranTranslation: true,
+      quranAutoScrollEnabled: true,
       createdAt: true,
     },
   });
@@ -390,6 +485,7 @@ export async function updateLocation(
     quranReciter: updated.quranReciter,
     quranTafsir: updated.quranTafsir,
     quranTranslation: updated.quranTranslation,
+    quranAutoScrollEnabled: Boolean(updated.quranAutoScrollEnabled ?? false),
     joinedAt: updated.createdAt,
   };
 }
