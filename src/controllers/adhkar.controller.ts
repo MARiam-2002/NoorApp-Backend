@@ -6,13 +6,16 @@ import {
   getAllCategories,
   getCategoriesWithDailyWird,
   getCategoryWithItems,
+  getCategoryWithItemsForUser,
   getDailyWird,
+  getDailyWirdForUser,
   getAdhkarProgress,
   saveAdhkarProgress,
   listAdhkarFavorites,
   addAdhkarFavorite,
   removeAdhkarFavorite,
   searchAdhkar,
+  saveResumeMark,
 } from '../services/adhkar.service';
 
 export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -27,13 +30,14 @@ export const getDhikrHomeHandler = asyncHandler(async (req: Request, res: Respon
 
 export const getDhikrCategoryByKeyHandler = asyncHandler(async (req: Request, res: Response) => {
   const key = String(req.params.key ?? '');
-  const data = await getCategoryWithItems(key);
-  sendSuccess(res, data, `Dhikr category ${key} retrieved successfully`, req);
-});
+  const userId = req.user?.sub;
 
-export const getDailyWirdHandler = asyncHandler(async (req: Request, res: Response) => {
-  const data = await getDailyWird();
-  sendSuccess(res, data, 'Daily wird (ورد اليوم) retrieved successfully', req);
+  // If authenticated, get category with user's resume mark
+  const data = userId
+    ? await getCategoryWithItemsForUser(key, userId)
+    : await getCategoryWithItems(key);
+
+  sendSuccess(res, data, `Dhikr category ${key} retrieved successfully`, req);
 });
 
 export const getAdhkarProgressHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -90,4 +94,24 @@ export const searchAdhkarHandler = asyncHandler(async (req: Request, res: Respon
       : 'Adhkar search (empty query) — no results',
     req,
   );
+});
+
+
+export const saveResumeMarkHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const { categoryKey, markedItemId } = req.body as { categoryKey: string; markedItemId: string };
+
+  const data = await saveResumeMark(userId, categoryKey, markedItemId);
+  sendSuccess(res, data, 'Resume mark saved successfully', req);
+});
+
+export const getDailyWirdHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  // If authenticated, get real progress; otherwise cosmetic
+  const data = userId
+    ? await getDailyWirdForUser(userId)
+    : await getDailyWird();
+
+  sendSuccess(res, data, 'Daily wird retrieved successfully', req);
 });

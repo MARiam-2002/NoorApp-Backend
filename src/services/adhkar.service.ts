@@ -1046,6 +1046,7 @@ export async function getCategoryWithItems(key: string) {
         iconCode: category.iconCode,
         sortOrder: category.sortOrder,
         totalItems: category.totalItems,
+        markedItemId: null as string | null,
         items: category.items.map((it) => ({
           id: it.id,
           orderInCategory: it.orderInCategory,
@@ -1679,4 +1680,153 @@ export async function searchAdhkar(
     limit,
     items,
   };
+}
+
+
+// ============================================================
+//  Adhkar Resume Mark — persist bookmark position per user
+// ============================================================
+
+export async function getCategoryWithItemsForUser(key: string, userId: string) {
+  const category = await getCategoryWithItems(key);
+
+  // Get user's resume mark for this category
+  try {
+    const resumeMark = await prisma.adhkarResumeMark.findUnique({
+      where: {
+        userId_categoryKey: {
+          userId,
+          categoryKey: key.trim().toUpperCase(),
+        },
+      },
+      select: { markedItemId: true },
+    });
+
+    if (resumeMark) {
+      return {
+        ...category,
+        markedItemId: resumeMark.markedItemId,
+      };
+    }
+  } catch (err: any) {
+    logger.warn('[Adhkar] Failed to fetch resume mark, returning category without mark', {
+      userId,
+      categoryKey: key,
+      code: err?.code,
+    });
+  }
+
+  return category;
+}
+
+export async function saveResumeMark(
+  userId: string,
+  categoryKey: string,
+  markedItemId: string,
+): Promise<{ markedItemId: string }> {
+  const normalizedKey = categoryKey.trim().toUpperCase();
+
+  try {
+    const mark = await prisma.adhkarResumeMark.upsert({
+      where: {
+        userId_categoryKey: {
+          userId,
+          categoryKey: normalizedKey,
+        },
+      },
+      create: {
+        userId,
+        categoryKey: normalizedKey,
+        markedItemId,
+      },
+      update: {
+        markedItemId,
+      },
+      select: { markedItemId: true },
+    });
+
+    return { markedItemId: mark.markedItemId };
+  } catch (err: any) {
+    logger.error('[Adhkar] Failed to save resume mark', {
+      userId,
+      categoryKey: normalizedKey,
+      markedItemId,
+      code: err?.code,
+      message: err?.message,
+    });
+    throw new AppError(
+      'Failed to save resume mark',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      ErrorCodes.DATABASE_ERROR,
+    );
+  }
+}
+
+// ============================================================
+//  Real Daily Wird Progress (for signed-in users)
+// ============================================================
+
+export async function getDailyWirdForUser(userId: string) {
+  const baseWird = await getDailyWird();
+
+  // Calculate real progress from user's completions
+  const date = getTodayDate();
+
+  try {
+    const wirdCategory = await prisma.dhikrCategory.findFirst({
+      where: { key: 'GENERAL_WIRD' },
+      include: {
+        items: {
+          orderBy: { orderInCategory: 'asc' },
+          take: 8, // Daily wird goal is 8 items
+        },
+      },
+    });
+
+    if (!wirdCategory || wirdCategory.items.length === 0) {
+      return baseWird; // Fallback to cosmetic progress
+    }
+
+    const itemIds = wirdCategory.items.map((it) => it.id);
+
+    const completions = await prisma.dailyDhikrCompletion.findMany({
+      where: {
+        userId,
+        date,
+        categoryId: wirdCategory.id,
+        itemId: { in: itemIds },
+      },
+      select: { itemId: true, countDone: true },
+    });
+
+    const completionMap = new Map(
+      completions.map((c) => [c.itemId, c.countDone]),
+    );
+
+    // Count how many items are done (countDone >= repeatCount)
+    let itemsDone = 0;
+    for (const item of wirdCategory.items) {
+      const done = completionMap.get(item.id) ?? 0;
+      if (done >= item.repeatCount) {
+        itemsDone += 1;
+      }
+    }
+
+    const total = wirdCategory.items.length;
+    const percent = total > 0 ? Math.round((itemsDone / total) * 100) : 0;
+
+    return {
+      ...baseWird,
+      progressItemsDone: itemsDone,
+      progressItemsTotal: total,
+      progressPercent: percent,
+    };
+  } catch (err: any) {
+    logger.warn('[Adhkar] Failed to calculate real wird progress, using cosmetic', {
+      userId,
+      code: err?.code,
+      message: err?.message,
+    });
+    return baseWird;
+  }
 }

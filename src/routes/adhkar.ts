@@ -10,6 +10,7 @@ import {
   addAdhkarFavoriteHandler,
   removeAdhkarFavoriteHandler,
   searchAdhkarHandler,
+  saveResumeMarkHandler,
 } from '../controllers/adhkar.controller';
 import { authenticate } from '../middleware/auth';
 
@@ -431,3 +432,44 @@ adhkarRouter.post('/favorites', authenticate, addAdhkarFavoriteHandler);
 adhkarRouter.get('/search', searchAdhkarHandler);
 
 adhkarRouter.delete('/favorites/:favoriteId', authenticate, removeAdhkarFavoriteHandler);
+
+
+/**
+ * @openapi
+ * /adhkar/resume-mark:
+ *   put:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: حفظ مكان الوقف (Resume Mark) لفئة أذكار معينة
+ *     description: >
+ *       يحفظ آخر ذكر وصل إليه المستخدم في فئة معينة، ليتم استئناف القراءة من نفس المكان
+ *       على كل الأجهزة. يتم الحفظ per-user per-category.
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [categoryKey, markedItemId]
+ *             properties:
+ *               categoryKey:
+ *                 type: string
+ *                 enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD]
+ *                 example: MORNING
+ *               markedItemId:
+ *                 type: string
+ *                 example: uuid-of-dhikr-item
+ *     responses:
+ *       200:
+ *         description: ✅ تم حفظ مكان الوقف
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Resume mark saved successfully
+ *               data:
+ *                 markedItemId: uuid-of-dhikr-item
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+adhkarRouter.put('/resume-mark', authenticate, saveResumeMarkHandler);
