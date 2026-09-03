@@ -566,6 +566,176 @@ The controller uses a `sendJsonWithRange()` helper that:
 2. Returns `206 Partial Content` with `Content-Range` + `Accept-Ranges: bytes`
 3. Falls back to clean `200 OK` when no Range header (for Flutter clients that don't resume on first attempt)
 
+### 🔧 TROUBLESHOOTING: "الأجزاء مش بتحمل offline" (2026-09-03)
+
+**Issue:** بعد تحميل القرآن offline، السور بتظهر لكن تاب الأجزاء فاضي.
+
+**Root Cause:** البيانات موجودة 100% في الcatalog! المشكلة في Flutter parsing/caching.
+
+#### ✅ تأكد إن البيانات موجودة (Debug check):
+
+```dart
+final response = await http.get(Uri.parse('$baseUrl/quran/full-catalog'));
+final data = jsonDecode(response.body)['data'];
+
+print('📊 Catalog Analysis:');
+print('Has juzs array: ${data.containsKey('juzs')}');
+print('Juzs count: ${(data['juzs'] as List?)?.length ?? 0}');
+print('Meta totalJuz: ${data['meta']['totalJuz']}');
+
+if (data['juzs'] != null && (data['juzs'] as List).isNotEmpty) {
+  print('✅ First juz: ${data['juzs'][0]['nameAr']} — ${data['juzs'][0]['totalAyahs']} آيات');
+} else {
+  print('❌ ERROR: juzs array missing or empty!');
+}
+```
+
+**Expected output:**
+```
+Has juzs array: true
+Juzs count: 30
+Meta totalJuz: 30
+✅ First juz: الجزء الأول — 148 آيات
+```
+
+#### ❌ Common Mistakes:
+
+**1. Not reading `data.juzs` at all:**
+```dart
+// ❌ WRONG - scanning 6,236 ayahs manually (slow & error-prone)
+Map<int, List<Ayah>> juzMap = {};
+for (var surah in data['surahs']) {
+  for (var ayah in surah['ayahs']) {
+    juzMap[ayah['juz']] ??= [];
+    juzMap[ayah['juz']].add(ayah);
+  }
+}
+// Missing: names, page ranges, first surah metadata
+```
+
+```dart
+// ✅ CORRECT - use pre-built data.juzs (instant)
+final juzs = (data['juzs'] as List).map((j) => CachedJuzMeta.fromJson(j)).toList();
+// Has everything: names, counts, pages, first surah
+```
+
+**2. Not caching juzs locally:**
+```dart
+// ❌ WRONG - only caching surahs & ayahs
+await isar.writeTxn(() async {
+  await isar.cachedSurahs.putAll(surahs);  ✅
+  await isar.cachedAyahs.putAll(ayahs);    ✅
+  // Missing: juzs not cached!              ❌
+});
+```
+
+```dart
+// ✅ CORRECT - cache all three collections
+await isar.writeTxn(() async {
+  await isar.cachedSurahs.putAll(surahs);
+  await isar.cachedAyahs.putAll(ayahs);
+  await isar.cachedJuzMetas.putAll(juzs);  ✅
+});
+```
+
+**3. Juz screen reading from network instead of cache:**
+```dart
+// ❌ WRONG - fetching from API (fails offline)
+final response = await http.get(Uri.parse('$baseUrl/quran/juz'));
+final juzs = response.data;  // Empty when offline!
+```
+
+```dart
+// ✅ CORRECT - read from local cache
+final juzs = await isar.cachedJuzMetas
+    .where()
+    .sortByJuzNumber()
+    .findAll();  // Works offline
+```
+
+#### ✅ Minimal Working Example:
+
+```dart
+// Model
+@collection
+class CachedJuzMeta {
+  Id? id;
+  @Index() late int juzNumber;
+  late String nameAr;
+  late String nameEn;
+  late int totalAyahs;
+  int? startPage;
+  int? endPage;
+  late int firstSurahId;
+  late String firstSurahNameAr;
+}
+
+// Download & Cache
+Future<void> downloadOfflineQuran() async {
+  final resp = await http.get(Uri.parse('$baseUrl/quran/full-catalog'));
+  final data = jsonDecode(resp.body)['data'];
+  
+  // Parse juzs
+  final juzs = (data['juzs'] as List).map((j) {
+    final firstS = j['firstSurah'];
+    return CachedJuzMeta()
+      ..juzNumber = j['juzNumber']
+      ..nameAr = j['nameAr']
+      ..nameEn = j['nameEn']
+      ..totalAyahs = j['totalAyahs']
+      ..startPage = j['startPage']
+      ..endPage = j['endPage']
+      ..firstSurahId = firstS['id']
+      ..firstSurahNameAr = firstS['nameAr'];
+  }).toList();
+  
+  // Save to cache
+  await isar.writeTxn(() async {
+    await isar.cachedJuzMetas.putAll(juzs);
+    // ... also cache surahs & ayahs
+  });
+  
+  print('✅ Cached ${juzs.length} juz offline');
+}
+
+// Display in UI
+class JuzTab extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<CachedJuzMeta>>(
+      future: isar.cachedJuzMetas.where().sortByJuzNumber().findAll(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return CircularProgressIndicator();
+        
+        final juzs = snapshot.data!;
+        if (juzs.isEmpty) {
+          return Text('حمّل القرآن من الإعدادات');
+        }
+        
+        return ListView.builder(
+          itemCount: juzs.length,
+          itemBuilder: (context, i) => ListTile(
+            title: Text(juzs[i].nameAr),
+            subtitle: Text('${juzs[i].totalAyahs} آية'),
+            onTap: () => _openJuz(juzs[i]),
+          ),
+        );
+      },
+    );
+  }
+}
+```
+
+#### 🎯 Checklist:
+
+- [ ] Verify `data.juzs` exists in catalog response (print debug)
+- [ ] Create `CachedJuzMeta` model/collection
+- [ ] Parse & save all 30 juzs during download
+- [ ] Juz screen reads from cache (not network)
+- [ ] Use `isar.cachedAyahs.where().juzEqualTo(n).findAll()` to show ayahs
+
+**If still not working:** Send debug output + JuzTab code for review.
+
 ---
 
 ## 4) Quran — authenticated progress
