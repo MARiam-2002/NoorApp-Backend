@@ -3,8 +3,11 @@
 **Audience:** Flutter team (`lib/`)  
 **From:** Noor Backend team  
 **Base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-08-31  
+**Updated:** 2026-09-03  
 **Purpose:** Every error code + message the backend sends, with Arabic/English strings for localization
+
+**⚠️ Note on Error Code Granularity:**  
+This document lists **specific error codes** for each scenario (e.g., `INVALID_SURAH_ID`, `BOOKMARK_ALREADY_EXISTS`). The backend currently uses **generic codes** for most cases (`VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`). Use the `message` field and `errors[]` array for additional context when the `code` is generic. Specific codes may be added to the backend in future updates for finer-grained localization.
 
 This document catalogs every `code` value you may receive in an error envelope, the user-facing message we recommend (AR + EN), when it occurs, and which field triggered it. Use this to map backend codes to localized snackbars / inline errors and eliminate raw English exceptions shown to users.
 
