@@ -422,21 +422,42 @@ export async function incrementQuranPages(userId: string, pages: number) {
   return { quranPagesRead: progress.quranPagesRead };
 }
 
-export async function updateAdhkar(userId: string, completed: boolean) {
+export async function updateAdhkar(
+  userId: string,
+  input: { completed?: boolean; morningCompleted?: boolean; eveningCompleted?: boolean },
+) {
   const date = getTodayDateOnly();
+  const existing = await prisma.dailyProgress.findUnique({
+    where: { userId_date: { userId, date } },
+  });
+
+  const morningSet =
+    input.morningCompleted !== undefined
+      ? input.morningCompleted
+      : input.completed !== undefined
+        ? input.completed
+        : existing?.morningAdhkarCompleted ?? false;
+  const eveningSet =
+    input.eveningCompleted !== undefined
+      ? input.eveningCompleted
+      : input.completed !== undefined
+        ? input.completed
+        : existing?.eveningAdhkarCompleted ?? false;
+  const overallSet = morningSet && eveningSet;
+
   const progress = await prisma.dailyProgress.upsert({
     where: { userId_date: { userId, date } },
     create: {
       userId,
       date,
-      morningAdhkarCompleted: completed,
-      eveningAdhkarCompleted: completed,
-      adhkarCompleted: completed,
+      morningAdhkarCompleted: morningSet,
+      eveningAdhkarCompleted: eveningSet,
+      adhkarCompleted: overallSet,
     },
     update: {
-      morningAdhkarCompleted: completed,
-      eveningAdhkarCompleted: completed,
-      adhkarCompleted: completed,
+      morningAdhkarCompleted: morningSet,
+      eveningAdhkarCompleted: eveningSet,
+      adhkarCompleted: overallSet,
     },
   });
 

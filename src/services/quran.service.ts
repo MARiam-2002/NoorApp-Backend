@@ -1041,8 +1041,12 @@ export async function getKhatmahWithStats(userId: string) {
     getPagesReadToday(userId),
   ]);
   const completedKhatmahCount = Math.floor((base.totalPagesRead ?? 0) / TOTAL_QURAN_PAGES);
+  const totalPagesRead = base.totalPagesRead;
   return {
     ...base,
+    streakDays,
+    completedKhatmahCount,
+    totalPagesRead,
     dailyGoal: {
       pagesTarget: DAILY_QURAN_PAGES_TARGET,
       pagesReadToday,
@@ -1052,7 +1056,7 @@ export async function getKhatmahWithStats(userId: string) {
     stats: {
       streakDays,
       completedKhatmahCount,
-      totalPagesRead: base.totalPagesRead,
+      totalPagesRead,
     },
   };
 }

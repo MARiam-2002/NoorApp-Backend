@@ -1,0 +1,33 @@
+
+================================================================================
+PHASE 0 — SETUP: Sign up fresh user on production
+================================================================================
+  PASS [AUTH-1] Sign-up returns user + tokens shape (BACKEND §1)  -> status=201, expiresIn=3600
+  PASS [ENV-0] Envelope success+meta+timestamp+requestId on sign-up  -> keys=['success', 'message', 'data', 'meta', 'timestamp', 'requestId']
+     signed up as: audit_caa49c68b4c7@noor-audit.invalid
+
+================================================================================
+PHASE 1 — §0 ENVELOPE: Verify success shape + error shape on every endpoint
+================================================================================
+  PASS [ENV-0] Envelope shape public GET /health  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/surahs  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/juz  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/pages/1  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/juz/1/surahs  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /adhkar  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /adhkar/categories/MORNING  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /adhkar/categories  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /qibla/calculate?lat=30.0444&lng=31.2357  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/reciters  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/tafsirs  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/translations  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/surahs/1  [status 200]  -> success=True meta_type=dict
+  PASS [ENV-0] Envelope shape public GET /quran/surahs/1/ayahs  [status 200]  -> success=True meta_type=dict
+Traceback (most recent call last):
+  File "C:\Users\Mariam Khaled\Desktop\NoorApp-Backend\scripts\_final_contract_audit.py", line 136, in <module>
+    check(f"Envelope shape public {label}  [status {st}]", has_env and st == 200,
+  File "C:\Users\Mariam Khaled\Desktop\NoorApp-Backend\scripts\_final_contract_audit.py", line 51, in check
+    print(f"{mark} [{section}] {label}" + (f"  -> {detail}" if detail else ""))
+  File "C:\Users\Mariam Khaled\AppData\Local\Programs\Python\Python310\lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 57-62: character maps to <undefined>

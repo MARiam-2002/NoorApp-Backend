@@ -108,7 +108,7 @@ export async function getUnreadCount(userId: string) {
   const unreadCount = await prisma.notification.count({
     where: { userId, readAt: null },
   });
-  return { unreadCount };
+  return { count: unreadCount, unreadCount };
 }
 
 export async function markAsRead(userId: string, id: string) {

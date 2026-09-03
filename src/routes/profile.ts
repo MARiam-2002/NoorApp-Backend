@@ -44,12 +44,33 @@ const updateLocationSchema = z.object({
   latitude: z.coerce
     .number()
     .min(-90, 'Latitude must be between -90 and 90')
-    .max(90, 'Latitude must be between -90 and 90'),
+    .max(90, 'Latitude must be between -90 and 90')
+    .optional(),
   longitude: z.coerce
     .number()
     .min(-180, 'Longitude must be between -180 and 180')
-    .max(180, 'Longitude must be between -180 and 180'),
+    .max(180, 'Longitude must be between -180 and 180')
+    .optional(),
+  lat: z.coerce
+    .number()
+    .min(-90, 'Latitude must be between -90 and 90')
+    .max(90, 'Latitude must be between -90 and 90')
+    .optional(),
+  lng: z.coerce
+    .number()
+    .min(-180, 'Longitude must be between -180 and 180')
+    .max(180, 'Longitude must be between -180 and 180')
+    .optional(),
   timezone: z.string().trim().min(1, 'Timezone must be a non-empty string').optional(),
+}).superRefine((val, ctx) => {
+  const hasLat = val.latitude !== undefined || val.lat !== undefined;
+  const hasLng = val.longitude !== undefined || val.lng !== undefined;
+  if (!hasLat || !hasLng) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'latitude/lat and longitude/lng are required',
+    });
+  }
 });
 
 /**

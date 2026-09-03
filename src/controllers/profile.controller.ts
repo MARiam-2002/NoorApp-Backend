@@ -83,14 +83,19 @@ export const updateLocation = asyncHandler(async (req: Request, res: Response) =
     );
   }
 
-  const { latitude, longitude, timezone } = req.body as {
-    latitude: number;
-    longitude: number;
+  const body = req.body as {
+    latitude?: number;
+    longitude?: number;
+    lat?: number;
+    lng?: number;
     timezone?: string;
   };
+  const latitude = body.latitude !== undefined ? body.latitude : body.lat;
+  const longitude = body.longitude !== undefined ? body.longitude : body.lng;
+  const timezone = body.timezone;
   const data = await profileService.updateLocation(userId, {
-    latitude,
-    longitude,
+    latitude: latitude as number,
+    longitude: longitude as number,
     timezone,
   });
 

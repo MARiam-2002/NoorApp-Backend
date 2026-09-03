@@ -21,7 +21,16 @@ const quranPagesIncrementSchema = z.object({
 });
 
 const adhkarSchema = z.object({
-  completed: z.boolean(),
+  completed: z.boolean().optional(),
+  morningCompleted: z.boolean().optional(),
+  eveningCompleted: z.boolean().optional(),
+}).superRefine((val, ctx) => {
+  if (val.completed === undefined && val.morningCompleted === undefined && val.eveningCompleted === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'At least one of (completed, morningCompleted, eveningCompleted) must be provided',
+    });
+  }
 });
 
 const sadaqahSchema = z.object({
