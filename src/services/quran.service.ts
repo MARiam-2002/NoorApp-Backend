@@ -1281,23 +1281,26 @@ export async function listAyahsByJuz(juzNumber: number) {
 
 type ReciterOption = {
   id: string;
+  code: string;
+  name: string;
   nameAr: string;
   nameEn: string;
   style?: string;
   isDefault?: boolean;
+  serverUrl?: string;
 };
 
 const QURAN_RECITERS: ReciterOption[] = [
-  { id: 'Mishary_Alafasy', nameAr: 'مشاري العفاسي', nameEn: 'Mishary bin Rashid Al-Afasy', style: 'Murattal', isDefault: true },
-  { id: 'Abdul_Basit', nameAr: 'عبد الباسط عبد الصمد', nameEn: 'Abdul Basit Abd us-Samad', style: 'Murattal' },
-  { id: 'Saad_Al_Ghamdi', nameAr: 'سعد الغامدي', nameEn: 'Saad Al-Ghamdi', style: 'Murattal' },
-  { id: 'Ahmed_Al_Ajmi', nameAr: 'أحمد بن علي العجمي', nameEn: 'Ahmed Al-Ajmi', style: 'Hudhuri' },
-  { id: 'Ali_Al_Hudhaify', nameAr: 'علي الحذيفي', nameEn: 'Ali Al-Hudhaify', style: 'Hudhuri' },
-  { id: 'Maher_Al_Muaiqly', nameAr: 'ماهر المعيقلي', nameEn: 'Maher Al-Muaiqly', style: 'Murattal' },
-  { id: 'Salah_Al_Budair', nameAr: 'صلاح البدير', nameEn: 'Salah Al-Budair', style: 'Murattal' },
-  { id: 'Yasser_Al_Dosari', nameAr: 'ياسر الدوسري', nameEn: 'Yasser Al-Dosari', style: 'Murattal' },
-  { id: 'Khalid_Al_Jaleel', nameAr: 'خالد الجليل', nameEn: 'Khalid Al-Jaleel', style: 'Murattal' },
-  { id: 'Muhammad_Siddiq_Al_Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Muhammad Siddiq Al-Minshawi', style: 'Tajweed' },
+  { id: 'Mishary_Alafasy', code: 'Mishary_Alafasy', name: 'Mishary bin Rashid Al-Afasy', nameAr: 'مشاري العفاسي', nameEn: 'Mishary bin Rashid Al-Afasy', style: 'Murattal', isDefault: true, serverUrl: 'https://server8.mp3quran.net/afs' },
+  { id: 'Abdul_Basit', code: 'Abdul_Basit', name: 'Abdul Basit Abd us-Samad', nameAr: 'عبد الباسط عبد الصمد', nameEn: 'Abdul Basit Abd us-Samad', style: 'Murattal', serverUrl: 'https://server7.mp3quran.net/basit' },
+  { id: 'Saad_Al_Ghamdi', code: 'Saad_Al_Ghamdi', name: 'Saad Al-Ghamdi', nameAr: 'سعد الغامدي', nameEn: 'Saad Al-Ghamdi', style: 'Murattal', serverUrl: 'https://server11.mp3quran.net/s_gmd' },
+  { id: 'Ahmed_Al_Ajmi', code: 'Ahmed_Al_Ajmi', name: 'Ahmed Al-Ajmi', nameAr: 'أحمد بن علي العجمي', nameEn: 'Ahmed Al-Ajmi', style: 'Hudhuri', serverUrl: 'https://server10.mp3quran.net/ajm' },
+  { id: 'Ali_Al_Hudhaify', code: 'Ali_Al_Hudhaify', name: 'Ali Al-Hudhaify', nameAr: 'علي الحذيفي', nameEn: 'Ali Al-Hudhaify', style: 'Hudhuri', serverUrl: 'https://server6.mp3quran.net/hud' },
+  { id: 'Maher_Al_Muaiqly', code: 'Maher_Al_Muaiqly', name: 'Maher Al-Muaiqly', nameAr: 'ماهر المعيقلي', nameEn: 'Maher Al-Muaiqly', style: 'Murattal', serverUrl: 'https://server12.mp3quran.net/maher' },
+  { id: 'Salah_Al_Budair', code: 'Salah_Al_Budair', name: 'Salah Al-Budair', nameAr: 'صلاح البدير', nameEn: 'Salah Al-Budair', style: 'Murattal', serverUrl: 'https://server9.mp3quran.net/bud' },
+  { id: 'Yasser_Al_Dosari', code: 'Yasser_Al_Dosari', name: 'Yasser Al-Dosari', nameAr: 'ياسر الدوسري', nameEn: 'Yasser Al-Dosari', style: 'Murattal', serverUrl: 'https://server13.mp3quran.net/yasser' },
+  { id: 'Khalid_Al_Jaleel', code: 'Khalid_Al_Jaleel', name: 'Khalid Al-Jaleel', nameAr: 'خالد الجليل', nameEn: 'Khalid Al-Jaleel', style: 'Murattal', serverUrl: 'https://server5.mp3quran.net/jal' },
+  { id: 'Muhammad_Siddiq_Al_Minshawi', code: 'Muhammad_Siddiq_Al_Minshawi', name: 'Muhammad Siddiq Al-Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Muhammad Siddiq Al-Minshawi', style: 'Tajweed', serverUrl: 'https://server4.mp3quran.net/minsh' },
 ];
 
 export async function listReciters(): Promise<ReciterOption[]> {
@@ -1306,6 +1309,8 @@ export async function listReciters(): Promise<ReciterOption[]> {
 
 type TafsirOption = {
   id: string;
+  code: string;
+  name: string;
   nameAr: string;
   nameEn: string;
   authorAr?: string;
@@ -1313,17 +1318,19 @@ type TafsirOption = {
   yearHijri?: number;
   yearGregorian?: number;
   isDefault?: boolean;
+  source?: string;
+  language?: string;
 };
 
 const QURAN_TAFSIRS: TafsirOption[] = [
-  { id: 'Ibn_Kathir', nameAr: 'تفسير ابن كثير', nameEn: 'Tafsir Ibn Kathir', authorAr: 'إسماعيل بن كثير الدمشقي', authorEn: 'Ismail ibn Kathir al-Dimashqi', yearHijri: 774, yearGregorian: 1373, isDefault: true },
-  { id: 'Al_Tabari', nameAr: 'تفسير الطبري', nameEn: 'Tafsir Al-Tabari', authorAr: 'محمد بن جرير الطبري', authorEn: 'Muhammad ibn Jarir Al-Tabari', yearHijri: 310, yearGregorian: 923 },
-  { id: 'Al_Qurtubi', nameAr: 'تفسير القرطبي', nameEn: 'Tafsir Al-Qurtubi', authorAr: 'أبو عبد الله القرطبي', authorEn: 'Abu Abdullah Al-Qurtubi', yearHijri: 671, yearGregorian: 1273 },
-  { id: 'Ibn_Kathir_Muyassar', nameAr: 'تفسير الميسر', nameEn: 'Tafsir Al-Muyassar', authorAr: 'وزارة التربية والتعليم السعودية', authorEn: 'Saudi Ministry of Education' },
-  { id: 'Saheeh_International', nameAr: 'تفسير الصحيح الدولي', nameEn: 'Saheeh International Explanation', authorAr: 'مجموعة العلماء', authorEn: 'Group of Scholars' },
-  { id: 'Al_Baghawi', nameAr: 'معالم التنزيل (البغوي)', nameEn: 'Ma\'alim Al-Tanzil (Al-Baghawi)', authorAr: 'حسين بن مسعود البغوي', authorEn: 'Husayn ibn Mas\'ud Al-Baghawi', yearHijri: 516, yearGregorian: 1122 },
-  { id: 'Al_Razi', nameAr: 'مفاتيح الغيب (الرازي)', nameEn: 'Mafatih Al-Ghayb (Al-Razi)', authorAr: 'فخر الدين الرازي', authorEn: 'Fakhr ad-Din ar-Razi', yearHijri: 606, yearGregorian: 1209 },
-  { id: 'Tafsir_Al_Usmani', nameAr: 'تفسير عثماني', nameEn: 'Tafsir Usmani', authorAr: 'محمد شكيب عثماني', authorEn: 'Muhammad Shafi Usmani', yearHijri: 1420, yearGregorian: 2000 },
+  { id: 'Ibn_Kathir', code: 'Ibn_Kathir', name: 'Tafsir Ibn Kathir', nameAr: 'تفسير ابن كثير', nameEn: 'Tafsir Ibn Kathir', authorAr: 'إسماعيل بن كثير الدمشقي', authorEn: 'Ismail ibn Kathir al-Dimashqi', yearHijri: 774, yearGregorian: 1373, isDefault: true, source: 'مصنف الحافظ إسماعيل بن كثير — دار إحياء التراث الإسلامي', language: 'Arabic' },
+  { id: 'Al_Tabari', code: 'Al_Tabari', name: 'Tafsir Al-Tabari', nameAr: 'تفسير الطبري', nameEn: 'Tafsir Al-Tabari', authorAr: 'محمد بن جرير الطبري', authorEn: 'Muhammad ibn Jarir Al-Tabari', yearHijri: 310, yearGregorian: 923, source: 'جامع البيان عن تأويل آي القرآن — محمد بن جرير الطبري', language: 'Arabic' },
+  { id: 'Al_Qurtubi', code: 'Al_Qurtubi', name: 'Tafsir Al-Qurtubi', nameAr: 'تفسير القرطبي', nameEn: 'Tafsir Al-Qurtubi', authorAr: 'أبو عبد الله القرطبي', authorEn: 'Abu Abdullah Al-Qurtubi', yearHijri: 671, yearGregorian: 1273, source: 'الجامع لأحكام القرآن — أبو عبد الله القرطبي', language: 'Arabic' },
+  { id: 'Ibn_Kathir_Muyassar', code: 'Ibn_Kathir_Muyassar', name: 'Tafsir Al-Muyassar', nameAr: 'تفسير الميسر', nameEn: 'Tafsir Al-Muyassar', authorAr: 'وزارة التربية والتعليم السعودية', authorEn: 'Saudi Ministry of Education', source: 'تفسير الميسر — وزارة التربية والتعليم بالمملكة العربية السعودية', language: 'Arabic' },
+  { id: 'Saheeh_International', code: 'Saheeh_International', name: 'Saheeh International Explanation', nameAr: 'تفسير الصحيح الدولي', nameEn: 'Saheeh International Explanation', authorAr: 'مجموعة العلماء', authorEn: 'Group of Scholars', source: 'Saheeh International Explanatory Notes', language: 'English' },
+  { id: 'Al_Baghawi', code: 'Al_Baghawi', name: "Ma'alim Al-Tanzil (Al-Baghawi)", nameAr: 'معالم التنزيل (البغوي)', nameEn: 'Ma\'alim Al-Tanzil (Al-Baghawi)', authorAr: 'حسين بن مسعود البغوي', authorEn: 'Husayn ibn Mas\'ud Al-Baghawi', yearHijri: 516, yearGregorian: 1122, source: 'معالم التنزيل في تفسير القرآن — البغوي', language: 'Arabic' },
+  { id: 'Al_Razi', code: 'Al_Razi', name: "Mafatih Al-Ghayb (Al-Razi)", nameAr: 'مفاتيح الغيب (الرازي)', nameEn: 'Mafatih Al-Ghayb (Al-Razi)', authorAr: 'فخر الدين الرازي', authorEn: 'Fakhr ad-Din ar-Razi', yearHijri: 606, yearGregorian: 1209, source: 'مفاتيح الغيب — فخر الدين الرازي', language: 'Arabic' },
+  { id: 'Tafsir_Al_Usmani', code: 'Tafsir_Al_Usmani', name: 'Tafsir Usmani', nameAr: 'تفسير عثماني', nameEn: 'Tafsir Usmani', authorAr: 'محمد شكيب عثماني', authorEn: 'Muhammad Shafi Usmani', yearHijri: 1420, yearGregorian: 2000, source: 'تفسير عثماني — محمد شفيع عثماني', language: 'Arabic' },
 ];
 
 export async function listTafsirs(): Promise<TafsirOption[]> {
@@ -1332,6 +1339,8 @@ export async function listTafsirs(): Promise<TafsirOption[]> {
 
 type TranslationOption = {
   id: string;
+  code: string;
+  name: string;
   nameAr: string;
   nameEn: string;
   language: string;
@@ -1339,17 +1348,18 @@ type TranslationOption = {
   authorAr?: string;
   authorEn?: string;
   isDefault?: boolean;
+  source?: string;
 };
 
 const QURAN_TRANSLATIONS: TranslationOption[] = [
-  { id: 'Sahih_International', nameAr: 'الترجمة الصحيحة الدولية', nameEn: 'Saheeh International', language: 'English', languageCode: 'en', authorAr: 'مجموعة من العلماء', authorEn: 'Group of Saudi Scholars', isDefault: true },
-  { id: 'Yusuf_Ali', nameAr: 'ترجمة يوسف علي', nameEn: 'Yusuf Ali', language: 'English', languageCode: 'en', authorAr: 'عبد الله يوسف علي', authorEn: 'Abdullah Yusuf Ali' },
-  { id: 'Pickthall', nameAr: 'ترجمة بيكثال', nameEn: 'Mohammed Marmaduke Pickthall', language: 'English', languageCode: 'en', authorAr: 'محمد بيكثال', authorEn: 'Mohammed Marmaduke William Pickthall' },
-  { id: 'Shakir', nameAr: 'ترجمة شاكر', nameEn: 'Mohammad Habib Shakir', language: 'English', languageCode: 'en', authorAr: 'محمد حبيب شاكر', authorEn: 'Mohammad Habib Shakir' },
-  { id: 'French_Hamidullah', nameAr: 'الترجمة الفرنسية (حميد الله)', nameEn: 'French (Hamidullah)', language: 'French', languageCode: 'fr', authorAr: 'محمد حامد الله', authorEn: 'Muhammad Hamidullah' },
-  { id: 'Turkish_Diyanet', nameAr: 'الترجمة التركية (الديانة)', nameEn: 'Turkish (Diyanet)', language: 'Turkish', languageCode: 'tr', authorAr: 'رئيسية الشؤون الدينية التركية', authorEn: 'Presidency of Religious Affairs, Turkey' },
-  { id: 'Malay_Basyuni_Imran', nameAr: 'الترجمة الملايوية', nameEn: 'Malay (Basuny Imran)', language: 'Malay', languageCode: 'ms', authorAr: 'باسوني عمران', authorEn: 'Basuny Imran' },
-  { id: 'Indonesian_Depag', nameAr: 'الترجمة الإندونيسية', nameEn: 'Indonesian (DEPKAG)', language: 'Indonesian', languageCode: 'id', authorAr: 'وزارة الأوقاف الإندونيسية', authorEn: 'Indonesian Ministry of Religious Affairs' },
+  { id: 'Sahih_International', code: 'Sahih_International', name: 'Saheeh International', nameAr: 'الترجمة الصحيحة الدولية', nameEn: 'Saheeh International', language: 'English', languageCode: 'en', authorAr: 'مجموعة من العلماء', authorEn: 'Group of Saudi Scholars', isDefault: true, source: 'Saheeh International Translation — Darussalam Publishers' },
+  { id: 'Yusuf_Ali', code: 'Yusuf_Ali', name: 'Yusuf Ali', nameAr: 'ترجمة يوسف علي', nameEn: 'Yusuf Ali', language: 'English', languageCode: 'en', authorAr: 'عبد الله يوسف علي', authorEn: 'Abdullah Yusuf Ali', source: 'The Holy Qur\'an: Text, Translation & Commentary — Abdullah Yusuf Ali' },
+  { id: 'Pickthall', code: 'Pickthall', name: 'Mohammed Marmaduke Pickthall', nameAr: 'ترجمة بيكثال', nameEn: 'Mohammed Marmaduke Pickthall', language: 'English', languageCode: 'en', authorAr: 'محمد بيكثال', authorEn: 'Mohammed Marmaduke William Pickthall', source: 'The Meaning of the Glorious Koran — Marmaduke Pickthall' },
+  { id: 'Shakir', code: 'Shakir', name: 'Mohammad Habib Shakir', nameAr: 'ترجمة شاكر', nameEn: 'Mohammad Habib Shakir', language: 'English', languageCode: 'en', authorAr: 'محمد حبيب شاكر', authorEn: 'Mohammad Habib Shakir', source: 'Quran Translation — Mohammad Habib Shakir' },
+  { id: 'French_Hamidullah', code: 'French_Hamidullah', name: 'French (Hamidullah)', nameAr: 'الترجمة الفرنسية (حميد الله)', nameEn: 'French (Hamidullah)', language: 'French', languageCode: 'fr', authorAr: 'محمد حامد الله', authorEn: 'Muhammad Hamidullah', source: 'Le Saint Coran — Traduction par Muhammad Hamidullah' },
+  { id: 'Turkish_Diyanet', code: 'Turkish_Diyanet', name: 'Turkish (Diyanet)', nameAr: 'الترجمة التركية (الديانة)', nameEn: 'Turkish (Diyanet)', language: 'Turkish', languageCode: 'tr', authorAr: 'رئيسية الشؤون الدينية التركية', authorEn: 'Presidency of Religious Affairs, Turkey', source: 'Diyanet Vakfı Kuran-ı Kerim Türkçe Meali' },
+  { id: 'Malay_Basyuni_Imran', code: 'Malay_Basyuni_Imran', name: 'Malay (Basuny Imran)', nameAr: 'الترجمة الملايوية', nameEn: 'Malay (Basuny Imran)', language: 'Malay', languageCode: 'ms', authorAr: 'باسوني عمران', authorEn: 'Basuny Imran', source: 'Terjemahan Al-Quran Al-Karim — Basuny Imran' },
+  { id: 'Indonesian_Depag', code: 'Indonesian_Depag', name: 'Indonesian (DEPKAG)', nameAr: 'الترجمة الإندونيسية', nameEn: 'Indonesian (DEPKAG)', language: 'Indonesian', languageCode: 'id', authorAr: 'وزارة الأوقاف الإندونيسية', authorEn: 'Indonesian Ministry of Religious Affairs', source: 'Al-Quran dan Terjemahan — Kementerian Agama RI' },
 ];
 
 export async function listTranslations(): Promise<TranslationOption[]> {

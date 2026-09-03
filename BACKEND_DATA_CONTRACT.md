@@ -3,7 +3,7 @@
 **Audience:** Backend team  
 **App:** Noor Flutter (`lib/`)  
 **Base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-08-27  
+**Updated:** 2026-08-28  
 
 This file lists **every payload shape Flutter expects**, plus **client-side workarounds** we already shipped. Even when Flutter “works” with local data, the backend should still send the correct fields so guests, sync, and multi-device stay consistent.
 
@@ -41,7 +41,7 @@ Errors:
 | `401` + `INVALID_TOKEN` | Flutter **clears session** (no refresh) |
 | Other `401` | Flutter tries `/auth/refresh` once, then retries |
 | Network / 5xx on `/auth/me` | Must **not** look like hard logout — Flutter keeps tokens |
-| Nested tokens | `data.tokens.{accessToken, refreshToken, expiresIn?}` on login / sign-up / Google / refresh |
+| Nested tokens | `data.tokens.{accessToken, refreshToken, expiresIn?}` on login / sign-up / Google / refresh (`expiresIn` = seconds **int**, e.g. `604800`) |
 
 ---
 
@@ -423,9 +423,9 @@ Clamp font **12..60**. Flutter also caches locally when offline.
 
 | Client today | Suggested API |
 |--------------|---------------|
-| Resume mark: SharedPreferences `adhkar_resume_{CATEGORY}` = item `id` | `GET/PUT /adhkar/progress` or `PATCH /journey/adhkar` |
-| Repeat tap counters: **in-memory only** (lost on leave) | Persist `{ categoryKey, itemId, tapCount }` per user |
-| Home `dailyWird.progress*` often cosmetic / defaults | Real counts from user progress |
+| Resume mark + tap counts | Signed-in: `GET/PUT /adhkar/progress` (wired). Guests: SharedPreferences `adhkar_resume_{CATEGORY}` bookmark only |
+| Repeat tap counters | Signed-in: persisted via `PUT /adhkar/progress`. Guests: in-memory only |
+| Home `dailyWird.progress*` | Prefer real counts from user progress after sync |
 | Defaults for missing greeting / titles | Always send localized strings EN+AR |
 
 Suggested progress payload:
@@ -450,14 +450,15 @@ Suggested progress payload:
 | Method | Path | Status |
 |--------|------|--------|
 | POST | `/journey/quran-pages/increment` | Wired |
-| GET | `/journey/today` | **Not wired — needed** |
+| GET | `/journey/today` | **Wired** (Journey tab; Home still uses dashboard) |
 | GET | `/journey/progress` | **Not wired — needed** |
-| PATCH | `/journey/adhkar` | Documented; Flutter Journey uses dashboard + local |
+| PATCH | `/journey/adhkar` | Documented; Flutter Journey uses `/journey/today` + dashboard fallback |
 | PATCH | `/journey/sadaqah` | Documented; UI shows **Coming soon** on contribute |
 
 ### Flutter Journey tab today
 
-Built from `GET /dashboard` `dailyJourney` + local challenge/tasbih.  
+Signed-in: `GET /journey/today` (`tasks[]`, `overallPercent`, `points`, `streakDays`).  
+Fallback / guests: `GET /dashboard` `dailyJourney` synthesis.  
 Sadaqah row / badges CTA → Coming soon snackbar until APIs live.
 
 Please send:
@@ -590,11 +591,11 @@ Use this as a backend sprint checklist.
 
 ### Should add (Flutter already has UI or local stub)
 
-- [ ] Adhkar progress + resume mark sync (`markedItemId`, tap counts, real daily wird %)
+- [x] Adhkar progress + resume mark sync (`GET/PUT /adhkar/progress` — Flutter wired for signed-in)
 - [ ] Notifications list + unread count
 - [ ] Quran audio URL by reciter
 - [ ] Tafsir / translation content by ayah
-- [ ] Journey today + progress + sadaqah PATCH
+- [x] Journey today (`GET /journey/today` — Flutter Journey tab wired; progress + sadaqah PATCH still open)
 - [ ] Profile update / change-password
 - [ ] Optional guest → account data merge (bookmarks, last-read, adhkar marks)
 
