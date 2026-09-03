@@ -663,7 +663,8 @@ else:
     ahs_s1 = []
 if ahs_s1:
     s1a1 = ahs_s1[0].get("textAr", "")
-    has_bismillah = "بسم الله الرحمن الرحيم" in s1a1.replace(" ", "") or "بسم" in s1a1
+    # Check for bismillah (with or without tashkeel)
+    has_bismillah = ("بسم" in s1a1 or "بِسْمِ" in s1a1) and len(s1a1) > 20
     check("§12 / BACKEND §3 Bismillah: Surah 1 ayah 1 HAS Bismillah (preserved)", has_bismillah,
           f"len={len(s1a1)} starts_with={s1a1[:30]!r}", "CHK-12")
 else:
@@ -718,7 +719,7 @@ if email_ok and access:
     check("§7.1 CORRECTED — PATCH /journey/prayer (prayer completion write) SHIPPED",
           st == 200 and body.get("success") is True, f"status={st} code={body.get('code')!r}", "REPLY-7.1")
 # 2) GET /adhkar/search
-st, body = req("GET", "/adhkar/search?q=الله")
+st, body = req("GET", "/adhkar/search?q=" + urllib.parse.quote("الله"))
 check("§7.1 CORRECTED — GET /adhkar/search?q= SHIPPED",
       st == 200 and body.get("success") is True and isinstance(body.get("data"), list),
       f"status={st}", "REPLY-7.1")
