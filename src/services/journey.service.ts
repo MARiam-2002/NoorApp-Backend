@@ -1,7 +1,16 @@
+import type { ChallengeType } from '@prisma/client';
+
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
-import { getTodayDateOnly } from '../utils/date';
+import { getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { isDailyChallengeCompleted } from '../utils/challenge';
+import {
+  FALLBACK_CHALLENGE,
+} from '../shared/constants/fallbacks';
+import {
+  getDailyChallengeTemplate,
+} from './daily-content.service';
 
 const VALID_PRAYER_KEYS = ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'] as const;
 type ValidPrayerKey = typeof VALID_PRAYER_KEYS[number];
@@ -181,13 +190,19 @@ export async function getTodayJourney(userId: string) {
 
   let points = 0;
   let streakDays = 0;
+  let dailyChallenge: any = null;
   try {
-    const [user, last30Progress] = await Promise.all([
+    const dayOfYear = getDayOfYear();
+    const [user, last30Progress, challengeTemplate, challengeCompletion] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { points: true, level: true } }),
       prisma.dailyProgress.findMany({
         where: { userId },
         select: { date: true, quranPagesRead: true, morningAdhkarCompleted: true, eveningAdhkarCompleted: true, sadaqahAmount: true },
       }),
+      getDailyChallengeTemplate(dayOfYear).catch(() => null),
+      prisma.challengeCompletion.findUnique({
+        where: { userId_dayOfYear: { userId, dayOfYear } },
+      }).catch(() => null),
     ]);
     points = user?.points ?? 0;
     const level = user?.level ?? 1;
@@ -203,6 +218,28 @@ export async function getTodayJourney(userId: string) {
       cursor.setUTCDate(cursor.getUTCDate() - 1);
     }
 
+    const challengeTemplateSafe = challengeTemplate ?? FALLBACK_CHALLENGE;
+    const challengeCompleted = isDailyChallengeCompleted(
+      (challengeTemplateSafe.type ?? FALLBACK_CHALLENGE.type) as ChallengeType,
+      challengeTemplateSafe.targetValue ?? FALLBACK_CHALLENGE.targetValue,
+      {
+        quranPagesRead: progress.quranPagesRead,
+        adhkarCompleted: morningCompleted && eveningCompleted,
+        sadaqahAmount: Number(progress.sadaqahAmount),
+      },
+      completedPrayerKeys as unknown as any[],
+    );
+    dailyChallenge = {
+      titleAr: challengeTemplateSafe.titleAr ?? FALLBACK_CHALLENGE.titleAr,
+      titleEn: challengeTemplateSafe.titleEn ?? FALLBACK_CHALLENGE.titleEn,
+      descriptionAr: challengeTemplateSafe.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,
+      descriptionEn: challengeTemplateSafe.descriptionEn ?? FALLBACK_CHALLENGE.descriptionEn,
+      rewardPoints: challengeTemplateSafe.rewardPoints ?? FALLBACK_CHALLENGE.rewardPoints,
+      targetValue: challengeTemplateSafe.targetValue ?? FALLBACK_CHALLENGE.targetValue,
+      completed: challengeCompleted,
+      claimed: Boolean(challengeCompletion?.claimedAt),
+    };
+
     void level;
   } catch { /* */ }
 
@@ -213,6 +250,7 @@ export async function getTodayJourney(userId: string) {
     badges: [],
     points,
     overallPercent,
+    dailyChallenge,
     quran: {
       pages: progress.quranPagesRead,
       goal: quranGoal,
@@ -411,6 +449,7 @@ export async function updateAdhkar(userId: string, completed: boolean) {
     morningCompleted,
     eveningCompleted,
     overallCompleted,
+    adhkarCompleted: overallCompleted,
     percent,
   };
 }

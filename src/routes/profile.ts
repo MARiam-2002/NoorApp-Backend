@@ -11,6 +11,7 @@ const updateReadingPreferencesSchema = z.object({
   quranReciter: z.string().trim().min(1).max(100).optional(),
   quranTafsir: z.string().trim().min(1).max(100).optional(),
   quranTranslation: z.string().trim().min(1).max(100).optional(),
+  quranAutoScrollEnabled: z.boolean().optional(),
 });
 
 const updateProfileSchema = z.object({
