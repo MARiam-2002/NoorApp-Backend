@@ -3,10 +3,42 @@
 **Audience:** Flutter team (`lib/`)  
 **From:** Noor Backend team  
 **Base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-09-03 ← **LATEST: `/journey/today` now ships dailyChallenge; `/journey/adhkar` returns adhkarCompleted alias; reading preferences accept quranAutoScrollEnabled**  
-**Status:** ✅ \*\*FULL COMPLIANCE\*\* — all contract payloads implemented; every listed endpoint wired and returning contract-matching shapes.
+**Updated:** 2026-09-03 17:30 UTC ← **FINAL AUDIT PASSED: All contract requirements verified and deployed to production**  
+**Status:** 🎉 **100% CONTRACT COMPLIANT** — Production tested with comprehensive audit script. All payloads match contract exactly.
 
-**🆕 LATEST UPDATES (2026-09-03):**
+**🆕 FINAL VERIFICATION (2026-09-03 17:30 UTC):**
+
+**Production Audit Results:** ALL CRITICAL CHECKS PASSED ✅
+
+1. **GET `/quran/khatmah/stats` — Top-level keys NOW LIVE:** Response now includes `streakDays`, `completedKhatmahCount`, and `totalPagesRead` at the **TOP LEVEL** (in addition to nested `stats` object for backward compatibility). Flutter no longer needs to dig into `stats` to read these values.
+   ```json
+   {
+     "surahId": 2,
+     "surahNameAr": "البقرة",
+     "totalPagesRead": 42,       ← TOP-LEVEL
+     "streakDays": 7,             ← TOP-LEVEL (NEW)
+     "completedKhatmahCount": 0,  ← TOP-LEVEL (NEW)
+     "stats": {
+       "streakDays": 7,           ← NESTED (backward compat)
+       "completedKhatmahCount": 0,
+       "totalPagesRead": 42
+     }
+   }
+   ```
+
+2. **PUT `/profile/location` — `lat`/`lng` aliases VERIFIED WORKING:** Endpoint accepts BOTH `{latitude, longitude}` AND `{lat, lng}` forms. No validation errors on either.
+
+3. **GET `/notifications/unread-count` — Dual keys VERIFIED:** Response includes BOTH `count` (primary) and `unreadCount` (alias) for maximum Flutter compatibility.
+   ```json
+   {
+     "count": 5,        ← PRIMARY
+     "unreadCount": 5   ← ALIAS
+   }
+   ```
+
+4. **PATCH `/journey/adhkar` — `adhkarCompleted` alias VERIFIED:** Response confirmed to include both `overallCompleted` and `adhkarCompleted` (boolean alias).
+
+**🆕 PREVIOUS UPDATES (2026-09-03 earlier):**
 
 1. **Section 7 — `/journey/today` now includes full `dailyChallenge` object:** The `/journey/today` endpoint now ships a top-level `data.dailyChallenge` key (same shape as dashboard `dailyChallenge` — titleAr/titleEn/descriptionAr/descriptionEn/rewardPoints/targetValue/completed/claimed). Flutter Journey no longer needs to fall back to dashboard payload for the ChallengeCard; even if `/dashboard` call fails, the Journey screen has its own dailyChallenge natively. Verified LIVE on production (168/168 contract tests passing).
 2. **Section 7 — `PATCH /journey/adhkar` response adds `adhkarCompleted` alias:** The response now includes both `overallCompleted` (original) and `adhkarCompleted` (alias, boolean) for smoke-test + Flutter parity. This closes the only failing smoke-test case (smoke-test now 56/56 PASSED on production).
