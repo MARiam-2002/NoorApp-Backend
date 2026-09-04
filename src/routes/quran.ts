@@ -99,19 +99,26 @@ const searchQuranQuerySchema = z.object({
 const getAyahAudioQuerySchema = z.object({
   surahId: z.coerce.number().int().min(1).max(114),
   ayahNumber: z.coerce.number().int().min(1),
+  // Contract uses `reciter`; Flutter catalogs also send `reciterId` / `id`
   reciter: z.string().min(1).optional(),
+  reciterId: z.string().min(1).optional(),
+  id: z.string().min(1).optional(),
 });
 
 const getAyahTafsirQuerySchema = z.object({
   surahId: z.coerce.number().int().min(1).max(114),
   ayahNumber: z.coerce.number().int().min(1),
   source: z.string().min(1).optional(),
+  tafsirId: z.string().min(1).optional(),
+  id: z.string().min(1).optional(),
 });
 
 const getAyahTranslationQuerySchema = z.object({
   surahId: z.coerce.number().int().min(1).max(114),
   ayahNumber: z.coerce.number().int().min(1),
   source: z.string().min(1).optional(),
+  translationId: z.string().min(1).optional(),
+  id: z.string().min(1).optional(),
 });
 
 export const quranRouter = Router();

@@ -259,31 +259,40 @@ export const listTranslationsHandler = asyncHandler(async (_req: Request, res: R
 });
 
 export const getAyahAudioHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { surahId, ayahNumber, reciter } = req.query as {
+  const q = req.query as {
     surahId: string;
     ayahNumber: string;
     reciter?: string;
+    reciterId?: string;
+    id?: string;
   };
-  const data = await getAyahAudio(Number(surahId), Number(ayahNumber), reciter);
+  const reciter = q.reciter ?? q.reciterId ?? q.id;
+  const data = await getAyahAudio(Number(q.surahId), Number(q.ayahNumber), reciter);
   sendSuccess(res, data, 'Quran audio URL generated successfully', req);
 });
 
 export const getAyahTafsirHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { surahId, ayahNumber, source } = req.query as {
+  const q = req.query as {
     surahId: string;
     ayahNumber: string;
     source?: string;
+    tafsirId?: string;
+    id?: string;
   };
-  const data = await getAyahTafsir(Number(surahId), Number(ayahNumber), source);
+  const source = q.source ?? q.tafsirId ?? q.id;
+  const data = await getAyahTafsir(Number(q.surahId), Number(q.ayahNumber), source);
   sendSuccess(res, data, 'Quran tafsir retrieved successfully', req);
 });
 
 export const getAyahTranslationHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { surahId, ayahNumber, source } = req.query as {
+  const q = req.query as {
     surahId: string;
     ayahNumber: string;
     source?: string;
+    translationId?: string;
+    id?: string;
   };
-  const data = await getAyahTranslation(Number(surahId), Number(ayahNumber), source);
+  const source = q.source ?? q.translationId ?? q.id;
+  const data = await getAyahTranslation(Number(q.surahId), Number(q.ayahNumber), source);
   sendSuccess(res, data, 'Quran translation retrieved successfully', req);
 });
