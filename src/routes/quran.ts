@@ -594,18 +594,47 @@ quranRouter.get(
 //  Guest Data Merge (Contract §4, §13)
 // ============================================================
 
-const importLocalDataSchema = z.object({
-  bookmarks: z.array(z.object({
+const importLocalBookmarkSchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
+  ayahNumber: z.coerce.number().int().min(1).optional(),
+  page: z.coerce.number().int().min(1).max(604).optional(),
+  pageNumber: z.coerce.number().int().min(1).max(604).optional(),
+  note: z.string().max(500).nullish(),
+}).transform((b) => ({
+  surahId: b.surahId,
+  ayahNumber: b.ayahNumber,
+  page: b.page ?? b.pageNumber,
+  note: b.note ?? undefined,
+}));
+
+const importLocalLastReadSchema = z
+  .object({
     surahId: z.coerce.number().int().min(1).max(114),
-    ayahNumber: z.coerce.number().int().min(1).optional(),
     page: z.coerce.number().int().min(1).max(604).optional(),
-    note: z.string().max(500).optional(),
-  })).optional(),
-  lastRead: z.object({
-    surahId: z.coerce.number().int().min(1).max(114),
-    page: z.coerce.number().int().min(1).max(604),
+    pageNumber: z.coerce.number().int().min(1).max(604).optional(),
     ayahNumber: z.coerce.number().int().min(1).optional(),
-  }).optional(),
+  })
+  .transform((lr, ctx) => {
+    const page = lr.page ?? lr.pageNumber;
+    if (page == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'page or pageNumber is required',
+        path: ['page'],
+      });
+      return z.NEVER;
+    }
+    return {
+      surahId: lr.surahId,
+      page,
+      ayahNumber: lr.ayahNumber,
+    };
+  });
+
+const importLocalDataSchema = z.object({
+  // Flutter may send null for empty guest bags — treat as omitted.
+  bookmarks: z.array(importLocalBookmarkSchema).nullish(),
+  lastRead: importLocalLastReadSchema.nullish(),
 });
 
 /**

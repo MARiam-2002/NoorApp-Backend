@@ -1,0 +1,91 @@
+
+======================================================================
+NOOR API SMOKE TEST — deployed: https://noor-app-backend-one.vercel.app/api/v1
+======================================================================
+
+── Health ──
+  PASS  [200] GET /health
+
+── Auth ──
+  PASS  [201] POST /auth/sign-up
+  PASS  [200] POST /auth/login
+  PASS  [200] GET /auth/me (valid token)
+  PASS  [401] GET /auth/me (no token → 401)
+  PASS  [200] POST /auth/refresh
+  PASS  [200] POST /auth/logout (valid token)
+  PASS  [200] POST /auth/logout (garbage token → 200)
+  PASS  [200] POST /auth/forgot-password
+  PASS  [400] POST /auth/sign-up bad input → 400 VALIDATION_ERROR
+
+── Dashboard ──
+  PASS  [200] GET /dashboard
+  PASS  [200] GET /dashboard — deep field check
+
+── Quran Public (guest, no token) ──
+  PASS  [200] GET /quran/surahs (114 surahs, names resolved)
+  PASS  [200] GET /quran/juz (30 juz)
+  PASS  [200] GET /quran/juz/3/surahs (names resolved)
+  PASS  [200] GET /quran/pages/1 (shape + names resolved)
+  PASS  [200] GET /quran/surahs/2/ayahs?page=1&perPage=1
+  PASS  [200] GET /quran/juz/1/ayahs (surahs names resolved)
+
+── Full Catalog + Range ──
+  PASS  [200] GET /quran/full-catalog (200, meta, names, bismillah)
+  PASS  [206] GET /quran/full-catalog Range:bytes=0-1023 → 206
+  PASS  [206] GET /quran/full-catalog Range:bytes=500000-510000 → 206
+
+── Quran Authenticated ──
+  PASS  [200] GET /quran/bookmarks
+  PASS  [201] POST /quran/bookmarks (shape + surahNameAr)
+  PASS  [200] DELETE /quran/bookmarks/:id
+  PASS  [200] PUT /quran/last-read (shape + juz + surahNameAr)
+  PASS  [200] GET /quran/last-read
+  PASS  [200] PATCH /quran/khatmah/progress (surahNameAr resolved)
+  PASS  [200] GET /quran/khatmah/stats (surahNameAr + stats)
+
+── Reading Preferences ──
+  PASS  [200] GET /profile/reading-preferences
+  PASS  [200] PATCH /profile/reading-preferences {fontSize:32}
+  PASS  [400] PATCH /profile/reading-preferences fontSize=11 → 400
+  PASS  [400] PATCH /profile/reading-preferences fontSize=61 → 400
+
+── Adhkar (public) ──
+  PASS  [200] GET /adhkar (home shape)
+  PASS  [200] GET /adhkar/categories/MORNING (items shape)
+  PASS  [200] GET /adhkar/progress?categoryKey=MORNING
+  PASS  [401] GET /adhkar/progress no token → 401
+
+── Journey ──
+  PASS  [200] GET /journey/today (shape + all task keys)
+  PASS  [200] GET /journey/progress
+  PASS  [200] POST /journey/quran-pages/increment
+  PASS  [200] PATCH /journey/adhkar
+  PASS  [200] PATCH /journey/sadaqah
+
+── Tasbih ──
+  PASS  [200] GET /tasbih/today (all fields + aliases)
+  PASS  [200] POST /tasbih/increment
+  PASS  [200] POST /tasbih/reset
+  PASS  [200] PATCH /tasbih/change-dhikr
+
+── Qibla (public) ──
+  PASS  [200] GET /qibla/calculate?lat=30.0444&lng=31.2357 (all fields)
+  PASS  [200] GET /qibla/calculate (no real token — public)
+
+── Notifications ──
+  PASS  [200] GET /notifications
+  PASS  [200] GET /notifications/unread-count
+  PASS  [200] POST /notifications/read-all
+  PASS  [401] GET /notifications no token → 401
+
+── Profile ──
+  PASS  [200] GET /profile/me
+  PASS  [200] PATCH /profile/update {fullName}
+  PASS  [200] PUT /profile/location
+  PASS  [200] PATCH /profile/change-password (correct current)
+  PASS  [401] PATCH /profile/change-password (wrong current → 401)
+
+======================================================================
+RESULTS: 56 passed  |  0 failed  |  0 skipped
+======================================================================
+
