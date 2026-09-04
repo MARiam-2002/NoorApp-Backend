@@ -85,3 +85,5 @@ redis-data/
 .parcel-cache/
 .eslintcache
 
+
+.vercel

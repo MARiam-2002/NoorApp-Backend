@@ -5,6 +5,7 @@ import { validate } from '../lib/validation';
 import {
   getJourneyProgress,
   getJourneyToday,
+  getJourneyBadges,
   incrementQuranPages,
   patchAdhkar,
   updateQuranPagesHandler,
@@ -103,6 +104,21 @@ export const journeyRouter = Router();
  *         $ref: '#/components/responses/Unauthorized'
  */
 journeyRouter.get('/today', authenticate, getJourneyToday);
+
+/**
+ * @openapi
+ * /journey/badges:
+ *   get:
+ *     tags: ['Journey']
+ *     summary: شارات الرحلة / Journey badges
+ *     security: [ { bearerAuth: [] } ]
+ *     responses:
+ *       200:
+ *         description: ✅ Badges payload
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+journeyRouter.get('/badges', authenticate, getJourneyBadges);
 
 /**
  * @openapi

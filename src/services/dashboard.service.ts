@@ -70,7 +70,7 @@ export type DashboardData = {
   hadithOfTheDay: { textAr: string; sourceAr: string };
   dailyJourney: {
     prayer: { completed: number; total: number; progress: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
-    quran: { pagesRead: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
+    quran: { pagesRead: number; target: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     adhkar: { completed: boolean; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     sadaqah: { amount: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
   };
@@ -202,7 +202,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       hadithOfTheDay: FALLBACK_HADITH,
       dailyJourney: {
         prayer: { completed: 0, total: 5, progress: 0, labelAr: 'الصلوات', labelEn: 'Prayers', captionAr: 'صلاة مكتملة اليوم', captionEn: 'prayers completed today' },
-        quran: { pagesRead: 0, labelAr: 'القرآن', labelEn: 'Quran', captionAr: 'صفحة مقروءة اليوم', captionEn: 'pages read today' },
+        quran: { pagesRead: 0, target: 5, labelAr: 'القرآن', labelEn: 'Quran', captionAr: 'صفحة مقروءة اليوم', captionEn: 'pages read today' },
         adhkar: { completed: false, labelAr: 'الأذكار', labelEn: 'Adhkar', captionAr: 'اكمل وردك اليومي', captionEn: 'Complete your daily wird' },
         sadaqah: { amount: 0, labelAr: 'الصدقة', labelEn: 'Sadaqah', captionAr: 'ج.م مصدقة اليوم', captionEn: 'EGP donated today' },
       },
@@ -382,6 +382,7 @@ async function buildDashboardPayload(
       },
       quran: {
         pagesRead: journey.quranPagesRead,
+        target: 5,
         labelAr: 'القرآن',
         labelEn: 'Quran',
         captionAr: `${journey.quranPagesRead} صفحة مقروءة اليوم`,

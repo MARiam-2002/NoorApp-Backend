@@ -28,6 +28,29 @@ export const getJourneyToday = asyncHandler(async (req: Request, res: Response) 
   sendSuccess(res, data, 'Daily journey retrieved successfully', req);
 });
 
+export const getJourneyBadges = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const today = await getTodayJourney(userId);
+  sendSuccess(
+    res,
+    {
+      badges: today.badges ?? [],
+      streakDays: today.streakDays ?? 0,
+    },
+    'Journey badges retrieved successfully',
+    req,
+  );
+});
+
 export const getJourneyProgress = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
 
