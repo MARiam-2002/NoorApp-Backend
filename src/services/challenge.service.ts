@@ -6,8 +6,9 @@ import { getDayOfYear, getTodayDateOnly } from '../utils/date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import {
   getOrCreateTodayJourney,
-  getDailyChallengeTemplate,
+  getDailyChallengeTemplateWithFallback,
 } from './daily-content.service';
+import { FALLBACK_CHALLENGE } from '../shared/constants/fallbacks';
 
 type JourneySnapshot = {
   quranPagesRead: number;
@@ -28,14 +29,10 @@ async function findCompletedPrayers(userId: string, date = getTodayDateOnly()): 
 }
 
 export async function getChallengeByDay(userId: string, dayOfYear: number) {
-  const template = await getDailyChallengeTemplate(dayOfYear);
+  const template = await getDailyChallengeTemplateWithFallback(dayOfYear);
   const completion = await prisma.challengeCompletion.findUnique({
     where: { userId_dayOfYear: { userId, dayOfYear } },
   });
-
-  if (!template) {
-    return null;
-  }
 
   const journey = await getOrCreateToday(userId);
   const completedPrayers = await findCompletedPrayers(userId);
@@ -43,8 +40,10 @@ export async function getChallengeByDay(userId: string, dayOfYear: number) {
   return {
     id: String(dayOfYear),
     dayOfYear,
-    titleAr: template.titleAr,
-    descriptionAr: template.descriptionAr,
+    titleAr: template.titleAr ?? FALLBACK_CHALLENGE.titleAr,
+    titleEn: template.titleEn ?? FALLBACK_CHALLENGE.titleEn,
+    descriptionAr: template.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,
+    descriptionEn: template.descriptionEn ?? FALLBACK_CHALLENGE.descriptionEn,
     type: template.type,
     targetValue: template.targetValue,
     rewardPoints: template.rewardPoints,
@@ -74,15 +73,7 @@ export async function getAllChallenges(userId: string) {
 
 export async function claimChallenge(userId: string, dayOfYearStr: string) {
   const dayOfYear = Number(dayOfYearStr);
-  const template = await getDailyChallengeTemplate(dayOfYear);
-
-  if (!template) {
-    throw new AppError(
-      'No challenge available for this day',
-      HttpStatus.NOT_FOUND,
-      ErrorCodes.NOT_FOUND,
-    );
-  }
+  const template = await getDailyChallengeTemplateWithFallback(dayOfYear);
 
   const journey = await getOrCreateToday(userId);
   const completedPrayers = await findCompletedPrayers(userId);
@@ -135,6 +126,10 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
 
   return {
     id: String(dayOfYear),
+    titleAr: template.titleAr ?? FALLBACK_CHALLENGE.titleAr,
+    titleEn: template.titleEn ?? FALLBACK_CHALLENGE.titleEn,
+    descriptionAr: template.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,
+    descriptionEn: template.descriptionEn ?? FALLBACK_CHALLENGE.descriptionEn,
     rewardPoints: template.rewardPoints,
     pointsAwarded: template.rewardPoints,
     claimed: true,
