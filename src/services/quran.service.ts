@@ -1471,18 +1471,34 @@ export async function getAyahAudio(
     QURAN_RECITERS[0] ??
     { id: 'Mishary_Alafasy', serverUrl: 'https://everyayah.com/data/Alafasy_128kbps' };
 
+  const paddedSurah = String(surahId).padStart(3, '0');
+  const paddedAyah = String(ayahNumber).padStart(3, '0');
+  const everyayahBase =
+    reciter.serverUrl ?? 'https://everyayah.com/data/Alafasy_128kbps';
+  const everyayahUrl = `${everyayahBase}/${paddedSurah}${paddedAyah}.mp3`;
+
   const qfRecitationId = resolveRecitationResourceId(reciterId ?? reciter.id);
   if (qfRecitationId != null) {
     try {
       const qf = await fetchQfAudioByVerse(qfRecitationId, verseKey(surahId, ayahNumber));
       if (qf?.audioUrl) {
-        return {
+        // Guard: some QF gateway responses incorrectly reuse Alafasy CDN for other IDs.
+        const stealsAlafasy =
+          reciter.id !== 'Mishary_Alafasy' && /alafasy/i.test(qf.audioUrl);
+        if (!stealsAlafasy) {
+          return {
+            audioUrl: qf.audioUrl,
+            reciter: reciter.id,
+            surahId,
+            ayahNumber,
+            provider: 'quran_foundation',
+          };
+        }
+        logger.warn('[Quran] Ignoring QF audio URL that does not match requested reciter', {
+          reciterId: reciter.id,
+          qfRecitationId,
           audioUrl: qf.audioUrl,
-          reciter: reciter.id,
-          surahId,
-          ayahNumber,
-          provider: 'quran_foundation',
-        };
+        });
       }
     } catch (err) {
       logger.warn('[Quran] QF audio lookup failed, falling back to everyayah', {
@@ -1491,13 +1507,8 @@ export async function getAyahAudio(
     }
   }
 
-  const paddedSurah = String(surahId).padStart(3, '0');
-  const paddedAyah = String(ayahNumber).padStart(3, '0');
-  const base =
-    reciter.serverUrl ?? 'https://everyayah.com/data/Alafasy_128kbps';
-  const audioUrl = `${base}/${paddedSurah}${paddedAyah}.mp3`;
   return {
-    audioUrl,
+    audioUrl: everyayahUrl,
     reciter: reciter.id,
     surahId,
     ayahNumber,
