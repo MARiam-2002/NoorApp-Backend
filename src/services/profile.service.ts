@@ -8,6 +8,8 @@ export type UserProfile = {
   username: string;
   fullName: string | null;
   email: string;
+  provider: string;
+  providerId: string | null;
   avatarUrl: string | null;
   phone: string | null;
   city: string | null;
@@ -17,12 +19,15 @@ export type UserProfile = {
   timezone: string | null;
   latitude: number | null;
   longitude: number | null;
+  location: { latitude: number; longitude: number } | null;
   prayerCalculationMethod: string;
   quranFontSize: number;
   quranReciter: string;
   quranTafsir: string;
   quranTranslation: string;
   quranAutoScrollEnabled: boolean;
+  quranAutoScroll: boolean;
+  createdAt: string | null;
   joinedAt: Date | null;
 };
 
@@ -32,6 +37,7 @@ export type ReadingPreferences = {
   quranTafsir: string;
   quranTranslation: string;
   quranAutoScrollEnabled: boolean;
+  quranAutoScroll: boolean;
 };
 
 export async function getProfile(userId: string): Promise<UserProfile> {
@@ -44,6 +50,8 @@ export async function getProfile(userId: string): Promise<UserProfile> {
         username: true,
         fullName: true,
         email: true,
+        provider: true,
+        providerId: true,
         avatarUrl: true,
         phone: true,
         city: true,
@@ -72,6 +80,8 @@ export async function getProfile(userId: string): Promise<UserProfile> {
           username: true,
           fullName: true,
           email: true,
+          provider: true,
+          providerId: true,
           avatarUrl: true,
           phone: true,
           city: true,
@@ -102,11 +112,20 @@ export async function getProfile(userId: string): Promise<UserProfile> {
     );
   }
 
+  const autoScroll = Boolean(profile.quranAutoScrollEnabled ?? false);
+  const hasLocation =
+    profile.latitude != null &&
+    profile.longitude != null &&
+    Number.isFinite(profile.latitude) &&
+    Number.isFinite(profile.longitude);
+
   return {
     id: profile.id,
     username: profile.username,
     fullName: profile.fullName,
     email: profile.email,
+    provider: String(profile.provider ?? 'LOCAL'),
+    providerId: profile.providerId ?? null,
     avatarUrl: profile.avatarUrl,
     phone: profile.phone,
     city: profile.city,
@@ -116,12 +135,17 @@ export async function getProfile(userId: string): Promise<UserProfile> {
     timezone: profile.timezone,
     latitude: profile.latitude,
     longitude: profile.longitude,
+    location: hasLocation
+      ? { latitude: profile.latitude as number, longitude: profile.longitude as number }
+      : null,
     prayerCalculationMethod: profile.prayerCalculationMethod,
     quranFontSize: profile.quranFontSize,
     quranReciter: profile.quranReciter,
     quranTafsir: profile.quranTafsir,
     quranTranslation: profile.quranTranslation,
-    quranAutoScrollEnabled: Boolean(profile.quranAutoScrollEnabled ?? false),
+    quranAutoScrollEnabled: autoScroll,
+    quranAutoScroll: autoScroll,
+    createdAt: profile.createdAt ? new Date(profile.createdAt).toISOString() : null,
     joinedAt: profile.createdAt,
   };
 }
@@ -169,6 +193,7 @@ export async function getReadingPreferences(userId: string): Promise<ReadingPref
     quranTafsir: user.quranTafsir,
     quranTranslation: user.quranTranslation,
     quranAutoScrollEnabled: Boolean(user.quranAutoScrollEnabled ?? false),
+    quranAutoScroll: Boolean(user.quranAutoScrollEnabled ?? false),
   };
 }
 
@@ -192,6 +217,9 @@ export async function updateReadingPreferences(
   if (data.quranTranslation !== undefined) updateData.quranTranslation = data.quranTranslation;
   if (data.quranAutoScrollEnabled !== undefined) {
     updateData.quranAutoScrollEnabled = data.quranAutoScrollEnabled;
+  }
+  if ((data as any).quranAutoScroll !== undefined && data.quranAutoScrollEnabled === undefined) {
+    updateData.quranAutoScrollEnabled = Boolean((data as any).quranAutoScroll);
   }
 
   let updated: any = null;
@@ -241,6 +269,7 @@ export async function updateReadingPreferences(
     quranTafsir: updated.quranTafsir,
     quranTranslation: updated.quranTranslation,
     quranAutoScrollEnabled: Boolean(updated.quranAutoScrollEnabled ?? data.quranAutoScrollEnabled ?? false),
+    quranAutoScroll: Boolean(updated.quranAutoScrollEnabled ?? data.quranAutoScrollEnabled ?? false),
   };
 }
 
@@ -306,28 +335,7 @@ export async function updateProfile(
   const updated = await prisma.user.update({
     where: { id: userId },
     data: updateData,
-    select: {
-      id: true,
-      username: true,
-      fullName: true,
-      email: true,
-      avatarUrl: true,
-      phone: true,
-      city: true,
-      country: true,
-      points: true,
-      level: true,
-      timezone: true,
-      latitude: true,
-      longitude: true,
-      prayerCalculationMethod: true,
-      quranFontSize: true,
-      quranReciter: true,
-      quranTafsir: true,
-      quranTranslation: true,
-      quranAutoScrollEnabled: true,
-      createdAt: true,
-    },
+    select: { id: true },
   });
 
   if (!updated) {
@@ -338,28 +346,7 @@ export async function updateProfile(
     );
   }
 
-  return {
-    id: updated.id,
-    username: updated.username,
-    fullName: updated.fullName,
-    email: updated.email,
-    avatarUrl: updated.avatarUrl,
-    phone: updated.phone,
-    city: updated.city,
-    country: updated.country,
-    points: updated.points,
-    level: updated.level,
-    timezone: updated.timezone,
-    latitude: updated.latitude,
-    longitude: updated.longitude,
-    prayerCalculationMethod: updated.prayerCalculationMethod,
-    quranFontSize: updated.quranFontSize,
-    quranReciter: updated.quranReciter,
-    quranTafsir: updated.quranTafsir,
-    quranTranslation: updated.quranTranslation,
-    quranAutoScrollEnabled: Boolean(updated.quranAutoScrollEnabled ?? false),
-    joinedAt: updated.createdAt,
-  };
+  return getProfile(userId);
 }
 
 export async function changePassword(
@@ -434,28 +421,7 @@ export async function updateLocation(
   const updated = await prisma.user.update({
     where: { id: userId },
     data: updateData,
-    select: {
-      id: true,
-      username: true,
-      fullName: true,
-      email: true,
-      avatarUrl: true,
-      phone: true,
-      city: true,
-      country: true,
-      points: true,
-      level: true,
-      timezone: true,
-      latitude: true,
-      longitude: true,
-      prayerCalculationMethod: true,
-      quranFontSize: true,
-      quranReciter: true,
-      quranTafsir: true,
-      quranTranslation: true,
-      quranAutoScrollEnabled: true,
-      createdAt: true,
-    },
+    select: { id: true },
   });
 
   if (!updated) {
@@ -466,26 +432,5 @@ export async function updateLocation(
     );
   }
 
-  return {
-    id: updated.id,
-    username: updated.username,
-    fullName: updated.fullName,
-    email: updated.email,
-    avatarUrl: updated.avatarUrl,
-    phone: updated.phone,
-    city: updated.city,
-    country: updated.country,
-    points: updated.points,
-    level: updated.level,
-    timezone: updated.timezone,
-    latitude: updated.latitude,
-    longitude: updated.longitude,
-    prayerCalculationMethod: updated.prayerCalculationMethod,
-    quranFontSize: updated.quranFontSize,
-    quranReciter: updated.quranReciter,
-    quranTafsir: updated.quranTafsir,
-    quranTranslation: updated.quranTranslation,
-    quranAutoScrollEnabled: Boolean(updated.quranAutoScrollEnabled ?? false),
-    joinedAt: updated.createdAt,
-  };
+  return getProfile(userId);
 }

@@ -128,12 +128,13 @@ export const updateReadingPreferences = asyncHandler(async (req: Request, res: R
     );
   }
 
-  const { quranFontSize, quranReciter, quranTafsir, quranTranslation, quranAutoScrollEnabled } = req.body as {
+  const { quranFontSize, quranReciter, quranTafsir, quranTranslation, quranAutoScrollEnabled, quranAutoScroll } = req.body as {
     quranFontSize?: number;
     quranReciter?: string;
     quranTafsir?: string;
     quranTranslation?: string;
     quranAutoScrollEnabled?: boolean;
+    quranAutoScroll?: boolean;
   };
 
   const data = await profileService.updateReadingPreferences(userId, {
@@ -142,6 +143,7 @@ export const updateReadingPreferences = asyncHandler(async (req: Request, res: R
     ...(quranTafsir !== undefined && { quranTafsir }),
     ...(quranTranslation !== undefined && { quranTranslation }),
     ...(quranAutoScrollEnabled !== undefined && { quranAutoScrollEnabled }),
+    ...(quranAutoScroll !== undefined && { quranAutoScroll } as any),
   });
 
   sendSuccess(res, data, 'Reading preferences updated successfully', req);

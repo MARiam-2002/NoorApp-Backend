@@ -1,10 +1,11 @@
 import type { PrayerName } from '@prisma/client';
-import { CalculationMethod, Coordinates, PrayerTimes } from 'adhan';
+import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from 'adhan';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
 import { DefaultTimezone, PrayerNameEnum, PrayerOrder } from '../utils/constants';
-import { getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { getTodayDateOnly } from '../utils/date';
+import { parsePrayerKey, prayerEnumToTitle } from '../shared/utils/prayer-names';
 
 const DEFAULT_LATITUDE = 30.0444;
 const DEFAULT_LONGITUDE = 31.2357;
@@ -18,7 +19,10 @@ const prayerLabelsAr: Record<PrayerNameEnum, string> = {
 };
 
 export type PrayerScheduleItem = {
-  name: PrayerNameEnum;
+  /** Flutter contract: Title Case English ("Fajr"). */
+  name: string;
+  /** Stable enum key for clients that still send FAJR…ISHA. */
+  key: PrayerNameEnum;
   nameAr: string;
   time: string;
   displayAr: string;
@@ -29,7 +33,8 @@ export type PrayerScheduleItem = {
 };
 
 export type NextPrayerInfo = {
-  name: PrayerNameEnum;
+  name: string;
+  key: PrayerNameEnum;
   nameAr: string;
   time: string;
   displayAr: string;
@@ -114,33 +119,77 @@ function getPrayerDateMap(prayerTimes: PrayerTimes): Record<PrayerNameEnum, Date
   };
 }
 
+type PrayerCalcOptions = {
+  method?: string;
+  madhab?: string;
+};
+
+function resolveCalculationParams(options?: PrayerCalcOptions) {
+  const methodKey = (options?.method ?? 'EGYPT').toUpperCase();
+  const madhabKey = (options?.madhab ?? 'SHAFI').toUpperCase();
+
+  let params;
+  switch (methodKey) {
+    case 'MWL':
+    case 'MUSLIM_WORLD_LEAGUE':
+      params = CalculationMethod.MuslimWorldLeague();
+      break;
+    case 'MAKKAH':
+    case 'UMM_AL_QURA':
+      params = CalculationMethod.UmmAlQura();
+      break;
+    case 'KARACHI':
+      params = CalculationMethod.Karachi();
+      break;
+    case 'ISNA':
+    case 'NORTH_AMERICA':
+      params = CalculationMethod.NorthAmerica();
+      break;
+    case 'TEHRAN':
+      params = CalculationMethod.Tehran();
+      break;
+    case 'EGYPT':
+    case 'EGYPTIAN':
+    case 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY':
+    default:
+      params = CalculationMethod.Egyptian();
+      break;
+  }
+
+  params.madhab = madhabKey === 'HANAFI' ? Madhab.Hanafi : Madhab.Shafi;
+  return params;
+}
+
 export function calculateDailyPrayerSchedule(
   latitude: number,
   longitude: number,
   timezone = DefaultTimezone,
   completedPrayers: PrayerNameEnum[] = [],
   referenceDate = new Date(),
+  options?: PrayerCalcOptions,
 ): DailyPrayerSchedule {
   const tz = resolveTimezone(timezone);
   const lat = Number.isFinite(latitude) ? latitude : DEFAULT_LATITUDE;
   const lng = Number.isFinite(longitude) ? longitude : DEFAULT_LONGITUDE;
   const coordinates = new Coordinates(lat, lng);
-  const params = CalculationMethod.Egyptian();
+  const params = resolveCalculationParams(options);
   const prayerTimes = new PrayerTimes(coordinates, referenceDate, params);
   const prayerDateMap = getPrayerDateMap(prayerTimes);
   const now = referenceDate.getTime();
+  const completedSet = new Set(completedPrayers.map((p) => String(p).toUpperCase()));
 
-  const schedule: PrayerScheduleItem[] = PrayerOrder.map((name) => {
-    const timestamp = prayerDateMap[name] ?? new Date();
+  const schedule: PrayerScheduleItem[] = PrayerOrder.map((key) => {
+    const timestamp = prayerDateMap[key] ?? new Date();
     return {
-      name,
-      nameAr: prayerLabelsAr[name],
+      name: prayerEnumToTitle(key),
+      key,
+      nameAr: prayerLabelsAr[key],
       time: formatTime(timestamp, tz),
       displayEn: formatDisplayEn(timestamp, tz),
       displayAr: formatDisplayAr(timestamp, tz),
       iso: timestamp.toISOString(),
       timestamp,
-      completed: completedPrayers.includes(name),
+      completed: completedSet.has(key),
     };
   });
 
@@ -152,10 +201,8 @@ export function calculateDailyPrayerSchedule(
   const nextPrayer: NextPrayerInfo | null = nextPrayerEntry
     ? {
         name: nextPrayerEntry.name,
-        nameAr:
-          nextPrayerEntry.name === PrayerNameEnum.ASR
-            ? 'صلاة العصر'
-            : `صلاة ${nextPrayerEntry.nameAr}`,
+        key: nextPrayerEntry.key,
+        nameAr: nextPrayerEntry.nameAr,
         time: nextPrayerEntry.time,
         displayAr: nextPrayerEntry.displayAr,
         displayEn: nextPrayerEntry.displayEn,
@@ -213,7 +260,12 @@ async function togglePrayer(
 export async function getTodayPrayers(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { latitude: true, longitude: true, timezone: true },
+    select: {
+      latitude: true,
+      longitude: true,
+      timezone: true,
+      prayerCalculationMethod: true,
+    },
   });
 
   if (!user) {
@@ -227,16 +279,19 @@ export async function getTodayPrayers(userId: string) {
     user.longitude ?? DEFAULT_LONGITUDE,
     user.timezone ?? DefaultTimezone,
     completed as PrayerNameEnum[],
+    new Date(),
+    { method: user.prayerCalculationMethod ?? 'EGYPT' },
   );
 }
 
 export async function markPrayer(userId: string, prayerId: string) {
-  if (!Object.values(PrayerNameEnum).includes(prayerId as PrayerNameEnum)) {
+  const prayerKey = parsePrayerKey(prayerId);
+  if (!prayerKey) {
     throw new AppError('Invalid prayer name', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
 
-  const completed = await togglePrayer(userId, prayerId as PrayerName);
-  return { prayer: prayerId, completed };
+  const completed = await togglePrayer(userId, prayerKey as PrayerName);
+  return { prayer: prayerEnumToTitle(prayerKey), key: prayerKey, completed };
 }
 
 export async function getPrayerSchedule(
@@ -244,11 +299,13 @@ export async function getPrayerSchedule(
   longitude?: number,
   timezone?: string,
   dateStr?: string,
+  method?: string,
+  madhab?: string,
 ) {
   const lat = latitude ?? DEFAULT_LATITUDE;
   const lng = longitude ?? DEFAULT_LONGITUDE;
   const tz = timezone ?? DefaultTimezone;
   const refDate = dateStr ? new Date(dateStr) : new Date();
 
-  return calculateDailyPrayerSchedule(lat, lng, tz, [], refDate);
+  return calculateDailyPrayerSchedule(lat, lng, tz, [], refDate, { method, madhab });
 }

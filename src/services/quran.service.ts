@@ -6,6 +6,7 @@ import { resolveSurahNameAr, resolveSurahNameEn, withResolvedSurahNames } from '
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
 import { getTodayDateOnly } from '../utils/date';
 import { logger } from '../lib/logger';
+import { ARABIC_DIACRITICS_FOR_TRANSLATE, stripArabicDiacritics } from '../shared/utils/arabic-text';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -477,43 +478,111 @@ export async function searchQuran(query: string, page = 1, limit = 20) {
   if (!query || query.trim().length === 0) {
     throw new AppError('Search query is required (min 1 char)', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
-  const skip = (page - 1) * limit;
-  const [items, total] = await Promise.all([
-    prisma.ayah.findMany({
-      where: { textAr: { contains: query.trim(), mode: 'insensitive' } },
-      orderBy: [{ surahId: 'asc' }, { ayahNumber: 'asc' }],
-      take: limit,
-      skip,
-      select: {
-        id: true,
-        surahId: true,
-        ayahNumber: true,
-        textAr: true,
-        page: true,
-        juz: true,
-      },
-    }),
-    prisma.ayah.count({
-      where: { textAr: { contains: query.trim(), mode: 'insensitive' } },
-    }),
-  ]);
+  const rawQuery = query.trim();
+  const normalized = stripArabicDiacritics(rawQuery);
+  const skip = Math.max(0, (page - 1) * limit);
+  const take = Math.min(100, Math.max(1, limit));
+
+  // Diacritic-insensitive search: Uthmani text stores marks (ٱللَّهِ) while users type الله.
+  type RawAyah = {
+    id: string;
+    surahId: number;
+    ayahNumber: number;
+    textAr: string;
+    page: number | null;
+    juz: number | null;
+  };
+
+  let items: RawAyah[] = [];
+  let total = 0;
+
+  try {
+    const like = `%${normalized}%`;
+    const diacritics = ARABIC_DIACRITICS_FOR_TRANSLATE;
+    const rows = await prisma.$queryRaw<RawAyah[]>`
+      SELECT id, "surahId", "ayahNumber", "textAr", page, juz
+      FROM ayahs
+      WHERE translate(
+        replace(replace(replace(replace("textAr", 'ٱ', 'ا'), 'آ', 'ا'), 'أ', 'ا'), 'إ', 'ا'),
+        ${diacritics},
+        ''
+      ) ILIKE ${like}
+      ORDER BY "surahId" ASC, "ayahNumber" ASC
+      LIMIT ${take} OFFSET ${skip}
+    `;
+    const countRows = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*)::bigint AS count
+      FROM ayahs
+      WHERE translate(
+        replace(replace(replace(replace("textAr", 'ٱ', 'ا'), 'آ', 'ا'), 'أ', 'ا'), 'إ', 'ا'),
+        ${diacritics},
+        ''
+      ) ILIKE ${like}
+    `;
+    items = rows;
+    total = Number(countRows[0]?.count ?? 0);
+  } catch (err) {
+    logger.warn('[Quran] diacritic search failed, falling back to contains', {
+      message: (err as Error)?.message,
+    });
+    const [fallbackItems, fallbackTotal] = await Promise.all([
+      prisma.ayah.findMany({
+        where: {
+          OR: [
+            { textAr: { contains: rawQuery, mode: 'insensitive' } },
+            { textAr: { contains: normalized, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: [{ surahId: 'asc' }, { ayahNumber: 'asc' }],
+        take,
+        skip,
+        select: {
+          id: true,
+          surahId: true,
+          ayahNumber: true,
+          textAr: true,
+          page: true,
+          juz: true,
+        },
+      }),
+      prisma.ayah.count({
+        where: {
+          OR: [
+            { textAr: { contains: rawQuery, mode: 'insensitive' } },
+            { textAr: { contains: normalized, mode: 'insensitive' } },
+          ],
+        },
+      }),
+    ]);
+    items = fallbackItems;
+    total = fallbackTotal;
+  }
+
   const surahIds = Array.from(new Set(items.map((a) => a.surahId)));
-  const surahs = await prisma.surah.findMany({
-    where: { id: { in: surahIds } },
-    select: { id: true, nameAr: true, nameEn: true, revelationType: true },
-  });
+  const surahs = surahIds.length
+    ? await prisma.surah.findMany({
+        where: { id: { in: surahIds } },
+        select: { id: true, nameAr: true, nameEn: true, revelationType: true },
+      })
+    : [];
   const byId = new Map(surahs.map((s) => [s.id, withResolvedSurahNames(s)] as const));
-  const enriched = sanitizeAyahList(items).map((a) => ({
-    ...a,
-    surah: byId.get(a.surahId) ?? null,
-  }));
+  const enriched = sanitizeAyahList(items).map((a) => {
+    const surah = byId.get(a.surahId) ?? null;
+    return {
+      ...a,
+      surah,
+      surahNameAr: surah ? resolveSurahNameAr(surah.id, surah.nameAr) : null,
+      surahNameEn: surah ? resolveSurahNameEn(surah.id, surah.nameEn) : null,
+    };
+  });
   return {
-    query: query.trim(),
+    query: rawQuery,
     total,
     page,
-    limit,
-    totalPages: Math.max(1, Math.ceil(total / limit)),
+    limit: take,
+    totalPages: Math.max(1, Math.ceil(total / take)),
     results: enriched,
+    ayahs: enriched,
   };
 }
 

@@ -89,7 +89,12 @@ export const patchAdhkar = asyncHandler(async (req: Request, res: Response) => {
     );
   }
 
-  const body = req.body as { completed?: boolean; morningCompleted?: boolean; eveningCompleted?: boolean };
+  const body = req.body as {
+    completed?: boolean;
+    morningCompleted?: boolean;
+    eveningCompleted?: boolean;
+    categoryKey?: string;
+  };
   const data = await updateAdhkar(userId, body);
   sendSuccess(res, data, 'Adhkar status updated successfully', req);
 });

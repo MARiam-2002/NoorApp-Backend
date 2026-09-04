@@ -17,6 +17,8 @@
     DATABASE_URL:
       process.env.DATABASE_URL ||
       "postgresql://placeholder:placeholder@localhost:5432/placeholder",
+    // Do NOT invent real-looking JWT secrets. Boot can continue with placeholders
+    // only for the static landing page; auth refuses these via assertSecureSecrets().
     JWT_SECRET:
       process.env.JWT_SECRET ||
       "fallback_jwt_secret_please_set_vercel_env_vars_minimum_32_chars_long",
@@ -27,6 +29,14 @@
   };
   for (const k of Object.keys(defs)) {
     if (!process.env[k]) process.env[k] = defs[k];
+  }
+  if (
+    !process.env.JWT_SECRET ||
+    String(process.env.JWT_SECRET).startsWith("fallback_jwt_secret")
+  ) {
+    console.error(
+      "[Noor] CRITICAL: JWT_SECRET is missing or using insecure fallback. Set JWT_SECRET in Vercel Production env.",
+    );
   }
 })();
 

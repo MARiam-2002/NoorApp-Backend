@@ -124,6 +124,26 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
     }),
   ]);
 
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        titleAr: 'تم استلام مكافأة التحدي',
+        titleEn: 'Challenge reward claimed',
+        bodyAr: `حصلت على ${template.rewardPoints} نقطة من تحدي اليوم`,
+        bodyEn: `You earned ${template.rewardPoints} points from today's challenge`,
+        type: 'CHALLENGE',
+        deepLink: '/challenges',
+        payload: {
+          dayOfYear,
+          rewardPoints: template.rewardPoints,
+        },
+      },
+    });
+  } catch {
+    // Non-fatal: claim still succeeds if notifications table is unavailable
+  }
+
   return {
     id: String(dayOfYear),
     titleAr: template.titleAr ?? FALLBACK_CHALLENGE.titleAr,

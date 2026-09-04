@@ -8,6 +8,7 @@ import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/d
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import { DefaultTimezone, PrayerNameEnum } from '../utils/constants';
 import { ensureSurahCatalog } from '../lib/quran-catalog';
+import { resolveSurahNameAr, resolveSurahNameEn } from '../lib/surah-names';
 import {
   FALLBACK_VERSE,
   FALLBACK_HADITH,
@@ -43,6 +44,7 @@ export type DashboardData = {
       displayEn?: string;
       iso?: string;
       countdownSeconds: number;
+      key?: string;
     } | null;
     schedule: Array<{
       name: string;
@@ -52,6 +54,7 @@ export type DashboardData = {
       displayEn?: string;
       iso?: string;
       completed: boolean;
+      key?: string;
     }>;
     date?: string;
     timezone?: string;
@@ -144,6 +147,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     timezone: null as string | null,
     latitude: null as number | null,
     longitude: null as number | null,
+    prayerCalculationMethod: 'EGYPT' as string | null,
   };
 
   let user = fallbackUser;
@@ -158,9 +162,10 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         timezone: true,
         latitude: true,
         longitude: true,
+        prayerCalculationMethod: true,
       },
     });
-    if (fetched) user = fetched;
+    if (fetched) user = { ...fallbackUser, ...fetched };
   } catch (err: any) {
     logger.warn('[Dashboard] prisma.user.findUnique failed, using fallback user', {
       code: err?.code,
@@ -235,6 +240,7 @@ async function buildDashboardPayload(
     timezone: string | null;
     latitude: number | null;
     longitude: number | null;
+    prayerCalculationMethod?: string | null;
   },
 ): Promise<DashboardData> {
 
@@ -274,6 +280,8 @@ async function buildDashboardPayload(
       longitude,
       timezone,
       completedPrayers as PrayerNameEnum[],
+      new Date(),
+      { method: user.prayerCalculationMethod ?? 'EGYPT' },
     );
   } catch {
     prayers = {
@@ -308,8 +316,8 @@ async function buildDashboardPayload(
   const totalPagesRead = khatmah?.totalPagesRead ?? 0;
   const khatmahPayload = {
     surahId: surah?.id ?? 2,
-    surahNameEn: surah?.nameEn ?? 'Al-Baqarah',
-    surahNameAr: surah?.nameAr ?? 'البقرة',
+    surahNameEn: resolveSurahNameEn(surah?.id ?? 2, surah?.nameEn) || 'Al-Baqarah',
+    surahNameAr: resolveSurahNameAr(surah?.id ?? 2, surah?.nameAr) || 'البقرة',
     currentPage: khatmah?.currentPage ?? 1,
     progressPercent: Math.min(100, Math.round((totalPagesRead * 100) / TOTAL_QURAN_PAGES)),
   };
@@ -334,6 +342,7 @@ async function buildDashboardPayload(
             displayEn: prayers.nextPrayer.displayEn,
             iso: prayers.nextPrayer.iso,
             countdownSeconds: prayers.nextPrayer.countdownSeconds,
+            key: prayers.nextPrayer.key,
           }
         : null,
       schedule: prayers.schedule.map((item) => ({
@@ -344,6 +353,7 @@ async function buildDashboardPayload(
         displayEn: item.displayEn,
         iso: item.iso,
         completed: item.completed,
+        key: item.key,
       })),
       date: prayers.date,
       timezone: prayers.timezone,
@@ -394,10 +404,10 @@ async function buildDashboardPayload(
     },
     khatmah: {
       surahId: surah?.id ?? 2,
-      surahNameAr: surah?.nameAr ?? 'البقرة',
+      surahNameAr: resolveSurahNameAr(surah?.id ?? 2, surah?.nameAr) || 'البقرة',
       currentPage: khatmah?.currentPage ?? 1,
       progressPercent: khatmahPayload.progressPercent,
-      surahNameEn: surah?.nameEn ?? 'Al-Baqarah',
+      surahNameEn: resolveSurahNameEn(surah?.id ?? 2, surah?.nameEn) || 'Al-Baqarah',
     },
     dailyChallenge: {
       titleAr: challengeTemplate?.titleAr ?? FALLBACK_CHALLENGE.titleAr,

@@ -11,6 +11,7 @@ import {
 import {
   getDailyChallengeTemplate,
 } from './daily-content.service';
+import { parsePrayerKey } from '../shared/utils/prayer-names';
 
 const VALID_PRAYER_KEYS = ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'] as const;
 type ValidPrayerKey = typeof VALID_PRAYER_KEYS[number];
@@ -166,6 +167,8 @@ export async function getTodayJourney(userId: string) {
       labelAr: 'الأذكار',
       labelEn: 'Adhkar',
       done: overallAdhkar,
+      progress: Math.round((((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2) * 100) / 100,
+      completed: overallAdhkar,
     },
     {
       key: 'sadaqah',
@@ -181,6 +184,7 @@ export async function getTodayJourney(userId: string) {
       labelEn: 'Sadaqah',
       done: sadaqahAmount > 0,
       amount: sadaqahAmount,
+      progress: Math.round(sadaqahProgress * 100) / 100,
     },
   ];
 
@@ -191,10 +195,18 @@ export async function getTodayJourney(userId: string) {
   let points = 0;
   let streakDays = 0;
   let dailyChallenge: any = null;
+  let badges: Array<{
+    id: string;
+    key: string;
+    titleAr: string;
+    titleEn: string;
+    earned: boolean;
+    earnedAt: string | null;
+  }> = [];
   try {
     const dayOfYear = getDayOfYear();
     const [user, last30Progress, challengeTemplate, challengeCompletion] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { points: true, level: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { points: true, level: true, createdAt: true } }),
       prisma.dailyProgress.findMany({
         where: { userId },
         select: { date: true, quranPagesRead: true, morningAdhkarCompleted: true, eveningAdhkarCompleted: true, sadaqahAmount: true },
@@ -240,6 +252,42 @@ export async function getTodayJourney(userId: string) {
       claimed: Boolean(challengeCompletion?.claimedAt),
     };
 
+    const nowIso = new Date().toISOString();
+    badges = [
+      {
+        id: 'streak-3',
+        key: 'STREAK_3',
+        titleAr: 'سلسلة 3 أيام',
+        titleEn: '3-day streak',
+        earned: streakDays >= 3,
+        earnedAt: streakDays >= 3 ? nowIso : null,
+      },
+      {
+        id: 'streak-7',
+        key: 'STREAK_7',
+        titleAr: 'سلسلة 7 أيام',
+        titleEn: '7-day streak',
+        earned: streakDays >= 7,
+        earnedAt: streakDays >= 7 ? nowIso : null,
+      },
+      {
+        id: 'prayers-all',
+        key: 'PRAYERS_ALL_TODAY',
+        titleAr: 'صلوات اليوم كاملة',
+        titleEn: 'All prayers today',
+        earned: prayersCompleted >= totalPrayers,
+        earnedAt: prayersCompleted >= totalPrayers ? nowIso : null,
+      },
+      {
+        id: 'first-steps',
+        key: 'FIRST_STEPS',
+        titleAr: 'الخطوات الأولى',
+        titleEn: 'First steps',
+        earned: true,
+        earnedAt: user?.createdAt?.toISOString?.() ?? nowIso,
+      },
+    ];
+
     void level;
   } catch { /* */ }
 
@@ -247,7 +295,7 @@ export async function getTodayJourney(userId: string) {
     date: date.toISOString().slice(0, 10),
     tasks,
     streakDays,
-    badges: [],
+    badges,
     points,
     overallPercent,
     dailyChallenge,
@@ -287,10 +335,10 @@ export async function togglePrayer(
   prayerKeyRaw: string,
   completed: boolean = true,
 ) {
-  const prayerKey = prayerKeyRaw.trim().toUpperCase() as ValidPrayerKey;
-  if (!VALID_PRAYER_KEYS.includes(prayerKey)) {
+  const prayerKey = parsePrayerKey(prayerKeyRaw);
+  if (!prayerKey) {
     throw new AppError(
-      `Invalid prayer key: ${prayerKeyRaw}. Must be one of: ${VALID_PRAYER_KEYS.join(', ')}`,
+      `Invalid prayer key: ${prayerKeyRaw}. Must be one of: FAJR, DHUHR, ASR, MAGHRIB, ISHA (or Fajr, Dhuhr, Asr, Maghrib, Isha)`,
       HttpStatus.BAD_REQUEST,
       ErrorCodes.VALIDATION_ERROR,
     );
@@ -424,25 +472,55 @@ export async function incrementQuranPages(userId: string, pages: number) {
 
 export async function updateAdhkar(
   userId: string,
-  input: { completed?: boolean; morningCompleted?: boolean; eveningCompleted?: boolean },
+  input: {
+    completed?: boolean;
+    morningCompleted?: boolean;
+    eveningCompleted?: boolean;
+    categoryKey?: string;
+  },
 ) {
   const date = getTodayDateOnly();
   const existing = await prisma.dailyProgress.findUnique({
     where: { userId_date: { userId, date } },
   });
 
+  const category = (input.categoryKey ?? '').toUpperCase();
+  let morningFromCategory: boolean | undefined;
+  let eveningFromCategory: boolean | undefined;
+  if (category) {
+    if (category.includes('MORNING') || category.includes('SABAH') || category === 'GENERAL_WIRD') {
+      morningFromCategory = input.completed ?? true;
+    }
+    if (category.includes('EVENING') || category.includes('MASA')) {
+      eveningFromCategory = input.completed ?? true;
+    }
+    // GENERAL_WIRD / unknown category with completed=true marks overall journey adhkar
+    if (
+      morningFromCategory === undefined &&
+      eveningFromCategory === undefined &&
+      input.completed !== undefined
+    ) {
+      morningFromCategory = input.completed;
+      eveningFromCategory = input.completed;
+    }
+  }
+
   const morningSet =
     input.morningCompleted !== undefined
       ? input.morningCompleted
-      : input.completed !== undefined
-        ? input.completed
-        : existing?.morningAdhkarCompleted ?? false;
+      : morningFromCategory !== undefined
+        ? morningFromCategory
+        : input.completed !== undefined
+          ? input.completed
+          : existing?.morningAdhkarCompleted ?? false;
   const eveningSet =
     input.eveningCompleted !== undefined
       ? input.eveningCompleted
-      : input.completed !== undefined
-        ? input.completed
-        : existing?.eveningAdhkarCompleted ?? false;
+      : eveningFromCategory !== undefined
+        ? eveningFromCategory
+        : input.completed !== undefined
+          ? input.completed
+          : existing?.eveningAdhkarCompleted ?? false;
   const overallSet = morningSet && eveningSet;
 
   const progress = await prisma.dailyProgress.upsert({

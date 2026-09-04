@@ -41,12 +41,29 @@ export const markPrayerHandler = asyncHandler(async (req: Request, res: Response
 });
 
 export const getSchedule = asyncHandler(async (req: Request, res: Response) => {
-  const { latitude, longitude, timezone, date } = req.query as {
-    latitude?: string; longitude?: string; timezone?: string; date?: string };
+  const { latitude, longitude, lat, lng, timezone, date, method, madhab } = req.query as {
+    latitude?: string;
+    longitude?: string;
+    lat?: string;
+    lng?: string;
+    timezone?: string;
+    date?: string;
+    method?: string;
+    madhab?: string;
+  };
 
-  const lat = latitude ? Number(latitude) : undefined;
-  const lng = longitude ? Number(longitude) : undefined;
+  const resolvedLat = latitude ?? lat;
+  const resolvedLng = longitude ?? lng;
+  const parsedLat = resolvedLat ? Number(resolvedLat) : undefined;
+  const parsedLng = resolvedLng ? Number(resolvedLng) : undefined;
 
-  const data = await getPrayerSchedule(lat, lng, timezone, date);
+  const data = await getPrayerSchedule(
+    parsedLat,
+    parsedLng,
+    timezone,
+    date,
+    method,
+    madhab,
+  );
   sendSuccess(res, data, 'Prayer schedule calculated successfully', req);
 });

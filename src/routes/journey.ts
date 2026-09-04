@@ -24,11 +24,17 @@ const adhkarSchema = z.object({
   completed: z.boolean().optional(),
   morningCompleted: z.boolean().optional(),
   eveningCompleted: z.boolean().optional(),
+  categoryKey: z.string().trim().min(1).max(64).optional(),
 }).superRefine((val, ctx) => {
-  if (val.completed === undefined && val.morningCompleted === undefined && val.eveningCompleted === undefined) {
+  if (
+    val.completed === undefined &&
+    val.morningCompleted === undefined &&
+    val.eveningCompleted === undefined &&
+    val.categoryKey === undefined
+  ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'At least one of (completed, morningCompleted, eveningCompleted) must be provided',
+      message: 'At least one of (completed, morningCompleted, eveningCompleted, categoryKey) must be provided',
     });
   }
 });
@@ -38,9 +44,17 @@ const sadaqahSchema = z.object({
 });
 
 const prayerSchema = z.object({
-  prayer: z.enum(['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'], {
-    message: 'Prayer must be one of: FAJR, DHUHR, ASR, MAGHRIB, ISHA',
-  }),
+  prayer: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((v) => v.trim())
+    .refine(
+      (v) =>
+        ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA', 'FAJR', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha', 'fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].includes(v)
+        || ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'].includes(v.toUpperCase()),
+      'Prayer must be one of: FAJR, DHUHR, ASR, MAGHRIB, ISHA (or Fajr, Dhuhr, Asr, Maghrib, Isha)',
+    ),
   completed: z.boolean().optional().default(true),
 });
 
