@@ -48,6 +48,11 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_CALLBACK_URL: z.string().default('http://localhost:3000/api/v1/auth/google/callback'),
+  // Quran Foundation Content API (OAuth2 client credentials). Optional —
+  // without these the public Content API v4 fallback (api.quran.com) is used.
+  QF_CLIENT_ID: z.string().default(''),
+  QF_CLIENT_SECRET: z.string().default(''),
+  QF_ENV: z.string().default('production'),
 });
 
 type Env = z.infer<typeof envSchema>;

@@ -6,6 +6,15 @@ import { resolveSurahNameAr, resolveSurahNameEn, withResolvedSurahNames } from '
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
 import { getTodayDateOnly } from '../utils/date';
 import { logger } from '../lib/logger';
+import {
+  fetchQfAudioByVerse,
+  fetchQfTafsirByVerse,
+  fetchQfTranslationByVerse,
+  resolveRecitationResourceId,
+  resolveTafsirResourceId,
+  resolveTranslationResourceId,
+  verseKey,
+} from '../lib/quran-foundation';
 import { ARABIC_DIACRITICS_FOR_TRANSLATE, stripArabicDiacritics } from '../shared/utils/arabic-text';
 
 const TOTAL_QURAN_PAGES = 604;
@@ -1445,19 +1454,45 @@ export async function getAyahAudio(
   surahId: number,
   ayahNumber: number,
   reciterId?: string,
-): Promise<{ audioUrl: string; reciter: string; surahId: number; ayahNumber: number }> {
+): Promise<{
+  audioUrl: string;
+  reciter: string;
+  surahId: number;
+  ayahNumber: number;
+  provider: 'quran_foundation' | 'mp3quran';
+}> {
   const reciter =
     QURAN_RECITERS.find((r) => r.id === reciterId || r.code === reciterId) ??
     QURAN_RECITERS[0] ??
-    { id: 'mishary_alafasy', serverUrl: 'https://server8.mp3quran.net/afs' };
+    { id: 'Mishary_Alafasy', serverUrl: 'https://server8.mp3quran.net/afs' };
+
+  const qfRecitationId = resolveRecitationResourceId(reciterId ?? reciter.id);
+  try {
+    const qf = await fetchQfAudioByVerse(qfRecitationId, verseKey(surahId, ayahNumber));
+    if (qf?.audioUrl) {
+      return {
+        audioUrl: qf.audioUrl,
+        reciter: reciter.id,
+        surahId,
+        ayahNumber,
+        provider: 'quran_foundation',
+      };
+    }
+  } catch (err) {
+    logger.warn('[Quran] QF audio lookup failed, falling back to mp3quran', {
+      message: (err as Error)?.message,
+    });
+  }
+
   const paddedSurah = String(surahId).padStart(3, '0');
   const paddedAyah = String(ayahNumber).padStart(3, '0');
-  const audioUrl = `${reciter.serverUrl}/${paddedSurah}${paddedAyah}.mp3`;
+  const audioUrl = `${reciter.serverUrl ?? 'https://server8.mp3quran.net/afs'}/${paddedSurah}${paddedAyah}.mp3`;
   return {
     audioUrl,
     reciter: reciter.id,
     surahId,
     ayahNumber,
+    provider: 'mp3quran',
   };
 }
 
@@ -1465,16 +1500,49 @@ export async function getAyahTafsir(
   surahId: number,
   ayahNumber: number,
   sourceId?: string,
-): Promise<{ textAr: string; source: string; surahId: number; ayahNumber: number }> {
-  const tafsir =
+): Promise<{
+  textAr: string;
+  text: string;
+  textHtml?: string;
+  source: string;
+  surahId: number;
+  ayahNumber: number;
+  provider: 'quran_foundation' | 'unavailable';
+  language?: string;
+}> {
+  const catalog =
     QURAN_TAFSIRS.find((t) => t.id === sourceId || t.code === sourceId) ??
     QURAN_TAFSIRS[0] ??
-    { id: 'ibn-kathir', code: 'ibn-kathir' };
+    { id: 'Ibn_Kathir', code: 'Ibn_Kathir' };
+
+  const resourceId = resolveTafsirResourceId(sourceId ?? catalog.id);
+  try {
+    const qf = await fetchQfTafsirByVerse(resourceId, verseKey(surahId, ayahNumber));
+    if (qf?.text) {
+      return {
+        textAr: qf.text,
+        text: qf.text,
+        textHtml: qf.textHtml,
+        source: catalog.id,
+        surahId,
+        ayahNumber,
+        provider: 'quran_foundation',
+        language: qf.language,
+      };
+    }
+  } catch (err) {
+    logger.warn('[Quran] QF tafsir lookup failed', {
+      message: (err as Error)?.message,
+    });
+  }
+
   return {
-    textAr: 'تفسير متاح قريباً',
-    source: tafsir.id,
+    textAr: 'تفسير غير متاح حالياً',
+    text: 'Tafsir unavailable right now',
+    source: catalog.id,
     surahId,
     ayahNumber,
+    provider: 'unavailable',
   };
 }
 
@@ -1482,16 +1550,44 @@ export async function getAyahTranslation(
   surahId: number,
   ayahNumber: number,
   sourceId?: string,
-): Promise<{ text: string; source: string; surahId: number; ayahNumber: number }> {
-  const translation =
+): Promise<{
+  text: string;
+  textHtml?: string;
+  source: string;
+  surahId: number;
+  ayahNumber: number;
+  provider: 'quran_foundation' | 'unavailable';
+}> {
+  const catalog =
     QURAN_TRANSLATIONS.find((t) => t.id === sourceId || t.code === sourceId) ??
     QURAN_TRANSLATIONS[0] ??
-    { id: 'sahih-international', code: 'sahih' };
+    { id: 'Sahih_International', code: 'Sahih_International' };
+
+  const resourceId = resolveTranslationResourceId(sourceId ?? catalog.id);
+  try {
+    const qf = await fetchQfTranslationByVerse(resourceId, verseKey(surahId, ayahNumber));
+    if (qf?.text) {
+      return {
+        text: qf.text,
+        textHtml: qf.textHtml,
+        source: catalog.id,
+        surahId,
+        ayahNumber,
+        provider: 'quran_foundation',
+      };
+    }
+  } catch (err) {
+    logger.warn('[Quran] QF translation lookup failed', {
+      message: (err as Error)?.message,
+    });
+  }
+
   return {
-    text: 'Translation coming soon',
-    source: translation.id,
+    text: 'Translation unavailable right now',
+    source: catalog.id,
     surahId,
     ayahNumber,
+    provider: 'unavailable',
   };
 }
 
