@@ -248,12 +248,13 @@ export const QF_RESOURCE_MAP: QfResourceMaps = {
     yusuf_ali: 22,
     Pickthall: 19,
     pickthall: 19,
-    Shakir: 21,
-    shakir: 21,
     French_Hamidullah: 31,
     french_hamidullah: 31,
     Turkish_Diyanet: 77,
     turkish_diyanet: 77,
+    Malay_Basmeih: 39,
+    malay_basmeih: 39,
+    Malay_Basyuni_Imran: 39, // legacy alias → Basmeih
     Indonesian_Depag: 33,
     indonesian_depag: 33,
   },
@@ -279,6 +280,14 @@ export const QF_RESOURCE_MAP: QfResourceMaps = {
   recitationIdByCode: {
     Mishary_Alafasy: 7,
     mishary_alafasy: 7,
+    Abdul_Basit: 2,
+    abdul_basit: 2,
+    Mahmoud_Al_Husary: 6,
+    mahmoud_al_husary: 6,
+    Abdurrahman_As_Sudais: 3,
+    abdurrahman_as_sudais: 3,
+    Saud_Ash_Shuraym: 10,
+    saud_ash_shuraym: 10,
     Muhammad_Siddiq_Al_Minshawi: 9,
     muhammad_siddiq_al_minshawi: 9,
     Minshawi_Murattal: 9,
@@ -290,33 +299,34 @@ export function resolveTranslationResourceId(sourceId?: string): number {
   const fallback = 20;
   if (!sourceId) return QF_RESOURCE_MAP.translationIdByCode.Sahih_International ?? fallback;
   if (/^\d+$/.test(sourceId.trim())) return Number(sourceId);
-  return (
+  const mapped =
     QF_RESOURCE_MAP.translationIdByCode[sourceId] ??
-    QF_RESOURCE_MAP.translationIdByCode[sourceId.replace(/-/g, '_')] ??
-    QF_RESOURCE_MAP.translationIdByCode.Sahih_International ??
-    fallback
-  );
+    QF_RESOURCE_MAP.translationIdByCode[sourceId.replace(/-/g, '_')];
+  if (mapped == null) {
+    throw new Error(`Unknown translation source: ${sourceId}`);
+  }
+  return mapped;
 }
 
 export function resolveTafsirResourceId(sourceId?: string): number | string {
   if (!sourceId) return 14;
   if (/^\d+$/.test(sourceId.trim())) return Number(sourceId);
-  return (
+  const mapped =
     QF_RESOURCE_MAP.tafsirIdByCode[sourceId] ??
-    QF_RESOURCE_MAP.tafsirIdByCode[sourceId.replace(/-/g, '_')] ??
-    14
-  );
+    QF_RESOURCE_MAP.tafsirIdByCode[sourceId.replace(/-/g, '_')];
+  if (mapped == null) {
+    throw new Error(`Unknown tafsir source: ${sourceId}`);
+  }
+  return mapped;
 }
 
-export function resolveRecitationResourceId(reciterId?: string): number {
-  const fallback = 7;
-  if (!reciterId) return QF_RESOURCE_MAP.recitationIdByCode.Mishary_Alafasy ?? fallback;
+export function resolveRecitationResourceId(reciterId?: string): number | null {
+  if (!reciterId) return QF_RESOURCE_MAP.recitationIdByCode.Mishary_Alafasy ?? 7;
   if (/^\d+$/.test(reciterId.trim())) return Number(reciterId);
   return (
     QF_RESOURCE_MAP.recitationIdByCode[reciterId] ??
     QF_RESOURCE_MAP.recitationIdByCode[reciterId.replace(/-/g, '_')] ??
-    QF_RESOURCE_MAP.recitationIdByCode.Mishary_Alafasy ??
-    fallback
+    null
   );
 }
 
