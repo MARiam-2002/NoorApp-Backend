@@ -4,6 +4,8 @@ import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
 import { prisma } from '../lib/prisma';
 import { appConfig, HttpStatus } from '../config';
+import { getEmailProviderStatus } from '../lib/email';
+import { hasQuranFoundationCredentials } from '../lib/quran-foundation';
 
 type HealthData = {
   status: 'ok' | 'degraded';
@@ -11,6 +13,15 @@ type HealthData = {
   timestamp: string;
   environment: string;
   database: 'connected' | 'disconnected';
+  /** Password-reset mail readiness (no secrets). */
+  email: {
+    configured: boolean;
+    provider: string;
+    readyForDelivery: boolean;
+  };
+  quranFoundation: {
+    oauthConfigured: boolean;
+  };
   requestId?: string;
 };
 
@@ -90,6 +101,11 @@ healthRouter.get(
     }
 
     const isHealthy = databaseStatus === 'connected';
+    const mail = getEmailProviderStatus();
+    const emailConfigured =
+      mail.provider !== 'mock' && mail.hasMailFrom && (mail.hasResendKey || mail.hasSmtpAuth);
+    // Test Resend sender can only deliver to the Resend account owner — not production-ready.
+    const readyForDelivery = emailConfigured && !mail.usesResendTestSender;
 
     sendSuccess(
       res,
@@ -99,6 +115,14 @@ healthRouter.get(
         timestamp: new Date().toISOString(),
         environment: appConfig.nodeEnv,
         database: databaseStatus,
+        email: {
+          configured: emailConfigured,
+          provider: mail.provider,
+          readyForDelivery,
+        },
+        quranFoundation: {
+          oauthConfigured: hasQuranFoundationCredentials(),
+        },
         requestId: req.requestId,
       } satisfies HealthData,
       'Service health check completed',

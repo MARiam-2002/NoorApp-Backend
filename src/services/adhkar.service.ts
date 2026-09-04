@@ -1149,6 +1149,11 @@ export async function getCategoriesWithDailyWird() {
   return {
     greeting: 'واذكر ربك إذا نسيت',
     greetingEn: 'And remember your Lord when you forget',
+    // Contract §4 — also expose daily-wird titles/CTAs at the home root
+    titleAr: dailyWird.titleAr,
+    titleEn: dailyWird.titleEn,
+    ctaAr: dailyWird.ctaAr,
+    ctaEn: dailyWird.ctaEn,
     dailyWird,
     categories,
   };

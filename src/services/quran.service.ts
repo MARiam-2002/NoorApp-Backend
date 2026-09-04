@@ -728,6 +728,10 @@ export async function importLocalData(
   }
 
   return {
+    // Contract aliases (BACKEND_DATA_CONTRACT §2.5)
+    bookmarksImported: imported.bookmarks,
+    lastReadUpdated: imported.lastRead,
+    // Backward-compatible nested shape
     imported,
     message: `Imported ${imported.bookmarks} bookmark(s)${imported.lastRead ? ' and last-read position' : ''}`,
   };
@@ -1375,13 +1379,13 @@ type ReciterOption = {
 };
 
 const QURAN_RECITERS: ReciterOption[] = [
-  { id: 'Mishary_Alafasy', code: 'Mishary_Alafasy', name: 'Mishary bin Rashid Al-Afasy', nameAr: 'مشاري العفاسي', nameEn: 'Mishary bin Rashid Al-Afasy', style: 'Murattal', isDefault: true, resourceId: 7, serverUrl: 'https://server8.mp3quran.net/afs' },
-  { id: 'Abdul_Basit', code: 'Abdul_Basit', name: 'Abdul Basit Abd us-Samad', nameAr: 'عبد الباسط عبد الصمد', nameEn: 'Abdul Basit Abd us-Samad', style: 'Murattal', resourceId: 2, serverUrl: 'https://server7.mp3quran.net/basit' },
-  { id: 'Mahmoud_Al_Husary', code: 'Mahmoud_Al_Husary', name: 'Mahmoud Khalil Al-Husary', nameAr: 'محمود خليل الحصري', nameEn: 'Mahmoud Khalil Al-Husary', style: 'Murattal', resourceId: 6 },
-  { id: 'Abdurrahman_As_Sudais', code: 'Abdurrahman_As_Sudais', name: 'Abdur-Rahman as-Sudais', nameAr: 'عبد الرحمن السديس', nameEn: 'Abdur-Rahman as-Sudais', style: 'Murattal', resourceId: 3 },
-  { id: 'Saud_Ash_Shuraym', code: 'Saud_Ash_Shuraym', name: "Sa'ud ash-Shuraym", nameAr: 'سعود الشريم', nameEn: "Sa'ud ash-Shuraym", style: 'Murattal', resourceId: 10 },
-  { id: 'Muhammad_Siddiq_Al_Minshawi', code: 'Muhammad_Siddiq_Al_Minshawi', name: 'Muhammad Siddiq Al-Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Muhammad Siddiq Al-Minshawi', style: 'Murattal', resourceId: 9, serverUrl: 'https://server4.mp3quran.net/minsh' },
-  { id: 'Minshawi_Mujawwad', code: 'Minshawi_Mujawwad', name: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', nameAr: 'محمد صديق المنشاوي (مجود)', nameEn: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', style: 'Mujawwad', resourceId: 8 },
+  { id: 'Mishary_Alafasy', code: 'Mishary_Alafasy', name: 'Mishary bin Rashid Al-Afasy', nameAr: 'مشاري العفاسي', nameEn: 'Mishary bin Rashid Al-Afasy', style: 'Murattal', isDefault: true, resourceId: 7, serverUrl: 'https://everyayah.com/data/Alafasy_128kbps' },
+  { id: 'Abdul_Basit', code: 'Abdul_Basit', name: 'Abdul Basit Abd us-Samad', nameAr: 'عبد الباسط عبد الصمد', nameEn: 'Abdul Basit Abd us-Samad', style: 'Murattal', resourceId: 2, serverUrl: 'https://everyayah.com/data/Abdul_Basit_Murattal_192kbps' },
+  { id: 'Mahmoud_Al_Husary', code: 'Mahmoud_Al_Husary', name: 'Mahmoud Khalil Al-Husary', nameAr: 'محمود خليل الحصري', nameEn: 'Mahmoud Khalil Al-Husary', style: 'Murattal', resourceId: 6, serverUrl: 'https://everyayah.com/data/Husary_128kbps' },
+  { id: 'Abdurrahman_As_Sudais', code: 'Abdurrahman_As_Sudais', name: 'Abdur-Rahman as-Sudais', nameAr: 'عبد الرحمن السديس', nameEn: 'Abdur-Rahman as-Sudais', style: 'Murattal', resourceId: 3, serverUrl: 'https://everyayah.com/data/Abdurrahmaan_As-Sudais_192kbps' },
+  { id: 'Saud_Ash_Shuraym', code: 'Saud_Ash_Shuraym', name: "Sa'ud ash-Shuraym", nameAr: 'سعود الشريم', nameEn: "Sa'ud ash-Shuraym", style: 'Murattal', resourceId: 10, serverUrl: 'https://everyayah.com/data/Saood_ash-Shuraym_128kbps' },
+  { id: 'Muhammad_Siddiq_Al_Minshawi', code: 'Muhammad_Siddiq_Al_Minshawi', name: 'Muhammad Siddiq Al-Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Muhammad Siddiq Al-Minshawi', style: 'Murattal', resourceId: 9, serverUrl: 'https://everyayah.com/data/Minshawy_Murattal_128kbps' },
+  { id: 'Minshawi_Mujawwad', code: 'Minshawi_Mujawwad', name: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', nameAr: 'محمد صديق المنشاوي (مجود)', nameEn: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', style: 'Mujawwad', resourceId: 8, serverUrl: 'https://everyayah.com/data/Minshawy_Mujawwad_192kbps' },
 ];
 
 export async function listReciters(): Promise<ReciterOption[]> {
@@ -1460,12 +1464,12 @@ export async function getAyahAudio(
   reciter: string;
   surahId: number;
   ayahNumber: number;
-  provider: 'quran_foundation' | 'mp3quran';
+  provider: 'quran_foundation' | 'everyayah';
 }> {
   const reciter =
     QURAN_RECITERS.find((r) => r.id === reciterId || r.code === reciterId) ??
     QURAN_RECITERS[0] ??
-    { id: 'Mishary_Alafasy', serverUrl: 'https://server8.mp3quran.net/afs' };
+    { id: 'Mishary_Alafasy', serverUrl: 'https://everyayah.com/data/Alafasy_128kbps' };
 
   const qfRecitationId = resolveRecitationResourceId(reciterId ?? reciter.id);
   if (qfRecitationId != null) {
@@ -1481,7 +1485,7 @@ export async function getAyahAudio(
         };
       }
     } catch (err) {
-      logger.warn('[Quran] QF audio lookup failed, falling back to mp3quran', {
+      logger.warn('[Quran] QF audio lookup failed, falling back to everyayah', {
         message: (err as Error)?.message,
       });
     }
@@ -1489,13 +1493,15 @@ export async function getAyahAudio(
 
   const paddedSurah = String(surahId).padStart(3, '0');
   const paddedAyah = String(ayahNumber).padStart(3, '0');
-  const audioUrl = `${reciter.serverUrl ?? 'https://server8.mp3quran.net/afs'}/${paddedSurah}${paddedAyah}.mp3`;
+  const base =
+    reciter.serverUrl ?? 'https://everyayah.com/data/Alafasy_128kbps';
+  const audioUrl = `${base}/${paddedSurah}${paddedAyah}.mp3`;
   return {
     audioUrl,
     reciter: reciter.id,
     surahId,
     ayahNumber,
-    provider: 'mp3quran',
+    provider: 'everyayah',
   };
 }
 
