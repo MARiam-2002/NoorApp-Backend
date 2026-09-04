@@ -268,7 +268,9 @@ def main():
     home = d.get("data") or {}
     check(
         "adhkar_home_en",
-        all(k in home for k in ("greetingEn", "titleEn", "ctaEn")),
+        all(k in home for k in ("greetingEn", "titleEn", "ctaEn"))
+        and bool(home.get("titleEn"))
+        and bool(home.get("ctaEn")),
         str({k: home.get(k) for k in ("greeting", "greetingEn", "titleAr", "titleEn", "ctaAr", "ctaEn")}),
     )
     st, d, _ = get("/adhkar/favorites", token=token)
@@ -288,7 +290,9 @@ def main():
     data = d.get("data") or {}
     check(
         "import_local_data",
-        st == 200 and ("bookmarksImported" in data or "lastReadUpdated" in data),
+        st == 200
+        and isinstance(data.get("bookmarksImported"), int)
+        and isinstance(data.get("lastReadUpdated"), bool),
         f"HTTP {st} {data}",
     )
 
