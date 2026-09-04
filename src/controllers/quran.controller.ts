@@ -30,6 +30,9 @@ import {
   listReciters,
   listTafsirs,
   listTranslations,
+  getAyahAudio,
+  getAyahTafsir,
+  getAyahTranslation,
 } from '../services/quran.service';
 
 export const listSurahsHandler = asyncHandler(async (_req: Request, res: Response) => {
@@ -253,4 +256,34 @@ export const listTafsirsHandler = asyncHandler(async (_req: Request, res: Respon
 export const listTranslationsHandler = asyncHandler(async (_req: Request, res: Response) => {
   const data = await listTranslations();
   sendSuccess(res, data, 'Quran translation options retrieved successfully', _req);
+});
+
+export const getAyahAudioHandler = asyncHandler(async (req: Request, res: Response) => {
+  const { surahId, ayahNumber, reciter } = req.query as {
+    surahId: string;
+    ayahNumber: string;
+    reciter?: string;
+  };
+  const data = await getAyahAudio(Number(surahId), Number(ayahNumber), reciter);
+  sendSuccess(res, data, 'Quran audio URL generated successfully', req);
+});
+
+export const getAyahTafsirHandler = asyncHandler(async (req: Request, res: Response) => {
+  const { surahId, ayahNumber, source } = req.query as {
+    surahId: string;
+    ayahNumber: string;
+    source?: string;
+  };
+  const data = await getAyahTafsir(Number(surahId), Number(ayahNumber), source);
+  sendSuccess(res, data, 'Quran tafsir retrieved successfully', req);
+});
+
+export const getAyahTranslationHandler = asyncHandler(async (req: Request, res: Response) => {
+  const { surahId, ayahNumber, source } = req.query as {
+    surahId: string;
+    ayahNumber: string;
+    source?: string;
+  };
+  const data = await getAyahTranslation(Number(surahId), Number(ayahNumber), source);
+  sendSuccess(res, data, 'Quran translation retrieved successfully', req);
 });

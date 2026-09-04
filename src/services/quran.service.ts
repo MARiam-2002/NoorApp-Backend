@@ -1372,3 +1372,57 @@ export async function listTranslations(): Promise<TranslationOption[]> {
 
 export type { ReciterOption, TafsirOption, TranslationOption };
 
+export async function getAyahAudio(
+  surahId: number,
+  ayahNumber: number,
+  reciterId?: string,
+): Promise<{ audioUrl: string; reciter: string; surahId: number; ayahNumber: number }> {
+  const reciter =
+    QURAN_RECITERS.find((r) => r.id === reciterId || r.code === reciterId) ??
+    QURAN_RECITERS[0] ??
+    { id: 'mishary_alafasy', serverUrl: 'https://server8.mp3quran.net/afs' };
+  const paddedSurah = String(surahId).padStart(3, '0');
+  const paddedAyah = String(ayahNumber).padStart(3, '0');
+  const audioUrl = `${reciter.serverUrl}/${paddedSurah}${paddedAyah}.mp3`;
+  return {
+    audioUrl,
+    reciter: reciter.id,
+    surahId,
+    ayahNumber,
+  };
+}
+
+export async function getAyahTafsir(
+  surahId: number,
+  ayahNumber: number,
+  sourceId?: string,
+): Promise<{ textAr: string; source: string; surahId: number; ayahNumber: number }> {
+  const tafsir =
+    QURAN_TAFSIRS.find((t) => t.id === sourceId || t.code === sourceId) ??
+    QURAN_TAFSIRS[0] ??
+    { id: 'ibn-kathir', code: 'ibn-kathir' };
+  return {
+    textAr: 'تفسير متاح قريباً',
+    source: tafsir.id,
+    surahId,
+    ayahNumber,
+  };
+}
+
+export async function getAyahTranslation(
+  surahId: number,
+  ayahNumber: number,
+  sourceId?: string,
+): Promise<{ text: string; source: string; surahId: number; ayahNumber: number }> {
+  const translation =
+    QURAN_TRANSLATIONS.find((t) => t.id === sourceId || t.code === sourceId) ??
+    QURAN_TRANSLATIONS[0] ??
+    { id: 'sahih-international', code: 'sahih' };
+  return {
+    text: 'Translation coming soon',
+    source: translation.id,
+    surahId,
+    ayahNumber,
+  };
+}
+

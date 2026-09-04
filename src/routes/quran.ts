@@ -29,6 +29,9 @@ import {
   listRecitersHandler,
   listTafsirsHandler,
   listTranslationsHandler,
+  getAyahAudioHandler,
+  getAyahTafsirHandler,
+  getAyahTranslationHandler,
 } from '../controllers/quran.controller';
 
 const surahIdParamSchema = z.object({
@@ -91,6 +94,24 @@ const searchQuranQuerySchema = z.object({
   q: z.string().min(1).max(500),
   page: z.coerce.number().int().min(1).default(1).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(20).optional(),
+});
+
+const getAyahAudioQuerySchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
+  ayahNumber: z.coerce.number().int().min(1),
+  reciter: z.string().min(1).optional(),
+});
+
+const getAyahTafsirQuerySchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
+  ayahNumber: z.coerce.number().int().min(1),
+  source: z.string().min(1).optional(),
+});
+
+const getAyahTranslationQuerySchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
+  ayahNumber: z.coerce.number().int().min(1),
+  source: z.string().min(1).optional(),
 });
 
 export const quranRouter = Router();
@@ -769,3 +790,141 @@ quranRouter.get('/tafsirs', listTafsirsHandler);
  *               meta: {}
  */
 quranRouter.get('/translations', listTranslationsHandler);
+
+/**
+ * @openapi
+ * /quran/audio:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: الحصول على رابط تلاوة آية بصوت قارئ (قريباً)
+ *     description: يعيد رابط ملف الصوت MP3 لآية محددة مع القارئ المختار. (Coming soon — P2)
+ *     parameters:
+ *       - in: query
+ *         name: surahId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 114
+ *         description: رقم السورة (1-114)
+ *       - in: query
+ *         name: ayahNumber
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: رقم الآية داخل السورة
+ *       - in: query
+ *         name: reciter
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: معرف القارئ (مثل Mishary_Alafasy). افتراضي: أول قارئ في القائمة.
+ *     responses:
+ *       200:
+ *         description: ✅ تم إنشاء رابط الصوت بنجاح
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Quran audio URL generated successfully
+ *               data:
+ *                 audioUrl: https://server8.mp3quran.net/afs/001001.mp3
+ *                 reciter: Mishary_Alafasy
+ *                 surahId: 1
+ *                 ayahNumber: 1
+ *               meta: {}
+ */
+quranRouter.get('/audio', validate(getAyahAudioQuerySchema, 'query'), getAyahAudioHandler);
+
+/**
+ * @openapi
+ * /quran/tafsir:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: الحصول على تفسير آية (قريباً)
+ *     description: يعيد نص التفسير لآية محددة مع المصدر المختار. (Coming soon — P2)
+ *     parameters:
+ *       - in: query
+ *         name: surahId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 114
+ *         description: رقم السورة (1-114)
+ *       - in: query
+ *         name: ayahNumber
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: رقم الآية داخل السورة
+ *       - in: query
+ *         name: source
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: معرف مصدر التفسير (مثل Ibn_Kathir). افتراضي: أول مصدر في القائمة.
+ *     responses:
+ *       200:
+ *         description: ✅ تم استرجاع التفسير بنجاح
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Quran tafsir retrieved successfully
+ *               data:
+ *                 textAr: تفسير متاح قريباً
+ *                 source: Ibn_Kathir
+ *                 surahId: 1
+ *                 ayahNumber: 1
+ *               meta: {}
+ */
+quranRouter.get('/tafsir', validate(getAyahTafsirQuerySchema, 'query'), getAyahTafsirHandler);
+
+/**
+ * @openapi
+ * /quran/translation:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: الحصول على ترجمة آية (قريباً)
+ *     description: يعيد نص ترجمة الآية لغة مصدر محدد. (Coming soon — P2)
+ *     parameters:
+ *       - in: query
+ *         name: surahId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 114
+ *         description: رقم السورة (1-114)
+ *       - in: query
+ *         name: ayahNumber
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: رقم الآية داخل السورة
+ *       - in: query
+ *         name: source
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: معرف مصدر الترجمة (مثل Sahih_International). افتراضي: أول مصدر في القائمة.
+ *     responses:
+ *       200:
+ *         description: ✅ تم استرجاع الترجمة بنجاح
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Quran translation retrieved successfully
+ *               data:
+ *                 text: Translation coming soon
+ *                 source: Sahih_International
+ *                 surahId: 1
+ *                 ayahNumber: 1
+ *               meta: {}
+ */
+quranRouter.get('/translation', validate(getAyahTranslationQuerySchema, 'query'), getAyahTranslationHandler);

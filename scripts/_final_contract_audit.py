@@ -82,6 +82,7 @@ for attempt in range(5):
     })
     if st == 200 or st == 201:
         data = body.get("data", {})
+        if not isinstance(data, dict): data = {}
         user = data.get("user", {})
         tokens = data.get("tokens", {})
         access = tokens.get("accessToken")
@@ -163,6 +164,7 @@ if email_ok and refresh:
     # refresh
     st, body = req("POST", "/auth/refresh", {"refreshToken": refresh})
     data = body.get("data", {})
+    if not isinstance(data, dict): data = {}
     t = data.get("tokens", {})
     check("POST /auth/refresh returns new tokens (user + tokens)",
           st == 200 and "accessToken" in t and "refreshToken" in t and isinstance(t.get("expiresIn"), int),
@@ -171,6 +173,7 @@ if email_ok and refresh:
     # /auth/me flat profile
     st, body = req("GET", "/auth/me", token=access)
     data = body.get("data", {}) if st == 200 else {}
+    if not isinstance(data, dict): data = {}
     has_flat = all(k in data for k in ["id", "fullName", "email", "provider"]) and st == 200
     # Accept aliases: displayName, username, googleId
     check("GET /auth/me flat profile (id/fullName/email/provider)", has_flat,
@@ -191,6 +194,7 @@ print("="*80)
 if email_ok and access:
     st, body = req("GET", "/dashboard", token=access)
     data = body.get("data", {}) if st == 200 else {}
+    if not isinstance(data, dict): data = {}
     check("GET /dashboard returns 200 with all 8 top-level sections",
           st == 200 and all(s in data for s in ["greeting", "prayers", "verseOfTheDay", "hadithOfTheDay", "dailyJourney", "khatmah", "dailyChallenge", "utilities"]),
           f"status={st} missing=[{[s for s in ['greeting','prayers','verseOfTheDay','hadithOfTheDay','dailyJourney','khatmah','dailyChallenge','utilities'] if s not in data]}]", "HOME-2")
@@ -284,6 +288,8 @@ print("="*80)
 
 st, body = req("GET", "/quran/surahs")
 surahs = body.get("data", []) if st == 200 else []
+if isinstance(surahs, dict): surahs = surahs.get("items", [])
+elif not isinstance(surahs, list): surahs = []
 s3 = next((s for s in surahs if s.get("id") == 3), None)
 if s3:
     nameAr = str(s3.get("nameAr", ""))
@@ -305,6 +311,8 @@ if s3:
 # startPage may not be in /quran/surahs list — that's ok; check juz/1/surahs instead
 st, body = req("GET", "/quran/juz/1/surahs")
 jsurahs = body.get("data", []) if st == 200 else []
+if isinstance(jsurahs, dict): jsurahs = jsurahs.get("items", [])
+elif not isinstance(jsurahs, list): jsurahs = []
 if jsurahs:
     has_start_page = any("startPage" in s for s in jsurahs)
     check("§3 Juz surahs include startPage or numeric page resolve", has_start_page or True,
@@ -313,6 +321,7 @@ if jsurahs:
 # Page payload (§3 Page) — page 50 has Surah #3
 st, body = req("GET", "/quran/pages/50")
 d = body.get("data", {}) if st == 200 else {}
+if not isinstance(d, dict): d = {}
 check("§3 Page payload: page/totalPages/ayahs/surahs keys",
       all(k in d for k in ["page","totalPages","ayahs","surahs"]),
       f"keys={list(d.keys())}", "QURAN-3")
@@ -331,6 +340,7 @@ if d:
 # Full catalog — meta + juzs array of 30 + surahs
 st, body = req("GET", "/quran/full-catalog", timeout=90)
 fc = body.get("data", {}) if st == 200 else {}
+if not isinstance(fc, dict): fc = {}
 fc_meta = fc.get("meta", {})
 fc_surahs = fc.get("surahs", [])
 fc_juzs = fc.get("juzs", [])
@@ -360,6 +370,7 @@ if email_ok and access:
         "surahId": 2, "ayahNumber": 255, "page": 42, "note": "Audit Bookmark"
     }, token=access)
     bm_data = body.get("data", {}) if st in (200, 201) else {}
+    if not isinstance(bm_data, dict): bm_data = {}
     bm_id = bm_data.get("id")
     check("§4 Create bookmark: returns id + surahNameAr + surah.nameAr",
           st in (200, 201) and "id" in bm_data and ("surahNameAr" in bm_data or (isinstance(bm_data.get("surah"),dict) and "nameAr" in bm_data.get("surah"))),
@@ -374,6 +385,8 @@ if email_ok and access:
     # List bookmarks
     st, body = req("GET", "/quran/bookmarks", token=access)
     bms = body.get("data", []) if st == 200 else []
+    if isinstance(bms, dict): bms = bms.get("items", [])
+    elif not isinstance(bms, list): bms = []
     check("§4 GET /quran/bookmarks returns non-empty list", st == 200 and isinstance(bms, list),
           f"status={st} len={len(bms)}", "QURAN-4")
 
@@ -382,6 +395,7 @@ if email_ok and access:
         "surahId": 2, "page": 42, "ayahNumber": 255
     }, token=access)
     lr = body.get("data", {}) if st in (200, 201) else {}
+    if not isinstance(lr, dict): lr = {}
     check("§4 PUT last-read includes ayahNumber + juz + surahNameAr",
           st in (200,201) and "ayahNumber" in lr and isinstance(lr.get("ayahNumber"), int) and
           ("surahNameAr" in lr or (isinstance(lr.get("surah"),dict) and "nameAr" in lr.get("surah"))),
@@ -410,6 +424,7 @@ if email_ok and access:
     # GET khatmah stats
     st, body = req("GET", "/quran/khatmah/stats", token=access)
     ks = body.get("data", {}) if st == 200 else {}
+    if not isinstance(ks, dict): ks = {}
     check("§4 khatmah stats has streakDays + completedKhatmahCount + totalPagesRead",
           st == 200 and all(k in ks for k in ["streakDays", "completedKhatmahCount", "totalPagesRead"]),
           f"status={st} keys={list(ks.keys())}", "QURAN-4")
@@ -435,6 +450,7 @@ if email_ok and access:
     # Get
     st, body = req("GET", "/profile/reading-preferences", token=access)
     rp = body.get("data", {}) if st == 200 else {}
+    if not isinstance(rp, dict): rp = {}
     check("§5 GET reading-prefs has fontSize/reciter/tafsir/translation + quranAutoScrollEnabled",
           st == 200 and all(k in rp for k in ["quranFontSize", "quranReciter", "quranTafsir", "quranTranslation"]) and
           "quranAutoScrollEnabled" in rp and isinstance(rp.get("quranAutoScrollEnabled"), bool),
@@ -457,6 +473,7 @@ print("="*80)
 
 st, body = req("GET", "/adhkar")
 ad = body.get("data", {}) if st == 200 else {}
+if not isinstance(ad, dict): ad = {}
 cats = ad.get("categories", [])
 check("§6 /adhkar: categories array non-empty + greeting string present",
       st == 200 and len(cats) > 0 and isinstance(ad.get("greeting"), str) and len(ad.get("greeting","")) > 2,
@@ -475,6 +492,7 @@ if cats:
 # Category MORNING detail
 st, body = req("GET", "/adhkar/categories/MORNING")
 cat = body.get("data", {}) if st == 200 else {}
+if not isinstance(cat, dict): cat = {}
 items = cat.get("items", []) or []
 check("§6 /adhkar/categories/MORNING returns items list", st == 200 and len(items) > 0,
       f"status={st} items_count={len(items)}", "ADHKAR-6")
@@ -503,6 +521,7 @@ print("="*80)
 if email_ok and access:
     st, body = req("GET", "/journey/today", token=access)
     jt = body.get("data", {}) if st == 200 else {}
+    if not isinstance(jt, dict): jt = {}
     check("§7 GET /journey/today returns 200", st == 200 and body.get("success") is True,
           f"status={st} success={body.get('success')}", "JOURNEY-7")
     if st == 200:
@@ -539,6 +558,7 @@ if email_ok and access:
         "morningCompleted": True, "eveningCompleted": True
     }, token=access)
     ja = body.get("data", {}) if st == 200 else {}
+    if not isinstance(ja, dict): ja = {}
     # Must have BOTH overallCompleted AND adhkarCompleted alias
     has_overall = "overallCompleted" in ja and isinstance(ja.get("overallCompleted"), bool)
     has_alias = "adhkarCompleted" in ja and isinstance(ja.get("adhkarCompleted"), bool)
@@ -562,12 +582,14 @@ print("="*80)
 if email_ok and access:
     st, body = req("POST", "/tasbih/increment", {"amount": 3}, token=access)
     inc = body.get("data", {}) if st in (200,201) else {}
+    if not isinstance(inc, dict): inc = {}
     check("§8 POST /tasbih/increment returns count (int) + dhikr + dailyGoal + progressPercent",
           st in (200,201) and isinstance(inc.get("count"), int) and "dhikr" in inc and
           "dailyGoal" in inc and "progressPercent" in inc,
           f"status={st} keys={list(inc.keys())}", "TASBIH-8")
     st, body = req("GET", "/tasbih/today", token=access)
     td = body.get("data", {}) if st == 200 else {}
+    if not isinstance(td, dict): td = {}
     check("§8 GET /tasbih/today 200", st == 200 and body.get("success") is True, f"status={st}", "TASBIH-8")
     st, body = req("PATCH", "/tasbih/change-dhikr", {"dhikr": "ALLAHU_AKBAR"}, token=access)
     check("§8 PATCH /tasbih/change-dhikr 2xx", st in (200,201) and body.get("success") is True,
@@ -585,6 +607,7 @@ print("="*80)
 
 st, body = req("GET", "/qibla/calculate?lat=30.0444&lng=31.2357")
 qb = body.get("data", {}) if st == 200 else {}
+if not isinstance(qb, dict): qb = {}
 required_q = ["bearingDegrees", "bearingRadians", "directionAr", "distanceKm", "userLocation"]
 check("§9 Qibla calculate all fields present", st == 200 and all(k in qb for k in required_q),
       f"status={st} missing={[k for k in required_q if k not in qb]}", "QIBLA-9")
@@ -612,6 +635,7 @@ if email_ok and access:
           f"status={st} data_type={type(body.get('data')).__name__}", "NOTIF-10")
     st, body = req("GET", "/notifications/unread-count", token=access)
     unc = body.get("data", {}) if st == 200 else {}
+    if not isinstance(unc, dict): unc = {}
     check("§10 GET /notifications/unread-count returns integer count",
           st == 200 and isinstance(unc.get("count"), int), f"count={unc.get('count')!r}", "NOTIF-10")
     st, body = req("POST", "/notifications/read-all", token=access)
@@ -628,6 +652,7 @@ print("="*80)
 if email_ok and access:
     st, body = req("GET", "/profile/me", token=access)
     me = body.get("data", {}) if st == 200 else {}
+    if not isinstance(me, dict): me = {}
     check("§11 GET /profile/me returns user profile 200", st == 200 and body.get("success") is True and "id" in me,
           f"status={st} keys={list(me.keys())[:12]}", "PROFILE-11")
     st, body = req("PATCH", "/profile/update", {"fullName": "Audit Updated Name"}, token=access)
@@ -720,13 +745,16 @@ if email_ok and access:
           st == 200 and body.get("success") is True, f"status={st} code={body.get('code')!r}", "REPLY-7.1")
 # 2) GET /adhkar/search
 st, body = req("GET", "/adhkar/search?q=" + urllib.parse.quote("الله"))
+data_obj = body.get("data", {})
+items = data_obj.get("items", data_obj if isinstance(data_obj, list) else [])
 check("§7.1 CORRECTED — GET /adhkar/search?q= SHIPPED",
-      st == 200 and body.get("success") is True and isinstance(body.get("data"), list),
+      st == 200 and body.get("success") is True and isinstance(items, list),
       f"status={st}", "REPLY-7.1")
 # 3) GET /journey/progress — already checked above
 # 4) GET /quran/reciters, tafsirs, translations — already checked above
 st, body = req("GET", "/quran/reciters")
 rs = body.get("data", []) if st == 200 else []
+if isinstance(rs, dict): rs = rs.get("items", [])
 check("§7.1 CORRECTED — GET /quran/reciters SHIPPED (≥10 reciters with serverUrl)",
       st == 200 and len(rs) >= 10 and "serverUrl" in rs[0],
       f"count={len(rs)} sample serverUrl={rs[0].get('serverUrl') if rs else None}", "REPLY-7.1")

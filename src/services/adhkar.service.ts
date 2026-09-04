@@ -1052,7 +1052,7 @@ export async function getCategoryWithItems(key: string) {
           orderInCategory: it.orderInCategory,
           textAr: it.textAr,
           textEn: (it as any).textEn ?? '',
-          textArPlain: it.textArPlain,
+          textArPlain: ensureTextArPlain(it.textAr, it.textArPlain),
           repeatCount: it.repeatCount,
           referenceAr: it.referenceAr,
           referenceEn: it.referenceEn ?? '',
@@ -1130,6 +1130,7 @@ export async function getDailyWird() {
       orderInCategory: it.orderInCategory ?? idx + 1,
       textAr: it.textAr,
       textEn: (it as any).textEn ?? '',
+      textArPlain: ensureTextArPlain(it.textAr, (it as any).textArPlain),
       repeatCount: it.repeatCount,
       referenceAr: it.referenceAr,
       referenceEn: (it as any).referenceEn ?? '',
@@ -1358,7 +1359,7 @@ export async function listAdhkarFavorites(userId: string) {
       id: fav.item.id,
       textAr: fav.item.textAr,
       textEn: '',
-      textArPlain: fav.item.textArPlain,
+      textArPlain: ensureTextArPlain(fav.item.textAr, fav.item.textArPlain),
       repeatCount: fav.item.repeatCount,
       referenceAr: fav.item.referenceAr,
       referenceEn: fav.item.referenceEn ?? '',
@@ -1429,7 +1430,7 @@ export async function addAdhkarFavorite(userId: string, itemId: string) {
       id: fav.item.id,
       textAr: fav.item.textAr,
       textEn: '',
-      textArPlain: fav.item.textArPlain,
+      textArPlain: ensureTextArPlain(fav.item.textAr, fav.item.textArPlain),
       repeatCount: fav.item.repeatCount,
       referenceAr: fav.item.referenceAr,
       referenceEn: fav.item.referenceEn ?? '',
@@ -1487,6 +1488,12 @@ function stripTashkeel(text: string): string {
     .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function ensureTextArPlain(textAr: string, textArPlain?: string | null): string {
+  const plain = (textArPlain ?? '').toString().trim();
+  if (plain.length > 0) return plain;
+  return stripTashkeel(textAr ?? '');
 }
 
 type SearchResultItem = {
@@ -1566,7 +1573,7 @@ export async function searchAdhkar(
         orderInCategory: it.orderInCategory,
         textAr: it.textAr,
         textEn: '',
-        textArPlain: it.textArPlain ?? undefined,
+        textArPlain: ensureTextArPlain(it.textAr, it.textArPlain),
         repeatCount: it.repeatCount,
         referenceAr: it.referenceAr ?? undefined,
         referenceEn: it.referenceEn ?? '',
@@ -1604,6 +1611,7 @@ export async function searchAdhkar(
         orderInCategory: it.orderInCategory,
         textAr: it.textAr,
         textEn: '',
+        textArPlain: ensureTextArPlain(it.textAr, undefined),
         repeatCount: it.repeatCount,
         referenceAr: it.referenceAr,
         referenceEn: '',
