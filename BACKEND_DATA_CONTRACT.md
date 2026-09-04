@@ -1,17 +1,54 @@
-# Backend remaining data contract
+# Backend Data Contract — Verified Production
 
-**Audience:** Backend team  
+**Audience:** Flutter team  
 **App:** Noor Flutter (`lib/`)  
-**Base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-09-03  
+**Production base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
+**Updated:** 2026-09-04  
+**Source:** Backend Production-verified reply (2026-09-04)
 
-Flutter has already wired the client for auth, dashboard, Quran browse/offline, bookmarks, khatmah, reading preferences, adhkar (home/categories/progress/favorites/search), journey (today/progress/patches), tasbih, qibla calculate, notifications, and profile. **This file lists only what is still missing or wrong on the backend** so Flutter can stop patching locally and ship the remaining UI.
+This document is the **verified** Backend → Flutter contract. Backend required APIs from the four docs are **implemented and Production-verified**. Flutter owns remaining client work (especially Local Azan + FCM client).
 
-Stable envelope / auth / already-live routes: see [FLUTTER_INTEGRATION_GUIDE.md](./FLUTTER_INTEGRATION_GUIDE.md). Product backlog: [APP_ENHANCEMENTS.md](./APP_ENHANCEMENTS.md).
+Stable wire shapes for already-live routes also: [FLUTTER_INTEGRATION_GUIDE.md](./FLUTTER_INTEGRATION_GUIDE.md). Azan product: [AZAN_FEATURE.md](./AZAN_FEATURE.md). Product backlog: [APP_ENHANCEMENTS.md](./APP_ENHANCEMENTS.md).
 
 ---
 
-## 0) Envelope (reminder)
+## Status snapshot
+
+| Area | Status |
+|------|--------|
+| Core API (auth, dashboard, journey, Quran, Adhkar, challenges, tasbih, qibla, profile, notifications) | Production-verified |
+| Quran catalogs + audio/tafsir/translation (distinct `resourceId`s) | Production-verified |
+| Prayer schedule (public + auth) | Production-verified |
+| Azan preferences sync | Production-verified |
+| FCM device-token API | Production-verified (endpoints live) |
+| FCM send capability | **Ops pending:** Firebase credentials on Vercel (`health.fcm.configured` may be `false`) |
+| Password-reset SMTP | Configured — confirm one real inbox delivery |
+
+---
+
+## Flutter deliverables status (gap matrix)
+
+| # | Deliverable | Flutter status |
+|---|-------------|----------------|
+| 1 | Auth + guest vs Production | Done |
+| 2 | Home dashboard + prayer countdown | Done (+ prayer-times screen) |
+| 3 | Quran browse/offline/reader + audio/tafsir/translation | Done (content APIs wired) |
+| 4 | Journey + badges + patches | Partial — patches wired; badges CTA still Coming soon |
+| 5 | Adhkar + favorites + progress | Done |
+| 6 | Challenges tab + claim | Done |
+| 7 | Tasbih + Qibla | Done (`my-qibla` + `dhikrEn`) |
+| 8 | Notifications bell | Done |
+| 9 | Profile + reading prefs + location | Done (`quranAutoScroll` wire key) |
+| 10 | Local Azan v1 (offline alarms) | Done |
+| 11 | Azan prefs sync + FCM token registration | Done (send needs backend Firebase env) |
+| 12 | EN/AR localization for shipped screens | Partial — key EN fields wired |
+| 13 | Real-device QA + release builds | See [RELEASE_QA_CHECKLIST.md](./RELEASE_QA_CHECKLIST.md) |
+
+---
+
+## 0) Envelope
+
+### Success
 
 ```json
 {
@@ -20,481 +57,236 @@ Stable envelope / auth / already-live routes: see [FLUTTER_INTEGRATION_GUIDE.md]
   "data": {},
   "meta": {},
   "timestamp": "ISO-8601",
-  "requestId": "string"
+  "requestId": "uuid"
 }
 ```
 
-| Rule | Why |
-|------|-----|
-| `401` + `INVALID_TOKEN` | Flutter clears session (no refresh) |
-| Other `401` | Flutter tries `/auth/refresh` once |
-| Network / 5xx on `/auth/me` | Must **not** look like hard logout |
-
----
-
-## 1) Must-fix on existing payloads
-
-### 1.1 Surah names — never bare ids
-
-**Bug:** `nameAr` / `surahNameAr` sometimes arrives as `"3"`, `"6"`, `"7"` (or Arabic-Indic `٣`).
-
-Return real names on every surface Flutter still reads from the API:
-
-| Surface | Fields |
-|---------|--------|
-| `/quran/surahs`, `/quran/juz/:n/surahs`, page `surahs[]`, full-catalog | `nameAr`, `nameEn` |
-| Bookmarks / last-read / khatmah stats / dashboard `khatmah` | `surahNameAr` (+ nested `surah.nameAr` if used) |
-
-Always `"آل عمران"`, never `"3"`.
-
-### 1.2 `GET /dashboard` — stable 200 + complete sections
-
-Always return these keys under `data` (missing keys silently hide Home cards):
+### Error
 
 ```json
 {
-  "greeting": {
-    "displayName": "string",
-    "weekdayName": "string",
-    "hijriDate": "string",
-    "points": 0
-  },
-  "prayers": {
-    "nextPrayer": {
-      "name": "Asr",
-      "nameAr": "العصر",
-      "time": "15:42",
-      "countdownSeconds": 1830
-    },
-    "schedule": [
-      { "name": "Fajr", "nameAr": "الفجر", "time": "04:11", "completed": true },
-      { "name": "Dhuhr", "nameAr": "الظهر", "time": "12:58", "completed": true },
-      { "name": "Asr", "nameAr": "العصر", "time": "15:42", "completed": false },
-      { "name": "Maghrib", "nameAr": "المغرب", "time": "18:55", "completed": false },
-      { "name": "Isha", "nameAr": "العشاء", "time": "20:20", "completed": false }
-    ]
-  },
-  "verseOfTheDay": { "textAr": "…", "referenceAr": "…" },
-  "hadithOfTheDay": { "textAr": "…", "sourceAr": "…" },
-  "dailyJourney": {
-    "prayer": { "completed": 2, "total": 5, "progress": 0.4 },
-    "quran": { "pagesRead": 3, "target": 5 },
-    "adhkar": { "completed": false },
-    "sadaqah": { "amount": 0 }
-  },
-  "khatmah": {
-    "surahId": 2,
-    "surahNameAr": "البقرة",
-    "currentPage": 12,
-    "progressPercent": 4
-  },
-  "dailyChallenge": {
-    "titleAr": "…",
-    "titleEn": "…",
-    "descriptionAr": "…",
-    "descriptionEn": "…",
-    "rewardPoints": 50,
-    "targetValue": 5,
-    "completed": false,
-    "claimed": false
-  },
-  "utilities": {}
+  "success": false,
+  "message": "string",
+  "code": "UNAUTHORIZED | INVALID_TOKEN | TOKEN_EXPIRED | VALIDATION_ERROR | NOT_FOUND | RATE_LIMIT_EXCEEDED | DATABASE_ERROR | …",
+  "details": {},
+  "timestamp": "ISO-8601",
+  "requestId": "uuid"
 }
 ```
 
-Hard rules:
+### Auth rules
 
-1. `schedule` = **exactly 5** entries, Fajr → Isha order.
-2. `time` = **24h `HH:mm`** or ISO (not ambiguous 12h clocks).
-3. `name` + `nameAr` on every prayer; English `name` must match between `nextPrayer` and `schedule`.
-4. `dailyJourney.adhkar.completed` must be a real JSON **boolean** (`true`/`false` only).
-5. `dailyJourney.prayer.progress` is a **fraction** `0..1` (e.g. `0.4`), not percent.
-6. Plain JSON objects only — nested maps that fail `Map<String, dynamic>` casts are dropped silently by the client.
+| Condition | Flutter action |
+|-----------|----------------|
+| `401` + `INVALID_TOKEN` | Clear session |
+| `401` + `TOKEN_EXPIRED` | `POST /auth/refresh` once, retry |
+| Network / 5xx on profile | Do **not** hard-logout |
 
-### 1.3 Bookmarks / last-read / khatmah
+Login/signup/Google/refresh return:
 
-Always include:
-
-- Real `surahNameAr`
-- `ayahNumber` when known (last-read resume is ayah-accurate)
-- Idempotent writes for offline outbox replay
-
-### 1.4 Password-reset delivery (ops)
-
-Forgot/reset UI is live. Staging + production must actually deliver the reset token (or document a staging sink). Deep-link scheme optional — app also accepts manual token paste.
+```json
+{
+  "user": { "id": "…", "email": "…", "fullName": "…" },
+  "tokens": { "accessToken": "…", "refreshToken": "…", "expiresIn": 3600 }
+}
+```
 
 ---
 
-## 2) Endpoints Flutter already calls — backend must ship / complete
+## 1) Health
 
-Client code is wired. Missing or incomplete 200s block real sync.
+`GET /health` (public) — includes `email`, `quranFoundation`, `fcm.configured`.
 
-### 2.1 Journey
+---
 
-| Method | Path | Body / query |
-|--------|------|--------------|
+## 2) Authentication (public)
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/auth/sign-up` | `{ fullName, email, password, username? }` |
+| POST | `/auth/login` | `{ email, password }` |
+| POST | `/auth/google` | `{ idToken }` from **google_sign_in** |
+| POST | `/auth/forgot-password` | `{ email }` → always generic 200 |
+| POST | `/auth/reset-password` | `{ token, password }` or `{ token, newPassword }` |
+| POST | `/auth/refresh` | `{ refreshToken }` |
+| POST | `/auth/logout` | refresh revoke |
+
+---
+
+## 3) Dashboard (auth)
+
+`GET /dashboard`
+
+Required keys: `greeting`, `prayers`, `verseOfTheDay`, `hadithOfTheDay`, `dailyJourney`, `khatmah`, `dailyChallenge`, `utilities`.
+
+Prayer rules:
+
+- Exactly 5 schedule rows: Fajr → Isha  
+- `name` Title Case; `time` 24h `HH:mm`; `completed` boolean  
+- `dailyJourney.adhkar.completed` boolean  
+- `dailyJourney.prayer.progress` fraction `0..1`  
+- `dailyJourney.quran.target` = `5`  
+- Real `khatmah.surahNameAr` (never bare ids)  
+- Challenge includes `titleEn` / `descriptionEn`
+
+---
+
+## 4) Journey (auth)
+
+| Method | Path | Body |
+|--------|------|------|
 | GET | `/journey/today` | — |
-| GET | `/journey/progress?days=7` | `days` 1..90 |
+| GET | `/journey/progress?days=7` | |
+| GET | `/journey/badges` | → `{ badges, streakDays }` |
+| PATCH | `/journey/prayer` | `{ "prayer": "Asr", "completed": true }` |
 | PATCH | `/journey/adhkar` | `{ "categoryKey": "GENERAL_WIRD", "completed": true }` |
 | PATCH | `/journey/sadaqah` | `{ "amount": 10 }` |
-| PATCH | `/journey/prayer` | `{ "prayer": "Asr", "completed": true }` |
-| POST | `/journey/quran-pages/increment` | `{ "pages": 1 }` → `data.quranPagesRead` |
+| POST | `/journey/quran-pages/increment` | `{ "pages": 1 }` |
 
-#### `GET /journey/today` — required shape
+---
 
-Prayer **must** include counts. Without `completed`/`total` (or `progress`), the Journey prayer card shows `—`.
+## 5) Quran
 
-```json
-{
-  "date": "2026-09-03",
-  "streakDays": 4,
-  "points": 120,
-  "overallPercent": 40,
-  "quranPagesRead": 3,
-  "adhkarCompleted": false,
-  "sadaqahAmount": 0,
-  "tasks": [
-    {
-      "key": "prayer",
-      "titleAr": "الصلوات",
-      "titleEn": "Prayers",
-      "captionAr": "صلوات مكتملة",
-      "captionEn": "prayers completed",
-      "completed": 2,
-      "total": 5,
-      "progress": 0.4,
-      "done": false
-    },
-    {
-      "key": "quran",
-      "titleAr": "قراءة القرآن",
-      "titleEn": "Quran",
-      "progress": 0.6,
-      "done": false
-    },
-    {
-      "key": "adhkar",
-      "titleAr": "الأذكار",
-      "titleEn": "Adhkar",
-      "done": true,
-      "progress": 1.0
-    },
-    {
-      "key": "sadaqah",
-      "titleAr": "الصدقة",
-      "titleEn": "Sadaqah",
-      "amount": 0,
-      "done": false,
-      "progress": 0
-    }
-  ],
-  "dailyChallenge": {
-    "titleAr": "…",
-    "titleEn": "…",
-    "descriptionAr": "…",
-    "descriptionEn": "…",
-    "targetValue": 5,
-    "rewardPoints": 50,
-    "completed": false,
-    "claimed": false
-  },
-  "badges": []
-}
-```
+### Catalogs (public) — use these `id`s
 
-Notes:
+**Reciters:** Mishary_Alafasy(7), Abdul_Basit(2), Mahmoud_Al_Husary(6), Abdurrahman_As_Sudais(3), Saud_Ash_Shuraym(10), Muhammad_Siddiq_Al_Minshawi(9), Minshawi_Mujawwad(8)
 
-- `progress` = fraction `0..1`, not percent.
-- Prefer embedding `dailyChallenge` here so Journey does not depend on `/dashboard` succeeding.
-- PATCH adhkar / sadaqah may return the same today payload or empty `data` (Flutter refetches).
+**Tafsirs:** Ibn_Kathir(14), Al_Tabari(15), Al_Qurtubi(90), Ibn_Kathir_Muyassar(16), Al_Baghawi(94), Al_Saadi(91), Ibn_Kathir_En(169)
 
-#### `GET /journey/progress`
+**Translations:** Sahih_International(20), Yusuf_Ali(22), Pickthall(19), French_Hamidullah(31), Turkish_Diyanet(77), Malay_Basmeih(39), Indonesian_Depag(33)
+
+### Content (public)
+
+| Method | Path | Query aliases |
+|--------|------|---------------|
+| GET | `/quran/audio` | `reciter` **or** `reciterId` **or** `id` + `surahId` + `ayahNumber` |
+| GET | `/quran/tafsir` | `source` **or** `tafsirId` **or** `id` |
+| GET | `/quran/translation` | `source` **or** `translationId` **or** `id` |
+
+Auth Quran: bookmarks (+ note PATCH), last-read, khatmah (+ reset), reading-history, `POST /quran/import-local`.
+
+Reading preferences include `quranAutoScroll` (Flutter may also accept legacy `quranAutoScrollEnabled`).
+
+Bismillah/BOM hygiene is server-side — Flutter must **not** re-strip.
+
+---
+
+## 6) Adhkar
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/adhkar` | Public (+ personalized when Bearer) |
+| GET | `/adhkar/progress?categoryKey=` | Auth |
+| PUT | `/adhkar/progress` | Auth |
+| GET/POST/DELETE | `/adhkar/favorites` | Auth |
+| GET | `/adhkar/search?q=` | Public |
+
+---
+
+## 7) Challenges / Tasbih / Qibla / Notifications / Profile
+
+| Area | Endpoints |
+|------|-----------|
+| Challenges | `GET /challenges`, `/today`, `/:id`, `POST /:id/claim`, `POST /today/claim` |
+| Tasbih | `GET /tasbih/today`, increment/reset/change-dhikr |
+| Qibla | `GET /qibla/calculate` public; `GET /qibla/my-qibla` auth after `PUT /profile/location` |
+| Notifications | list, unread-count, read, read-all |
+| Profile | me, update, change-password, location, reading-preferences + `quranAutoScroll` |
+
+---
+
+## 8) Prayer / Azan (backend)
+
+| Method | Path | Auth |
+|--------|------|------|
+| GET | `/prayers/schedule?lat=&lng=&method=&madhab=` | Public |
+| GET | `/prayers/today?lat=&lng=&method=&madhab=` | Public with coords; auth optional |
+| GET | `/prayers/today` | Auth (saved location) |
+| PATCH | `/prayers/:id/mark` | Auth |
+| GET/PATCH | `/profile/azan-preferences` | Auth |
+
+Methods: `EGYPT` (default), `MWL`, `MAKKAH`, `KARACHI`, `ISNA`, `TEHRAN`. Madhab: `SHAFI` / `HANAFI`.
+
+**Alarm source of truth:** Flutter local Adhan engine. Backend schedule is UI sync / cross-check / FCM backup.
+
+Azan preferences shape:
 
 ```json
 {
-  "periodDays": 7,
-  "daily": [
-    {
-      "date": "2026-09-03",
-      "quranPages": 3,
-      "adhkarCompleted": true,
-      "sadaqah": 0,
-      "prayersCompleted": 4,
-      "overallPercent": 75
-    }
-  ],
-  "summary": {
-    "totalQuranPages": 20,
-    "adhkarDaysCompleted": 5,
-    "totalSadaqah": 100,
-    "prayersCompletedCount": 28,
-    "daysStreak": 4
-  }
+  "azanEnabled": true,
+  "soundEnabled": true,
+  "vibrationEnabled": true,
+  "voiceId": "makkah",
+  "calculationMethod": "EGYPT",
+  "madhab": "SHAFI",
+  "preReminderMinutes": 15,
+  "preReminderEnabled": true,
+  "prayers": { "fajr": true, "dhuhr": true, "asr": true, "maghrib": true, "isha": true },
+  "lastLat": 30.0444,
+  "lastLng": 31.2357,
+  "lastLocationLabel": "Cairo",
+  "fcmPrayerBackupEnabled": true
 }
 ```
 
-Aliases accepted: `records` for `daily`; `quranPagesRead` / `sadaqahAmount` on day rows.
+---
 
-### 2.2 Notifications
-
-| Method | Path |
-|--------|------|
-| GET | `/notifications?page=1&perPage=20` |
-| GET | `/notifications/unread-count` |
-| GET | `/notifications/:id` |
-| PATCH | `/notifications/:id/read` |
-| POST | `/notifications/read-all` |
-
-List item:
-
-```json
-{
-  "id": "…",
-  "titleAr": "…",
-  "titleEn": "…",
-  "bodyAr": "…",
-  "bodyEn": "…",
-  "type": "SYSTEM | AZAN | CHALLENGE",
-  "read": false,
-  "createdAt": "ISO-8601"
-}
-```
-
-`data` on list = **array**. Unread: `data.count` or `data.unreadCount`. Pagination meta optional (`meta.page`, `meta.limit`, `meta.total`).
-
-### 2.3 Profile / account
+## 9) FCM / devices
 
 | Method | Path | Body |
 |--------|------|------|
-| GET | `/profile/me` | — |
-| PATCH | `/profile/update` | `{ "fullName": "…" }` |
-| PATCH | `/profile/change-password` | `{ "currentPassword", "newPassword" }` |
-| PUT | `/profile/location` | `{ "latitude", "longitude" }` |
+| POST | `/devices/fcm-token` | `{ "token": "…" }` or `{ "fcmToken": "…" }`, optional `platform`, `appVersion`, `locale` |
+| DELETE | `/devices/fcm-token` | same token fields |
+| GET | `/devices` | lists registered devices |
+| POST | `/devices/test-push` | optional title/body |
+| GET/POST | `/cron/prayer-reminders` | protected (ops) |
 
-```json
-{
-  "id": "string",
-  "fullName": "string",
-  "email": "string",
-  "provider": "LOCAL | GOOGLE",
-  "providerId": "string|null",
-  "createdAt": "ISO-8601",
-  "location": { "latitude": 30.0, "longitude": 31.0 }
-}
-```
-
-`location` may be null until the user saves GPS once. Dashboard prayer times should use saved location when present.
-
-### 2.4 Adhkar progress / favorites / search
-
-Flutter already calls these for signed-in users:
-
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/adhkar/progress?categoryKey=MORNING` | Include `markedItemId` + per-item `tapCount` |
-| PUT | `/adhkar/progress` | `{ categoryKey, itemId, tapCount }` |
-| GET | `/adhkar/favorites` | Nested `dhikr` + `dhikr.category` |
-| POST | `/adhkar/favorites` | `{ itemId }` |
-| DELETE | `/adhkar/favorites/:id` | Favorite **row** id |
-| GET | `/adhkar/search?q=` | Public; hits with `id`, `categoryKey`, `textAr`, `repeatCount?`, `referenceAr?` |
-
-Progress response:
-
-```json
-{
-  "categoryKey": "MORNING",
-  "markedItemId": "item-uuid",
-  "items": [
-    { "itemId": "item-uuid", "tapCount": 2, "completed": false }
-  ],
-  "progressItemsDone": 3,
-  "progressItemsTotal": 20,
-  "progressPercent": 15
-}
-```
-
-Also: after progress writes, `GET /adhkar` `dailyWird.progress*` should reflect **per-user** counts (not cosmetic anonymous zeros). Prefer EN+AR strings: `greetingEn`, `titleEn`, `ctaEn`, item `textEn` / `benefitEn` / `referenceEn` where available.
-
-### 2.5 Guest → account Quran merge
-
-| Method | Path | Body |
-|--------|------|------|
-| POST | `/quran/import-local` | `{ "bookmarks": [...], "lastRead": {…}? }` |
-
-Response:
-
-```json
-{
-  "bookmarksImported": 3,
-  "lastReadUpdated": true
-}
-```
-
-### 2.6 Catalog option lists (reader dropdowns)
-
-Flutter calls these and falls back to hardcoded lists if missing:
-
-| Method | Path |
-|--------|------|
-| GET | `/quran/reciters` |
-| GET | `/quran/tafsirs` |
-| GET | `/quran/translations` |
-
-Each item: `{ "code": "Mishary_Alafasy", "nameAr": "…", "name": "…" }` (or `id` instead of `code`). `data` = array **or** `{ "items": [...] }`.
-
-### 2.7 Quran search
-
-Already called: `GET /quran/search?q=&limit=30` (public).
-
-`data` = ayah array, or `{ "ayahs": [...] }` / `{ "results": [...] }`. Each hit needs `surahId`, `ayahNumber`, `textAr`, and real surah names when present.
+Until Firebase env is set: register/unregister still work; send returns `sent:0`.
 
 ---
 
-## 3) Not wired in UI yet — needed for next Flutter pass
+## 10) Ownership
 
-Ship these so Flutter can drop “Coming soon” without another backend round-trip.
-
-### 3.1 Quran audio / tafsir / translation content
-
-| Method | Path | Response |
-|--------|------|----------|
-| GET | `/quran/audio?surahId=&ayahNumber=&reciter=` | `{ "audioUrl": "https://…" }` |
-| GET | `/quran/tafsir?surahId=&ayahNumber=&source=Ibn_Kathir` | `{ "textAr": "…", "source": "…" }` |
-| GET | `/quran/translation?surahId=&ayahNumber=&source=Sahih_International` | `{ "text": "…", "source": "…" }` |
-
-Play / tafsir buttons on the reader are blocked until these exist.
-
-### 3.2 Challenges (beyond Home claim)
-
-| Method | Path |
-|--------|------|
-| GET | `/challenges` |
-| GET | `/challenges/today` |
-| GET | `/challenges/:id` |
-| POST | `/challenges/:id/claim` |
-
-(`POST /challenges/today/claim` already used on Home.)
-
-### 3.3 Badges / journey achievements
-
-Journey badges CTA is Coming soon. Suggested:
-
-```json
-{
-  "badges": [
-    {
-      "id": "…",
-      "key": "STREAK_7",
-      "titleAr": "…",
-      "titleEn": "…",
-      "earned": true,
-      "earnedAt": "ISO-8601"
-    }
-  ]
-}
-```
-
-Can live on `/journey/today`, `/journey/progress`, or `GET /journey/badges`.
-
-### 3.4 Optional Quran extras
-
-| Method | Path | Why |
-|--------|------|-----|
-| GET/POST | `/quran/reading-history` | History sheet |
-| POST | `/quran/khatmah/reset` | Start new khatmah |
-| PATCH | `/quran/bookmarks/:id` | Edit bookmark note |
-| GET | `/qibla/my-qibla` | Compass from saved profile location (no query lat/lng) |
-| GET | `/quran/ayahs/random` | Random ayah widgets |
-
-### 3.5 Reading preferences extras
-
-Already live: `GET/PATCH /profile/reading-preferences` (`quranFontSize` 12..60, reciter/tafsir/translation slugs).
-
-Please also persist when Flutter starts sending:
-
-```json
-{
-  "quranAutoScroll": false
-}
-```
-
-### 3.6 Tasbih authority (product decision)
-
-Flutter is local-first. If multi-device should trust the server: document merge rules and always return authoritative `GET /tasbih/today` (`count`, `dhikr`, `dhikrAr`, `dhikrEn?`, `dailyGoal`, `progressPercent`).
-
-### 3.7 Azan / FCM
-
-See [AZAN_FEATURE.md](./AZAN_FEATURE.md). Prayer schedule quality (§1.2) unblocks local Azan; push tokens / FCM are a later pass.
+| Feature | Backend | Flutter |
+|---------|---------|---------|
+| Auth / JWT / dashboard / journey / notifications | Owns | UI + token storage |
+| Quran content + catalogs + audio URLs | Owns | Reader + player |
+| Prayer schedule API | Owns | Display + optional sync |
+| Azan preferences sync API | Owns | Settings UI + local cache |
+| FCM token storage + send | Owns (needs Firebase env) | Token registration + handlers |
+| Local Azan alarms/sound/permissions | — | **Owns** |
+| Offline Azan | — | **Owns** |
 
 ---
 
-## 4) Localization gaps (EN + AR)
+## Remaining backend ops (not Flutter)
 
-Wherever Flutter hardcodes Arabic today, add English variants:
-
-| Feature | Existing | Needed |
-|---------|----------|--------|
-| Journey tasks | `titleAr` | `titleEn`, `captionAr`, `captionEn` |
-| Dashboard journey tiles | none | `labelAr`/`labelEn`, `captionAr`/`captionEn` |
-| Daily challenge | `titleAr`, `descriptionAr` | `titleEn`, `descriptionEn` |
-| Adhkar home | `greeting`, `titleAr`, `ctaAr` | `greetingEn`, `titleEn`, `ctaEn` |
-| Adhkar items | `textAr`, `benefitAr`, `referenceAr` | `textEn`, `benefitEn`, `referenceEn` |
-| Tasbih | `dhikrAr` | `dhikrEn` (+ optional server dhikr list) |
-| Notifications | — | Always send `titleEn` / `bodyEn` |
+| Item | Notes |
+|------|-------|
+| Set Firebase credentials on Vercel | `health.fcm.configured` → true |
+| External scheduler → `/cron/prayer-reminders` | ~every 10 minutes |
+| Confirm password-reset inbox delivery | SMTP ready; one mailbox QA |
 
 ---
 
-## 5) Keep public (`skipAuth`) for guests
+## Recommended API call order
 
-These must stay public (Flutter already depends on this):
+### Guest
 
-- Quran: surahs / juz / pages / full-catalog / juz ayahs / search / reciters / tafsirs / translations
-- Adhkar: home + categories + search
-- Qibla: `/qibla/calculate`
-- Auth: login / sign-up / Google / forgot / reset / refresh / logout
+1. Local Adhan / optional `GET /prayers/today?lat&lng&method&madhab`  
+2. Public Quran / Adhkar / Qibla calculate  
+3. Auth when ready  
 
----
+### After login
 
-## 6) Backend sprint checklist
+1. `PUT /profile/location`  
+2. `GET/PATCH /profile/azan-preferences`  
+3. `POST /devices/fcm-token` (after Messaging permission)  
+4. `GET /dashboard`  
+5. Journey / notifications / challenges / tasbih in parallel  
+6. Once: `POST /quran/import-local`  
+7. Reader: catalogs → audio/tafsir/translation with catalog `id`  
 
-### P0 — fix / harden
+### Page progress order
 
-- [ ] Never return bare surah ids as names
-- [ ] `GET /dashboard` stable 200 with all sections + 5-prayer 24h schedule
-- [ ] Prayer / journey `progress` as fraction `0..1`; adhkar `completed` as boolean
-- [ ] Bookmarks + last-read include real `surahNameAr` + `ayahNumber`
-- [ ] Forgot/reset emails deliver tokens
-
-### P1 — Flutter already calling
-
-- [ ] `GET /journey/today` with prayer `completed`/`total` (+ optional `dailyChallenge`)
-- [ ] `GET /journey/progress`
-- [ ] `PATCH /journey/adhkar` / `sadaqah` / `prayer`
-- [ ] Notifications list + unread-count + mark read / read-all
-- [ ] Profile me / update / change-password / location
-- [ ] Adhkar progress persist `markedItemId` + real `dailyWird` counts
-- [ ] Adhkar favorites + search
-- [ ] `POST /quran/import-local`
-- [ ] `/quran/reciters` / `tafsirs` / `translations` catalogs
-- [ ] `GET /quran/search` reliable results
-
-### P2 — unlock Coming soon UI
-
-- [ ] Quran audio URL + tafsir/translation body by ayah
-- [ ] Challenges list/detail/claim-by-id
-- [ ] Badges payload
-- [ ] Reading history / khatmah reset / bookmark note patch
-- [ ] `GET /qibla/my-qibla`
-- [ ] Optional EN fields (§4)
-
----
-
-## 7) Already done on Flutter — do not re-scope
-
-These are **client-complete**. Keep contracts stable; do not treat them as “new work” unless fixing bugs in §1:
-
-Auth · `GET /dashboard` · `POST /challenges/today/claim` · Quran browse/pages/full-catalog/bookmarks/last-read/khatmah dual-counter · reading-preferences · adhkar home/categories · tasbih sync · `GET /qibla/calculate` · Bismillah/BOM text hygiene · nested `data.tokens` · dual-page counter order (`journey` increment → `khatmah` progress → `last-read`).
-
----
-
-*Flutter keeps local fallbacks for offline UX. Production truth for signed-in users should live on the backend so EN/AR, guest→user merge, and multi-device stay correct.*
+1. Journey quran increment → 2) khatmah progress → 3) last-read  

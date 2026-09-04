@@ -1,0 +1,32 @@
+# Cron: FCM Azan prayer-reminder backup
+# Calls Production every 10 minutes. Requires repo secret CRON_SECRET
+# matching the Vercel env var CRON_SECRET.
+
+name: Prayer Reminder Cron
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  prayer-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger prayer-reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          API_BASE: https://noor-app-backend-one.vercel.app/api/v1
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "CRON_SECRET repo secret is not set. Add it to match Vercel CRON_SECRET."
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/cron-out.json -w "%{http_code}" \
+            -X POST "${API_BASE}/cron/prayer-reminders" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json")
+          echo "HTTP ${code}"
+          cat /tmp/cron-out.json
+          test "${code}" = "200"
