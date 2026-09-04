@@ -191,3 +191,28 @@ export async function getNotification(userId: string, id: string) {
 
   return serializeNotification(notification);
 }
+
+export async function createNotification(input: {
+  userId: string;
+  titleAr: string;
+  titleEn: string;
+  bodyAr: string;
+  bodyEn: string;
+  type?: 'SYSTEM' | 'AZAN' | 'CHALLENGE' | 'PRAYER_REMINDER' | 'ACHIEVEMENT' | 'GENERAL';
+  deepLink?: string | null;
+  payload?: Record<string, unknown> | null;
+}) {
+  const row = await prisma.notification.create({
+    data: {
+      userId: input.userId,
+      titleAr: input.titleAr,
+      titleEn: input.titleEn,
+      bodyAr: input.bodyAr,
+      bodyEn: input.bodyEn,
+      type: (input.type ?? 'SYSTEM') as any,
+      deepLink: input.deepLink ?? null,
+      payload: (input.payload ?? undefined) as any,
+    },
+  });
+  return serializeNotification(row);
+}

@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma';
 import { appConfig, HttpStatus } from '../config';
 import { getEmailProviderStatus } from '../lib/email';
 import { hasQuranFoundationCredentials } from '../lib/quran-foundation';
+import { getFcmStatus } from '../lib/fcm';
 
 type HealthData = {
   status: 'ok' | 'degraded';
@@ -21,6 +22,9 @@ type HealthData = {
   };
   quranFoundation: {
     oauthConfigured: boolean;
+  };
+  fcm: {
+    configured: boolean;
   };
   requestId?: string;
 };
@@ -122,6 +126,9 @@ healthRouter.get(
         },
         quranFoundation: {
           oauthConfigured: hasQuranFoundationCredentials(),
+        },
+        fcm: {
+          configured: getFcmStatus().configured,
         },
         requestId: req.requestId,
       } satisfies HealthData,

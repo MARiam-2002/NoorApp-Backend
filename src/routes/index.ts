@@ -13,6 +13,8 @@ import { notificationsRouter } from './notifications';
 import { tasbihRouter } from './tasbih';
 import { qiblaRouter } from './qibla';
 import { adhkarRouter } from './adhkar';
+import { devicesRouter } from './devices';
+import { cronRouter } from './cron';
 
 export const v1Router = Router();
 
@@ -29,3 +31,5 @@ v1Router.use('/notifications', notificationsRouter);
 v1Router.use('/tasbih', tasbihRouter);
 v1Router.use('/qibla', qiblaRouter);
 v1Router.use('/adhkar', adhkarRouter);
+v1Router.use('/devices', devicesRouter);
+v1Router.use('/cron', cronRouter);

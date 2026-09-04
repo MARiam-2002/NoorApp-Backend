@@ -53,6 +53,12 @@ const envSchema = z.object({
   QF_CLIENT_ID: z.string().default(''),
   QF_CLIENT_SECRET: z.string().default(''),
   QF_ENV: z.string().default('production'),
+  // Firebase Cloud Messaging (optional until credentials are set in Vercel)
+  FIREBASE_PROJECT_ID: z.string().default(''),
+  FIREBASE_CLIENT_EMAIL: z.string().default(''),
+  FIREBASE_PRIVATE_KEY: z.string().default(''),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().default(''),
+  CRON_SECRET: z.string().default(''),
 });
 
 type Env = z.infer<typeof envSchema>;

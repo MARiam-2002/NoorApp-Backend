@@ -36,9 +36,12 @@ model User {
   country                 String?
   level                   Int                    @default(1)
   prayerCalculationMethod String                 @default("EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY")
+  /// Synced Azan settings across devices (see AZAN_FEATURE.md §6).
+  azanPreferences         Json?
   challengeCompletions    ChallengeCompletion[]
   dailyDhikrCompletions   DailyDhikrCompletion[]
   dailyProgress           DailyProgress[]
+  deviceTokens            DeviceToken[]
   khatmah                 Khatmah?
   notifications           Notification[]
   passwordResetTokens     PasswordResetToken[]
@@ -53,6 +56,23 @@ model User {
   adhkarResumeMarks       AdhkarResumeMark[]
 
   @@map("users")
+}
+
+model DeviceToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String
+  platform   String   @default("unknown") // ios | android | web | unknown
+  appVersion String?
+  locale     String?
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("device_tokens")
 }
 
 model RefreshToken {

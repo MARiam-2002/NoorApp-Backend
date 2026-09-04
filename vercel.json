@@ -7,5 +7,11 @@
     "api/index.js": {
       "includeFiles": "prisma/migrations/**,prisma/schema.prisma"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/v1/cron/prayer-reminders",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import {
   getSchedule,
   getToday,
@@ -76,7 +77,7 @@ export const prayerRouter = Router();
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
-prayerRouter.get('/today', authenticate, getToday);
+prayerRouter.get('/today', optionalAuthenticate, getToday);
 
 /**
  * @openapi

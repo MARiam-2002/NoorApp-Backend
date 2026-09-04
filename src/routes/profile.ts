@@ -5,6 +5,10 @@ import { authenticate } from '../middleware/auth';
 import { validate } from '../shared/utils/validator';
 import { ianaTimezoneSchema } from '../shared/schemas/validation.schemas';
 import * as profileController from '../controllers/profile.controller';
+import {
+  getAzanPreferencesHandler,
+  patchAzanPreferencesHandler,
+} from '../controllers/azan.controller';
 
 const updateReadingPreferencesSchema = z.object({
   quranFontSize: z.coerce.number().int().min(12).max(60).optional(),
@@ -458,3 +462,18 @@ profileRouter.patch(
   validate(updateReadingPreferencesSchema),
   profileController.updateReadingPreferences,
 );
+
+/**
+ * @openapi
+ * /profile/azan-preferences:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: Get synced Azan preferences
+ *     security: [ { bearerAuth: [] } ]
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: Update synced Azan preferences
+ *     security: [ { bearerAuth: [] } ]
+ */
+profileRouter.get('/azan-preferences', authenticate, getAzanPreferencesHandler);
+profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandler);
