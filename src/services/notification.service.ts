@@ -200,7 +200,7 @@ export async function createNotification(input: {
   titleEn: string;
   bodyAr: string;
   bodyEn: string;
-  type?: 'SYSTEM' | 'AZAN' | 'CHALLENGE' | 'PRAYER_REMINDER' | 'ACHIEVEMENT' | 'GENERAL';
+  type?: 'SYSTEM' | 'AZAN' | 'CHALLENGE' | 'PRAYER_REMINDER' | 'ACHIEVEMENT' | 'GENERAL' | 'SALAWAT';
   deepLink?: string | null;
   payload?: Record<string, unknown> | null;
 }) {
