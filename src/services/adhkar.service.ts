@@ -1140,10 +1140,10 @@ export async function getDailyWird() {
   };
 }
 
-export async function getCategoriesWithDailyWird() {
+export async function getCategoriesWithDailyWird(userId?: string | null) {
   const [categories, dailyWird] = await Promise.all([
     getAllCategories(),
-    getDailyWird(),
+    userId ? getDailyWirdForUser(userId) : getDailyWird(),
   ]);
 
   return {

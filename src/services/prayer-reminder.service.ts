@@ -72,6 +72,25 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
         if (!hitNow && !hitPre) continue;
 
         const isPre = hitPre && !hitNow;
+        const kind = isPre ? 'pre_reminder' : 'prayer_time';
+
+        // Idempotency: skip if we already created an AZAN notification for this prayer+kind recently.
+        const since = new Date(Date.now() - Math.max(windowMinutes, 10) * 60_000);
+        const recent = await prisma.notification.findMany({
+          where: {
+            userId: user.id,
+            type: 'AZAN' as any,
+            createdAt: { gte: since },
+          },
+          select: { payload: true },
+          take: 40,
+        }).catch(() => []);
+        const already = recent.some((n) => {
+          const p = (n.payload ?? {}) as Record<string, unknown>;
+          return p.prayer === row.name && p.kind === kind;
+        });
+        if (already) continue;
+
         const titleEn = isPre ? `${row.name} soon` : `Time for ${row.name}`;
         const titleAr = isPre ? `اقترب موعد ${row.name}` : `حان موعد صلاة ${row.name}`;
         const bodyEn = isPre
@@ -91,7 +110,7 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
             type: 'AZAN',
             prayer: row.name,
             time: row.time,
-            kind: isPre ? 'pre_reminder' : 'prayer_time',
+            kind,
           },
         });
         pushesSent += result.sent;
@@ -105,7 +124,7 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
           bodyEn,
           type: 'AZAN' as any,
           deepLink: '/prayer-times',
-          payload: { prayer: row.name, time: row.time },
+          payload: { prayer: row.name, time: row.time, kind },
         }).catch(() => null);
       }
     } catch (err) {

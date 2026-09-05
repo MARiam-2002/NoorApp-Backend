@@ -52,16 +52,16 @@ for (const surah of CATALOG_SURAHS) {
 export function resolveSurahNameAr(surahId: number, nameAr?: string | null): string {
   const canonical = CANONICAL_AR.get(surahId);
   if (isBareSurahId(nameAr, surahId) || !nameAr) {
-    return canonical ?? String(nameAr ?? surahId);
+    return canonical ?? `Surah ${surahId}`;
   }
   const cleaned = stripPresentationMarks(nameAr);
-  return cleaned || canonical || nameAr;
+  return cleaned || canonical || `Surah ${surahId}`;
 }
 
 export function resolveSurahNameEn(surahId: number, nameEn?: string | null): string {
   const canonical = CANONICAL_EN.get(surahId);
   if (!nameEn || isBareSurahId(nameEn, surahId)) {
-    return canonical ?? nameEn ?? String(surahId);
+    return canonical ?? `Surah ${surahId}`;
   }
   return nameEn;
 }

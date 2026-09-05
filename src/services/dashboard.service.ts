@@ -6,9 +6,10 @@ import { calculateDailyPrayerSchedule } from './prayer.service';
 import type { DailyPrayerSchedule } from './prayer.service';
 import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
-import { DefaultTimezone, PrayerNameEnum } from '../utils/constants';
+import { DefaultTimezone, PrayerNameEnum, PrayerOrder } from '../utils/constants';
 import { ensureSurahCatalog } from '../lib/quran-catalog';
 import { resolveSurahNameAr, resolveSurahNameEn } from '../lib/surah-names';
+import { prayerEnumToTitle } from '../shared/utils/prayer-names';
 import {
   FALLBACK_VERSE,
   FALLBACK_HADITH,
@@ -192,7 +193,29 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       },
       prayers: {
         nextPrayer: null,
-        schedule: [],
+        schedule: PrayerOrder.map((key) => {
+          const name = prayerEnumToTitle(key);
+          const nameAr =
+            key === PrayerNameEnum.FAJR
+              ? 'الفجر'
+              : key === PrayerNameEnum.DHUHR
+                ? 'الظهر'
+                : key === PrayerNameEnum.ASR
+                  ? 'العصر'
+                  : key === PrayerNameEnum.MAGHRIB
+                    ? 'المغرب'
+                    : 'العشاء';
+          return {
+            name,
+            nameAr,
+            time: '00:00',
+            displayAr: nameAr,
+            displayEn: name,
+            iso: new Date().toISOString(),
+            completed: false,
+            key,
+          };
+        }),
         date: new Date().toISOString().slice(0, 10),
         timezone: user.timezone ?? DefaultTimezone,
         completedCount: 0,
@@ -284,11 +307,35 @@ async function buildDashboardPayload(
       { method: user.prayerCalculationMethod ?? 'EGYPT' },
     );
   } catch {
+    const nowIso = new Date().toISOString();
     prayers = {
-      date: new Date().toISOString().slice(0, 10),
+      date: nowIso.slice(0, 10),
       timezone: DefaultTimezone,
       nextPrayer: null,
-      schedule: [],
+      schedule: PrayerOrder.map((key) => {
+        const name = prayerEnumToTitle(key);
+        const nameAr =
+          key === PrayerNameEnum.FAJR
+            ? 'الفجر'
+            : key === PrayerNameEnum.DHUHR
+              ? 'الظهر'
+              : key === PrayerNameEnum.ASR
+                ? 'العصر'
+                : key === PrayerNameEnum.MAGHRIB
+                  ? 'المغرب'
+                  : 'العشاء';
+        return {
+          name,
+          key,
+          nameAr,
+          time: '00:00',
+          displayAr: nameAr,
+          displayEn: name,
+          iso: nowIso,
+          timestamp: new Date(),
+          completed: false,
+        };
+      }),
       completedCount: 0,
       totalCount: 5,
     };

@@ -24,7 +24,8 @@ export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: 
 });
 
 export const getDhikrHomeHandler = asyncHandler(async (req: Request, res: Response) => {
-  const data = await getCategoriesWithDailyWird();
+  const userId = req.user?.sub ?? null;
+  const data = await getCategoriesWithDailyWird(userId);
   sendSuccess(res, data, 'Dhikr home (categories + daily wird) retrieved successfully', req);
 });
 

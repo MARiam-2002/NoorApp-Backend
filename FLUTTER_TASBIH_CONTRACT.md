@@ -3,10 +3,10 @@
 **Audience:** Flutter team  
 **From:** Noor Backend  
 **Production base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-09-05  
+**Updated:** 2026-09-05 (Production-verified with Bearer merge)  
 **Language:** English only  
 
-This document is the **verified** Backend → Flutter contract for the **Tasbih** feature only. It is based on the current Production Backend implementation (routes, services, Prisma models). Do **not** invent client behavior from older OpenAPI samples if they conflict with this file — **this file wins**.
+This document is the **verified** Backend → Flutter contract for the **Tasbih** feature only. It matches current Production (`https://noor-app-backend-one.vercel.app/api/v1`). Do **not** invent client behavior from older OpenAPI samples if they conflict with this file — **this file wins**.
 
 Related:
 
@@ -19,11 +19,11 @@ Related:
 
 | Area | Status |
 |------|--------|
-| Session APIs (`/tasbih/*`) | Implemented + Production-live (auth required) |
-| Global catalog (`GET /tasbihs`) | Implemented + Production-verified (public without token) |
-| Personal list merge (`GET /tasbihs` + Bearer) | Implemented + verified — catalog + **that user’s** customs only |
-| Personal custom add (`POST /tasbihs`) | Implemented + Production-live (auth required) |
-| Personal custom remove (`DELETE /tasbihs/:id`) | Implemented + Production-live (auth required; owner only) |
+| Session APIs (`/tasbih/*`) | Production-live (Bearer required) |
+| Global catalog (`GET /tasbihs` without token) | Production-verified — 9 public items |
+| Personal list merge (`GET /tasbihs` + Bearer) | Production-verified — catalog + **that user’s** customs only |
+| Personal custom add (`POST /tasbihs`) | Production-live (Bearer required) |
+| Personal custom remove (`DELETE /tasbihs/:id`) | Production-live (Bearer; owner only) |
 | Dashboard utility flag | `utilities.tasbih.enabled: true` on `GET /dashboard` |
 
 ---
@@ -60,9 +60,9 @@ Related:
 
 | Endpoint group | Auth |
 |----------------|------|
-| `GET /tasbihs` (catalog) | **Public** (no Bearer) |
-| `POST /tasbihs`, `DELETE /tasbihs/:id` | **Bearer** access token |
-| All `/tasbih/*` session APIs | **Bearer** access token |
+| `GET /tasbihs` | **Optional Bearer** — no/invalid token → public catalog only; valid token → catalog + that user’s customs |
+| `POST /tasbihs`, `DELETE /tasbihs/:id` | **Bearer required** |
+| All `/tasbih/*` session APIs | **Bearer required** |
 
 | Condition | Flutter action |
 |-----------|----------------|
@@ -70,11 +70,13 @@ Related:
 | `401` + `TOKEN_EXPIRED` | `POST /auth/refresh` once, retry |
 | Network / 5xx | Do **not** hard-logout |
 
-Header:
+**Important for logged-in users:** always send:
 
 ```http
 Authorization: Bearer <accessToken>
 ```
+
+on `GET /tasbihs` after login. If the header is missing, Backend correctly returns **only** the public catalog (customs will look “missing”). Invalid/expired tokens on this endpoint are treated as anonymous (public catalog) — they do **not** return `401`.
 
 ---
 
@@ -83,7 +85,7 @@ Authorization: Bearer <accessToken>
 | Prefix | Purpose |
 |--------|---------|
 | `/tasbih` (singular) | **Session counter** for the logged-in user (today / increment / reset / change-dhikr / history) |
-| `/tasbihs` (plural) | **Catalog** of authentic phrases + **personal custom** add/remove |
+| `/tasbihs` (plural) | **Catalog** of authentic phrases + **personal custom** add/remove/list |
 
 Dashboard only exposes a launch flag under `utilities.tasbih.enabled` — it does **not** return the counter state. Load counter via `/tasbih/today`.
 
@@ -95,16 +97,16 @@ Dashboard only exposes a launch flag under `utilities.tasbih.enabled` — it doe
 
 ```http
 GET /api/v1/tasbihs
-Authorization: Bearer <accessToken>   # optional
+Authorization: Bearer <accessToken>   # send after login so customs appear
 ```
 
 No query params. **User id is never taken from the body/query** — only from a valid access token when present.
 
-| Auth | `data` contents |
-|------|-----------------|
-| No Bearer / invalid token | Public/default catalog only (9 items) |
-| Valid Bearer | Public catalog **plus** that user’s own custom tasbihs |
-| — | Never returns another user’s customs |
+| Auth | `message` (hint) | `data` contents |
+|------|------------------|-----------------|
+| No Bearer / invalid token | `Tasbih catalog retrieved successfully` | Public catalog only (**9** items) |
+| Valid Bearer | `Tasbih list retrieved successfully` | Public catalog **plus** that user’s own customs |
+| — | — | Never returns another user’s customs |
 
 ### Response `data`
 
@@ -124,8 +126,10 @@ Custom elements (only when authenticated) also include:
 | Field | Type | Meaning |
 |-------|------|---------|
 | `id` | uuid | Personal row id (for `DELETE /tasbihs/:id`) |
-| `isCustom` | `true` | Marks a user-owned phrase |
-| `order` | int | Continues after catalog (`catalogLength + sortOrder`) |
+| `isCustom` | `true` | Marks a user-owned phrase — use this flag in UI |
+| `order` | int | Continues after catalog (e.g. `10`, `11`, …) |
+| `text` | string | User-entered Arabic phrase |
+| `count` | int \| null | Optional suggested target from create body |
 
 ### Production-verified catalog (9 items)
 
@@ -141,7 +145,7 @@ Custom elements (only when authenticated) also include:
 | 8 | `LA_ILAHA_ILLA_ALLAH_WAHDAHU` | لا إله إلا الله وحده لا شريك له، له الملك وله الحمد، وهو على كل شيء قدير | 100 |
 | 9 | `SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM` | سبحان الله وبحمده، سبحان الله العظيم | null |
 
-### Example
+### Example — public (no Bearer)
 
 ```json
 {
@@ -161,18 +165,53 @@ Custom elements (only when authenticated) also include:
 }
 ```
 
+### Example — logged-in (Bearer) — Production-verified shape
+
+```json
+{
+  "success": true,
+  "message": "Tasbih list retrieved successfully",
+  "data": [
+    {
+      "id": "SUBHAN_ALLAH",
+      "text": "سبحان الله",
+      "count": 33,
+      "order": 1
+    },
+    {
+      "id": "SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM",
+      "text": "سبحان الله وبحمده، سبحان الله العظيم",
+      "count": null,
+      "order": 9
+    },
+    {
+      "id": "cc736d8a-0ece-400b-a48d-469efb569f98",
+      "order": 10,
+      "text": "أَسْتَغْفِرُ اللهَ وَأَتُوبُ إِلَيْهِ",
+      "count": 100,
+      "isCustom": true
+    }
+  ],
+  "meta": {},
+  "timestamp": "…",
+  "requestId": "…"
+}
+```
+
 ### Flutter notes
 
 - Prefer this endpoint for the **اختر الذكر** sheet instead of hardcoding.  
-- Call with Bearer after login so personal customs appear in the same list.  
+- After login, **always** call with Bearer so personal customs appear in the same list.  
+- Detect customs with `isCustom == true` (or UUID-shaped `id`).  
 - Catalog `id` values are the **only** values accepted by `PATCH /tasbih/change-dhikr`.  
-- Custom personal phrases use UUID `id`s — they are **not** valid `change-dhikr` enum values.
+- Custom personal phrases use UUID `id`s — they are **not** valid `change-dhikr` enum values.  
+- Do not cache this list across users; response is `Cache-Control: private, no-store` and varies by `Authorization`.
 
 ---
 
 ## 3) Personal custom list — add / remove (auth)
 
-Stored per user in `user_tasbihs`. Scoped to the authenticated user only (`req.user.sub` from the token).
+Stored per user in `user_tasbihs`. Scoped to the authenticated user only (user id from JWT — never from body).
 
 ### 3.1 Add — `POST /tasbihs`
 
@@ -204,7 +243,7 @@ Content-Type: application/json
   "message": "Custom tasbih added to your list",
   "data": {
     "id": "uuid",
-    "order": 1,
+    "order": 10,
     "text": "رب اغفر لي",
     "count": 100,
     "isCustom": true
@@ -253,7 +292,7 @@ Authorization: Bearer <accessToken>
 
 Catalog items cannot be deleted via this endpoint (they are not rows in `user_tasbihs`).
 
-After add/remove, refresh with `GET /tasbihs` + Bearer to reload the merged list.
+After add/remove, refresh with `GET /tasbihs` **+ Bearer** to reload the merged list.
 
 ---
 
@@ -427,15 +466,17 @@ This is **not** a paginated `{ data, meta.page }` envelope today — it is a pla
 ## 6) Flutter integration checklist
 
 - [ ] Load picker from `GET /tasbihs` (do not hardcode catalog)  
-- [ ] After login, call `GET /tasbihs` with Bearer so customs appear  
+- [ ] After login, call `GET /tasbihs` **with** `Authorization: Bearer <accessToken>` so customs appear  
+- [ ] Expect `message: "Tasbih list retrieved successfully"` when customs can be included  
+- [ ] Render customs where `isCustom == true`; keep their UUID for delete  
 - [ ] Show `text`; use `count` as optional target UI when non-null  
-- [ ] On select catalog item → `PATCH /tasbih/change-dhikr` with `{ "dhikr": "<id>" }`  
+- [ ] On select **catalog** item → `PATCH /tasbih/change-dhikr` with `{ "dhikr": "<enum id>" }`  
 - [ ] Screen open → `GET /tasbih/today`  
 - [ ] Circle tap → `POST /tasbih/increment` (optimistic UI OK; reconcile on response)  
 - [ ] Reset button → `POST /tasbih/reset`  
 - [ ] Treat `todayCount` / `currentDhikrCount` / `count` as **one** server counter today  
-- [ ] Custom add → `POST /tasbihs`; refresh list via `GET /tasbihs`  
-- [ ] Custom remove → `DELETE /tasbihs/:id` (only customs with `isCustom: true`)  
+- [ ] Custom add → `POST /tasbihs`; then refresh via `GET /tasbihs` + Bearer  
+- [ ] Custom remove → `DELETE /tasbihs/:id` (only rows with `isCustom: true`)  
 - [ ] Do **not** send custom UUID to `change-dhikr`  
 - [ ] Haptics / animation are client-only  
 - [ ] Offline: session APIs are online-authoritative — show offline banner; do not invent silent sync unless you add an outbox yourself  
@@ -446,8 +487,8 @@ This is **not** a paginated `{ data, meta.page }` envelope today — it is a pla
 
 | Concern | Backend | Flutter |
 |---------|---------|---------|
-| Authentic catalog + counts | Owns | Render picker |
-| Personal custom storage | Owns (add/remove) | UI + keep returned ids until list API exists |
+| Authentic catalog + counts | Owns | Render picker from `GET /tasbihs` |
+| Personal custom storage | Owns (list/add/remove) | UI; use returned UUID + `isCustom` |
 | Daily counter persistence | Owns | UI + optimistic taps |
 | AR/EN labels for catalog enums | Owns | Display `dhikrAr` / catalog `text` |
 | Guest / offline local counter | — | Owns if product requires guests |
@@ -459,7 +500,8 @@ This is **not** a paginated `{ data, meta.page }` envelope today — it is a pla
 1. **Single daily counter** — not separate per-dhikr counters server-side.  
 2. **`change-dhikr` does not reset count.**  
 3. **History `page` query is not applied.**  
-4. Custom phrases are **picker/list data only** until a future change allows counting them via `/tasbih/*`.
+4. Custom phrases are **picker/list data only** — `PATCH /tasbih/change-dhikr` accepts **catalog enum ids only**, not custom UUIDs. Counting against a custom phrase is not supported on `/tasbih/*` yet.  
+5. **`GET /tasbihs` with bad token** → public catalog (no `401`). Session routes (`/tasbih/*`) still return `401` on bad tokens.
 
 ---
 
@@ -476,4 +518,4 @@ https://noor-app-backend-one.vercel.app/api/v1/tasbih/history
 
 ---
 
-*Document generated from the live Backend Tasbih implementation as of 2026-09-05. If code and this file diverge later, re-verify against Production before shipping Flutter changes.*
+*Hand-off ready for Flutter. Verified against live Production Tasbih APIs on 2026-09-05 (including authenticated `GET /tasbihs` merge). If code and this file diverge later, re-verify against Production before shipping Flutter changes.*

@@ -1,8 +1,9 @@
 # Backend requirements — remaining ops only (Flutter perspective)
 
-**Updated:** 2026-09-04  
+**Updated:** 2026-09-05  
 **Send to Backend with:** [FLUTTER_TO_BACKEND_STATUS_REPLY.md](./FLUTTER_TO_BACKEND_STATUS_REPLY.md)  
-Contract reference: [BACKEND_DATA_CONTRACT.md](./BACKEND_DATA_CONTRACT.md)
+Contract reference: [BACKEND_DATA_CONTRACT.md](./BACKEND_DATA_CONTRACT.md)  
+Ops status reply: [BACKEND_OPS_STATUS.md](./BACKEND_OPS_STATUS.md)
 
 Flutter base URL: `https://noor-app-backend-one.vercel.app/api/v1`
 
@@ -12,11 +13,11 @@ Flutter base URL: `https://noor-app-backend-one.vercel.app/api/v1`
 
 ## 1) Remaining backend ops
 
-| Item | Notes | Done when |
-|------|-------|-----------|
-| Set Firebase credentials on Vercel | `FIREBASE_SERVICE_ACCOUNT_JSON` **or** `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` | `GET /health` → `fcm.configured: true` |
-| External scheduler → `/cron/prayer-reminders` | ~every 10 minutes (Hobby Vercel cannot do sub-daily crons). Optional `CRON_SECRET` | Backup Azan pushes leave the server |
-| Confirm password-reset inbox delivery | SMTP already `readyForDelivery` | One real mailbox receives reset email |
+| Item | Notes | Done when | Status (2026-09-05) |
+|------|-------|-----------|---------------------|
+| Set Firebase credentials on Vercel | `FIREBASE_SERVICE_ACCOUNT_JSON` **or** `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` | `GET /health` → `fcm.configured: true` | **Done** |
+| External scheduler → `/cron/prayer-reminders` | ~every 10 minutes (Hobby Vercel cannot do sub-daily crons). Optional `CRON_SECRET` | Backup Azan pushes leave the server | **Workflow present** (`.github/workflows/prayer-reminder-cron.yml`) — set GitHub `CRON_SECRET` = Vercel `CRON_SECRET` if not already |
+| Confirm password-reset inbox delivery | SMTP already `readyForDelivery` | One real mailbox receives reset email | **SMTP ready** — one human inbox QA still needed |
 
 ---
 
@@ -30,6 +31,6 @@ Auth, dashboard, journey (today/progress/patches/badges), Quran catalogs + audio
 
 ## 3) Soft / optional (not blockers)
 
-- Surah names never bare ids  
-- EN counterparts on Arabic-first strings  
-- Badges payload polish when Flutter unlocks badges UI  
+- Surah names never bare ids — hardened in Backend  
+- EN counterparts on Arabic-first strings — present on journey/challenge/adhkar/tasbih  
+- Badges payload polish when Flutter unlocks badges UI — `{ badges, streakDays }` already returned  

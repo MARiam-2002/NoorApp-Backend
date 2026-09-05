@@ -827,16 +827,17 @@ export async function updateLastRead(userId: string, surahId: number, ayahNumber
   } catch { /* */ }
 
   const surahObj = saved.surah ?? { id: surahId, nameEn: surah.nameEn, nameAr: surah.nameAr };
+  const resolved = withResolvedSurahNames(surahObj);
   return {
     surahId: saved.surahId,
     page: saved.page,
     ayahNumber: saved.ayahNumber,
     juz,
-    surahNameAr: surahObj.nameAr,
+    surahNameAr: resolved.nameAr,
     surah: {
-      id: surahObj.id,
-      nameAr: surahObj.nameAr,
-      nameEn: surahObj.nameEn,
+      id: resolved.id,
+      nameAr: resolved.nameAr,
+      nameEn: resolved.nameEn,
     },
   };
 }
@@ -1455,6 +1456,16 @@ export async function listTranslations(): Promise<TranslationOption[]> {
 
 export type { ReciterOption, TafsirOption, TranslationOption };
 
+function matchesCatalogId(
+  entry: { id: string; code?: string; resourceId?: number },
+  requested?: string,
+): boolean {
+  if (requested == null || requested === '') return false;
+  if (entry.id === requested || entry.code === requested) return true;
+  const asNum = Number(requested);
+  return Number.isFinite(asNum) && entry.resourceId != null && entry.resourceId === asNum;
+}
+
 export async function getAyahAudio(
   surahId: number,
   ayahNumber: number,
@@ -1467,7 +1478,7 @@ export async function getAyahAudio(
   provider: 'quran_foundation' | 'everyayah';
 }> {
   const reciter =
-    QURAN_RECITERS.find((r) => r.id === reciterId || r.code === reciterId) ??
+    QURAN_RECITERS.find((r) => matchesCatalogId(r, reciterId)) ??
     QURAN_RECITERS[0] ??
     { id: 'Mishary_Alafasy', serverUrl: 'https://everyayah.com/data/Alafasy_128kbps' };
 
@@ -1531,7 +1542,7 @@ export async function getAyahTafsir(
   language?: string;
 }> {
   const catalog =
-    QURAN_TAFSIRS.find((t) => t.id === sourceId || t.code === sourceId) ??
+    QURAN_TAFSIRS.find((t) => matchesCatalogId(t, sourceId)) ??
     QURAN_TAFSIRS[0] ??
     { id: 'Ibn_Kathir', code: 'Ibn_Kathir' };
 
@@ -1579,7 +1590,7 @@ export async function getAyahTranslation(
   provider: 'quran_foundation' | 'unavailable';
 }> {
   const catalog =
-    QURAN_TRANSLATIONS.find((t) => t.id === sourceId || t.code === sourceId) ??
+    QURAN_TRANSLATIONS.find((t) => matchesCatalogId(t, sourceId)) ??
     QURAN_TRANSLATIONS[0] ??
     { id: 'Sahih_International', code: 'Sahih_International' };
 

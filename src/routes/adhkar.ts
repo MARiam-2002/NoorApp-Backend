@@ -12,7 +12,7 @@ import {
   searchAdhkarHandler,
   saveResumeMarkHandler,
 } from '../controllers/adhkar.controller';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 
 export const adhkarRouter = Router();
 
@@ -26,6 +26,8 @@ export const adhkarRouter = Router();
  *       يُرجع ورد اليوم مع نسبة التقدم (Progress bar) + قائمة كل الفئات الست
  *       (الصباح، المساء، النوم، المسجد، الصلاة، ورد اليوم) للعرض في الشاشة الأولى من تبويب الأذكار.
  *       المحتوى مصدره حصن المسلم + صحيح البخاري ومسلم.
+ *       Optional Bearer: when a valid access token is present, dailyWird progress is personalized for that user.
+ *     security: [ { bearerAuth: [] } ]
  *     responses:
  *       200:
  *         description: ✅ ورد اليوم + قائمة الفئات
@@ -71,7 +73,7 @@ export const adhkarRouter = Router();
  *               timestamp: '2026-08-27T03:15:00.000Z'
  *               requestId: uuid
  */
-adhkarRouter.get('/', getDhikrHomeHandler);
+adhkarRouter.get('/', optionalAuthenticate, getDhikrHomeHandler);
 
 /**
  * @openapi
@@ -137,7 +139,7 @@ adhkarRouter.get('/categories', getDhikrCategoriesHandler);
  *               timestamp: '2026-08-27T03:15:00.000Z'
  *               requestId: uuid
  */
-adhkarRouter.get('/daily-wird', getDailyWirdHandler);
+adhkarRouter.get('/daily-wird', optionalAuthenticate, getDailyWirdHandler);
 
 /**
  * @openapi
@@ -264,7 +266,7 @@ adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
  *               code: NOT_FOUND
  *               timestamp: '2026-08-27T03:15:00.000Z'
  */
-adhkarRouter.get('/categories/:key', getDhikrCategoryByKeyHandler);
+adhkarRouter.get('/categories/:key', optionalAuthenticate, getDhikrCategoryByKeyHandler);
 
 
 /**
