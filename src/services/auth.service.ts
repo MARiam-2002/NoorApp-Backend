@@ -30,9 +30,20 @@ async function ensureUniqueUsername(preferred: string, attempt = 0): Promise<str
   let candidate = attempt === 0
     ? normalizeUsername(preferred || generateUsernameFromEmail(preferred))
     : `${normalizeUsername(preferred).slice(0, 24)}_${1000 + Math.floor(Math.random() * 9000)}`;
-  const exists = await prisma.user.count({
-    where: { username: { equals: candidate, mode: 'insensitive' } },
-  });
+
+  let exists = 0;
+  try {
+    exists = await prisma.user.count({
+      where: { username: { equals: candidate, mode: 'insensitive' } },
+    });
+  } catch (err) {
+    logger.warn('[Auth] insensitive username lookup failed; falling back to exact match', {
+      message: (err as Error)?.message,
+      prismaCode: (err as any)?.code,
+    });
+    exists = await prisma.user.count({ where: { username: candidate } });
+  }
+
   if (exists === 0) return candidate;
   if (attempt > 10) {
     const uuid = Math.random().toString(36).slice(2, 10);
