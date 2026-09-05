@@ -4,6 +4,7 @@ import { getAzanPreferences } from './azan.service';
 import { sendPushToUser } from './device.service';
 import { getPrayerSchedule } from './prayer.service';
 import { createNotification } from './notification.service';
+import { runSalawatReminders } from './salawat-reminder.service';
 
 type ScheduleRow = { name: string; time: string };
 
@@ -15,10 +16,9 @@ function minutesUntil(hhmm: string, now = new Date()): number {
 }
 
 /**
- * Cron job: send FCM prayer reminders for users with backup enabled
- * when a prayer is within the next `windowMinutes` (default 10).
+ * Azan FCM backup only — unchanged rules (prefs + prayer window).
  */
-export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
+export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
   usersScanned: number;
   pushesAttempted: number;
   pushesSent: number;
@@ -136,4 +136,32 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
   }
 
   return { usersScanned: users.length, pushesAttempted, pushesSent };
+}
+
+/**
+ * Existing cron entrypoint (every ~10 minutes).
+ * Runs Azan backup + Salawat reminders in the same job — no separate scheduler.
+ */
+export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
+  usersScanned: number;
+  pushesAttempted: number;
+  pushesSent: number;
+  azan: { usersScanned: number; pushesAttempted: number; pushesSent: number };
+  salawat: {
+    usersScanned: number;
+    pushesAttempted: number;
+    pushesSent: number;
+    skipped: Record<string, number>;
+  };
+}> {
+  const azan = await runAzanBackupReminders(windowMinutes);
+  const salawat = await runSalawatReminders();
+
+  return {
+    usersScanned: azan.usersScanned + salawat.usersScanned,
+    pushesAttempted: azan.pushesAttempted + salawat.pushesAttempted,
+    pushesSent: azan.pushesSent + salawat.pushesSent,
+    azan,
+    salawat,
+  };
 }

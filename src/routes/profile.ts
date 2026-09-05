@@ -9,6 +9,11 @@ import {
   getAzanPreferencesHandler,
   patchAzanPreferencesHandler,
 } from '../controllers/azan.controller';
+import {
+  getSalawatPreferencesHandler,
+  patchSalawatPreferencesHandler,
+  salawatPreferencesPatchSchema,
+} from '../controllers/salawat.controller';
 
 const updateReadingPreferencesSchema = z.object({
   quranFontSize: z.coerce.number().int().min(12).max(60).optional(),
@@ -477,3 +482,32 @@ profileRouter.patch(
  */
 profileRouter.get('/azan-preferences', authenticate, getAzanPreferencesHandler);
 profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandler);
+
+/**
+ * @openapi
+ * /profile/salawat-preferences:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: Get Pray-for-the-Prophet ﷺ reminder preferences
+ *     security: [ { bearerAuth: [] } ]
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: Enable/disable Pray-for-the-Prophet ﷺ FCM reminders
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [enabled]
+ *             properties:
+ *               enabled: { type: boolean }
+ */
+profileRouter.get('/salawat-preferences', authenticate, getSalawatPreferencesHandler);
+profileRouter.patch(
+  '/salawat-preferences',
+  authenticate,
+  validate(salawatPreferencesPatchSchema),
+  patchSalawatPreferencesHandler,
+);

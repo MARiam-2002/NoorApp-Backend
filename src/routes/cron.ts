@@ -32,7 +32,10 @@ function assertCronAuthorized(req: {
  * /cron/prayer-reminders:
  *   post:
  *     tags: ['Cron']
- *     summary: FCM Azan backup — send upcoming prayer pushes
+ *     summary: FCM reminders cron — Azan backup + Pray-for-the-Prophet ﷺ
+ *     description: |
+ *       Same scheduler (~every 10 minutes). Runs Azan prayer-window pushes, then
+ *       Salawat reminders (every 3h, max 5/day, quiet hours 22:00–08:00 local, preference-gated).
  */
 cronRouter.post(
   '/prayer-reminders',

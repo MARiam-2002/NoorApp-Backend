@@ -38,6 +38,8 @@ model User {
   prayerCalculationMethod String                 @default("EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY")
   /// Synced Azan settings across devices (see AZAN_FEATURE.md §6).
   azanPreferences         Json?
+  /// FCM "Pray for the Prophet ﷺ" reminders (default on).
+  salawatReminderEnabled  Boolean                @default(true)
   challengeCompletions    ChallengeCompletion[]
   dailyDhikrCompletions   DailyDhikrCompletion[]
   dailyProgress           DailyProgress[]
@@ -490,4 +492,5 @@ enum NotificationType {
   PRAYER_REMINDER
   ACHIEVEMENT
   GENERAL
+  SALAWAT
 }

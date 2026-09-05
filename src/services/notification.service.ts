@@ -26,6 +26,8 @@ function mapNotificationTypeToContract(prismaType: string): string {
     case 'PRAYER_REMINDER':
     case 'AZAN':
       return 'AZAN';
+    case 'SALAWAT':
+      return 'SALAWAT';
     case 'CHALLENGE':
     case 'CHALLENGE_REWARD':
       return 'CHALLENGE';

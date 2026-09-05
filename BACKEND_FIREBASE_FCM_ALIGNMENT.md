@@ -98,6 +98,7 @@ Flutter creates / reuses channel id **`azan`** for local Azan and FCM foreground
 
 - `TEST` — test / QA (`POST /devices/test-push`)
 - `AZAN` — prayer backup (honors `fcmPrayerBackupEnabled`)
+- `SALAWAT` — Pray for the Prophet ﷺ (honors `salawatReminderEnabled`; every 3h, max 5/day, quiet 22:00–08:00 local)
 
 Suggested / actual Backend data shapes:
 
@@ -127,6 +128,19 @@ Suggested / actual Backend data shapes:
 ```
 
 (`prayer` / `kind` / `time` come from `src/services/prayer-reminder.service.ts`.)
+
+**SALAWAT** (same cron job — `runSalawatReminders`):
+
+```json
+{
+  "type": "SALAWAT",
+  "kind": "salawat_reminder",
+  "titleAr": "الصلاة على النبي ﷺ",
+  "bodyAr": "اللهم صل وسلم على نبينا محمد ﷺ"
+}
+```
+
+Preference sync: `GET/PATCH /profile/salawat-preferences` with `{ "enabled": true|false }`.
 
 ---
 
