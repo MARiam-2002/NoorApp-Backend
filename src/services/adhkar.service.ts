@@ -1168,6 +1168,59 @@ export async function getCategoriesWithDailyWird(userId?: string | null) {
  * No user progress / favorites / resume marks.
  */
 export async function getAdhkarFullCatalog() {
+  try {
+    const fromDb = await prisma.dhikrCategory.findMany({
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        items: { orderBy: { orderInCategory: 'asc' } },
+      },
+    });
+
+    if (fromDb.length > 0) {
+      const categories = fromDb.map((category) => ({
+        id: category.id,
+        key: category.key,
+        nameAr: category.nameAr,
+        nameEn: category.nameEn,
+        descriptionAr: category.descriptionAr,
+        descriptionEn: category.descriptionEn,
+        iconCode: category.iconCode,
+        sortOrder: category.sortOrder,
+        totalItems: category.totalItems,
+        items: category.items.map((it) => ({
+          id: it.id,
+          orderInCategory: it.orderInCategory,
+          textAr: it.textAr,
+          textEn: (it as any).textEn ?? '',
+          textArPlain: ensureTextArPlain(it.textAr, it.textArPlain),
+          repeatCount: it.repeatCount,
+          referenceAr: it.referenceAr,
+          referenceEn: it.referenceEn ?? '',
+          sourceUrl: it.sourceUrl,
+          benefitAr: it.benefitAr,
+          benefitEn: (it as any).benefitEn ?? '',
+        })),
+      }));
+
+      const totalItems = categories.reduce((sum, c) => sum + c.items.length, 0);
+      return {
+        meta: {
+          catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
+          contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${categories.length}-${totalItems}`,
+          totalCategories: categories.length,
+          totalItems,
+          downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
+        },
+        categories,
+      };
+    }
+  } catch (err: any) {
+    logger.warn('[Adhkar] getAdhkarFullCatalog prisma failed, using per-key fallback', {
+      code: err?.code,
+      message: err?.message,
+    });
+  }
+
   const categories = [];
   for (const key of CATEGORY_KEYS) {
     const cat = await getCategoryWithItems(key);
@@ -1176,12 +1229,10 @@ export async function getAdhkarFullCatalog() {
   }
 
   const totalItems = categories.reduce((sum, c) => sum + (c.items?.length ?? 0), 0);
-  const contentHash = `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${categories.length}-${totalItems}`;
-
   return {
     meta: {
       catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
-      contentHash,
+      contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${categories.length}-${totalItems}`,
       totalCategories: categories.length,
       totalItems,
       downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
