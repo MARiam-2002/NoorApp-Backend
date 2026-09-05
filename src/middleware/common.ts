@@ -115,6 +115,13 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   }
 
   if (err && typeof err === 'object' && typeof (err as any).code === 'string' && (err as any).code.startsWith('P')) {
+    logger.error('Prisma error', {
+      prismaCode: (err as any).code,
+      meta: (err as any).meta,
+      message: (err as any).message,
+      requestId: (req as any).requestId,
+      path: req.originalUrl ?? req.url,
+    });
     sendError(
       res,
       appConfig.isProduction ? 'Database error' : `Database error: ${(err as any).code}`,
