@@ -4,6 +4,9 @@ import {
   getHadithOfDayHandler,
   getVerseOfDayHandler,
 } from '../controllers/content.controller';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
+import { getStaticContentManifest } from '../services/content-static.service';
 
 export const contentRouter = Router();
 
@@ -103,3 +106,25 @@ contentRouter.get('/hadith-of-day', getHadithOfDayHandler);
  *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 contentRouter.get('/daily-challenge', getDailyChallengeHandler);
+
+/**
+ * @openapi
+ * /content/static-meta:
+ *   get:
+ *     tags: ['Content']
+ *     summary: Lightweight static content versions (Quran + Adhkar) for offline sync
+ *     description: |
+ *       Public. Returns catalogVersion + contentHash + download paths for Quran and Adhkar.
+ *       Flutter should call this when online and only download full catalogs when
+ *       local version/hash differs. Does not return ayah/adhkar texts.
+ *     responses:
+ *       200:
+ *         description: Static content manifest
+ */
+contentRouter.get(
+  '/static-meta',
+  asyncHandler(async (req, res) => {
+    const data = await getStaticContentManifest();
+    sendSuccess(res, data, 'Static content meta retrieved successfully', req);
+  }),
+);

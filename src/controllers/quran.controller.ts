@@ -25,6 +25,7 @@ import {
   searchQuran,
   getRandomAyah,
   getFullQuranCatalog,
+  getQuranStaticMeta,
   listAyahsByJuz,
   importLocalData,
   listReciters,
@@ -206,6 +207,11 @@ export const getFullQuranCatalogHandler = asyncHandler(async (req: Request, res:
     data,
     `Full Quran catalog ready for offline download (${data.meta.totalAyahs} ayahs, ${data.meta.totalSurahs} surahs)`,
   );
+});
+
+export const getQuranStaticMetaHandler = asyncHandler(async (req: Request, res: Response) => {
+  const data = await getQuranStaticMeta();
+  sendSuccess(res, data, 'Quran static catalog meta retrieved successfully', req);
 });
 
 export const listAyahsByJuzHandler = asyncHandler(async (req: Request, res: Response) => {

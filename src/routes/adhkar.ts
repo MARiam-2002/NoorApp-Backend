@@ -11,10 +11,39 @@ import {
   removeAdhkarFavoriteHandler,
   searchAdhkarHandler,
   saveResumeMarkHandler,
+  getAdhkarFullCatalogHandler,
+  getAdhkarStaticMetaHandler,
 } from '../controllers/adhkar.controller';
 import { authenticate, optionalAuthenticate } from '../middleware/auth';
 
 export const adhkarRouter = Router();
+
+/**
+ * @openapi
+ * /adhkar/static-meta:
+ *   get:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: Lightweight Adhkar offline catalog version (no item texts)
+ *     responses:
+ *       200:
+ *         description: Adhkar static meta
+ */
+adhkarRouter.get('/static-meta', getAdhkarStaticMetaHandler);
+
+/**
+ * @openapi
+ * /adhkar/full-catalog:
+ *   get:
+ *     tags: ['Adhkar (الأذكار)']
+ *     summary: Complete Adhkar pack for one-time offline download
+ *     description: |
+ *       Public. All categories with items (textAr, textEn, repeatCount, order, refs).
+ *       No user progress/favorites. Flutter stores locally and uses offline.
+ *     responses:
+ *       200:
+ *         description: Full Adhkar catalog
+ */
+adhkarRouter.get('/full-catalog', getAdhkarFullCatalogHandler);
 
 /**
  * @openapi

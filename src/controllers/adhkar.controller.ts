@@ -16,11 +16,28 @@ import {
   removeAdhkarFavorite,
   searchAdhkar,
   saveResumeMark,
+  getAdhkarFullCatalog,
+  getAdhkarStaticMeta,
 } from '../services/adhkar.service';
 
 export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: Response) => {
   const data = await getAllCategories();
   sendSuccess(res, data, 'Dhikr categories retrieved successfully', req);
+});
+
+export const getAdhkarFullCatalogHandler = asyncHandler(async (req: Request, res: Response) => {
+  const data = await getAdhkarFullCatalog();
+  sendSuccess(
+    res,
+    data,
+    `Adhkar full catalog ready for offline download (${data.meta.totalItems} items, ${data.meta.totalCategories} categories)`,
+    req,
+  );
+});
+
+export const getAdhkarStaticMetaHandler = asyncHandler(async (req: Request, res: Response) => {
+  const data = await getAdhkarStaticMeta();
+  sendSuccess(res, data, 'Adhkar static catalog meta retrieved successfully', req);
 });
 
 export const getDhikrHomeHandler = asyncHandler(async (req: Request, res: Response) => {

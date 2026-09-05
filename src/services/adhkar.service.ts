@@ -6,6 +6,10 @@ import { getDayOfYear } from '../utils/date';
 import {
   ADHKAR_DHIKR_CATEGORIES_FALLBACK,
 } from '../shared/constants/fallbacks';
+import {
+  ADHKAR_STATIC_CATALOG_VERSION,
+  ADHKAR_STATIC_DOWNLOAD_PATH,
+} from '../shared/constants/static-catalog';
 
 const AYAT_AL_KURSI =
   'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ. اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ عَلِمَ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ';
@@ -1156,6 +1160,67 @@ export async function getCategoriesWithDailyWird(userId?: string | null) {
     ctaEn: dailyWird.ctaEn,
     dailyWird,
     categories,
+  };
+}
+
+/**
+ * Complete static Adhkar pack for Flutter one-time offline download.
+ * No user progress / favorites / resume marks.
+ */
+export async function getAdhkarFullCatalog() {
+  const categories = [];
+  for (const key of CATEGORY_KEYS) {
+    const cat = await getCategoryWithItems(key);
+    const { markedItemId: _ignore, ...rest } = cat as typeof cat & { markedItemId?: string | null };
+    categories.push(rest);
+  }
+
+  const totalItems = categories.reduce((sum, c) => sum + (c.items?.length ?? 0), 0);
+  const contentHash = `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${categories.length}-${totalItems}`;
+
+  return {
+    meta: {
+      catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
+      contentHash,
+      totalCategories: categories.length,
+      totalItems,
+      downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
+    },
+    categories,
+  };
+}
+
+/** Lightweight Adhkar version probe — no item texts. */
+export async function getAdhkarStaticMeta() {
+  try {
+    const [totalCategories, totalItems] = await Promise.all([
+      prisma.dhikrCategory.count(),
+      prisma.dhikrItem.count(),
+    ]);
+    if (totalCategories > 0) {
+      return {
+        catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
+        contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${totalCategories}-${totalItems}`,
+        totalCategories,
+        totalItems,
+        downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
+      };
+    }
+  } catch (err: any) {
+    logger.warn('[Adhkar] getAdhkarStaticMeta prisma failed, using fallback counts', {
+      code: err?.code,
+      message: err?.message,
+    });
+  }
+
+  const fallbackCats = ALL_FALLBACK_CATEGORIES.length;
+  const fallbackItems = ALL_FALLBACK_CATEGORIES.reduce((s, c) => s + (c.totalItems ?? 0), 0);
+  return {
+    catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
+    contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${fallbackCats}-${fallbackItems}`,
+    totalCategories: fallbackCats,
+    totalItems: fallbackItems,
+    downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
   };
 }
 

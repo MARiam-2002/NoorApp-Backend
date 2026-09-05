@@ -16,6 +16,10 @@ import {
   verseKey,
 } from '../lib/quran-foundation';
 import { ARABIC_DIACRITICS_FOR_TRANSLATE, stripArabicDiacritics } from '../shared/utils/arabic-text';
+import {
+  QURAN_STATIC_CATALOG_VERSION,
+  QURAN_STATIC_DOWNLOAD_PATH,
+} from '../shared/constants/static-catalog';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -1186,10 +1190,32 @@ export type FullQuranCatalog = {
     totalPages: number;
     totalJuz: number;
     bismillahStripped: boolean;
+    contentHash: string;
+    downloadPath: string;
   };
   surahs: CatalogSurah[];
   juzs: CatalogJuz[];
 };
+
+/** Lightweight version probe — no ayah payload. */
+export async function getQuranStaticMeta() {
+  const [totalSurahs, totalAyahs] = await Promise.all([
+    prisma.surah.count(),
+    prisma.ayah.count(),
+  ]);
+  const surahs = totalSurahs > 0 ? totalSurahs : 114;
+  const ayahs = totalAyahs > 0 ? totalAyahs : 6236;
+  return {
+    catalogVersion: QURAN_STATIC_CATALOG_VERSION,
+    contentHash: `quran-v${QURAN_STATIC_CATALOG_VERSION}-${ayahs}-${surahs}`,
+    totalSurahs: surahs,
+    totalAyahs: ayahs,
+    totalPages: TOTAL_QURAN_PAGES,
+    totalJuz: 30,
+    bismillahStripped: true,
+    downloadPath: QURAN_STATIC_DOWNLOAD_PATH,
+  };
+}
 
 export async function getFullQuranCatalog(): Promise<FullQuranCatalog> {
   const surahRows = await prisma.surah.findMany({
@@ -1317,12 +1343,14 @@ export async function getFullQuranCatalog(): Promise<FullQuranCatalog> {
 
   return {
     meta: {
-      catalogVersion: 1,
+      catalogVersion: QURAN_STATIC_CATALOG_VERSION,
       totalSurahs: surahs.length,
       totalAyahs,
       totalPages: TOTAL_QURAN_PAGES,
       totalJuz: 30,
       bismillahStripped: true,
+      contentHash: `quran-v${QURAN_STATIC_CATALOG_VERSION}-${totalAyahs}-${surahs.length}`,
+      downloadPath: QURAN_STATIC_DOWNLOAD_PATH,
     },
     surahs,
     juzs,

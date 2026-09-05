@@ -24,6 +24,7 @@ import {
   searchQuranHandler,
   getRandomAyahHandler,
   getFullQuranCatalogHandler,
+  getQuranStaticMetaHandler,
   listAyahsByJuzHandler,
   importLocalDataHandler,
   listRecitersHandler,
@@ -553,6 +554,21 @@ quranRouter.get('/ayahs/random', getRandomAyahHandler);
 // ============================================================
 //  Round 3 NEW ENDPOINTS: Offline Quran Catalog + Juz Ayahs
 // ============================================================
+
+/**
+ * @openapi
+ * /quran/static-meta:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: Lightweight Quran offline catalog version (no ayah payload)
+ *     description: |
+ *       Public. Flutter compares catalogVersion/contentHash to local cache.
+ *       If unchanged, skip GET /quran/full-catalog.
+ *     responses:
+ *       200:
+ *         description: Quran static meta
+ */
+quranRouter.get('/static-meta', getQuranStaticMetaHandler);
 
 /**
  * @openapi
