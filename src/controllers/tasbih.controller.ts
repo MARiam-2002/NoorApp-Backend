@@ -9,7 +9,7 @@ import {
   changeDhikr,
   getTasbihHistory,
   getDhikrArName,
-  listTasbihs,
+  listTasbihsForViewer,
   addUserTasbih,
   removeUserTasbih,
 } from '../services/tasbih.service';
@@ -25,10 +25,19 @@ function enrichTasbihResponse(result: { dhikr: string; count: number; [k: string
   };
 }
 
-/** GET /tasbihs — static ordered catalog for the dhikr picker. */
+/**
+ * GET /tasbihs — public catalog; when Bearer is valid, append that user's customs only.
+ * User id always comes from `req.user.sub` (token), never from the client body.
+ */
 export const listTasbihsHandler = asyncHandler(async (req: Request, res: Response) => {
-  const items = listTasbihs();
-  sendSuccess(res, items, 'Tasbih catalog retrieved successfully', req);
+  const userId = req.user?.sub;
+  const items = await listTasbihsForViewer(userId);
+  sendSuccess(
+    res,
+    items,
+    userId ? 'Tasbih list retrieved successfully' : 'Tasbih catalog retrieved successfully',
+    req,
+  );
 });
 
 /** POST /tasbihs — add a custom phrase to the logged-in user's personal list. */

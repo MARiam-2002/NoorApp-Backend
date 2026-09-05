@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import { validate } from '../lib/validation';
 import {
   listTasbihsHandler,
@@ -28,16 +28,16 @@ const tasbihIdParamsSchema = z.object({
  * /tasbihs:
  *   get:
  *     tags: ['Tasbih']
- *     summary: Catalog of authentic tasbih / repeatable adhkar
+ *     summary: Public catalog (+ authenticated user's customs when Bearer present)
  *     description: |
- *       Ordered list for the "اختر الذكر" picker. Each item has `id`, `order`, `text`, `count`.
- *       `count` is an authentic fixed repetition when one exists (e.g. 33 after salah); otherwise null.
- *       `id` values match PATCH /tasbih/change-dhikr.
+ *       Without auth: public/default catalog only.
+ *       With valid Bearer: catalog + that user's custom tasbihs only (never other users).
+ *       Each item has `id`, `order`, `text`, `count`. Customs also include `isCustom: true`.
  *     responses:
  *       200:
- *         description: Catalog retrieved
+ *         description: List retrieved
  */
-tasbihsRouter.get('/', listTasbihsHandler);
+tasbihsRouter.get('/', optionalAuthenticate, listTasbihsHandler);
 
 /**
  * @openapi

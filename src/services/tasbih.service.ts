@@ -135,6 +135,25 @@ export function listTasbihs(): TasbihCatalogItem[] {
   }));
 }
 
+/**
+ * Public catalog, plus the authenticated user's own customs when `userId` is set.
+ * Never includes other users' customs. Response stays a flat array.
+ */
+export async function listTasbihsForViewer(userId?: string | null) {
+  const catalog = listTasbihs();
+  if (!userId) return catalog;
+
+  const customs = await listUserTasbihs(userId);
+  const base = catalog.length;
+  return [
+    ...catalog,
+    ...customs.map((item) => ({
+      ...item,
+      order: base + item.order,
+    })),
+  ];
+}
+
 export type UserTasbihItem = {
   id: string;
   order: number;
