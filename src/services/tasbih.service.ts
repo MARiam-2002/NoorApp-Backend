@@ -58,6 +58,45 @@ export function listDhikrOptions(): DhikrOption[] {
   }));
 }
 
+/**
+ * Catalog for GET /tasbihs — ordered picker list for Flutter.
+ *
+ * `count` is set only when a fixed repetition is established in Sahih sources
+ * (e.g. 33× after each prayer for سبحان الله / الحمد لله / الله أكبر — Muslim 597).
+ * Otherwise `count` is null (open-ended / no single fixed number for the short form).
+ *
+ * Texts match the existing TasbihDhikr enum so PATCH /tasbih/change-dhikr accepts `id`.
+ */
+export type TasbihCatalogItem = {
+  id: Dhikr;
+  order: number;
+  text: string;
+  count: number | null;
+};
+
+/** Authentic after-salah tasbih count (Sahih Muslim 597). */
+const AFTER_SALAH_COUNT = 33;
+
+const TASBIH_CATALOG: ReadonlyArray<Omit<TasbihCatalogItem, 'order'>> = [
+  { id: Dhikr.SUBHAN_ALLAH, text: 'سبحان الله', count: AFTER_SALAH_COUNT },
+  { id: Dhikr.ALHAMDULILLAH, text: 'الحمد لله', count: AFTER_SALAH_COUNT },
+  { id: Dhikr.LA_ILAHA_ILLA_ALLAH, text: 'لا إله إلا الله', count: null },
+  { id: Dhikr.ALLAHU_AKBAR, text: 'الله أكبر', count: AFTER_SALAH_COUNT },
+  { id: Dhikr.ASTAGHFIRULLAH, text: 'أستغفر الله', count: null },
+  {
+    id: Dhikr.LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH,
+    text: 'لا حول ولا قوة إلا بالله',
+    count: null,
+  },
+];
+
+export function listTasbihs(): TasbihCatalogItem[] {
+  return TASBIH_CATALOG.map((item, index) => ({
+    ...item,
+    order: index + 1,
+  }));
+}
+
 const TASBIH_DAILY_GOAL = 99;
 
 export type ContractTasbih = {

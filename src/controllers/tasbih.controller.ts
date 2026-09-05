@@ -8,6 +8,7 @@ import {
   changeDhikr,
   getTasbihHistory,
   getDhikrArName,
+  listTasbihs,
 } from '../services/tasbih.service';
 
 const DAILY_TASBIH_GOAL = 99;
@@ -20,6 +21,12 @@ function enrichTasbihResponse(result: { dhikr: string; count: number; [k: string
     progressPercent: Math.min(100, Math.round((result.count / DAILY_TASBIH_GOAL) * 100)),
   };
 }
+
+/** GET /tasbihs — static ordered catalog for the dhikr picker. */
+export const listTasbihsHandler = asyncHandler(async (req: Request, res: Response) => {
+  const items = listTasbihs();
+  sendSuccess(res, items, 'Tasbih catalog retrieved successfully', req);
+});
 
 export const getTodayHandler = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.sub;
