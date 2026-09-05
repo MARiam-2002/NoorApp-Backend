@@ -586,7 +586,7 @@ function buildSwaggerSpec() {
             },
             currentDhikr: {
               type: 'string',
-              enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH'],
+              enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH', 'SUBHAN_ALLAHI_WA_BIHAMDIHI', 'LA_ILAHA_ILLA_ALLAH_WAHDAHU', 'SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM'],
               example: 'SUBHAN_ALLAH',
             },
             currentDhikrAr: {
@@ -633,7 +633,7 @@ function buildSwaggerSpec() {
           properties: {
             dhikr: {
               type: 'string',
-              enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH'],
+              enum: ['SUBHAN_ALLAH', 'ALHAMDULILLAH', 'LA_ILAHA_ILLA_ALLAH', 'ALLAHU_AKBAR', 'ASTAGHFIRULLAH', 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH', 'SUBHAN_ALLAHI_WA_BIHAMDIHI', 'LA_ILAHA_ILLA_ALLAH_WAHDAHU', 'SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM'],
               example: 'ALHAMDULILLAH',
               description:
                 'الذكر الجديد المراد التبديل إليه. التبديل يقوم تلقائياً بتصفير currentDhikrCount فقط (العدد داخل الدائرة) مع الحفاظ على todayCount كما هو (المجموع التراكمي).',

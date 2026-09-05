@@ -1,0 +1,5 @@
+-- Authentic counter-adhkar values for GET /tasbihs (Sahih Bukhari / Muslim).
+-- ADD VALUE IF NOT EXISTS is safe to re-run on Neon (PostgreSQL 9.1+).
+ALTER TYPE "TasbihDhikr" ADD VALUE IF NOT EXISTS 'SUBHAN_ALLAHI_WA_BIHAMDIHI';
+ALTER TYPE "TasbihDhikr" ADD VALUE IF NOT EXISTS 'LA_ILAHA_ILLA_ALLAH_WAHDAHU';
+ALTER TYPE "TasbihDhikr" ADD VALUE IF NOT EXISTS 'SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM';

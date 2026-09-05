@@ -14,6 +14,12 @@ export enum Dhikr {
   ALLAHU_AKBAR = 'ALLAHU_AKBAR',
   ASTAGHFIRULLAH = 'ASTAGHFIRULLAH',
   LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH = 'LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH',
+  /** Sahih al-Bukhari 6405 / Sahih Muslim — 100× daily */
+  SUBHAN_ALLAHI_WA_BIHAMDIHI = 'SUBHAN_ALLAHI_WA_BIHAMDIHI',
+  /** Completes 100 after 33×3 (Muslim 597a); also 100× daily (Bukhari/Muslim) */
+  LA_ILAHA_ILLA_ALLAH_WAHDAHU = 'LA_ILAHA_ILLA_ALLAH_WAHDAHU',
+  /** Sahih al-Bukhari 6406 — two words light on the tongue; no fixed count */
+  SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM = 'SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM',
 }
 
 const dhikrArNamesMap: Record<Dhikr, string> = {
@@ -23,6 +29,11 @@ const dhikrArNamesMap: Record<Dhikr, string> = {
   [Dhikr.ALLAHU_AKBAR]: 'الله أكبر',
   [Dhikr.ASTAGHFIRULLAH]: 'أستغفر الله',
   [Dhikr.LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH]: 'لا حول ولا قوة إلا بالله',
+  [Dhikr.SUBHAN_ALLAHI_WA_BIHAMDIHI]: 'سبحان الله وبحمده',
+  [Dhikr.LA_ILAHA_ILLA_ALLAH_WAHDAHU]:
+    'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد، وهو على كل شيء قدير',
+  [Dhikr.SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM]:
+    'سبحان الله وبحمده، سبحان الله العظيم',
 };
 
 const dhikrEnNamesMap: Record<Dhikr, string> = {
@@ -32,6 +43,11 @@ const dhikrEnNamesMap: Record<Dhikr, string> = {
   [Dhikr.ALLAHU_AKBAR]: 'Allah is the Greatest',
   [Dhikr.ASTAGHFIRULLAH]: 'I seek forgiveness from Allah',
   [Dhikr.LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH]: 'There is no power nor strength except through Allah',
+  [Dhikr.SUBHAN_ALLAHI_WA_BIHAMDIHI]: 'Glory be to Allah and praise be to Him',
+  [Dhikr.LA_ILAHA_ILLA_ALLAH_WAHDAHU]:
+    'There is no god but Allah alone, with no partner. His is the dominion and His is the praise, and He is Able to do all things',
+  [Dhikr.SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM]:
+    'Glory be to Allah and praise be to Him; Glory be to Allah the Magnificent',
 };
 
 export function getDhikrArName(dhikr: string): string {
@@ -61,11 +77,16 @@ export function listDhikrOptions(): DhikrOption[] {
 /**
  * Catalog for GET /tasbihs — ordered picker list for Flutter.
  *
- * `count` is set only when a fixed repetition is established in Sahih sources
- * (e.g. 33× after each prayer for سبحان الله / الحمد لله / الله أكبر — Muslim 597).
- * Otherwise `count` is null (open-ended / no single fixed number for the short form).
+ * Sources (Sahih only for fixed counts):
+ * - Muslim 597a: after every prayer — سبحان الله / الحمد لله / الله أكبر ×33,
+ *   then completes 100 with the long tahlil (once).
+ * - Bukhari 6405 / Muslim: سبحان الله وبحمده ×100 in a day (and morning/evening).
+ * - Bukhari/Muslim: long tahlil ×100 in a day.
+ * - Bukhari 6406: سبحان الله وبحمده، سبحان الله العظيم (virtue; no fixed count).
+ * - Bukhari / Muslim: لا حول ولا قوة إلا بالله (treasure of Paradise; no fixed count).
  *
- * Texts match the existing TasbihDhikr enum so PATCH /tasbih/change-dhikr accepts `id`.
+ * `count` is set only when a single fixed repetition is established in Sahih;
+ * otherwise null. Texts 1–6 match the Flutter "اختر الذكر" sheet.
  */
 export type TasbihCatalogItem = {
   id: Dhikr;
@@ -74,8 +95,10 @@ export type TasbihCatalogItem = {
   count: number | null;
 };
 
-/** Authentic after-salah tasbih count (Sahih Muslim 597). */
+/** After-salah tasbih (Sahih Muslim 597a). */
 const AFTER_SALAH_COUNT = 33;
+/** Daily count in Sahih for سبحان الله وبحمده and the long tahlil. */
+const DAILY_HUNDRED_COUNT = 100;
 
 const TASBIH_CATALOG: ReadonlyArray<Omit<TasbihCatalogItem, 'order'>> = [
   { id: Dhikr.SUBHAN_ALLAH, text: 'سبحان الله', count: AFTER_SALAH_COUNT },
@@ -86,6 +109,21 @@ const TASBIH_CATALOG: ReadonlyArray<Omit<TasbihCatalogItem, 'order'>> = [
   {
     id: Dhikr.LA_HAWLA_WA_LA_QUWWATA_ILLA_BILLAH,
     text: 'لا حول ولا قوة إلا بالله',
+    count: null,
+  },
+  {
+    id: Dhikr.SUBHAN_ALLAHI_WA_BIHAMDIHI,
+    text: 'سبحان الله وبحمده',
+    count: DAILY_HUNDRED_COUNT,
+  },
+  {
+    id: Dhikr.LA_ILAHA_ILLA_ALLAH_WAHDAHU,
+    text: 'لا إله إلا الله وحده لا شريك له، له الملك وله الحمد، وهو على كل شيء قدير',
+    count: DAILY_HUNDRED_COUNT,
+  },
+  {
+    id: Dhikr.SUBHAN_ALLAHI_WA_BIHAMDIHI_SUBHAN_ALLAHI_L_AZIM,
+    text: 'سبحان الله وبحمده، سبحان الله العظيم',
     count: null,
   },
 ];
