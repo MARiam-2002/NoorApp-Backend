@@ -33,6 +33,10 @@ const tasbihIdParamsSchema = z.object({
  *       Without auth: public/default catalog only.
  *       With valid Bearer: catalog + that user's custom tasbihs only (never other users).
  *       Each item has `id`, `order`, `text`, `count`. Customs also include `isCustom: true`.
+ *       In Swagger: click Authorize and paste the access token first — otherwise only the public catalog is returned.
+ *     security:
+ *       - {}
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List retrieved
