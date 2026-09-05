@@ -30,6 +30,20 @@ function enrichTasbihResponse(result: { dhikr: string; count: number; [k: string
  * User id always comes from `req.user.sub` (token), never from the client body.
  */
 export const listTasbihsHandler = asyncHandler(async (req: Request, res: Response) => {
+  // Prevent CDN/proxy from serving a public catalog response to authenticated callers.
+  res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  // Append so we don't clobber CORS Vary values.
+  const existingVary = res.getHeader('Vary');
+  const varyParts = new Set(
+    String(existingVary || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+  varyParts.add('Authorization');
+  res.setHeader('Vary', [...varyParts].join(', '));
+
   const userId = req.user?.sub;
   const items = await listTasbihsForViewer(userId);
   sendSuccess(

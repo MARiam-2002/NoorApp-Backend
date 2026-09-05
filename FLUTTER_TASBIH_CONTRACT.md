@@ -20,10 +20,10 @@ Related:
 | Area | Status |
 |------|--------|
 | Session APIs (`/tasbih/*`) | Implemented + Production-live (auth required) |
-| Global catalog (`GET /tasbihs`) | Implemented + Production-verified (public) |
+| Global catalog (`GET /tasbihs`) | Implemented + Production-verified (public without token) |
+| Personal list merge (`GET /tasbihs` + Bearer) | Implemented + verified — catalog + **that user’s** customs only |
 | Personal custom add (`POST /tasbihs`) | Implemented + Production-live (auth required) |
-| Personal custom remove (`DELETE /tasbihs/:id`) | Implemented + Production-live (auth required) |
-| Personal custom **list** (`GET` of user customs) | **Not exposed** — service helper exists; no HTTP route yet |
+| Personal custom remove (`DELETE /tasbihs/:id`) | Implemented + Production-live (auth required; owner only) |
 | Dashboard utility flag | `utilities.tasbih.enabled: true` on `GET /dashboard` |
 
 ---
@@ -89,21 +89,28 @@ Dashboard only exposes a launch flag under `utilities.tasbih.enabled` — it doe
 
 ---
 
-## 2) Global catalog — `GET /tasbihs` (public)
+## 2) List — `GET /tasbihs` (optional auth)
 
 ### Request
 
 ```http
 GET /api/v1/tasbihs
+Authorization: Bearer <accessToken>   # optional
 ```
 
-No auth. No query params.
+No query params. **User id is never taken from the body/query** — only from a valid access token when present.
+
+| Auth | `data` contents |
+|------|-----------------|
+| No Bearer / invalid token | Public/default catalog only (9 items) |
+| Valid Bearer | Public catalog **plus** that user’s own custom tasbihs |
+| — | Never returns another user’s customs |
 
 ### Response `data`
 
 `data` is a **JSON array** (not wrapped in `{ items: … }`).
 
-Each element:
+Catalog elements:
 
 | Field | Type | Meaning |
 |-------|------|---------|
@@ -111,6 +118,14 @@ Each element:
 | `order` | int | 1-based display order |
 | `text` | string | Arabic phrase for the picker UI |
 | `count` | int \| null | Suggested target repetitions when an authentic fixed count exists; otherwise `null` |
+
+Custom elements (only when authenticated) also include:
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `id` | uuid | Personal row id (for `DELETE /tasbihs/:id`) |
+| `isCustom` | `true` | Marks a user-owned phrase |
+| `order` | int | Continues after catalog (`catalogLength + sortOrder`) |
 
 ### Production-verified catalog (9 items)
 
@@ -148,15 +163,16 @@ Each element:
 
 ### Flutter notes
 
-- Prefer this endpoint for the **اختر الذكر** sheet instead of hardcoding the first six phrases.  
+- Prefer this endpoint for the **اختر الذكر** sheet instead of hardcoding.  
+- Call with Bearer after login so personal customs appear in the same list.  
 - Catalog `id` values are the **only** values accepted by `PATCH /tasbih/change-dhikr`.  
-- Custom personal phrases (below) use UUID `id`s — they are **not** valid `change-dhikr` enum values.
+- Custom personal phrases use UUID `id`s — they are **not** valid `change-dhikr` enum values.
 
 ---
 
 ## 3) Personal custom list — add / remove (auth)
 
-Stored per user in `user_tasbihs`. Scoped to the authenticated user only.
+Stored per user in `user_tasbihs`. Scoped to the authenticated user only (`req.user.sub` from the token).
 
 ### 3.1 Add — `POST /tasbihs`
 
@@ -237,14 +253,7 @@ Authorization: Bearer <accessToken>
 
 Catalog items cannot be deleted via this endpoint (they are not rows in `user_tasbihs`).
 
-### 3.3 Important gap
-
-There is **no** Production HTTP endpoint today that returns the full personal custom list (`listUserTasbihs` exists only in Backend service code).
-
-Flutter must:
-
-- Keep the `id` returned from `POST /tasbihs`, and/or  
-- Persist personal customs locally until a list endpoint is added.
+After add/remove, refresh with `GET /tasbihs` + Bearer to reload the merged list.
 
 ---
 
@@ -404,7 +413,7 @@ This is **not** a paginated `{ data, meta.page }` envelope today — it is a pla
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/tasbihs` | No | Global authentic catalog |
+| GET | `/tasbihs` | Optional | Catalog; + own customs if Bearer valid |
 | POST | `/tasbihs` | Yes | Add personal custom phrase |
 | DELETE | `/tasbihs/:id` | Yes | Remove own custom phrase |
 | GET | `/tasbih/today` | Yes | Today counter state |
@@ -418,14 +427,15 @@ This is **not** a paginated `{ data, meta.page }` envelope today — it is a pla
 ## 6) Flutter integration checklist
 
 - [ ] Load picker from `GET /tasbihs` (do not hardcode catalog)  
-- [ ] Show `text`; use catalog `count` as optional target UI when non-null  
+- [ ] After login, call `GET /tasbihs` with Bearer so customs appear  
+- [ ] Show `text`; use `count` as optional target UI when non-null  
 - [ ] On select catalog item → `PATCH /tasbih/change-dhikr` with `{ "dhikr": "<id>" }`  
 - [ ] Screen open → `GET /tasbih/today`  
 - [ ] Circle tap → `POST /tasbih/increment` (optimistic UI OK; reconcile on response)  
 - [ ] Reset button → `POST /tasbih/reset`  
 - [ ] Treat `todayCount` / `currentDhikrCount` / `count` as **one** server counter today  
-- [ ] Custom add → `POST /tasbihs`; store returned `id` locally  
-- [ ] Custom remove → `DELETE /tasbihs/:id`  
+- [ ] Custom add → `POST /tasbihs`; refresh list via `GET /tasbihs`  
+- [ ] Custom remove → `DELETE /tasbihs/:id` (only customs with `isCustom: true`)  
 - [ ] Do **not** send custom UUID to `change-dhikr`  
 - [ ] Haptics / animation are client-only  
 - [ ] Offline: session APIs are online-authoritative — show offline banner; do not invent silent sync unless you add an outbox yourself  
@@ -446,11 +456,10 @@ This is **not** a paginated `{ data, meta.page }` envelope today — it is a pla
 
 ## 8) Known limitations (current Backend)
 
-1. **No GET for personal customs** — only POST/DELETE.  
-2. **Single daily counter** — not separate per-dhikr counters server-side.  
-3. **`change-dhikr` does not reset count.**  
-4. **History `page` query is not applied.**  
-5. Custom phrases are **picker/list data only** until a future change allows counting them via `/tasbih/*`.
+1. **Single daily counter** — not separate per-dhikr counters server-side.  
+2. **`change-dhikr` does not reset count.**  
+3. **History `page` query is not applied.**  
+4. Custom phrases are **picker/list data only** until a future change allows counting them via `/tasbih/*`.
 
 ---
 
