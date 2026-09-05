@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
+import { HttpStatus } from '../config';
 import {
   getTodayTasbih,
   incrementTasbih,
@@ -9,6 +10,8 @@ import {
   getTasbihHistory,
   getDhikrArName,
   listTasbihs,
+  addUserTasbih,
+  removeUserTasbih,
 } from '../services/tasbih.service';
 
 const DAILY_TASBIH_GOAL = 99;
@@ -26,6 +29,22 @@ function enrichTasbihResponse(result: { dhikr: string; count: number; [k: string
 export const listTasbihsHandler = asyncHandler(async (req: Request, res: Response) => {
   const items = listTasbihs();
   sendSuccess(res, items, 'Tasbih catalog retrieved successfully', req);
+});
+
+/** POST /tasbihs — add a custom phrase to the logged-in user's personal list. */
+export const addUserTasbihHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const { text, count } = req.body as { text: string; count?: number | null };
+  const data = await addUserTasbih(userId, { text, count });
+  sendSuccess(res, data, 'Custom tasbih added to your list', req, HttpStatus.CREATED);
+});
+
+/** DELETE /tasbihs/:id — remove a custom phrase from the logged-in user's personal list. */
+export const removeUserTasbihHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const id = String(req.params.id ?? '');
+  const data = await removeUserTasbih(userId, id);
+  sendSuccess(res, data, 'Custom tasbih removed from your list', req);
 });
 
 export const getTodayHandler = asyncHandler(async (req: Request, res: Response) => {

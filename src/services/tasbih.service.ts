@@ -135,6 +135,108 @@ export function listTasbihs(): TasbihCatalogItem[] {
   }));
 }
 
+export type UserTasbihItem = {
+  id: string;
+  order: number;
+  text: string;
+  count: number | null;
+  isCustom: true;
+};
+
+function normalizeTasbihText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function toUserTasbihItem(row: {
+  id: string;
+  text: string;
+  count: number | null;
+  sortOrder: number;
+}): UserTasbihItem {
+  return {
+    id: row.id,
+    order: row.sortOrder,
+    text: row.text,
+    count: row.count,
+    isCustom: true,
+  };
+}
+
+/** Personal custom list for the logged-in user only. */
+export async function listUserTasbihs(userId: string): Promise<UserTasbihItem[]> {
+  const rows = await prisma.userTasbih.findMany({
+    where: { userId },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+  });
+  return rows.map(toUserTasbihItem);
+}
+
+export async function addUserTasbih(
+  userId: string,
+  input: { text: string; count?: number | null },
+): Promise<UserTasbihItem> {
+  const text = normalizeTasbihText(input.text);
+  if (!text) {
+    throw new AppError('Tasbih text is required', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  if (text.length > 500) {
+    throw new AppError(
+      'Tasbih text must be at most 500 characters',
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+    );
+  }
+
+  let count: number | null = null;
+  if (input.count !== undefined && input.count !== null) {
+    if (!Number.isInteger(input.count) || input.count < 1 || input.count > 100_000) {
+      throw new AppError(
+        'count must be a positive integer (or null)',
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.VALIDATION_ERROR,
+      );
+    }
+    count = input.count;
+  }
+
+  const existing = await prisma.userTasbih.findUnique({
+    where: { userId_text: { userId, text } },
+  });
+  if (existing) {
+    throw new AppError(
+      'This tasbih is already in your personal list',
+      HttpStatus.CONFLICT,
+      ErrorCodes.CONFLICT,
+    );
+  }
+
+  const maxOrder = await prisma.userTasbih.aggregate({
+    where: { userId },
+    _max: { sortOrder: true },
+  });
+  const sortOrder = (maxOrder._max.sortOrder ?? 0) + 1;
+
+  const row = await prisma.userTasbih.create({
+    data: { userId, text, count, sortOrder },
+  });
+  return toUserTasbihItem(row);
+}
+
+export async function removeUserTasbih(userId: string, tasbihId: string): Promise<{ removed: boolean }> {
+  const existing = await prisma.userTasbih.findFirst({
+    where: { id: tasbihId, userId },
+  });
+  if (!existing) {
+    throw new AppError(
+      'Custom tasbih not found',
+      HttpStatus.NOT_FOUND,
+      ErrorCodes.NOT_FOUND,
+    );
+  }
+  await prisma.userTasbih.delete({ where: { id: existing.id } });
+  return { removed: true };
+}
+
 const TASBIH_DAILY_GOAL = 99;
 
 export type ContractTasbih = {

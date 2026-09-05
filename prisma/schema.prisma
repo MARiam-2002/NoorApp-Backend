@@ -52,6 +52,7 @@ model User {
   refreshTokens           RefreshToken[]
   tasbihLogs              TasbihLog[]
   tasbihResetHistory      TasbihResetHistory[]
+  userTasbihs             UserTasbih[]
   adhkarFavorites         AdhkarFavorite[]
   adhkarResumeMarks       AdhkarResumeMark[]
 
@@ -294,6 +295,23 @@ model TasbihResetHistory {
 
   @@index([userId, date])
   @@map("tasbih_reset_history")
+}
+
+/// Per-user custom tasbih / dhikr phrases for the personal picker list.
+model UserTasbih {
+  id        String   @id @default(uuid())
+  userId    String
+  text      String
+  /// Optional target repetition; null = open-ended.
+  count     Int?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, text])
+  @@index([userId, sortOrder])
+  @@map("user_tasbihs")
 }
 
 model DhikrCategory {
