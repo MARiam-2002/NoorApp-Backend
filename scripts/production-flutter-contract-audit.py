@@ -44,21 +44,23 @@ def req(method: str, path: str, body=None, token: str | None = None, timeout=45)
 
 def ok(name: str, cond: bool, detail: str = ""):
     global PASS, FAIL
+    detail_s = str(detail).encode("ascii", "replace").decode("ascii") if detail else ""
     if cond:
         PASS += 1
-        RESULTS.append(("PASS", name, detail))
-        print(f"  PASS  {name}" + (f" — {detail}" if detail else ""))
+        RESULTS.append(("PASS", name, detail_s))
+        print(f"  PASS  {name}" + (f" -- {detail_s}" if detail_s else ""))
     else:
         FAIL += 1
-        RESULTS.append(("FAIL", name, detail))
-        print(f"  FAIL  {name}" + (f" — {detail}" if detail else ""))
+        RESULTS.append(("FAIL", name, detail_s))
+        print(f"  FAIL  {name}" + (f" -- {detail_s}" if detail_s else ""))
 
 
 def warn(name: str, detail: str = ""):
     global WARN
+    detail_s = str(detail).encode("ascii", "replace").decode("ascii") if detail else ""
     WARN += 1
-    RESULTS.append(("WARN", name, detail))
-    print(f"  WARN  {name}" + (f" — {detail}" if detail else ""))
+    RESULTS.append(("WARN", name, detail_s))
+    print(f"  WARN  {name}" + (f" -- {detail_s}" if detail_s else ""))
 
 
 def envelope(st: int, body: dict, label: str):
@@ -231,7 +233,10 @@ def main():
     ok("forgot-password always success envelope", st == 200 and body.get("success") is True)
 
     st, body, _ = req("POST", "/auth/forgot-password", {"email": "does-not-exist-noor@invalid.example"})
-    ok("forgot-password generic for unknown email", st == 200 and body.get("success") is True, body.get("message"))
+    if st == 429:
+        warn("forgot-password unknown email", "rate-limited (expected after prior sensitive auth calls)")
+    else:
+        ok("forgot-password generic for unknown email", st == 200 and body.get("success") is True, body.get("message"))
 
     if not access:
         print("\nABORT: no access token — cannot test auth routes")
