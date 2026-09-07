@@ -118,19 +118,11 @@ function enrichPrefs(prefs: AzanPreferences): AzanPreferencesResponse {
   const azanBase = getAzanSoundById(prefs.azanSoundId ?? prefs.voiceId);
   const notificationBase = getNotificationSoundById(prefs.notificationSoundId);
 
-  // Azan: prefer external CDN URL; never rewrite to /azan/media when mediaFile is null.
-  const azanSound: AzanSoundOption =
-    azanBase.mediaFile == null
-      ? {
-          ...azanBase,
-          audioUrl: azanBase.audioUrl,
-          previewUrl: azanBase.previewUrl || azanBase.audioUrl,
-        }
-      : {
-          ...azanBase,
-          audioUrl: mediaAbsoluteUrl(azanBase.mediaFile),
-          previewUrl: mediaAbsoluteUrl(azanBase.mediaFile),
-        };
+  const azanSound: AzanSoundOption = {
+    ...azanBase,
+    audioUrl: mediaAbsoluteUrl(azanBase.mediaFile),
+    previewUrl: mediaAbsoluteUrl(azanBase.mediaFile),
+  };
 
   const notificationSound: NotificationSoundOption = notificationBase.mediaFile
     ? {

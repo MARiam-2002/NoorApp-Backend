@@ -51,21 +51,6 @@ function withAbsoluteUrls<T extends AzanSoundOption | NotificationSoundOption>(
   option: T,
   req?: Request,
 ): T {
-  // External Azan streams already carry absolute audioUrl / previewUrl.
-  if (
-    'provider' in option &&
-    option.provider === 'aladhan_cdn' &&
-    typeof (option as AzanSoundOption).audioUrl === 'string' &&
-    (option as AzanSoundOption).audioUrl.startsWith('http')
-  ) {
-    const azan = option as AzanSoundOption;
-    return {
-      ...option,
-      audioUrl: azan.audioUrl,
-      previewUrl: azan.previewUrl || azan.audioUrl,
-    } as T;
-  }
-
   if (!('mediaFile' in option) || option.mediaFile == null) {
     return { ...option, audioUrl: null, previewUrl: null } as T;
   }
@@ -99,7 +84,7 @@ export function getAudioDefaults(req?: Request) {
     notificationSound,
     sourcePolicy: AUDIO_SOURCE_POLICY,
     famousVoicesAudit: FAMOUS_AZAN_VOICE_AUDIT,
-    note: 'Guests use these defaults locally. Logged-in users sync via GET/PATCH /profile/azan-preferences. Azan audioUrl/previewUrl are external AlAdhan CDN streams (Flutter plays directly). Notification tones remain on /azan/media. See famousVoicesAudit for priority voices still without a working stream.',
+    note: 'Guests use these defaults locally. Logged-in users sync via GET/PATCH /profile/azan-preferences. Azan audioUrl/previewUrl point to Noor /azan/media mirrors of AlAdhan Alafasy Adhans (CDN alone can 502). Notification tones remain on /azan/media. See famousVoicesAudit for priority voices still without a source.',
   };
 }
 

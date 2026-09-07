@@ -367,7 +367,7 @@ Fajr 05:06 · Dhuhr 12:54 · Asr 16:25 · Maghrib 19:11 · Isha 20:29
 | Mishary Rashid Alafasy | **available** (3 AlAdhan CDN streams) |
 | Ali Mulla, Yasser Al-Dosari, Bandar Baleela, Maher Al-Muaiqly, Nasser Al-Qatami, Abdul Rahman Al-Sudais, Ahmed Al-Ajmi, Saad Al-Ghamdi, Nasr El-Din ToubAr | **unavailable** — no reliable labeled Adhan stream URL found |
 
-### 14.3 Production Azan catalog (external CDN)
+### 14.3 Production Azan catalog (Noor-mirrored AlAdhan)
 
 ```http
 GET /api/v1/azan/sounds
@@ -377,15 +377,15 @@ GET /api/v1/azan/sounds
 
 | id | English | Arabic | audioUrl |
 |----|---------|--------|----------|
-| `mishary_alafasy` (default) | Mishary Alafasy | مشاري العفاسي | `https://cdn.aladhan.com/audio/adhans/a4.mp3` |
-| `mishary_alafasy_2` | Mishary Alafasy (Variant 2) | مشاري العفاسي (نسخة ٢) | `https://cdn.aladhan.com/audio/adhans/a7.mp3` |
-| `mishary_alafasy_3` | Mishary Alafasy (Variant 3) | مشاري العفاسي (نسخة ٣) | `https://cdn.aladhan.com/audio/adhans/a9.mp3` |
+| `mishary_alafasy` (default) | Mishary Alafasy | مشاري العفاسي | `/api/v1/azan/media/mishary_alafasy.mp3` |
+| `mishary_alafasy_2` | Mishary Alafasy (Variant 2) | مشاري العفاسي (نسخة ٢) | `/api/v1/azan/media/mishary_alafasy_2.mp3` |
+| `mishary_alafasy_3` | Mishary Alafasy (Variant 3) | مشاري العفاسي (نسخة ٣) | `/api/v1/azan/media/mishary_alafasy_3.mp3` |
 
-Each item includes: `muezzin`, `nameAr`/`nameEn`, descriptions, `previewUrl` (= `audioUrl`), `source`, `streamingAllowed: true`, `selfHostingAllowed: false`.
+**Why mirrored:** `cdn.aladhan.com` intermittently returns **502 Bad Gateway** in browsers/apps. Bytes are mirrored from AlAdhan (`a4`/`a7`/`a9`); Islamic Network allows bundling these Adhan files.
 
-**Removed from production:** all previous Commons Azan recordings (`beautiful_adhan`, `hassan_ii_casablanca`, `aaqib_azeez`, `islamic_call_mahfoudou`, `azan_andrewler`, `adhan_wiki`, `adhan_aishatu`). Legacy ids alias → `mishary_alafasy`.
+Flutter: play `audioUrl` / `previewUrl` from Noor (Range-supported). Do **not** hard-code `cdn.aladhan.com`.
 
-Flutter: play `audioUrl` with the device audio player (HTTPS CDN). Do **not** expect `/azan/media` for Azan voices.
+**Removed:** previous Commons Azan recordings. Legacy ids alias → `mishary_alafasy`.
 
 ### 14.4 Notification catalog (calm / spiritual)
 
@@ -418,4 +418,4 @@ Flutter UX:
 
 ### 14.7 Production verification
 
-See latest deploy notes after this catalog swap.
+Verified live after `9848ef9`: Azan catalog = 3 Mishary Alafasy external streams; old Commons ids absent; CDN audio Range OK; notifications + prayers + Quran intact.

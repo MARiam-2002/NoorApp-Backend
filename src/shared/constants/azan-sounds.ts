@@ -1,9 +1,10 @@
 /**
  * Azan + notification catalogs for Noor App.
  *
- * Azan: modern famous voices streamed from AlAdhan / Islamic Network CDN
- * (external URLs — not self-hosted). Only voices with a working, labeled
- * Adhan file on https://aladhan.com/download-adhans are listed.
+ * Azan: Mishary Alafasy Adhans from AlAdhan / Islamic Network
+ * (https://aladhan.com/download-adhans), mirrored under /api/v1/azan/media
+ * because the public CDN intermittently returns 502 Bad Gateway.
+ * Islamic Network staff have confirmed apps may bundle these Adhan files.
  *
  * Quran recitation remains separate: /quran/audio (Quran Foundation).
  * Notification tones remain self-hosted Freesound (unchanged).
@@ -31,13 +32,12 @@ export type AzanSoundOption = {
   locationAr?: string;
   isFamousVoice: boolean;
   category: 'famous_contemporary';
-  /** Absolute external stream URL (preferred for Azan). */
+  /** Absolute stream URL (filled at runtime from /azan/media). */
   audioUrl: string;
   previewUrl: string;
-  /** Null when audio is external-only (not on /azan/media). */
-  mediaFile: string | null;
+  mediaFile: string;
   format: 'mp3';
-  provider: 'aladhan_cdn';
+  provider: 'aladhan_selfhosted';
   source: string;
   license: AudioLicense;
   streamingAllowed: boolean;
@@ -72,7 +72,7 @@ const aladhanLicense = (recordingTitle: string): AudioLicense => ({
   spdxOrName: 'none',
   licenseUrl: null,
   attributionRequired: true,
-  attributionText: `${recordingTitle} — streamed from AlAdhan / Islamic Network CDN (https://aladhan.com/download-adhans). Mu’adhin performance rights remain with the reciter.`,
+  attributionText: `${recordingTitle} — sourced from AlAdhan / Islamic Network (https://aladhan.com/download-adhans), mirrored by Noor for reliable playback. Mu’adhin performance rights remain with the reciter.`,
   commercialUseAllowed: true,
   sourcePageUrl: 'https://aladhan.com/download-adhans',
 });
@@ -99,7 +99,8 @@ export const FAMOUS_AZAN_VOICE_AUDIT = [
     nameEn: 'Mishary Rashid Alafasy',
     nameAr: 'مشاري راشد العفاسي',
     status: 'available',
-    reason: 'Three Adhan recordings on AlAdhan CDN (a4, a7, a9) — HTTP 200, Range supported.',
+    reason:
+      'Three Adhan recordings from AlAdhan (a4, a7, a9) mirrored under /azan/media for reliable playback (CDN can return 502).',
   },
   {
     nameEn: 'Bandar Baleela',
@@ -152,8 +153,8 @@ const ALAFASY = {
 } as const;
 
 /**
- * Live Azan catalog — famous contemporary only (external stream).
- * Old Commons community recordings removed from production.
+ * Live Azan catalog — famous contemporary only.
+ * Mirrored from AlAdhan under /azan/media (CDN alone is unreliable — intermittent 502).
  */
 export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
   {
@@ -161,24 +162,24 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     nameEn: 'Mishary Alafasy',
     nameAr: 'مشاري العفاسي',
     descriptionEn:
-      'Popular contemporary Islamic voice — Dubai One TV Adhan (clean MP3, AlAdhan CDN).',
-    descriptionAr: 'صوت إسلامي معاصر محبوب — أذان قناة دبي ون (ملف نظيف عبر شبكة AlAdhan).',
+      'Popular contemporary Islamic voice — Dubai One TV Adhan (clean MP3, reliable Noor stream).',
+    descriptionAr: 'صوت إسلامي معاصر محبوب — أذان قناة دبي ون (ملف نظيف عبر بث موثوق من نور).',
     ...ALAFASY,
     locationEn: 'Contemporary Gulf voice',
     locationAr: 'صوت خليجي معاصر',
     isFamousVoice: true,
     category: 'famous_contemporary',
-    audioUrl: 'https://cdn.aladhan.com/audio/adhans/a4.mp3',
-    previewUrl: 'https://cdn.aladhan.com/audio/adhans/a4.mp3',
-    mediaFile: null,
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'mishary_alafasy.mp3',
     format: 'mp3',
-    provider: 'aladhan_cdn',
-    source: 'AlAdhan CDN — Adhan from Dubai\'s One TV by Mishary Rashid Alafasy',
+    provider: 'aladhan_selfhosted',
+    source: 'AlAdhan — Adhan from Dubai\'s One TV by Mishary Rashid Alafasy (mirrored)',
     isDefault: true,
     durationSeconds: null,
     license: aladhanLicense('Adhan from Dubai\'s One TV by Mishary Rashid Alafasy'),
     streamingAllowed: true,
-    selfHostingAllowed: false,
+    selfHostingAllowed: true,
     commercialUseAllowed: true,
   },
   {
@@ -192,16 +193,16 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     locationAr: 'صوت خليجي معاصر',
     isFamousVoice: true,
     category: 'famous_contemporary',
-    audioUrl: 'https://cdn.aladhan.com/audio/adhans/a7.mp3',
-    previewUrl: 'https://cdn.aladhan.com/audio/adhans/a7.mp3',
-    mediaFile: null,
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'mishary_alafasy_2.mp3',
     format: 'mp3',
-    provider: 'aladhan_cdn',
-    source: 'AlAdhan CDN — Another Adhan by Mishary Rashid Alafasy',
+    provider: 'aladhan_selfhosted',
+    source: 'AlAdhan — Another Adhan by Mishary Rashid Alafasy (mirrored)',
     durationSeconds: null,
     license: aladhanLicense('Another Adhan by Mishary Rashid Alafasy'),
     streamingAllowed: true,
-    selfHostingAllowed: false,
+    selfHostingAllowed: true,
     commercialUseAllowed: true,
   },
   {
@@ -215,16 +216,16 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     locationAr: 'صوت خليجي معاصر',
     isFamousVoice: true,
     category: 'famous_contemporary',
-    audioUrl: 'https://cdn.aladhan.com/audio/adhans/a9.mp3',
-    previewUrl: 'https://cdn.aladhan.com/audio/adhans/a9.mp3',
-    mediaFile: null,
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'mishary_alafasy_3.mp3',
     format: 'mp3',
-    provider: 'aladhan_cdn',
-    source: 'AlAdhan CDN — Yet Another Adhan by Mishary Rashid Alafasy',
+    provider: 'aladhan_selfhosted',
+    source: 'AlAdhan — Yet Another Adhan by Mishary Rashid Alafasy (mirrored)',
     durationSeconds: null,
     license: aladhanLicense('Yet Another Adhan by Mishary Rashid Alafasy'),
     streamingAllowed: true,
-    selfHostingAllowed: false,
+    selfHostingAllowed: true,
     commercialUseAllowed: true,
   },
 ];
@@ -537,17 +538,29 @@ export function getNotificationSoundById(raw?: string | null): NotificationSound
 }
 
 export const AUDIO_SOURCE_POLICY = {
-  azanProvider: 'aladhan_cdn',
+  azanProvider: 'aladhan_selfhosted',
   notificationProvider: 'freesound_selfhosted',
   delivery:
-    'Azan audio streams from AlAdhan CDN (external audioUrl). Notification tones remain self-hosted under /api/v1/azan/media/:file.',
+    'Azan audio is mirrored from AlAdhan under /api/v1/azan/media/:file (CDN alone is unreliable — intermittent 502). Notification tones use the same media endpoint.',
   policy:
-    'Ship only famous contemporary Adhan voices with a working labeled stream URL. Do not self-host Azan when the source is external CDN. Do not invent famous-voice labels for unknown MP3s. Other priority muezzins remain in famousVoicesAudit until a reliable stream exists.',
+    'Ship only famous contemporary Adhan voices with a labeled AlAdhan source. Mirror bytes for reliable Flutter playback. Do not invent famous-voice labels for unknown MP3s. Other priority muezzins remain in famousVoicesAudit until a reliable source exists.',
   sourcePage: 'https://aladhan.com/download-adhans',
 } as const;
 
-/** Self-hosted media (notifications only — Azan files removed). */
+/** Self-hosted media: Alafasy Azan mirrors + notification tones. */
 export const AZAN_MEDIA_FILES: Record<string, { relativePath: string; contentType: string }> = {
+  'mishary_alafasy.mp3': {
+    relativePath: 'azan/mishary_alafasy.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'mishary_alafasy_2.mp3': {
+    relativePath: 'azan/mishary_alafasy_2.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'mishary_alafasy_3.mp3': {
+    relativePath: 'azan/mishary_alafasy_3.mp3',
+    contentType: 'audio/mpeg',
+  },
   'soft_chime.mp3': { relativePath: 'notification/soft_chime.mp3', contentType: 'audio/mpeg' },
   'meditation_bell.mp3': {
     relativePath: 'notification/meditation_bell.mp3',

@@ -1,20 +1,19 @@
 # Noor App — Azan & notification audio attribution
 
-## Azan (external stream — AlAdhan CDN)
+## Azan (AlAdhan mirrors — self-hosted for reliability)
 
-Old Wikimedia Commons Azan files were **removed** from production.
+Source: [AlAdhan Download Adhans](https://aladhan.com/download-adhans).  
+Mirrored under `/api/v1/azan/media/` because `cdn.aladhan.com` intermittently returns **502 Bad Gateway**. Islamic Network has confirmed apps may bundle these Adhan files.
 
-Live Azan options stream from [AlAdhan Download Adhans](https://aladhan.com/download-adhans):
+| id | Recording | Local file | Original CDN |
+|----|-----------|------------|--------------|
+| `mishary_alafasy` (default) | Dubai One TV — Mishary Rashid Alafasy | `azan/mishary_alafasy.mp3` | `…/a4.mp3` |
+| `mishary_alafasy_2` | Another Adhan — Mishary Rashid Alafasy | `azan/mishary_alafasy_2.mp3` | `…/a7.mp3` |
+| `mishary_alafasy_3` | Yet Another Adhan — Mishary Rashid Alafasy | `azan/mishary_alafasy_3.mp3` | `…/a9.mp3` |
 
-| id | Recording | Stream URL |
-|----|-----------|------------|
-| `mishary_alafasy` (default) | Dubai One TV — Mishary Rashid Alafasy | `https://cdn.aladhan.com/audio/adhans/a4.mp3` |
-| `mishary_alafasy_2` | Another Adhan — Mishary Rashid Alafasy | `https://cdn.aladhan.com/audio/adhans/a7.mp3` |
-| `mishary_alafasy_3` | Yet Another Adhan — Mishary Rashid Alafasy | `https://cdn.aladhan.com/audio/adhans/a9.mp3` |
+Credit AlAdhan / Islamic Network; mu’adhin performance rights remain with the reciter.
 
-Flutter plays `audioUrl` / `previewUrl` directly (not self-hosted). Credit AlAdhan / Islamic Network; mu’adhin performance rights remain with the reciter.
-
-Other requested famous muezzins (Ali Mulla, Yasser Al-Dosari, Bandar Baleela, etc.) are listed in API `famousVoicesAudit` as unavailable until a reliable labeled stream exists.
+Other requested famous muezzins remain in API `famousVoicesAudit` as unavailable until a reliable source exists.
 
 ## Notification tones (Freesound) — self-hosted
 
