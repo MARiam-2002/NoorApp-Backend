@@ -409,7 +409,7 @@ Flutter **must** show `attributionText` in Settings / About when `attributionReq
 GET /api/v1/azan/sounds
 ```
 
-Defaults: `defaultId = beautiful_adhan` · count = **2**
+Defaults: `defaultId = beautiful_adhan` · count = **3**
 
 #### List notification sounds
 
@@ -433,7 +433,7 @@ Also returns `sourcePolicy` explaining the Al Furqan rejection and self-host del
 GET /api/v1/azan/media/{file}
 ```
 
-Examples: `beautiful_adhan.ogg`, `azan_andrewler.ogg`, `soft_chime.mp3`, `ui_alert.mp3`, `bell_chime.mp3`  
+Examples: `beautiful_adhan.ogg`, `azan_andrewler.ogg`, `islamic_call_mahfoudou.oga`, `soft_chime.mp3`, `ui_alert.mp3`, `bell_chime.mp3`  
 Supports HTTP `Range` (206).
 
 ### 14.5 Available option ids (current Production)
@@ -444,6 +444,7 @@ Supports HTTP `Range` (206).
 |----|--------|---------|
 | `beautiful_adhan` (default) | ogg | CC0 1.0 |
 | `azan_andrewler` | ogg | CC BY-SA 4.0 |
+| `islamic_call_mahfoudou` | oga | CC BY-SA 4.0 |
 
 Legacy ids such as `makkah`, `egypt`, `mishary`, `aaqib_azeez` are **accepted as aliases** and resolve to a license-safe option (they do **not** claim the old recording).
 
@@ -513,11 +514,11 @@ Pre-reminder → play notificationSound.audioUrl (or silent)
 
 ### 14.10 Production verification — audio (Backend)
 
-Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after self-host deploy (`f33b2b5`):
+Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after self-host deploy (includes `islamic_call_mahfoudou` when live):
 
 | Check | Result |
 |-------|--------|
-| `GET /azan/sounds` default `beautiful_adhan`, count 2 | PASS |
+| `GET /azan/sounds` default `beautiful_adhan`, count 3 | PASS (re-verify after this add) |
 | Azan `audioUrl` self-hosted under `/azan/media/` | PASS |
 | Provider `wikimedia_commons_selfhosted` + license fields + commercial allowed | PASS |
 | No IslamCan / Assabile / Google Actions / Wikimedia upload hosts | PASS |
@@ -531,4 +532,4 @@ Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after self-hos
 | `GET /prayers/today` + `/prayers/schedule` Cairo defaults intact | PASS |
 | `GET /quran/reciters` untouched | PASS |
 
-**Summary: 21/21 PASS** — READY for Flutter to consume license-safe self-hosted Azan / notification audio.
+**Summary:** re-verified after adding Mahfoudou option — see latest Production run.

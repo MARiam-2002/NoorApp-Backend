@@ -9,6 +9,7 @@ Wikimedia hotlinking is avoided (rate limits / not recommended for production ap
 |------|-------------|---------|-------------|
 | `azan/beautiful_adhan.ogg` | https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg | CC0 1.0 | Adam-synagda (CC0) |
 | `azan/azan_andrewler.ogg` | https://commons.wikimedia.org/wiki/File:Azan.ogg | CC BY-SA 4.0 | Andrewler (CC BY-SA 4.0) |
+| `azan/islamic_call_mahfoudou.oga` | https://commons.wikimedia.org/wiki/File:Islamic_call_to_worship.oga | CC BY-SA 4.0 | Mahfoudou (CC BY-SA 4.0) |
 
 ## Notification tones (Freesound)
 

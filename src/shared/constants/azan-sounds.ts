@@ -104,6 +104,26 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
       sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Azan.ogg',
     },
   },
+  {
+    id: 'islamic_call_mahfoudou',
+    nameEn: 'Islamic call to worship',
+    nameAr: 'نداء إسلامي للصلاة',
+    muezzinEn: 'Mahfoudou (recording)',
+    muezzinAr: 'محفودو (تسجيل)',
+    audioUrl: '',
+    mediaFile: 'islamic_call_mahfoudou.oga',
+    format: 'oga',
+    provider: 'wikimedia_commons_selfhosted',
+    license: {
+      spdxOrName: 'CC-BY-SA-4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      attributionRequired: true,
+      attributionText:
+        'Islamic call to worship.oga by Mahfoudou (Wikimedia Commons), CC BY-SA 4.0',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Islamic_call_to_worship.oga',
+    },
+  },
 ];
 
 /** Short tones for pre-reminder / prayer notification (license-safe, self-hosted). */
@@ -211,9 +231,9 @@ const AZAN_ID_ALIASES: Record<string, string> = {
   egyptian: 'azan_andrewler',
   cairo: 'azan_andrewler',
   azan4: 'azan_andrewler',
-  turkey: 'azan_andrewler',
-  turkish: 'azan_andrewler',
-  azan5: 'azan_andrewler',
+  turkey: 'islamic_call_mahfoudou',
+  turkish: 'islamic_call_mahfoudou',
+  azan5: 'islamic_call_mahfoudou',
   soft: 'beautiful_adhan',
   gentle: 'beautiful_adhan',
   azan6: 'beautiful_adhan',
@@ -228,9 +248,9 @@ const AZAN_ID_ALIASES: Record<string, string> = {
   yasser_dosari: 'azan_andrewler',
   dosari: 'azan_andrewler',
   azan_andrewler: 'azan_andrewler',
-  // Previously catalogued Commons ids (removed from live catalog while files unavailable):
+  islamic_call_mahfoudou: 'islamic_call_mahfoudou',
+  // Still unavailable (Wikimedia 429); alias to nearest license-safe option:
   aaqib_azeez: 'azan_andrewler',
-  islamic_call_mahfoudou: 'azan_andrewler',
 };
 
 const NOTIFICATION_ID_ALIASES: Record<string, string> = {
@@ -307,6 +327,10 @@ export const AZAN_MEDIA_FILES: Record<
   },
   'azan_andrewler.ogg': {
     relativePath: 'azan/azan_andrewler.ogg',
+    contentType: 'audio/ogg',
+  },
+  'islamic_call_mahfoudou.oga': {
+    relativePath: 'azan/islamic_call_mahfoudou.oga',
     contentType: 'audio/ogg',
   },
   'soft_chime.mp3': {
