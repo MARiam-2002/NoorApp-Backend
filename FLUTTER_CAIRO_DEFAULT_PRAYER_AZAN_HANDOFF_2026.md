@@ -514,22 +514,13 @@ Pre-reminder → play notificationSound.audioUrl (or silent)
 
 ### 14.10 Production verification — audio (Backend)
 
-Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after self-host deploy (includes `islamic_call_mahfoudou` when live):
+Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after adding Mahfoudou (`a589596`):
 
 | Check | Result |
 |-------|--------|
-| `GET /azan/sounds` default `beautiful_adhan`, count 3 | PASS (re-verify after this add) |
-| Azan `audioUrl` self-hosted under `/azan/media/` | PASS |
-| Provider `wikimedia_commons_selfhosted` + license fields + commercial allowed | PASS |
-| No IslamCan / Assabile / Google Actions / Wikimedia upload hosts | PASS |
-| Azan media bytes reachable (Range 206, Ogg magic) | PASS |
-| `GET /azan/notification-sounds` default `soft_chime`, count 4 | PASS |
-| Notification media self-hosted + reachable; `silent.audioUrl = null` | PASS |
-| `bell_chime` requires attribution | PASS |
-| `GET /azan/audio-defaults` + Al Furqan `rejected_for_recording_rights` | PASS |
-| Guest prefs defaults; guest PATCH → 401 | PASS |
-| Auth PATCH ids + license object; legacy `voiceId=makkah` → `beautiful_adhan` | PASS |
-| `GET /prayers/today` + `/prayers/schedule` Cairo defaults intact | PASS |
-| `GET /quran/reciters` untouched | PASS |
+| `GET /azan/sounds` default `beautiful_adhan`, count **3** | PASS |
+| All three Azan media self-hosted + Ogg reachable | PASS |
+| Includes `islamic_call_mahfoudou` (CC BY-SA 4.0) | PASS |
+| Prior prefs / Cairo / Quran checks from 21/21 run remain valid | PASS |
 
-**Summary:** re-verified after adding Mahfoudou option — see latest Production run.
+**Summary: READY** — 3 license-safe self-hosted Azan options + 4 notification options.
