@@ -72,6 +72,8 @@ const updateLocationSchema = z.object({
     .max(180, 'Longitude must be between -180 and 180')
     .optional(),
   timezone: z.string().trim().min(1, 'Timezone must be a non-empty string').optional(),
+  city: z.string().trim().min(1).max(120).optional().nullable(),
+  country: z.string().trim().min(1).max(120).optional().nullable(),
 }).superRefine((val, ctx) => {
   const hasLat = val.latitude !== undefined || val.lat !== undefined;
   const hasLng = val.longitude !== undefined || val.lng !== undefined;
