@@ -327,7 +327,10 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 | Alexandria query | **PASS** — different times |
 | Auth, no saved location | **PASS** — Cairo on `/prayers/today` + `/dashboard` |
 | `GET /profile/azan-preferences` no GPS | **PASS** — Cairo `lastLat`/`lastLng` filled |
-| `PUT /profile/location` then refresh | **PASS** — `locationSource=profile`, real times |
+| `PUT /profile/location` with city | **PASS** — profile + prayers + dashboard show Alexandria |
+| After location refresh | **PASS** — `locationSource=profile`, `isDefaultLocation=false`, Alexandria times |
 
 Sample guest Cairo times on verification day:  
 Fajr 05:06 · Dhuhr 12:54 · Asr 16:25 · Maghrib 19:11 · Isha 20:29
+
+**Backend status: READY**
