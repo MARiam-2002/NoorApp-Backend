@@ -438,4 +438,8 @@ Flutter UX:
 
 ### 14.7 Production verification
 
-Filled after deploy of the polished Islamic UX catalog.
+Verified live after polish deploy (`6e3e2af`): **16/16 PASS**
+
+- Azan catalog: 7 options + `description*` + `previewUrl` + `famousVoicesAudit` (11 blocked)
+- Notification catalog: 7 calm options (no generic game beeps)
+- All media URLs reachable; prefs + legacy aliases; Cairo prayers; Quran reciters intact
