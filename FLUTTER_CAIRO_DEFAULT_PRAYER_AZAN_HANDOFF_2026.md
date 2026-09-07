@@ -513,4 +513,22 @@ Pre-reminder → play notificationSound.audioUrl (or silent)
 
 ### 14.10 Production verification — audio (Backend)
 
-Filled after re-verification on live Production (this change).
+Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after self-host deploy (`f33b2b5`):
+
+| Check | Result |
+|-------|--------|
+| `GET /azan/sounds` default `beautiful_adhan`, count 2 | PASS |
+| Azan `audioUrl` self-hosted under `/azan/media/` | PASS |
+| Provider `wikimedia_commons_selfhosted` + license fields + commercial allowed | PASS |
+| No IslamCan / Assabile / Google Actions / Wikimedia upload hosts | PASS |
+| Azan media bytes reachable (Range 206, Ogg magic) | PASS |
+| `GET /azan/notification-sounds` default `soft_chime`, count 4 | PASS |
+| Notification media self-hosted + reachable; `silent.audioUrl = null` | PASS |
+| `bell_chime` requires attribution | PASS |
+| `GET /azan/audio-defaults` + Al Furqan `rejected_for_recording_rights` | PASS |
+| Guest prefs defaults; guest PATCH → 401 | PASS |
+| Auth PATCH ids + license object; legacy `voiceId=makkah` → `beautiful_adhan` | PASS |
+| `GET /prayers/today` + `/prayers/schedule` Cairo defaults intact | PASS |
+| `GET /quran/reciters` untouched | PASS |
+
+**Summary: 21/21 PASS** — READY for Flutter to consume license-safe self-hosted Azan / notification audio.
