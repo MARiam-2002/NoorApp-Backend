@@ -89,6 +89,8 @@ export const updateLocation = asyncHandler(async (req: Request, res: Response) =
     lat?: number;
     lng?: number;
     timezone?: string;
+    city?: string | null;
+    country?: string | null;
   };
   const latitude = body.latitude !== undefined ? body.latitude : body.lat;
   const longitude = body.longitude !== undefined ? body.longitude : body.lng;
@@ -97,6 +99,8 @@ export const updateLocation = asyncHandler(async (req: Request, res: Response) =
     latitude: latitude as number,
     longitude: longitude as number,
     timezone,
+    city: body.city,
+    country: body.country,
   });
 
   sendSuccess(res, data, 'Location updated successfully', req);

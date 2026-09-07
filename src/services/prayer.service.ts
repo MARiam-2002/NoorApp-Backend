@@ -204,16 +204,20 @@ function buildLocationMeta(
 ): PrayerLocationMeta {
   const locationSource = options?.locationSource ?? 'default_cairo';
   const isDefaultLocation = locationSource === 'default_cairo';
+  const cityFallback =
+    locationSource === 'profile'
+      ? options?.city?.trim() || 'Saved location'
+      : 'Custom';
   return {
     latitude: lat,
     longitude: lng,
-    city: options?.city?.trim() || (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.city : 'Custom'),
+    city: options?.city?.trim() || (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.city : cityFallback),
     cityAr:
       options?.cityAr?.trim() ||
-      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.cityAr : options?.city?.trim() || 'موقع مخصص'),
+      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.cityAr : options?.city?.trim() || 'موقع محفوظ'),
     country:
       options?.country?.trim() ||
-      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.country : 'Unknown'),
+      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.country : options?.country?.trim() || 'Unknown'),
     countryAr:
       options?.countryAr?.trim() ||
       (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.countryAr : 'غير محدد'),

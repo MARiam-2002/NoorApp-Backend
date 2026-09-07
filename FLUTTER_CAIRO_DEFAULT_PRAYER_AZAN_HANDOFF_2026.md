@@ -316,15 +316,18 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 
 ## 13. Production verification (Backend)
 
-Verified against live Production after deploy:
+**VERIFIED ON PRODUCTION** (2026-09-07) against  
+`https://noor-app-backend-one.vercel.app/api/v1`
 
-| Check | Expected |
-|-------|----------|
-| `GET /prayers/today` no auth | **200**, Cairo, `isDefaultLocation: true` |
-| `GET /prayers/schedule` no coords | **200**, Cairo |
-| Explicit Cairo coords vs default | Same city/method; times consistent |
-| Non-Cairo coords | Different times, `locationSource: query` |
-| Auth without saved location | Cairo default on today/dashboard |
-| Auth after location saved | Profile coords, `isDefaultLocation: false` |
+| Check | Result |
+|-------|--------|
+| `GET /prayers/today` no auth | **PASS** — Cairo, `locationSource=default_cairo`, `isDefaultLocation=true` |
+| `GET /prayers/schedule` no coords | **PASS** — same Cairo times |
+| Explicit Cairo query | **PASS** — same times, `locationSource=query` |
+| Alexandria query | **PASS** — different times |
+| Auth, no saved location | **PASS** — Cairo on `/prayers/today` + `/dashboard` |
+| `GET /profile/azan-preferences` no GPS | **PASS** — Cairo `lastLat`/`lastLng` filled |
+| `PUT /profile/location` then refresh | **PASS** — `locationSource=profile`, real times |
 
-See final report in the Backend chat / ops notes for the latest PASS table after deploy.
+Sample guest Cairo times on verification day:  
+Fajr 05:06 · Dhuhr 12:54 · Asr 16:25 · Maghrib 19:11 · Isha 20:29
