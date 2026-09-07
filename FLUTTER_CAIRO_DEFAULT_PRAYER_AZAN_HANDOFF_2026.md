@@ -552,6 +552,19 @@ Pre-reminder
 
 ### 14.9 Production verification — audio (Backend)
 
-Filled after live Production checks in this task (see final report).
+**VERIFIED ON PRODUCTION** (2026-09-07) — **16/16 PASS**
 
-**Backend status: READY** (location + audio after Production PASS)
+| Check | Result |
+|-------|--------|
+| `GET /azan/sounds` | **PASS** — 11 options, default `makkah` |
+| All Azan `audioUrl` reachable | **PASS** |
+| `GET /azan/notification-sounds` | **PASS** — 8 options |
+| All notification URLs reachable | **PASS** (silent has `audioUrl: null`) |
+| `GET /azan/audio-defaults` | **PASS** — `makkah` / `beep_short` |
+| Guest `GET /profile/azan-preferences` | **PASS** — defaults + `isGuestDefaults` |
+| Guest `PATCH` prefs | **PASS** — 401 |
+| Auth save `azanSoundId` + `notificationSoundId` | **PASS** — persists on GET |
+| `GET /prayers/today` + `/schedule` | **PASS** — Cairo defaults unchanged |
+| `GET /quran/reciters` | **PASS** — Quran audio system untouched |
+
+**Backend status: READY** (Cairo location + Azan/notification audio)
