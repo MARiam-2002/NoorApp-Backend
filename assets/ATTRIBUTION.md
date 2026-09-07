@@ -1,22 +1,22 @@
 # Noor App — Azan & notification audio attribution
 
-Self-hosted copies for reliable app delivery. Original licenses unchanged.
+## Azan (external stream — AlAdhan CDN)
 
-## Azan (Wikimedia Commons) — production-safe
+Old Wikimedia Commons Azan files were **removed** from production.
 
-| File | Source page | License | Notes |
-|------|-------------|---------|-------|
-| `azan/beautiful_adhan.ogg` | File:Beautiful_adhan.ogg | CC0 1.0 | Default |
-| `azan/hassan_ii_casablanca.mp3` | File:Llamada_a_oración_Mezquita_Hassan_II.wav | CC BY-SA 4.0 | Mosque field recording |
-| `azan/aaqib_azeez.mp3` | File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3 | CC BY-SA 4.0 | |
-| `azan/islamic_call_mahfoudou.oga` | File:Islamic_call_to_worship.oga | CC BY-SA 4.0 | |
-| `azan/azan_andrewler.ogg` | File:Azan.ogg | CC BY-SA 4.0 | |
-| `azan/adhan_wiki.oga` | File:Adhan_wiki.oga | CC BY-SA 3.0 | |
-| `azan/adhan_aishatu.ogg` | File:Adhan.ogg | CC0 1.0 | |
+Live Azan options stream from [AlAdhan Download Adhans](https://aladhan.com/download-adhans):
 
-Famous Haramain / Egyptian muezzin recordings (Ali Mulla, ToubAr, Refaat, Abdul Basit, Minshawi, Alafasy, Dosari, etc.) are **not** included — no verified redistribution / commercial-app license.
+| id | Recording | Stream URL |
+|----|-----------|------------|
+| `mishary_alafasy` (default) | Dubai One TV — Mishary Rashid Alafasy | `https://cdn.aladhan.com/audio/adhans/a4.mp3` |
+| `mishary_alafasy_2` | Another Adhan — Mishary Rashid Alafasy | `https://cdn.aladhan.com/audio/adhans/a7.mp3` |
+| `mishary_alafasy_3` | Yet Another Adhan — Mishary Rashid Alafasy | `https://cdn.aladhan.com/audio/adhans/a9.mp3` |
 
-## Notification tones (Freesound) — calm / spiritual
+Flutter plays `audioUrl` / `previewUrl` directly (not self-hosted). Credit AlAdhan / Islamic Network; mu’adhin performance rights remain with the reciter.
+
+Other requested famous muezzins (Ali Mulla, Yasser Al-Dosari, Bandar Baleela, etc.) are listed in API `famousVoicesAudit` as unavailable until a reliable labeled stream exists.
+
+## Notification tones (Freesound) — self-hosted
 
 | File | Source | License | UI name |
 |------|--------|---------|---------|
@@ -27,4 +27,4 @@ Famous Haramain / Egyptian muezzin recordings (Ali Mulla, ToubAr, Refaat, Abdul 
 | `notification/bell_chime.mp3` | freesound.org/s/411089/ | CC BY 4.0 | Soft Bell |
 | `notification/hand_bell.mp3` | freesound.org/s/339809/ | CC BY 4.0 | Soft Hand Bell |
 
-Generic game/UI beeps were removed from the live catalog.
+Quran recitation audio is separate (`/quran/audio`) and was not modified.

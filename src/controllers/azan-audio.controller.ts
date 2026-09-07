@@ -27,7 +27,7 @@ export const listAzanSoundsHandler = asyncHandler(async (req: Request, res: Resp
     famousVoicesAudit: FAMOUS_AZAN_VOICE_AUDIT,
     sourcePolicy: {
       ...AUDIO_SOURCE_POLICY,
-      note: 'Production Azan options are license-cleared Commons recordings (self-hosted). Famous Haramain/Egyptian voices remain blocked until written commercial-app rights are obtained — see famousVoicesAudit.',
+      note: 'Azan voices stream from AlAdhan CDN (external audioUrl). Flutter should play audioUrl/previewUrl directly. Old Commons Azan recordings were removed. Priority famous muezzins without a working stream are listed in famousVoicesAudit.',
     },
   };
   sendSuccess(res, data, 'Azan sounds retrieved successfully', req);

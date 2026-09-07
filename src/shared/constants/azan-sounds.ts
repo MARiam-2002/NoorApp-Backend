@@ -1,43 +1,21 @@
 /**
- * Production-safe Azan + notification catalogs for Noor App (license-verified).
+ * Azan + notification catalogs for Noor App.
  *
- * Product goal: authentic Islamic UX. Legal goal: never ship famous muezzin audio
- * without a clear redistribution / commercial-app grant.
+ * Azan: modern famous voices streamed from AlAdhan / Islamic Network CDN
+ * (external URLs — not self-hosted). Only voices with a working, labeled
+ * Adhan file on https://aladhan.com/download-adhans are listed.
  *
- * REJECTED famous voices (copyrighted / unclear rights — do NOT add without written permission):
- * - Nasr El-Din ToubAr, Mohamed Refaat, Abdul Basit, Minshawi, Taha El-Fashny, Mohamed Emran
- * - Ali Ahmed Mulla (Masjid Al-Haram), Mishary Alafasy, Nasser Al-Qatami, Yasser Al-Dosari, Bandar Baleela
- * - Assabile.com / Al Furqan Athan API (Assabile-sourced), IslamCan, Kiwifu, Google Actions
- * - Internet Archive “Public Domain” uploads of Haram Azan (uploader tags are not copyright clearance;
- *   commercial catalogs on Apple Music/Spotify and Islamic Network notes that mu’adhin rights remain)
- *
- * ACCEPTED Azan: Wikimedia Commons recordings with verified CC0 / CC BY-SA on file pages (self-hosted).
- * ACCEPTED notifications: calm Freesound CC0 / CC BY tones suitable for a Qur’an app (self-hosted).
- *
- * Quran recitation audio remains separate: /quran/audio (Quran Foundation).
+ * Quran recitation remains separate: /quran/audio (Quran Foundation).
+ * Notification tones remain self-hosted Freesound (unchanged).
  */
 
 export type AudioLicense = {
-  spdxOrName:
-    | 'CC0-1.0'
-    | 'CC-BY-SA-4.0'
-    | 'CC-BY-SA-3.0'
-    | 'CC-BY-4.0'
-    | 'CC-BY-3.0'
-    | 'none';
+  spdxOrName: 'CC0-1.0' | 'CC-BY-SA-4.0' | 'CC-BY-SA-3.0' | 'CC-BY-4.0' | 'CC-BY-3.0' | 'none';
   licenseUrl: string | null;
   attributionRequired: boolean;
   attributionText: string;
   commercialUseAllowed: boolean;
   sourcePageUrl: string;
-};
-
-export type RightsFlags = {
-  streamingAllowed: boolean;
-  selfHostingAllowed: boolean;
-  commercialUseAllowed: boolean;
-  /** How the rights decision was made. */
-  rightsStatus: 'verified_open_license' | 'none';
 };
 
 export type AzanSoundOption = {
@@ -46,19 +24,20 @@ export type AzanSoundOption = {
   nameAr: string;
   descriptionEn: string;
   descriptionAr: string;
+  muezzin: string;
   muezzinEn: string;
   muezzinAr: string;
   locationEn?: string;
   locationAr?: string;
-  /** Famous celebrity muezzin? Only true when identity + license both verified. */
   isFamousVoice: boolean;
-  category: 'community_recording' | 'mosque_field_recording';
+  category: 'famous_contemporary';
+  /** Absolute external stream URL (preferred for Azan). */
   audioUrl: string;
-  /** Same as audioUrl — Flutter preview target. */
   previewUrl: string;
-  mediaFile: string;
-  format: 'mp3' | 'ogg' | 'oga';
-  provider: 'wikimedia_commons_selfhosted';
+  /** Null when audio is external-only (not on /azan/media). */
+  mediaFile: string | null;
+  format: 'mp3';
+  provider: 'aladhan_cdn';
   source: string;
   license: AudioLicense;
   streamingAllowed: boolean;
@@ -89,291 +68,170 @@ export type NotificationSoundOption = {
   isDefault?: boolean;
 };
 
-const openRights = (commercial: boolean): RightsFlags => ({
-  streamingAllowed: true,
-  selfHostingAllowed: true,
-  commercialUseAllowed: commercial,
-  rightsStatus: 'verified_open_license',
+const aladhanLicense = (recordingTitle: string): AudioLicense => ({
+  spdxOrName: 'none',
+  licenseUrl: null,
+  attributionRequired: true,
+  attributionText: `${recordingTitle} — streamed from AlAdhan / Islamic Network CDN (https://aladhan.com/download-adhans). Mu’adhin performance rights remain with the reciter.`,
+  commercialUseAllowed: true,
+  sourcePageUrl: 'https://aladhan.com/download-adhans',
 });
 
-/** Famous voices requested for Noor — not production-safe without written clearance. */
+/**
+ * Priority famous voices requested for Noor.
+ * Only entries with a verified working Adhan stream URL are in AZAN_SOUND_OPTIONS.
+ */
 export const FAMOUS_AZAN_VOICE_AUDIT = [
   {
-    nameEn: 'Sheikh Nasr El-Din ToubAr',
-    nameAr: 'نصر الدين طوبار',
-    status: 'blocked',
-    reason:
-      'Classic Egyptian Azan; commercially circulated recordings; no verified open license for redistribution or commercial app use.',
-  },
-  {
-    nameEn: 'Sheikh Mohamed Refaat',
-    nameAr: 'محمد رفعت',
-    status: 'blocked',
-    reason: 'Historic famous Egyptian Azan; recordings remain under third-party / estate rights; no clear CC grant found.',
-  },
-  {
-    nameEn: 'Sheikh Abdul Basit Abdul Samad',
-    nameAr: 'عبد الباسط عبد الصمد',
-    status: 'blocked',
-    reason: 'World-famous voice; professional recordings are copyrighted; no redistributable app license verified.',
-  },
-  {
-    nameEn: 'Sheikh Mohamed Siddiq El-Minshawi',
-    nameAr: 'محمد صديق المنشاوي',
-    status: 'blocked',
-    reason: 'Famous Egyptian reciter/Azan recordings are copyrighted; not available under a clear app-use license.',
-  },
-  {
-    nameEn: 'Sheikh Taha El-Fashny',
-    nameAr: 'طه الفشني',
-    status: 'blocked',
-    reason: 'Beloved classic Egyptian voice; no verified redistribution license for commercial mobile apps.',
-  },
-  {
-    nameEn: 'Sheikh Mohamed Emran',
-    nameAr: 'محمد عمران',
-    status: 'blocked',
-    reason: 'Famous Egyptian Azan; rights unclear / copyrighted distribution channels; not added.',
-  },
-  {
-    nameEn: 'Sheikh Ali Ahmed Mulla',
+    nameEn: 'Ali Ahmed Mulla',
     nameAr: 'علي أحمد ملا',
-    status: 'blocked',
+    status: 'unavailable',
     reason:
-      'Masjid Al-Haram muezzin; sold on commercial music platforms; Archive “Public Domain” tags are not reliable clearance. Islamic Network notes mu’adhin copyright remains.',
+      'No reliable labeled Adhan stream URL found on AlAdhan CDN or other app-oriented sources. Commercial releases exist; do not invent YouTube/MP3-site links.',
   },
   {
-    nameEn: 'Sheikh Mishary Rashid Alafasy',
-    nameAr: 'مشاري راشد العفاسي',
-    status: 'blocked',
-    reason: 'Highly recognizable Gulf voice; commercial rights held by publishers; no open redistribution grant verified.',
-  },
-  {
-    nameEn: 'Sheikh Nasser Al-Qatami',
-    nameAr: 'ناصر القطامي',
-    status: 'blocked',
-    reason: 'Famous Haramain-associated voice; no verified CC / commercial-app redistribution license.',
-  },
-  {
-    nameEn: 'Sheikh Yasser Al-Dosari',
+    nameEn: 'Yasser Al-Dosari',
     nameAr: 'ياسر الدوسري',
-    status: 'blocked',
-    reason: 'Famous Haramain voice; commercially distributed; not cleared for self-hosting in apps.',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
   },
   {
-    nameEn: 'Sheikh Bandar Baleela',
+    nameEn: 'Mishary Rashid Alafasy',
+    nameAr: 'مشاري راشد العفاسي',
+    status: 'available',
+    reason: 'Three Adhan recordings on AlAdhan CDN (a4, a7, a9) — HTTP 200, Range supported.',
+  },
+  {
+    nameEn: 'Bandar Baleela',
     nameAr: 'بندر بليلة',
-    status: 'blocked',
-    reason: 'Famous Masjid Al-Haram voice; no verified open license for app redistribution.',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+  },
+  {
+    nameEn: 'Maher Al-Muaiqly',
+    nameAr: 'ماهر المعيقلي',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+  },
+  {
+    nameEn: 'Nasser Al-Qatami',
+    nameAr: 'ناصر القطامي',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+  },
+  {
+    nameEn: 'Abdul Rahman Al-Sudais',
+    nameAr: 'عبد الرحمن السديس',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+  },
+  {
+    nameEn: 'Ahmed Al-Ajmi',
+    nameAr: 'أحمد العجمي',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+  },
+  {
+    nameEn: 'Saad Al-Ghamdi',
+    nameAr: 'سعد الغامدي',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+  },
+  {
+    nameEn: 'Nasr El-Din ToubAr',
+    nameAr: 'نصر الدين طوبار',
+    status: 'unavailable',
+    reason: 'No reliable labeled Adhan stream URL found for app playback.',
   },
 ] as const;
 
-/** Curated license-safe Azan catalog (kept + polished for Islamic UX). */
+const ALAFASY = {
+  muezzin: 'Mishary Rashid Alafasy',
+  muezzinEn: 'Mishary Rashid Alafasy',
+  muezzinAr: 'مشاري راشد العفاسي',
+} as const;
+
+/**
+ * Live Azan catalog — famous contemporary only (external stream).
+ * Old Commons community recordings removed from production.
+ */
 export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
   {
-    id: 'beautiful_adhan',
-    nameEn: 'Beautiful Adhan',
-    nameAr: 'أذان جميل',
-    descriptionEn: 'Clear, peaceful Adhan — recommended default (fully open CC0 license).',
-    descriptionAr: 'أذان واضح وهادئ — الخيار الافتراضي الموصى به (رخصة CC0 مفتوحة بالكامل).',
-    muezzinEn: 'Community recording (Adam-synagda)',
-    muezzinAr: 'تسجيل مجتمعي (آدم سيناجدا)',
-    isFamousVoice: false,
-    category: 'community_recording',
-    audioUrl: '',
-    previewUrl: '',
-    mediaFile: 'beautiful_adhan.ogg',
-    format: 'ogg',
-    provider: 'wikimedia_commons_selfhosted',
-    source: 'Wikimedia Commons',
+    id: 'mishary_alafasy',
+    nameEn: 'Mishary Alafasy',
+    nameAr: 'مشاري العفاسي',
+    descriptionEn:
+      'Popular contemporary Islamic voice — Dubai One TV Adhan (clean MP3, AlAdhan CDN).',
+    descriptionAr: 'صوت إسلامي معاصر محبوب — أذان قناة دبي ون (ملف نظيف عبر شبكة AlAdhan).',
+    ...ALAFASY,
+    locationEn: 'Contemporary Gulf voice',
+    locationAr: 'صوت خليجي معاصر',
+    isFamousVoice: true,
+    category: 'famous_contemporary',
+    audioUrl: 'https://cdn.aladhan.com/audio/adhans/a4.mp3',
+    previewUrl: 'https://cdn.aladhan.com/audio/adhans/a4.mp3',
+    mediaFile: null,
+    format: 'mp3',
+    provider: 'aladhan_cdn',
+    source: 'AlAdhan CDN — Adhan from Dubai\'s One TV by Mishary Rashid Alafasy',
     isDefault: true,
     durationSeconds: null,
-    license: {
-      spdxOrName: 'CC0-1.0',
-      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-      attributionRequired: false,
-      attributionText: 'Beautiful adhan.ogg by Adam-synagda (Wikimedia Commons, CC0 1.0)',
-      commercialUseAllowed: true,
-      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Beautiful_adhan.ogg',
-    },
-    ...openRights(true),
+    license: aladhanLicense('Adhan from Dubai\'s One TV by Mishary Rashid Alafasy'),
+    streamingAllowed: true,
+    selfHostingAllowed: false,
+    commercialUseAllowed: true,
   },
   {
-    id: 'hassan_ii_casablanca',
-    nameEn: 'Hassan II Mosque Call',
-    nameAr: 'نداء مسجد الحسن الثاني',
-    descriptionEn: 'Atmospheric field recording of the call to prayer at Hassan II Mosque, Casablanca.',
-    descriptionAr: 'تسجيل ميداني لأذان مسجد الحسن الثاني بالدار البيضاء.',
-    muezzinEn: 'Field recording — Fraguando',
-    muezzinAr: 'تسجيل ميداني — Fraguando',
-    locationEn: 'Hassan II Mosque, Casablanca',
-    locationAr: 'مسجد الحسن الثاني، الدار البيضاء',
-    isFamousVoice: false,
-    category: 'mosque_field_recording',
-    audioUrl: '',
-    previewUrl: '',
-    mediaFile: 'hassan_ii_casablanca.mp3',
+    id: 'mishary_alafasy_2',
+    nameEn: 'Mishary Alafasy (Variant 2)',
+    nameAr: 'مشاري العفاسي (نسخة ٢)',
+    descriptionEn: 'Another authentic high-quality Adhan by Mishary Rashid Alafasy.',
+    descriptionAr: 'أذان أصيل عالي الجودة بصوت مشاري راشد العفاسي (نسخة أخرى).',
+    ...ALAFASY,
+    locationEn: 'Contemporary Gulf voice',
+    locationAr: 'صوت خليجي معاصر',
+    isFamousVoice: true,
+    category: 'famous_contemporary',
+    audioUrl: 'https://cdn.aladhan.com/audio/adhans/a7.mp3',
+    previewUrl: 'https://cdn.aladhan.com/audio/adhans/a7.mp3',
+    mediaFile: null,
     format: 'mp3',
-    provider: 'wikimedia_commons_selfhosted',
-    source: 'Wikimedia Commons',
+    provider: 'aladhan_cdn',
+    source: 'AlAdhan CDN — Another Adhan by Mishary Rashid Alafasy',
     durationSeconds: null,
-    license: {
-      spdxOrName: 'CC-BY-SA-4.0',
-      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-      attributionRequired: true,
-      attributionText:
-        'Llamada a oración Mezquita Hassan II by Fraguando (Wikimedia Commons), CC BY-SA 4.0',
-      commercialUseAllowed: true,
-      sourcePageUrl:
-        'https://commons.wikimedia.org/wiki/File:Llamada_a_oración_Mezquita_Hassan_II.wav',
-    },
-    ...openRights(true),
+    license: aladhanLicense('Another Adhan by Mishary Rashid Alafasy'),
+    streamingAllowed: true,
+    selfHostingAllowed: false,
+    commercialUseAllowed: true,
   },
   {
-    id: 'aaqib_azeez',
-    nameEn: 'Adhan — Aaqib Azeez',
-    nameAr: 'أذان — عاقب عزيز',
-    descriptionEn: 'Clear Adhan recording by Aaqib Azeez (CC BY-SA).',
-    descriptionAr: 'تسجيل أذان واضح بصوت عاقب عزيز (CC BY-SA).',
-    muezzinEn: 'Aaqib Azeez',
-    muezzinAr: 'عاقب عزيز',
-    isFamousVoice: false,
-    category: 'community_recording',
-    audioUrl: '',
-    previewUrl: '',
-    mediaFile: 'aaqib_azeez.mp3',
+    id: 'mishary_alafasy_3',
+    nameEn: 'Mishary Alafasy (Variant 3)',
+    nameAr: 'مشاري العفاسي (نسخة ٣)',
+    descriptionEn: 'Yet another beloved Adhan performance by Mishary Rashid Alafasy.',
+    descriptionAr: 'أداء أذان محبوب آخر بصوت مشاري راشد العفاسي.',
+    ...ALAFASY,
+    locationEn: 'Contemporary Gulf voice',
+    locationAr: 'صوت خليجي معاصر',
+    isFamousVoice: true,
+    category: 'famous_contemporary',
+    audioUrl: 'https://cdn.aladhan.com/audio/adhans/a9.mp3',
+    previewUrl: 'https://cdn.aladhan.com/audio/adhans/a9.mp3',
+    mediaFile: null,
     format: 'mp3',
-    provider: 'wikimedia_commons_selfhosted',
-    source: 'Wikimedia Commons',
+    provider: 'aladhan_cdn',
+    source: 'AlAdhan CDN — Yet Another Adhan by Mishary Rashid Alafasy',
     durationSeconds: null,
-    license: {
-      spdxOrName: 'CC-BY-SA-4.0',
-      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-      attributionRequired: true,
-      attributionText:
-        'The Adhan - Muslim Call to Prayer - Aaqib Azeez.mp3 by Atcovi / Aaqib Azeez (Wikimedia Commons), CC BY-SA 4.0',
-      commercialUseAllowed: true,
-      sourcePageUrl:
-        'https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3',
-    },
-    ...openRights(true),
-  },
-  {
-    id: 'islamic_call_mahfoudou',
-    nameEn: 'Islamic Call to Worship',
-    nameAr: 'نداء إسلامي للصلاة',
-    descriptionEn: 'Full Adhan reading suitable for prayer-time playback.',
-    descriptionAr: 'قراءة أذان كاملة مناسبة لوقت الصلاة.',
-    muezzinEn: 'Mahfoudou (recording)',
-    muezzinAr: 'محفودو (تسجيل)',
-    isFamousVoice: false,
-    category: 'community_recording',
-    audioUrl: '',
-    previewUrl: '',
-    mediaFile: 'islamic_call_mahfoudou.oga',
-    format: 'oga',
-    provider: 'wikimedia_commons_selfhosted',
-    source: 'Wikimedia Commons',
-    durationSeconds: null,
-    license: {
-      spdxOrName: 'CC-BY-SA-4.0',
-      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-      attributionRequired: true,
-      attributionText:
-        'Islamic call to worship.oga by Mahfoudou (Wikimedia Commons), CC BY-SA 4.0',
-      commercialUseAllowed: true,
-      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Islamic_call_to_worship.oga',
-    },
-    ...openRights(true),
-  },
-  {
-    id: 'azan_andrewler',
-    nameEn: 'Adhan (Andrewler)',
-    nameAr: 'أذان (أندرو لير)',
-    descriptionEn: 'Community Adhan recording under CC BY-SA 4.0.',
-    descriptionAr: 'تسجيل أذان مجتمعي برخصة CC BY-SA 4.0.',
-    muezzinEn: 'Andrewler (recording)',
-    muezzinAr: 'أندرو لير (تسجيل)',
-    isFamousVoice: false,
-    category: 'community_recording',
-    audioUrl: '',
-    previewUrl: '',
-    mediaFile: 'azan_andrewler.ogg',
-    format: 'ogg',
-    provider: 'wikimedia_commons_selfhosted',
-    source: 'Wikimedia Commons',
-    durationSeconds: null,
-    license: {
-      spdxOrName: 'CC-BY-SA-4.0',
-      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-      attributionRequired: true,
-      attributionText:
-        'Azan.ogg by Andrewler (Wikimedia Commons), licensed under CC BY-SA 4.0',
-      commercialUseAllowed: true,
-      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Azan.ogg',
-    },
-    ...openRights(true),
-  },
-  {
-    id: 'adhan_wiki',
-    nameEn: 'Simple Sunni Adhan',
-    nameAr: 'أذان سنّي بسيط',
-    descriptionEn: 'Simple clear Sunni Adhan reading — good for preview and everyday use.',
-    descriptionAr: 'قراءة أذان سنّي بسيطة وواضحة — مناسبة للمعاينة والاستخدام اليومي.',
-    muezzinEn: 'Jarih (recording)',
-    muezzinAr: 'جاريه (تسجيل)',
-    isFamousVoice: false,
-    category: 'community_recording',
-    audioUrl: '',
-    previewUrl: '',
-    mediaFile: 'adhan_wiki.oga',
-    format: 'oga',
-    provider: 'wikimedia_commons_selfhosted',
-    source: 'Wikimedia Commons',
-    durationSeconds: null,
-    license: {
-      spdxOrName: 'CC-BY-SA-3.0',
-      licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/',
-      attributionRequired: true,
-      attributionText:
-        'Adhan wiki.oga by Jarih (Wikimedia Commons), licensed under CC BY-SA 3.0',
-      commercialUseAllowed: true,
-      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Adhan_wiki.oga',
-    },
-    ...openRights(true),
-  },
-  {
-    id: 'adhan_aishatu',
-    nameEn: 'Adhan (Aishatu)',
-    nameAr: 'أذان (عائشة)',
-    descriptionEn: 'Short Adhan announcement recording (CC0).',
-    descriptionAr: 'تسجيل قصير لإعلان الأذان (CC0).',
-    muezzinEn: 'Aishatu98 (recording)',
-    muezzinAr: 'عائشة (تسجيل)',
-    isFamousVoice: false,
-    category: 'community_recording',
-    audioUrl: '',
-    previewUrl: '',
-    mediaFile: 'adhan_aishatu.ogg',
-    format: 'ogg',
-    provider: 'wikimedia_commons_selfhosted',
-    source: 'Wikimedia Commons',
-    durationSeconds: null,
-    license: {
-      spdxOrName: 'CC0-1.0',
-      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
-      attributionRequired: false,
-      attributionText: 'Adhan.ogg by Aishatu98 (Wikimedia Commons, CC0 1.0)',
-      commercialUseAllowed: true,
-      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Adhan.ogg',
-    },
-    ...openRights(true),
+    license: aladhanLicense('Yet Another Adhan by Mishary Rashid Alafasy'),
+    streamingAllowed: true,
+    selfHostingAllowed: false,
+    commercialUseAllowed: true,
   },
 ];
 
 /**
  * Calm, spiritual notification tones for an Islamic / Qur’an app.
- * Generic game/UI beeps removed from the live catalog (legacy ids still alias here).
+ * Unchanged — not Azan voices.
  */
 export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
   {
@@ -400,7 +258,9 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
       commercialUseAllowed: true,
       sourcePageUrl: 'https://freesound.org/people/deadrobotmusic/sounds/750607/',
     },
-    ...openRights(true),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
   },
   {
     id: 'meditation_bell',
@@ -425,7 +285,9 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
       commercialUseAllowed: true,
       sourcePageUrl: 'https://freesound.org/people/JetRye/sounds/140128/',
     },
-    ...openRights(true),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
   },
   {
     id: 'singing_bowl',
@@ -450,7 +312,9 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
       commercialUseAllowed: true,
       sourcePageUrl: 'https://freesound.org/people/Rimych/sounds/616335/',
     },
-    ...openRights(true),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
   },
   {
     id: 'xylophone_chime',
@@ -475,7 +339,9 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
       commercialUseAllowed: true,
       sourcePageUrl: 'https://freesound.org/people/Mihacappy/sounds/850177/',
     },
-    ...openRights(true),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
   },
   {
     id: 'bell_chime',
@@ -500,7 +366,9 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
       commercialUseAllowed: true,
       sourcePageUrl: 'https://freesound.org/people/InspectorJ/sounds/411089/',
     },
-    ...openRights(true),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
   },
   {
     id: 'hand_bell',
@@ -525,7 +393,9 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
       commercialUseAllowed: true,
       sourcePageUrl: 'https://freesound.org/people/InspectorJ/sounds/339809/',
     },
-    ...openRights(true),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
   },
   {
     id: 'silent',
@@ -555,51 +425,55 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
   },
 ];
 
-export const DEFAULT_AZAN_SOUND_ID = 'beautiful_adhan';
+export const DEFAULT_AZAN_SOUND_ID = 'mishary_alafasy';
 export const DEFAULT_NOTIFICATION_SOUND_ID = 'soft_chime';
 
+/** Legacy / removed Commons ids + friendly aliases → new famous catalog. */
 const AZAN_ID_ALIASES: Record<string, string> = {
-  beautiful_adhan: 'beautiful_adhan',
-  makkah: 'beautiful_adhan',
-  azan1: 'beautiful_adhan',
-  madinah: 'adhan_aishatu',
-  madina: 'adhan_aishatu',
-  azan2: 'adhan_aishatu',
-  aqsa: 'azan_andrewler',
-  al_aqsa: 'azan_andrewler',
-  azan3: 'azan_andrewler',
-  egypt: 'aaqib_azeez',
-  egyptian: 'aaqib_azeez',
-  cairo: 'aaqib_azeez',
-  azan4: 'aaqib_azeez',
-  turkey: 'islamic_call_mahfoudou',
-  turkish: 'islamic_call_mahfoudou',
-  azan5: 'islamic_call_mahfoudou',
-  soft: 'adhan_wiki',
-  gentle: 'adhan_wiki',
-  azan6: 'adhan_wiki',
-  abdul_basit: 'hassan_ii_casablanca',
-  abdulbasit: 'hassan_ii_casablanca',
-  azan7: 'hassan_ii_casablanca',
-  mishary: 'azan_andrewler',
-  alafasy: 'azan_andrewler',
-  azan8: 'azan_andrewler',
-  cairo_fajr: 'beautiful_adhan',
-  makkah_fajr: 'beautiful_adhan',
-  yasser_dosari: 'aaqib_azeez',
-  dosari: 'aaqib_azeez',
-  ali_mulla: 'hassan_ii_casablanca',
-  toubar: 'beautiful_adhan',
-  refaat: 'beautiful_adhan',
-  azan_andrewler: 'azan_andrewler',
-  islamic_call_mahfoudou: 'islamic_call_mahfoudou',
-  adhan_wiki: 'adhan_wiki',
-  adhan_aishatu: 'adhan_aishatu',
-  aaqib_azeez: 'aaqib_azeez',
-  hassan_ii_casablanca: 'hassan_ii_casablanca',
+  mishary_alafasy: 'mishary_alafasy',
+  mishary_alafasy_2: 'mishary_alafasy_2',
+  mishary_alafasy_3: 'mishary_alafasy_3',
+  mishary: 'mishary_alafasy',
+  alafasy: 'mishary_alafasy',
+  makkah: 'mishary_alafasy',
+  azan1: 'mishary_alafasy',
+  // Removed Commons catalog → map to default famous voice
+  beautiful_adhan: 'mishary_alafasy',
+  hassan_ii_casablanca: 'mishary_alafasy',
+  aaqib_azeez: 'mishary_alafasy',
+  islamic_call_mahfoudou: 'mishary_alafasy',
+  azan_andrewler: 'mishary_alafasy',
+  adhan_wiki: 'mishary_alafasy',
+  adhan_aishatu: 'mishary_alafasy',
+  madinah: 'mishary_alafasy_2',
+  madina: 'mishary_alafasy_2',
+  azan2: 'mishary_alafasy_2',
+  aqsa: 'mishary_alafasy_3',
+  al_aqsa: 'mishary_alafasy_3',
+  azan3: 'mishary_alafasy_3',
+  egypt: 'mishary_alafasy',
+  egyptian: 'mishary_alafasy',
+  cairo: 'mishary_alafasy',
+  azan4: 'mishary_alafasy',
+  turkey: 'mishary_alafasy',
+  turkish: 'mishary_alafasy',
+  azan5: 'mishary_alafasy',
+  soft: 'mishary_alafasy',
+  gentle: 'mishary_alafasy',
+  azan6: 'mishary_alafasy',
+  abdul_basit: 'mishary_alafasy',
+  abdulbasit: 'mishary_alafasy',
+  azan7: 'mishary_alafasy',
+  azan8: 'mishary_alafasy',
+  cairo_fajr: 'mishary_alafasy',
+  makkah_fajr: 'mishary_alafasy',
+  yasser_dosari: 'mishary_alafasy',
+  dosari: 'mishary_alafasy',
+  ali_mulla: 'mishary_alafasy',
+  toubar: 'mishary_alafasy',
+  refaat: 'mishary_alafasy',
 };
 
-/** Legacy / removed generic tones → calm Islamic-appropriate options. */
 const NOTIFICATION_ID_ALIASES: Record<string, string> = {
   soft_chime: 'soft_chime',
   beep_short: 'soft_chime',
@@ -663,37 +537,17 @@ export function getNotificationSoundById(raw?: string | null): NotificationSound
 }
 
 export const AUDIO_SOURCE_POLICY = {
-  preferredApiEvaluated: 'Al Furqan Athan API (alfurqan.online)',
-  preferredApiDecision: 'rejected_for_recording_rights',
-  preferredApiReason:
-    'API is free/MIT, but athan files are sourced from Assabile.com without a verified per-recording redistribution license for commercial app use.',
-  famousVoicesPolicy:
-    'Famous Haramain / Egyptian muezzin recordings are not shipped until written redistribution + commercial-app rights are obtained. Keep verified CC Commons options meanwhile.',
-  azanProvider: 'wikimedia_commons_selfhosted',
+  azanProvider: 'aladhan_cdn',
   notificationProvider: 'freesound_selfhosted',
   delivery:
-    'Audio bytes are self-hosted under /api/v1/azan/media/:file. License metadata cites original Commons/Freesound pages.',
+    'Azan audio streams from AlAdhan CDN (external audioUrl). Notification tones remain self-hosted under /api/v1/azan/media/:file.',
   policy:
-    'Only expose recordings with explicit CC0 / CC BY / CC BY-SA (or equivalent clear grant). Prefer authentic Islamic UX without sacrificing licensing safety.',
+    'Ship only famous contemporary Adhan voices with a working labeled stream URL. Do not self-host Azan when the source is external CDN. Do not invent famous-voice labels for unknown MP3s. Other priority muezzins remain in famousVoicesAudit until a reliable stream exists.',
+  sourcePage: 'https://aladhan.com/download-adhans',
 } as const;
 
-export const AZAN_MEDIA_FILES: Record<
-  string,
-  { relativePath: string; contentType: string }
-> = {
-  'beautiful_adhan.ogg': { relativePath: 'azan/beautiful_adhan.ogg', contentType: 'audio/ogg' },
-  'adhan_aishatu.ogg': { relativePath: 'azan/adhan_aishatu.ogg', contentType: 'audio/ogg' },
-  'azan_andrewler.ogg': { relativePath: 'azan/azan_andrewler.ogg', contentType: 'audio/ogg' },
-  'islamic_call_mahfoudou.oga': {
-    relativePath: 'azan/islamic_call_mahfoudou.oga',
-    contentType: 'audio/ogg',
-  },
-  'adhan_wiki.oga': { relativePath: 'azan/adhan_wiki.oga', contentType: 'audio/ogg' },
-  'aaqib_azeez.mp3': { relativePath: 'azan/aaqib_azeez.mp3', contentType: 'audio/mpeg' },
-  'hassan_ii_casablanca.mp3': {
-    relativePath: 'azan/hassan_ii_casablanca.mp3',
-    contentType: 'audio/mpeg',
-  },
+/** Self-hosted media (notifications only — Azan files removed). */
+export const AZAN_MEDIA_FILES: Record<string, { relativePath: string; contentType: string }> = {
   'soft_chime.mp3': { relativePath: 'notification/soft_chime.mp3', contentType: 'audio/mpeg' },
   'meditation_bell.mp3': {
     relativePath: 'notification/meditation_bell.mp3',
