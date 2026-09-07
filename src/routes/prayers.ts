@@ -14,68 +14,38 @@ export const prayerRouter = Router();
  * /prayers/today:
  *   get:
  *     tags: ['Prayers']
- *     summary: أوقات الصلاة لليوم الحالي مع حالة التسجيل
- *     description: يرجع أوقات الخمس صلوات مع إشارة لكل صلاة إذا تم تسجيلها أم لا، بالإضافة إلى الصلاة الحالية والقادمة مع العداد التنازلي.
+ *     summary: Today's prayer times (Cairo default before login/location)
+ *     description: |
+ *       - Guest, no lat/lng → Cairo, Egypt defaults (`locationSource=default_cairo`).
+ *       - With lat/lng query → those coordinates (`locationSource=query`).
+ *       - Authenticated, no lat/lng → saved profile location, else Cairo (`profile` or `default_cairo`).
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: latitude
+ *         schema: { type: number, example: 30.0444 }
+ *       - in: query
+ *         name: longitude
+ *         schema: { type: number, example: 31.2357 }
+ *       - in: query
+ *         name: lat
+ *         schema: { type: number }
+ *       - in: query
+ *         name: lng
+ *         schema: { type: number }
+ *       - in: query
+ *         name: timezone
+ *         schema: { type: string, example: Africa/Cairo }
+ *       - in: query
+ *         name: method
+ *         schema: { type: string, example: EGYPT }
+ *       - in: query
+ *         name: madhab
+ *         schema: { type: string, example: SHAFI }
  *     responses:
  *       200:
- *         description: ✅ أوقات الصلاة لليوم
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: أوقات الصلاة لليوم
- *               data:
- *                 date: '2026-07-27'
- *                 city: القاهرة
- *                 country: Egypt
- *                 latitude: 30.0444
- *                 longitude: 31.2357
- *                 currentPrayer: DHUHR
- *                 nextPrayer: ASR
- *                 nextPrayerAt: '2026-07-27T15:24:00.000Z'
- *                 countdownSeconds: 5830
- *                 prayers:
- *                   - id: FAJR
- *                     nameAr: الفجر
- *                     nameEn: Fajr
- *                     time: '03:42'
- *                     time24h: '03:42:00'
- *                     completed: true
- *                     completedAt: '2026-07-27T03:45:12.000Z'
- *                   - id: DHUHR
- *                     nameAr: الظهر
- *                     nameEn: Dhuhr
- *                     time: '12:30'
- *                     time24h: '12:30:00'
- *                     completed: true
- *                     completedAt: '2026-07-27T12:32:00.000Z'
- *                   - id: ASR
- *                     nameAr: العصر
- *                     nameEn: Asr
- *                     time: '15:24'
- *                     time24h: '15:24:00'
- *                     completed: false
- *                     completedAt: null
- *                   - id: MAGHRIB
- *                     nameAr: المغرب
- *                     nameEn: Maghrib
- *                     time: '18:49'
- *                     time24h: '18:49:00'
- *                     completed: false
- *                     completedAt: null
- *                   - id: ISHA
- *                     nameAr: العشاء
- *                     nameEn: Isha
- *                     time: '20:18'
- *                     time24h: '20:18:00'
- *                     completed: false
- *                     completedAt: null
- *               meta: null
- *               timestamp: '2026-07-27T10:30:00.000Z'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
+ *         description: Prayer schedule for today
  */
 prayerRouter.get('/today', optionalAuthenticate, getToday);
 
@@ -133,66 +103,30 @@ prayerRouter.patch('/:id/mark', authenticate, markPrayerHandler);
  * /prayers/schedule:
  *   get:
  *     tags: ['Prayers']
- *     summary: حساب أوقات الصلاة لموقع وتاريخ معين
- *     description: يرجع أوقات الصلاة بناءً على خطوط الطول والعرض والمنطقة الزمنية والتاريخ.
+ *     summary: Prayer schedule for a location/date (Cairo if coords omitted)
+ *     description: |
+ *       Public endpoint. If latitude/longitude are omitted, Backend returns Cairo, Egypt defaults.
  *     parameters:
  *       - in: query
  *         name: latitude
- *         required: true
  *         schema: { type: number, example: 30.0444 }
- *         description: خط العرض
  *       - in: query
  *         name: longitude
- *         required: true
  *         schema: { type: number, example: 31.2357 }
- *         description: خط الطول
  *       - in: query
  *         name: timezone
  *         schema: { type: string, example: Africa/Cairo }
- *         description: المنطقة الزمنية
  *       - in: query
  *         name: date
- *         schema: { type: string, format: date, example: '2026-07-27' }
- *         description: التاريخ (YYYY-MM-DD)
+ *         schema: { type: string, format: date, example: '2026-09-07' }
+ *       - in: query
+ *         name: method
+ *         schema: { type: string, example: EGYPT }
+ *       - in: query
+ *         name: madhab
+ *         schema: { type: string, example: SHAFI }
  *     responses:
  *       200:
- *         description: ✅ أوقات الصلاة
- *         content:
- *           application/json:
- *             example:
- *               success: true
- *               message: تم حساب أوقات الصلاة بنجاح
- *               data:
- *                 date: '2026-07-27'
- *                 latitude: 30.0444
- *                 longitude: 31.2357
- *                 timezone: Africa/Cairo
- *                 method: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
- *                 prayers:
- *                   - id: IMSAK
- *                     nameAr: الإمساك
- *                     time: '03:32'
- *                   - id: FAJR
- *                     nameAr: الفجر
- *                     time: '03:42'
- *                   - id: SUNRISE
- *                     nameAr: الشروق
- *                     time: '05:12'
- *                   - id: DHUHR
- *                     nameAr: الظهر
- *                     time: '12:30'
- *                   - id: ASR
- *                     nameAr: العصر
- *                     time: '15:24'
- *                   - id: MAGHRIB
- *                     nameAr: المغرب
- *                     time: '18:49'
- *                   - id: ISHA
- *                     nameAr: العشاء
- *                     time: '20:18'
- *               meta: null
- *               timestamp: '2026-07-27T10:30:00.000Z'
- *       400:
- *         $ref: '#/components/responses/BadRequest'
+ *         description: Prayer schedule
  */
 prayerRouter.get('/schedule', getSchedule);

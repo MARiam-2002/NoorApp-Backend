@@ -5,6 +5,7 @@ import { sendPushToUser } from './device.service';
 import { getPrayerSchedule } from './prayer.service';
 import { createNotification } from './notification.service';
 import { runSalawatReminders } from './salawat-reminder.service';
+import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
 
 type ScheduleRow = { name: string; time: string };
 
@@ -40,17 +41,22 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
       const prefs = await getAzanPreferences(user.id);
       if (!prefs.azanEnabled || prefs.fcmPrayerBackupEnabled === false) continue;
 
-      const lat = prefs.lastLat ?? user.latitude;
-      const lng = prefs.lastLng ?? user.longitude;
-      if (lat == null || lng == null) continue;
+      // Prefer Azan prefs / profile location; fall back to Cairo for users without GPS yet.
+      const lat = prefs.lastLat ?? user.latitude ?? DEFAULT_PRAYER_LOCATION.latitude;
+      const lng = prefs.lastLng ?? user.longitude ?? DEFAULT_PRAYER_LOCATION.longitude;
+      const tz = user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone;
 
       const schedule = await getPrayerSchedule(
         lat,
         lng,
-        user.timezone,
+        tz,
         undefined,
         prefs.calculationMethod,
         String(prefs.madhab).toUpperCase(),
+        prefs.locationSource === 'default_cairo' ||
+          (user.latitude == null && user.longitude == null && prefs.isDefaultLocation)
+          ? 'default_cairo'
+          : 'profile',
       );
       const rows = (schedule.schedule ?? []) as ScheduleRow[];
 

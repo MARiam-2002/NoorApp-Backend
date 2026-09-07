@@ -6,6 +6,11 @@ import { calculateDailyPrayerSchedule } from './prayer.service';
 import type { DailyPrayerSchedule } from './prayer.service';
 import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
+import {
+  DEFAULT_LATITUDE,
+  DEFAULT_LONGITUDE,
+  DEFAULT_PRAYER_LOCATION,
+} from '../shared/constants/default-location';
 import { DefaultTimezone, PrayerNameEnum, PrayerOrder } from '../utils/constants';
 import { ensureSurahCatalog } from '../lib/quran-catalog';
 import { resolveSurahNameAr, resolveSurahNameEn } from '../lib/surah-names';
@@ -22,8 +27,6 @@ import {
   getDailyChallengeTemplate,
 } from './daily-content.service';
 
-const DEFAULT_LATITUDE = 30.0444;
-const DEFAULT_LONGITUDE = 31.2357;
 const TOTAL_QURAN_PAGES = 604;
 
 export type DashboardData = {
@@ -61,6 +64,16 @@ export type DashboardData = {
     timezone?: string;
     completedCount?: number;
     totalCount?: number;
+    latitude?: number;
+    longitude?: number;
+    city?: string;
+    cityAr?: string;
+    country?: string;
+    countryAr?: string;
+    calculationMethod?: string;
+    madhab?: string;
+    locationSource?: string;
+    isDefaultLocation?: boolean;
   };
   verseOfTheDay: {
     textAr: string;
@@ -148,6 +161,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     timezone: null as string | null,
     latitude: null as number | null,
     longitude: null as number | null,
+    city: null as string | null,
     prayerCalculationMethod: 'EGYPT' as string | null,
   };
 
@@ -163,6 +177,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         timezone: true,
         latitude: true,
         longitude: true,
+        city: true,
         prayerCalculationMethod: true,
       },
     });
@@ -263,6 +278,7 @@ async function buildDashboardPayload(
     timezone: string | null;
     latitude: number | null;
     longitude: number | null;
+    city?: string | null;
     prayerCalculationMethod?: string | null;
   },
 ): Promise<DashboardData> {
@@ -292,9 +308,14 @@ async function buildDashboardPayload(
     ? await getSurah(khatmah.currentSurahId)
     : null;
 
-  const latitude = user.latitude ?? DEFAULT_LATITUDE;
-  const longitude = user.longitude ?? DEFAULT_LONGITUDE;
-  const timezone = user.timezone ?? DefaultTimezone;
+  const hasProfileLocation =
+    user.latitude != null &&
+    user.longitude != null &&
+    Number.isFinite(user.latitude) &&
+    Number.isFinite(user.longitude);
+  const latitude = hasProfileLocation ? (user.latitude as number) : DEFAULT_LATITUDE;
+  const longitude = hasProfileLocation ? (user.longitude as number) : DEFAULT_LONGITUDE;
+  const timezone = user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone;
 
   let prayers: DailyPrayerSchedule;
   try {
@@ -304,13 +325,22 @@ async function buildDashboardPayload(
       timezone,
       completedPrayers as PrayerNameEnum[],
       new Date(),
-      { method: user.prayerCalculationMethod ?? 'EGYPT' },
+      {
+        method: user.prayerCalculationMethod ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
+        locationSource: hasProfileLocation ? 'profile' : 'default_cairo',
+        city: hasProfileLocation ? user.city : DEFAULT_PRAYER_LOCATION.city,
+        cityAr: hasProfileLocation
+          ? user.city ?? undefined
+          : DEFAULT_PRAYER_LOCATION.cityAr,
+        country: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.country,
+        countryAr: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.countryAr,
+      },
     );
   } catch {
     const nowIso = new Date().toISOString();
     prayers = {
       date: nowIso.slice(0, 10),
-      timezone: DefaultTimezone,
+      timezone: DEFAULT_PRAYER_LOCATION.timezone,
       nextPrayer: null,
       schedule: PrayerOrder.map((key) => {
         const name = prayerEnumToTitle(key);
@@ -338,6 +368,16 @@ async function buildDashboardPayload(
       }),
       completedCount: 0,
       totalCount: 5,
+      latitude: DEFAULT_LATITUDE,
+      longitude: DEFAULT_LONGITUDE,
+      city: DEFAULT_PRAYER_LOCATION.city,
+      cityAr: DEFAULT_PRAYER_LOCATION.cityAr,
+      country: DEFAULT_PRAYER_LOCATION.country,
+      countryAr: DEFAULT_PRAYER_LOCATION.countryAr,
+      calculationMethod: DEFAULT_PRAYER_LOCATION.calculationMethodLabel,
+      madhab: DEFAULT_PRAYER_LOCATION.madhab,
+      locationSource: 'default_cairo',
+      isDefaultLocation: true,
     };
   }
 
@@ -406,6 +446,16 @@ async function buildDashboardPayload(
       timezone: prayers.timezone,
       completedCount: prayers.completedCount,
       totalCount: prayers.totalCount,
+      latitude: prayers.latitude,
+      longitude: prayers.longitude,
+      city: prayers.city,
+      cityAr: prayers.cityAr,
+      country: prayers.country,
+      countryAr: prayers.countryAr,
+      calculationMethod: prayers.calculationMethod,
+      madhab: prayers.madhab,
+      locationSource: prayers.locationSource,
+      isDefaultLocation: prayers.isDefaultLocation,
     },
     verseOfTheDay: {
       textAr: verse.textAr,

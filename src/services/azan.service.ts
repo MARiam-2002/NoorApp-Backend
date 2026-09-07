@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
+import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
 
 const prayerTogglesSchema = z.object({
   fajr: z.boolean(),
@@ -22,7 +23,7 @@ export const azanPreferencesSchema = z.object({
     .trim()
     .min(1)
     .max(64)
-    .default('EGYPT'),
+    .default(DEFAULT_PRAYER_LOCATION.calculationMethod),
   madhab: z.enum(['SHAFI', 'HANAFI', 'shafi', 'hanafi']).default('SHAFI'),
   preReminderMinutes: z.coerce.number().int().min(0).max(120).default(15),
   preReminderEnabled: z.boolean().default(true),
@@ -37,6 +38,9 @@ export const azanPreferencesSchema = z.object({
   lastLng: z.number().min(-180).max(180).nullable().optional(),
   lastLocationLabel: z.string().trim().max(200).nullable().optional(),
   fcmPrayerBackupEnabled: z.boolean().default(true),
+  /** Present on GET responses when Backend filled Cairo defaults. */
+  isDefaultLocation: z.boolean().optional(),
+  locationSource: z.enum(['default_cairo', 'profile', 'query']).optional(),
 });
 
 export type AzanPreferences = z.infer<typeof azanPreferencesSchema>;
@@ -85,6 +89,28 @@ export async function getAzanPreferences(userId: string): Promise<AzanPreference
       else if (method.includes('TEHRAN')) prefs.calculationMethod = 'TEHRAN';
     }
   }
+
+  // Before real location exists: Cairo, Egypt for Azan scheduling / UI.
+  const hasLocation =
+    prefs.lastLat != null &&
+    prefs.lastLng != null &&
+    Number.isFinite(prefs.lastLat) &&
+    Number.isFinite(prefs.lastLng);
+  if (!hasLocation) {
+    prefs.lastLat = DEFAULT_PRAYER_LOCATION.latitude;
+    prefs.lastLng = DEFAULT_PRAYER_LOCATION.longitude;
+    prefs.lastLocationLabel = prefs.lastLocationLabel || DEFAULT_PRAYER_LOCATION.city;
+    prefs.isDefaultLocation = true;
+    prefs.locationSource = 'default_cairo';
+  } else {
+    const isCairoDefault =
+      Math.abs(prefs.lastLat! - DEFAULT_PRAYER_LOCATION.latitude) < 0.0001 &&
+      Math.abs(prefs.lastLng! - DEFAULT_PRAYER_LOCATION.longitude) < 0.0001 &&
+      user.latitude == null &&
+      user.longitude == null;
+    prefs.isDefaultLocation = isCairoDefault;
+    prefs.locationSource = isCairoDefault ? 'default_cairo' : 'profile';
+  }
   return prefs;
 }
 
@@ -95,20 +121,28 @@ export async function updateAzanPreferences(
   const current = await getAzanPreferences(userId);
   const next = normalizePrefs({ ...current, ...patch });
 
+  // Do not persist derived location flags — recomputed on GET.
+  const { isDefaultLocation: _i, locationSource: _s, ...persistable } = next;
+
+  const explicitLocation =
+    patch.lastLat != null &&
+    patch.lastLng != null &&
+    Number.isFinite(patch.lastLat) &&
+    Number.isFinite(patch.lastLng);
+
   await prisma.user.update({
     where: { id: userId },
     data: {
-      azanPreferences: next as any,
-      // Keep prayer method aligned for dashboard schedule
+      azanPreferences: persistable as any,
       prayerCalculationMethod: next.calculationMethod,
-      ...(next.lastLat != null && next.lastLng != null
-        ? { latitude: next.lastLat, longitude: next.lastLng }
+      ...(explicitLocation
+        ? { latitude: patch.lastLat, longitude: patch.lastLng }
         : {}),
-      ...(next.lastLocationLabel
-        ? { city: next.lastLocationLabel }
+      ...(patch.lastLocationLabel != null
+        ? { city: patch.lastLocationLabel || null }
         : {}),
     },
   });
 
-  return next;
+  return getAzanPreferences(userId);
 }

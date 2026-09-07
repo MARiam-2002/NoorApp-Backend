@@ -3,12 +3,15 @@ import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from 'adhan';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
+import {
+  DEFAULT_LATITUDE,
+  DEFAULT_LONGITUDE,
+  DEFAULT_PRAYER_LOCATION,
+  type PrayerLocationSource,
+} from '../shared/constants/default-location';
 import { DefaultTimezone, PrayerNameEnum, PrayerOrder } from '../utils/constants';
 import { getTodayDateOnly } from '../utils/date';
 import { parsePrayerKey, prayerEnumToTitle } from '../shared/utils/prayer-names';
-
-const DEFAULT_LATITUDE = 30.0444;
-const DEFAULT_LONGITUDE = 31.2357;
 
 const prayerLabelsAr: Record<PrayerNameEnum, string> = {
   [PrayerNameEnum.FAJR]: 'الفجر',
@@ -44,6 +47,22 @@ export type NextPrayerInfo = {
   countdownSeconds: number;
 };
 
+export type PrayerLocationMeta = {
+  latitude: number;
+  longitude: number;
+  city: string;
+  cityAr: string;
+  country: string;
+  countryAr: string;
+  timezone: string;
+  calculationMethod: string;
+  madhab: string;
+  /** How coordinates were chosen for this response. */
+  locationSource: PrayerLocationSource;
+  /** True when Cairo defaults were used (no real user/query location). */
+  isDefaultLocation: boolean;
+};
+
 export type DailyPrayerSchedule = {
   date: string;
   timezone: string;
@@ -51,7 +70,7 @@ export type DailyPrayerSchedule = {
   schedule: PrayerScheduleItem[];
   completedCount: number;
   totalCount: number;
-};
+} & PrayerLocationMeta;
 
 function resolveTimezone(timezone?: string | null): string {
   const candidate = timezone?.trim() || DefaultTimezone;
@@ -122,11 +141,26 @@ function getPrayerDateMap(prayerTimes: PrayerTimes): Record<PrayerNameEnum, Date
 type PrayerCalcOptions = {
   method?: string;
   madhab?: string;
+  locationSource?: PrayerLocationSource;
+  city?: string | null;
+  cityAr?: string | null;
+  country?: string | null;
+  countryAr?: string | null;
 };
 
+function normalizeMethodKey(method?: string | null): string {
+  return (method ?? DEFAULT_PRAYER_LOCATION.calculationMethod).toUpperCase();
+}
+
+function normalizeMadhabKey(madhab?: string | null): string {
+  return (madhab ?? DEFAULT_PRAYER_LOCATION.madhab).toUpperCase() === 'HANAFI'
+    ? 'HANAFI'
+    : 'SHAFI';
+}
+
 function resolveCalculationParams(options?: PrayerCalcOptions) {
-  const methodKey = (options?.method ?? 'EGYPT').toUpperCase();
-  const madhabKey = (options?.madhab ?? 'SHAFI').toUpperCase();
+  const methodKey = normalizeMethodKey(options?.method);
+  const madhabKey = normalizeMadhabKey(options?.madhab);
 
   let params;
   switch (methodKey) {
@@ -157,7 +191,40 @@ function resolveCalculationParams(options?: PrayerCalcOptions) {
   }
 
   params.madhab = madhabKey === 'HANAFI' ? Madhab.Hanafi : Madhab.Shafi;
-  return params;
+  return { params, methodKey, madhabKey };
+}
+
+function buildLocationMeta(
+  lat: number,
+  lng: number,
+  tz: string,
+  methodKey: string,
+  madhabKey: string,
+  options?: PrayerCalcOptions,
+): PrayerLocationMeta {
+  const locationSource = options?.locationSource ?? 'default_cairo';
+  const isDefaultLocation = locationSource === 'default_cairo';
+  return {
+    latitude: lat,
+    longitude: lng,
+    city: options?.city?.trim() || (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.city : 'Custom'),
+    cityAr:
+      options?.cityAr?.trim() ||
+      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.cityAr : options?.city?.trim() || 'موقع مخصص'),
+    country:
+      options?.country?.trim() ||
+      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.country : 'Unknown'),
+    countryAr:
+      options?.countryAr?.trim() ||
+      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.countryAr : 'غير محدد'),
+    timezone: tz,
+    calculationMethod: methodKey.includes('EGYPT')
+      ? DEFAULT_PRAYER_LOCATION.calculationMethodLabel
+      : methodKey,
+    madhab: madhabKey,
+    locationSource,
+    isDefaultLocation,
+  };
 }
 
 export function calculateDailyPrayerSchedule(
@@ -168,11 +235,17 @@ export function calculateDailyPrayerSchedule(
   referenceDate = new Date(),
   options?: PrayerCalcOptions,
 ): DailyPrayerSchedule {
-  const tz = resolveTimezone(timezone);
+  const usedDefaultCoords = !Number.isFinite(latitude) || !Number.isFinite(longitude);
   const lat = Number.isFinite(latitude) ? latitude : DEFAULT_LATITUDE;
   const lng = Number.isFinite(longitude) ? longitude : DEFAULT_LONGITUDE;
+  const locationSource: PrayerLocationSource =
+    options?.locationSource ?? (usedDefaultCoords ? 'default_cairo' : 'query');
+  const tz = resolveTimezone(
+    timezone ||
+      (locationSource === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.timezone : DefaultTimezone),
+  );
   const coordinates = new Coordinates(lat, lng);
-  const params = resolveCalculationParams(options);
+  const { params, methodKey, madhabKey } = resolveCalculationParams(options);
   const prayerTimes = new PrayerTimes(coordinates, referenceDate, params);
   const prayerDateMap = getPrayerDateMap(prayerTimes);
   const now = referenceDate.getTime();
@@ -215,6 +288,11 @@ export function calculateDailyPrayerSchedule(
       }
     : null;
 
+  const location = buildLocationMeta(lat, lng, tz, methodKey, madhabKey, {
+    ...options,
+    locationSource,
+  });
+
   return {
     date: referenceDate.toISOString().slice(0, 10),
     timezone: tz,
@@ -222,6 +300,7 @@ export function calculateDailyPrayerSchedule(
     schedule,
     completedCount: completedPrayers.length,
     totalCount: PrayerOrder.length,
+    ...location,
   };
 }
 
@@ -264,6 +343,7 @@ export async function getTodayPrayers(userId: string) {
       latitude: true,
       longitude: true,
       timezone: true,
+      city: true,
       prayerCalculationMethod: true,
     },
   });
@@ -273,14 +353,28 @@ export async function getTodayPrayers(userId: string) {
   }
 
   const completed = await findCompletedPrayers(userId);
+  const hasProfileLocation =
+    user.latitude != null &&
+    user.longitude != null &&
+    Number.isFinite(user.latitude) &&
+    Number.isFinite(user.longitude);
 
   return calculateDailyPrayerSchedule(
-    user.latitude ?? DEFAULT_LATITUDE,
-    user.longitude ?? DEFAULT_LONGITUDE,
-    user.timezone ?? DefaultTimezone,
+    hasProfileLocation ? (user.latitude as number) : DEFAULT_LATITUDE,
+    hasProfileLocation ? (user.longitude as number) : DEFAULT_LONGITUDE,
+    user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone,
     completed as PrayerNameEnum[],
     new Date(),
-    { method: user.prayerCalculationMethod ?? 'EGYPT' },
+    {
+      method: user.prayerCalculationMethod ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
+      locationSource: hasProfileLocation ? 'profile' : 'default_cairo',
+      city: hasProfileLocation ? user.city : DEFAULT_PRAYER_LOCATION.city,
+      cityAr: hasProfileLocation
+        ? user.city ?? undefined
+        : DEFAULT_PRAYER_LOCATION.cityAr,
+      country: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.country,
+      countryAr: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.countryAr,
+    },
   );
 }
 
@@ -301,11 +395,44 @@ export async function getPrayerSchedule(
   dateStr?: string,
   method?: string,
   madhab?: string,
+  locationSource?: PrayerLocationSource,
+  city?: string | null,
 ) {
-  const lat = latitude ?? DEFAULT_LATITUDE;
-  const lng = longitude ?? DEFAULT_LONGITUDE;
-  const tz = timezone ?? DefaultTimezone;
+  const hasCoords =
+    latitude != null &&
+    longitude != null &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
+  const lat = hasCoords ? (latitude as number) : DEFAULT_LATITUDE;
+  const lng = hasCoords ? (longitude as number) : DEFAULT_LONGITUDE;
+  const source: PrayerLocationSource =
+    locationSource ?? (hasCoords ? 'query' : 'default_cairo');
+  const tz =
+    timezone ??
+    (source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.timezone : DefaultTimezone);
   const refDate = dateStr ? new Date(dateStr) : new Date();
 
-  return calculateDailyPrayerSchedule(lat, lng, tz, [], refDate, { method, madhab });
+  return calculateDailyPrayerSchedule(lat, lng, tz, [], refDate, {
+    method: method ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
+    madhab: madhab ?? DEFAULT_PRAYER_LOCATION.madhab,
+    locationSource: source,
+    city: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.city : city,
+    cityAr: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.cityAr : city,
+    country: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.country : undefined,
+    countryAr: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.countryAr : undefined,
+  });
+}
+
+/** Cairo defaults for guests / pre-location clients. */
+export function getDefaultCairoPrayerSchedule(dateStr?: string) {
+  return getPrayerSchedule(
+    DEFAULT_LATITUDE,
+    DEFAULT_LONGITUDE,
+    DEFAULT_PRAYER_LOCATION.timezone,
+    dateStr,
+    DEFAULT_PRAYER_LOCATION.calculationMethod,
+    DEFAULT_PRAYER_LOCATION.madhab,
+    'default_cairo',
+    DEFAULT_PRAYER_LOCATION.city,
+  );
 }
