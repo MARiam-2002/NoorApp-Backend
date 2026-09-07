@@ -3,6 +3,7 @@ import {
   NOTIFICATION_SOUND_OPTIONS,
   DEFAULT_AZAN_SOUND_ID,
   DEFAULT_NOTIFICATION_SOUND_ID,
+  AUDIO_SOURCE_POLICY,
   getAzanSoundById,
   getNotificationSoundById,
   type AzanSoundOption,
@@ -23,10 +24,11 @@ export function getAudioDefaults() {
   return {
     azanSoundId: azanSound.id,
     notificationSoundId: notificationSound.id,
-    voiceId: azanSound.id, // legacy alias used by existing prefs
+    voiceId: azanSound.id,
     azanSound,
     notificationSound,
-    note: 'Guests use these defaults locally. Logged-in users sync via GET/PATCH /profile/azan-preferences.',
+    sourcePolicy: AUDIO_SOURCE_POLICY,
+    note: 'Guests use these defaults locally. Logged-in users sync via GET/PATCH /profile/azan-preferences. Show license.attributionText when attributionRequired is true.',
   };
 }
 
@@ -45,3 +47,5 @@ export function resolveAudioSelection(input: {
     notificationSound,
   };
 }
+
+export type { AzanSoundOption, NotificationSoundOption };

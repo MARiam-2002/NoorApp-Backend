@@ -351,7 +351,7 @@ Fajr 05:06 · Dhuhr 12:54 · Asr 16:25 · Maghrib 19:11 · Isha 20:29
 
 ---
 
-## 14. Azan & notification audio (NEW)
+## 14. Azan & notification audio (license-safe)
 
 ### 14.1 Goal
 
@@ -360,17 +360,44 @@ Flutter must let the user pick:
 1. **Azan sound** — full Adhan played at prayer time  
 2. **Notification sound** — short tone for pre-reminders / prayer alerts  
 
-Sources are free, multi-option catalogs (verified working in 2026). **Quran audio stays on `/quran/audio` (Quran Foundation) — never mix.**
+Only recordings with **verified redistribution licenses** are exposed. **Quran audio stays on `/quran/audio` (Quran Foundation) — never mix.**
 
-### 14.2 Sources (verified)
+### 14.2 License audit (do not skip)
 
-| Kind | Provider | Base |
-|------|----------|------|
-| Azan (primary) | IslamCan free Adhan MP3s | `https://www.islamcan.com/audio/adhan/azan{1..8}.mp3` |
-| Azan (extra) | Kiwifu/adhan-mp3 via jsDelivr | `https://cdn.jsdelivr.net/gh/Kiwifu/adhan-mp3@main/...` |
-| Notification tones | Google Actions free sounds | `https://actions.google.com/sounds/v1/alarms/...` |
+| Candidate | Decision | Reason |
+|-----------|----------|--------|
+| Al Furqan Athan API (`alfurqan.online`) | **Rejected for audio content** | Free API / MIT covers code; athan files are sourced from **Assabile.com** without a verified per-recording redistribution grant for commercial apps |
+| IslamCan `azan{N}.mp3` | **Rejected** | No clear redistribution / commercial license found |
+| Kiwifu/adhan-mp3 (jsDelivr) | **Rejected** | No LICENSE file; marketing “free for apps” is not an explicit CC grant |
+| Google Actions sounds | **Rejected** | Terms: use only inside Actions on Google; not for other apps |
+| Sabah Fakhry Commons MP3 | **Rejected** | Tagged Public domain, but provenance for a famous recording is uncertain |
+| Wikimedia Commons CC0 / CC BY-SA Adhan | **Accepted** | Explicit Creative Commons terms verified on file pages |
+| Freesound CC0 / CC BY tones | **Accepted** | Explicit Creative Commons terms verified on sound pages |
 
-### 14.3 Public catalog APIs (no auth)
+### 14.3 Accepted sources
+
+| Kind | Provider | License class |
+|------|----------|---------------|
+| Azan | Wikimedia Commons | CC0 1.0 or CC BY-SA 4.0 |
+| Notification | Freesound CDN previews | CC0 1.0 or CC BY 4.0 |
+| Silent | n/a | no audio |
+
+Each catalog item includes a `license` object:
+
+```json
+{
+  "spdxOrName": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "attributionRequired": false,
+  "attributionText": "…",
+  "commercialUseAllowed": true,
+  "sourcePageUrl": "https://commons.wikimedia.org/wiki/File:…"
+}
+```
+
+Flutter **must** show `attributionText` in Settings / About when `attributionRequired: true`.
+
+### 14.4 Public catalog APIs (no auth) — unchanged paths
 
 #### List Azan sounds
 
@@ -378,32 +405,7 @@ Sources are free, multi-option catalogs (verified working in 2026). **Quran audi
 GET /api/v1/azan/sounds
 ```
 
-Response shape:
-
-```json
-{
-  "success": true,
-  "data": {
-    "defaultId": "makkah",
-    "count": 11,
-    "sounds": [
-      {
-        "id": "makkah",
-        "nameEn": "Masjid al-Haram (Makkah)",
-        "nameAr": "المسجد الحرام (مكة)",
-        "muezzinEn": "Sheikh Ali Ahmad Mulla",
-        "muezzinAr": "علي أحمد ملا",
-        "locationEn": "Makkah, Saudi Arabia",
-        "locationAr": "مكة المكرمة",
-        "audioUrl": "https://www.islamcan.com/audio/adhan/azan1.mp3",
-        "format": "mp3",
-        "provider": "islamcan",
-        "isDefault": true
-      }
-    ]
-  }
-}
-```
+Defaults: `defaultId = beautiful_adhan` · count = **4**
 
 #### List notification sounds
 
@@ -411,160 +413,93 @@ Response shape:
 GET /api/v1/azan/notification-sounds
 ```
 
-```json
-{
-  "success": true,
-  "data": {
-    "defaultId": "beep_short",
-    "count": 8,
-    "sounds": [
-      {
-        "id": "beep_short",
-        "nameEn": "Short beep",
-        "nameAr": "صفارة قصيرة",
-        "descriptionEn": "Simple short alert",
-        "descriptionAr": "تنبيه قصير بسيط",
-        "audioUrl": "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
-        "format": "ogg",
-        "provider": "google_actions",
-        "isDefault": true
-      },
-      {
-        "id": "silent",
-        "nameEn": "Silent",
-        "nameAr": "صامت",
-        "audioUrl": null,
-        "format": "none",
-        "provider": "none"
-      }
-    ]
-  }
-}
-```
+Defaults: `defaultId = soft_chime` · count = **4** (includes `silent`)
 
-#### Guest defaults (resolved objects)
+#### Guest defaults
 
 ```http
 GET /api/v1/azan/audio-defaults
 ```
 
-Returns `azanSoundId`, `notificationSoundId`, `voiceId`, plus full `azanSound` / `notificationSound` objects.
+Also returns `sourcePolicy` explaining the Al Furqan rejection and accepted providers.
 
-### 14.4 Available option ids
+### 14.5 Available option ids (current Production)
 
-**Azan (`azanSoundId` / `voiceId`):**  
-`makkah` (default), `madinah`, `aqsa`, `egypt`, `turkey`, `soft`, `abdul_basit`, `mishary`, `cairo_fajr`, `makkah_fajr`, `yasser_dosari`
+**Azan (`azanSoundId` / `voiceId`):**
 
-**Notification (`notificationSoundId`):**  
-`beep_short` (default), `medium_bell`, `dinner_bell`, `digital_watch`, `alarm_clock`, `bugle`, `phone_ring`, `silent`
+| id | Format | License |
+|----|--------|---------|
+| `beautiful_adhan` (default) | ogg | CC0 1.0 |
+| `azan_andrewler` | ogg | CC BY-SA 4.0 |
+| `aaqib_azeez` | mp3 | CC BY-SA 4.0 |
+| `islamic_call_mahfoudou` | oga | CC BY-SA 4.0 |
 
-### 14.5 User preferences APIs
+Legacy ids such as `makkah`, `egypt`, `mishary` are **accepted as aliases** and resolve to a license-safe option (they do **not** claim the old recording).
 
-#### Get current preferences
+**Notification (`notificationSoundId`):**
+
+| id | License |
+|----|---------|
+| `soft_chime` (default) | CC0 |
+| `ui_alert` | CC0 |
+| `bell_chime` | CC BY (attribution required) |
+| `silent` | n/a (`audioUrl: null`) |
+
+Legacy ids such as `beep_short` alias to `soft_chime`.
+
+### 14.6 User preferences APIs (unchanged paths)
 
 ```http
-GET /api/v1/profile/azan-preferences
+GET  /api/v1/profile/azan-preferences
+PATCH /api/v1/profile/azan-preferences
 ```
 
 | Client | Auth | Behavior |
 |--------|------|----------|
-| Guest | none | **200** with defaults + `isGuestDefaults: true` (not persisted) |
-| Logged-in | Bearer | **200** with saved prefs + resolved `azanSound` / `notificationSound` |
+| Guest GET | none | Defaults + `isGuestDefaults: true` |
+| Guest PATCH | none | **401** — store locally until login |
+| Logged-in GET/PATCH | Bearer | Persist `azanSoundId` / `voiceId` + `notificationSoundId` |
 
-#### Save preferences (logged-in only)
-
-```http
-PATCH /api/v1/profile/azan-preferences
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "azanSoundId": "egypt",
-  "notificationSoundId": "medium_bell",
-  "soundEnabled": true,
-  "vibrationEnabled": true,
-  "preReminderEnabled": true,
-  "preReminderMinutes": 15
-}
-```
-
-Aliases accepted for Azan selection: `azanSoundId` **or** legacy `voiceId` (kept in sync).
-
-Response includes resolved objects:
+PATCH example:
 
 ```json
 {
-  "success": true,
-  "data": {
-    "voiceId": "egypt",
-    "azanSoundId": "egypt",
-    "notificationSoundId": "medium_bell",
-    "azanSound": { "id": "egypt", "audioUrl": "https://www.islamcan.com/audio/adhan/azan4.mp3", "...": "..." },
-    "notificationSound": { "id": "medium_bell", "audioUrl": "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg", "...": "..." },
-    "azanEnabled": true,
-    "soundEnabled": true
-  }
+  "azanSoundId": "aaqib_azeez",
+  "notificationSoundId": "bell_chime",
+  "soundEnabled": true
 }
 ```
 
-Guest `PATCH` → **401** (save locally until login, then sync).
+Response includes resolved `azanSound` / `notificationSound` (with `license`).
 
-### 14.6 Flutter integration flow
+### 14.7 Flutter integration flow
 
 ```text
-Settings open
-  → GET /azan/sounds
-  → GET /azan/notification-sounds
-  → GET /profile/azan-preferences   (guest OK → defaults)
+Settings
+  → GET /azan/sounds + /azan/notification-sounds
+  → GET /profile/azan-preferences
+  → Render options; show attribution when required
+  → Preview audioUrl
+  → Guest: local save · Logged-in: PATCH prefs
 
-User picks Azan + notification sound
-  → Preview: play audioUrl once (AudioPlayer)
-  → Guest: persist ids + urls in local storage
-  → Logged-in: PATCH /profile/azan-preferences { azanSoundId, notificationSoundId }
-
-Prayer time arrives
-  → If soundEnabled: play prefs.azanSound.audioUrl (full Azan)
-  → Else if vibrationEnabled: vibrate only
-
-Pre-reminder
-  → If notificationSound.audioUrl != null: play it
-  → If id == silent: no audio
+Prayer time → play azanSound.audioUrl (respect format: mp3/ogg/oga)
+Pre-reminder → play notificationSound.audioUrl (or silent)
 ```
 
-### 14.7 Suggested Flutter models / services
+### 14.8 Suggested Flutter notes
 
-| Piece | Role |
-|-------|------|
-| `AzanSoundOption` | id, names, muezzin, `audioUrl`, format, provider, isDefault |
-| `NotificationSoundOption` | id, names, `audioUrl?`, format, provider |
-| `AzanAudioPreferences` | azanSoundId, notificationSoundId, flags, embedded sound objects |
-| `AzanAudioRepository` | fetch catalogs + get/patch prefs |
-| `AzanPlayerService` | download/cache + play Azan / notification URLs |
-| Settings Cubit/Bloc | selection UI state; optimistic local save for guests |
+- Prefer a player that supports **ogg/oga** (default Azan is CC0 ogg) as well as mp3.  
+- Cache downloaded audio for offline Azan after first play.  
+- Keep Quran reciter pipeline unchanged.  
+- Do not hard-code Assabile / IslamCan / Google Actions URLs.
 
-### 14.8 Defaults
+### 14.9 Defaults
 
 | User | Azan | Notification |
 |------|------|--------------|
-| Guest / first install | `makkah` | `beep_short` |
-| Logged-in, never set | same defaults (server-side) | same |
-| Unknown / invalid id | falls back to default | falls back to default |
+| Guest / first install | `beautiful_adhan` (CC0) | `soft_chime` (CC0) |
+| Invalid id | falls back to defaults | falls back to defaults |
 
-### 14.9 Production verification — audio (Backend)
+### 14.10 Production verification — audio (Backend)
 
-**VERIFIED ON PRODUCTION** (2026-09-07) — **16/16 PASS**
-
-| Check | Result |
-|-------|--------|
-| `GET /azan/sounds` | **PASS** — 11 options, default `makkah` |
-| All Azan `audioUrl` reachable | **PASS** |
-| `GET /azan/notification-sounds` | **PASS** — 8 options |
-| All notification URLs reachable | **PASS** (silent has `audioUrl: null`) |
-| `GET /azan/audio-defaults` | **PASS** — `makkah` / `beep_short` |
-| Guest `GET /profile/azan-preferences` | **PASS** — defaults + `isGuestDefaults` |
-| Guest `PATCH` prefs | **PASS** — 401 |
-| Auth save `azanSoundId` + `notificationSoundId` | **PASS** — persists on GET |
-| `GET /prayers/today` + `/schedule` | **PASS** — Cairo defaults unchanged |
-| `GET /quran/reciters` | **PASS** — Quran audio system untouched |
-
-**Backend status: READY** (Cairo location + Azan/notification audio)
+Filled after re-verification on live Production (this change).
