@@ -525,7 +525,8 @@ module.exports = function noorHandler(req, res) {
   const skipWatchdog =
     isDocsPath(url) ||
     url === "/api/v1/swagger.json" ||
-    url.startsWith("/brand/");
+    url.startsWith("/brand/") ||
+    url.startsWith("/api/v1/azan/media/");
 
   let responded = false;
   const timer = skipWatchdog

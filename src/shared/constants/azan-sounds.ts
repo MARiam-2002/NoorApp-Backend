@@ -11,8 +11,11 @@
  *   is uncertain for a famous commercial recording; excluded under clear-permission rule
  *
  * ACCEPTED sources (explicit permissive licenses verified via Wikimedia / Freesound pages):
- * - Wikimedia Commons CC0 / CC BY-SA 4.0 Adhan recordings
- * - Freesound CC0 / CC BY notification tones (preview CDN URLs)
+ * - Wikimedia Commons CC0 / CC BY-SA 4.0 Adhan recordings (self-hosted under assets/)
+ * - Freesound CC0 / CC BY notification tones (self-hosted under assets/)
+ *
+ * Audio bytes are served from this Backend (`GET /azan/media/:file`) to avoid Wikimedia
+ * hotlink rate-limits. Attribution / license metadata still points at original source pages.
  *
  * Quran audio remains separate: /quran/audio (Quran Foundation).
  */
@@ -34,9 +37,12 @@ export type AzanSoundOption = {
   muezzinAr: string;
   locationEn?: string;
   locationAr?: string;
+  /** Absolute URL filled at response time by the audio service. */
   audioUrl: string;
+  /** Relative path under assets/ (served via /azan/media/:file). */
+  mediaFile: string;
   format: 'mp3' | 'ogg' | 'oga';
-  provider: 'wikimedia_commons';
+  provider: 'wikimedia_commons_selfhosted';
   license: AudioLicense;
   isDefault?: boolean;
 };
@@ -49,16 +55,14 @@ export type NotificationSoundOption = {
   descriptionAr: string;
   /** null = silent / vibration-only */
   audioUrl: string | null;
+  mediaFile: string | null;
   format: 'mp3' | 'none';
-  provider: 'freesound' | 'none';
+  provider: 'freesound_selfhosted' | 'none';
   license: AudioLicense;
   isDefault?: boolean;
 };
 
-const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons';
-const FREESOUND_CDN = 'https://cdn.freesound.org/previews';
-
-/** Curated license-safe Azan catalog (multiple options). */
+/** Curated license-safe Azan catalog (multiple options; self-hosted). */
 export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
   {
     id: 'beautiful_adhan',
@@ -66,9 +70,10 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     nameAr: 'أذان جميل (CC0)',
     muezzinEn: 'Adam-synagda (recording)',
     muezzinAr: 'آدم سيناجدا (تسجيل)',
-    audioUrl: `${COMMONS}/b/b0/Beautiful_adhan.ogg`,
+    audioUrl: '',
+    mediaFile: 'beautiful_adhan.ogg',
     format: 'ogg',
-    provider: 'wikimedia_commons',
+    provider: 'wikimedia_commons_selfhosted',
     isDefault: true,
     license: {
       spdxOrName: 'CC0-1.0',
@@ -85,9 +90,10 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     nameAr: 'أذان (أندرو لير)',
     muezzinEn: 'Andrewler (recording)',
     muezzinAr: 'أندرو لير (تسجيل)',
-    audioUrl: `${COMMONS}/8/86/Azan.ogg`,
+    audioUrl: '',
+    mediaFile: 'azan_andrewler.ogg',
     format: 'ogg',
-    provider: 'wikimedia_commons',
+    provider: 'wikimedia_commons_selfhosted',
     license: {
       spdxOrName: 'CC-BY-SA-4.0',
       licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
@@ -98,48 +104,9 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
       sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Azan.ogg',
     },
   },
-  {
-    id: 'aaqib_azeez',
-    nameEn: 'Adhan — Aaqib Azeez',
-    nameAr: 'أذان — عاقب عزيز',
-    muezzinEn: 'Aaqib Azeez',
-    muezzinAr: 'عاقب عزيز',
-    audioUrl: `${COMMONS}/7/7d/The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3`,
-    format: 'mp3',
-    provider: 'wikimedia_commons',
-    license: {
-      spdxOrName: 'CC-BY-SA-4.0',
-      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-      attributionRequired: true,
-      attributionText:
-        'The Adhan - Muslim Call to Prayer - Aaqib Azeez.mp3 by Atcovi / Aaqib Azeez (Wikimedia Commons), CC BY-SA 4.0',
-      commercialUseAllowed: true,
-      sourcePageUrl:
-        'https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3',
-    },
-  },
-  {
-    id: 'islamic_call_mahfoudou',
-    nameEn: 'Islamic call to worship',
-    nameAr: 'نداء إسلامي للصلاة',
-    muezzinEn: 'Mahfoudou (recording)',
-    muezzinAr: 'محفودو (تسجيل)',
-    audioUrl: `${COMMONS}/d/d2/Islamic_call_to_worship.oga`,
-    format: 'oga',
-    provider: 'wikimedia_commons',
-    license: {
-      spdxOrName: 'CC-BY-SA-4.0',
-      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
-      attributionRequired: true,
-      attributionText:
-        'Islamic call to worship.oga by Mahfoudou (Wikimedia Commons), CC BY-SA 4.0',
-      commercialUseAllowed: true,
-      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Islamic_call_to_worship.oga',
-    },
-  },
 ];
 
-/** Short tones for pre-reminder / prayer notification (license-safe). */
+/** Short tones for pre-reminder / prayer notification (license-safe, self-hosted). */
 export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
   {
     id: 'soft_chime',
@@ -147,9 +114,10 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
     nameAr: 'نغمة ناعمة',
     descriptionEn: 'Short UI notification (CC0)',
     descriptionAr: 'تنبيه واجهة قصير (CC0)',
-    audioUrl: `${FREESOUND_CDN}/750/750607_11532701-hq.mp3`,
+    audioUrl: '',
+    mediaFile: 'soft_chime.mp3',
     format: 'mp3',
-    provider: 'freesound',
+    provider: 'freesound_selfhosted',
     isDefault: true,
     license: {
       spdxOrName: 'CC0-1.0',
@@ -167,9 +135,10 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
     nameAr: 'تنبيه واجهة',
     descriptionEn: 'Compact UI alert tone (CC0)',
     descriptionAr: 'نغمة تنبيه واجهة قصيرة (CC0)',
-    audioUrl: `${FREESOUND_CDN}/243/243020_4284968-hq.mp3`,
+    audioUrl: '',
+    mediaFile: 'ui_alert.mp3',
     format: 'mp3',
-    provider: 'freesound',
+    provider: 'freesound_selfhosted',
     license: {
       spdxOrName: 'CC0-1.0',
       licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
@@ -186,9 +155,10 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
     nameAr: 'جرس',
     descriptionEn: 'Bell-style alert (CC BY — attribution required)',
     descriptionAr: 'تنبيه جرسي (CC BY — يلزم ذكر المصدر)',
-    audioUrl: `${FREESOUND_CDN}/411/411089_5121236-hq.mp3`,
+    audioUrl: '',
+    mediaFile: 'bell_chime.mp3',
     format: 'mp3',
-    provider: 'freesound',
+    provider: 'freesound_selfhosted',
     license: {
       spdxOrName: 'CC-BY-4.0',
       licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
@@ -206,6 +176,7 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
     descriptionEn: 'No sound (vibration only if enabled)',
     descriptionAr: 'بدون صوت (اهتزاز فقط إن كان مفعلاً)',
     audioUrl: null,
+    mediaFile: null,
     format: 'none',
     provider: 'none',
     license: {
@@ -224,7 +195,7 @@ export const DEFAULT_NOTIFICATION_SOUND_ID = 'soft_chime';
 
 /**
  * Legacy preference ids → current license-safe ids.
- * Old IslamCan/Kiwifu ids map to the CC0 default (not claiming equivalence of recording).
+ * Old IslamCan/Kiwifu ids map to license-safe options (not claiming recording equivalence).
  */
 const AZAN_ID_ALIASES: Record<string, string> = {
   beautiful_adhan: 'beautiful_adhan',
@@ -236,29 +207,30 @@ const AZAN_ID_ALIASES: Record<string, string> = {
   aqsa: 'azan_andrewler',
   al_aqsa: 'azan_andrewler',
   azan3: 'azan_andrewler',
-  egypt: 'aaqib_azeez',
-  egyptian: 'aaqib_azeez',
-  cairo: 'aaqib_azeez',
-  azan4: 'aaqib_azeez',
-  turkey: 'islamic_call_mahfoudou',
-  turkish: 'islamic_call_mahfoudou',
-  azan5: 'islamic_call_mahfoudou',
+  egypt: 'azan_andrewler',
+  egyptian: 'azan_andrewler',
+  cairo: 'azan_andrewler',
+  azan4: 'azan_andrewler',
+  turkey: 'azan_andrewler',
+  turkish: 'azan_andrewler',
+  azan5: 'azan_andrewler',
   soft: 'beautiful_adhan',
   gentle: 'beautiful_adhan',
   azan6: 'beautiful_adhan',
-  abdul_basit: 'aaqib_azeez',
-  abdulbasit: 'aaqib_azeez',
-  azan7: 'aaqib_azeez',
+  abdul_basit: 'azan_andrewler',
+  abdulbasit: 'azan_andrewler',
+  azan7: 'azan_andrewler',
   mishary: 'azan_andrewler',
   alafasy: 'azan_andrewler',
   azan8: 'azan_andrewler',
   cairo_fajr: 'beautiful_adhan',
   makkah_fajr: 'beautiful_adhan',
-  yasser_dosari: 'aaqib_azeez',
-  dosari: 'aaqib_azeez',
+  yasser_dosari: 'azan_andrewler',
+  dosari: 'azan_andrewler',
   azan_andrewler: 'azan_andrewler',
-  aaqib_azeez: 'aaqib_azeez',
-  islamic_call_mahfoudou: 'islamic_call_mahfoudou',
+  // Previously catalogued Commons ids (removed from live catalog while files unavailable):
+  aaqib_azeez: 'azan_andrewler',
+  islamic_call_mahfoudou: 'azan_andrewler',
 };
 
 const NOTIFICATION_ID_ALIASES: Record<string, string> = {
@@ -316,8 +288,37 @@ export const AUDIO_SOURCE_POLICY = {
   preferredApiDecision: 'rejected_for_recording_rights',
   preferredApiReason:
     'API is free/MIT, but athan files are sourced from Assabile.com without a verified per-recording redistribution license for commercial app use.',
-  azanProvider: 'wikimedia_commons',
-  notificationProvider: 'freesound',
+  azanProvider: 'wikimedia_commons_selfhosted',
+  notificationProvider: 'freesound_selfhosted',
+  delivery:
+    'Audio bytes are self-hosted under /api/v1/azan/media/:file (license metadata still cites original Commons/Freesound pages).',
   policy:
     'Only expose recordings with explicit CC0 / CC BY / CC BY-SA (or equivalent clear grant). Keep attribution fields for Flutter UI.',
 } as const;
+
+/** Allowed media filenames for GET /azan/media/:file (prevent path traversal). */
+export const AZAN_MEDIA_FILES: Record<
+  string,
+  { relativePath: string; contentType: string }
+> = {
+  'beautiful_adhan.ogg': {
+    relativePath: 'azan/beautiful_adhan.ogg',
+    contentType: 'audio/ogg',
+  },
+  'azan_andrewler.ogg': {
+    relativePath: 'azan/azan_andrewler.ogg',
+    contentType: 'audio/ogg',
+  },
+  'soft_chime.mp3': {
+    relativePath: 'notification/soft_chime.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'ui_alert.mp3': {
+    relativePath: 'notification/ui_alert.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'bell_chime.mp3': {
+    relativePath: 'notification/bell_chime.mp3',
+    contentType: 'audio/mpeg',
+  },
+};

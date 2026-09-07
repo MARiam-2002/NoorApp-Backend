@@ -15,7 +15,7 @@ export const getAzanPreferencesHandler = asyncHandler(async (req: Request, res: 
   const userId = req.user?.sub;
   if (!userId) {
     // Guests: return catalog defaults (no persistence).
-    const defaults = getAudioDefaults();
+    const defaults = getAudioDefaults(req);
     sendSuccess(
       res,
       {

@@ -14,6 +14,7 @@ import {
   type AzanSoundOption,
   type NotificationSoundOption,
 } from '../shared/constants/azan-sounds';
+import { mediaAbsoluteUrl } from './azan-audio.service';
 
 const prayerTogglesSchema = z.object({
   fajr: z.boolean(),
@@ -114,8 +115,18 @@ function normalizePrefs(raw: unknown): AzanPreferences {
 }
 
 function enrichPrefs(prefs: AzanPreferences): AzanPreferencesResponse {
-  const azanSound = getAzanSoundById(prefs.azanSoundId ?? prefs.voiceId);
-  const notificationSound = getNotificationSoundById(prefs.notificationSoundId);
+  const azanBase = getAzanSoundById(prefs.azanSoundId ?? prefs.voiceId);
+  const notificationBase = getNotificationSoundById(prefs.notificationSoundId);
+  const azanSound: AzanSoundOption = {
+    ...azanBase,
+    audioUrl: mediaAbsoluteUrl(azanBase.mediaFile),
+  };
+  const notificationSound: NotificationSoundOption = notificationBase.mediaFile
+    ? {
+        ...notificationBase,
+        audioUrl: mediaAbsoluteUrl(notificationBase.mediaFile),
+      }
+    : { ...notificationBase, audioUrl: null };
   return {
     ...prefs,
     voiceId: azanSound.id,
