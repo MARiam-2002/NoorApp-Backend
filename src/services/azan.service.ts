@@ -187,7 +187,26 @@ export async function updateAzanPreferences(
   patch: Partial<AzanPreferences> & { azanSoundId?: string },
 ): Promise<AzanPreferencesResponse> {
   const current = await getAzanPreferences(userId);
-  const next = normalizePrefs({ ...current, ...patch });
+
+  // If the client sends only voiceId (legacy), do not let the previous
+  // azanSoundId from `current` win inside normalizePrefs.
+  const mergedInput: Record<string, unknown> = { ...current, ...patch };
+  if (
+    typeof patch.voiceId === 'string' &&
+    patch.voiceId.trim() &&
+    (patch.azanSoundId == null || !String(patch.azanSoundId).trim())
+  ) {
+    mergedInput.azanSoundId = patch.voiceId;
+  }
+  if (
+    typeof patch.azanSoundId === 'string' &&
+    patch.azanSoundId.trim() &&
+    (patch.voiceId == null || !String(patch.voiceId).trim())
+  ) {
+    mergedInput.voiceId = patch.azanSoundId;
+  }
+
+  const next = normalizePrefs(mergedInput);
 
   const {
     isDefaultLocation: _i,
