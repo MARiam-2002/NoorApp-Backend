@@ -353,136 +353,89 @@ Fajr 05:06 · Dhuhr 12:54 · Asr 16:25 · Maghrib 19:11 · Isha 20:29
 
 ## 14. Azan & notification audio (license-safe)
 
-### 14.1 Goal
+### 14.1 Product goal
 
-Flutter must let the user pick:
+Polished Islamic / Qur’an-app UX:
 
-1. **Azan sound** — full Adhan played at prayer time  
-2. **Notification sound** — short tone for pre-reminders / prayer alerts  
+1. **Azan** — clear Adhan options with Arabic + English names, descriptions, preview  
+2. **Notifications** — calm spiritual tones (not computer beeps / game SFX)  
 
-Only recordings with **verified redistribution licenses** are exposed. **Quran audio stays on `/quran/audio` (Quran Foundation) — never mix.**
+**Legal rule:** famous Haramain / Egyptian muezzin recordings are **not** shipped unless redistribution + commercial mobile-app rights are verified in writing.
 
-### 14.2 License audit (do not skip)
+### 14.2 Famous voices audit (blocked)
 
-| Candidate | Decision | Reason |
-|-----------|----------|--------|
-| Al Furqan Athan API (`alfurqan.online`) | **Rejected for audio content** | Free API / MIT covers code; athan files are sourced from **Assabile.com** without a verified per-recording redistribution grant for commercial apps |
-| IslamCan `azan{N}.mp3` | **Rejected** | No clear redistribution / commercial license found |
-| Kiwifu/adhan-mp3 (jsDelivr) | **Rejected** | No LICENSE file; marketing “free for apps” is not an explicit CC grant |
-| Google Actions sounds | **Rejected** | Terms: use only inside Actions on Google; not for other apps |
-| Sabah Fakhry Commons MP3 | **Rejected** | Tagged Public domain, but provenance for a famous recording is uncertain |
-| Wikimedia Commons CC0 / CC BY-SA Adhan | **Accepted** | Explicit Creative Commons terms verified on file pages; **self-hosted** by Backend |
-| Freesound CC0 / CC BY tones | **Accepted** | Explicit Creative Commons terms verified on sound pages; **self-hosted** by Backend |
+`GET /azan/sounds` and `GET /azan/audio-defaults` include `famousVoicesAudit`.
 
-### 14.3 Accepted sources (delivery)
+Blocked examples (status=`blocked`): Nasr El-Din ToubAr, Mohamed Refaat, Abdul Basit, Minshawi, Taha El-Fashny, Mohamed Emran, Ali Ahmed Mulla, Mishary Alafasy, Nasser Al-Qatami, Yasser Al-Dosari, Bandar Baleela.
 
-| Kind | Original source | Delivery | License class |
-|------|-----------------|----------|---------------|
-| Azan | Wikimedia Commons | `GET /api/v1/azan/media/:file` (self-hosted) | CC0 1.0 / CC BY-SA 3.0 / CC BY-SA 4.0 |
-| Notification | Freesound | `GET /api/v1/azan/media/:file` (self-hosted) | CC0 1.0 / CC BY 4.0 |
-| Silent | n/a | `audioUrl: null` | no audio |
+Reasons: commercial music catalogs, Assabile/Al Furqan sourcing without clear grants, unreliable Archive “Public Domain” uploader tags, and Islamic Network guidance that mu’adhin copyright can remain even when files are widely mirrored.
 
-See also repo `assets/ATTRIBUTION.md`.
-
-Flutter **must** show `attributionText` in Settings / About when `attributionRequired: true`.
-
-### 14.4 Public catalog APIs (no auth) — unchanged catalog paths
-
-#### List Azan sounds
+### 14.3 Production-safe Azan catalog (self-hosted)
 
 ```http
 GET /api/v1/azan/sounds
 ```
 
-Defaults: `defaultId = beautiful_adhan` · count = **7**
+`defaultId = beautiful_adhan` · **count = 7** · all `isFamousVoice: false`
 
-#### List notification sounds
+| id | English | Arabic | License | Attribution |
+|----|---------|--------|---------|-------------|
+| `beautiful_adhan` (default) | Beautiful Adhan | أذان جميل | CC0 | no |
+| `hassan_ii_casablanca` | Hassan II Mosque Call | نداء مسجد الحسن الثاني | CC BY-SA 4.0 | yes |
+| `aaqib_azeez` | Adhan — Aaqib Azeez | أذان — عاقب عزيز | CC BY-SA 4.0 | yes |
+| `islamic_call_mahfoudou` | Islamic Call to Worship | نداء إسلامي للصلاة | CC BY-SA 4.0 | yes |
+| `azan_andrewler` | Adhan (Andrewler) | أذان (أندرو لير) | CC BY-SA 4.0 | yes |
+| `adhan_wiki` | Simple Sunni Adhan | أذان سنّي بسيط | CC BY-SA 3.0 | yes |
+| `adhan_aishatu` | Adhan (Aishatu) | أذان (عائشة) | CC0 | no |
+
+Each item includes: `descriptionEn`/`descriptionAr`, `muezzinEn`/`muezzinAr`, `audioUrl`, `previewUrl` (same URL), `source`, `license`, `streamingAllowed`, `selfHostingAllowed`, `commercialUseAllowed`, `isFamousVoice`, `category`.
+
+Delivery: **self-hosted** `GET /api/v1/azan/media/{file}` (not stream-only third parties).
+
+Legacy `makkah` → `beautiful_adhan`.
+
+### 14.4 Notification catalog (calm / spiritual)
 
 ```http
 GET /api/v1/azan/notification-sounds
 ```
 
-Defaults: `defaultId = soft_chime` · count = **13** (includes `silent`)
+`defaultId = soft_chime` · **count = 7** (includes `silent`)
 
-#### Guest defaults
+| id | English | Arabic | License | Attribution |
+|----|---------|--------|---------|-------------|
+| `soft_chime` (default) | Very Soft Notification | تنبيه ناعم جدًا | CC0 | no |
+| `meditation_bell` | Prayer Reminder | تذكير بالصلاة | CC0 | no |
+| `singing_bowl` | Calm Reminder | تذكير هادئ | CC0 | no |
+| `xylophone_chime` | Gentle Spiritual Chime | نغمة روحانية لطيفة | CC0 | no |
+| `bell_chime` | Soft Bell | جرس ناعم | CC BY 4.0 | yes |
+| `hand_bell` | Soft Hand Bell | جرس يدوي ناعم | CC BY 4.0 | yes |
+| `silent` | Silent | صامت | n/a | n/a |
 
-```http
-GET /api/v1/azan/audio-defaults
-```
+Removed from live catalog (legacy ids still alias): generic beeps / game UI tones (`notify_beep`, `game_notify`, `sparkle_tone`, …).
 
-#### Stream media
-
-```http
-GET /api/v1/azan/media/{file}
-```
-
-Supports HTTP `Range` (206).
-
-### 14.5 Available option ids (current Production)
-
-**Azan (`azanSoundId` / `voiceId`) — 7 options:**
-
-| id | Format | License | Attribution |
-|----|--------|---------|-------------|
-| `beautiful_adhan` (default) | ogg | CC0 1.0 | no |
-| `adhan_aishatu` | ogg | CC0 1.0 | no |
-| `azan_andrewler` | ogg | CC BY-SA 4.0 | yes |
-| `islamic_call_mahfoudou` | oga | CC BY-SA 4.0 | yes |
-| `adhan_wiki` | oga | CC BY-SA 3.0 | yes |
-| `aaqib_azeez` | mp3 | CC BY-SA 4.0 | yes |
-| `hassan_ii_casablanca` | mp3 | CC BY-SA 4.0 | yes |
-
-Legacy `makkah` → `beautiful_adhan`. Other legacy ids alias to a license-safe option (not claiming recording equivalence).
-
-**Notification (`notificationSoundId`) — 13 options:**
-
-| id | License | Attribution |
-|----|---------|-------------|
-| `soft_chime` (default) | CC0 | no |
-| `ui_alert` | CC0 | no |
-| `notify_beep` | CC0 | no |
-| `notify_punchy` | CC0 | no |
-| `xylophone_chime` | CC0 | no |
-| `gui_notify` | CC0 | no |
-| `digital_blip` | CC0 | no |
-| `game_notify` | CC0 | no |
-| `sparkle_tone` | CC0 | no |
-| `message_pop` | CC0 | no |
-| `bell_chime` | CC BY 4.0 | yes |
-| `dingaling` | CC BY 4.0 | yes |
-| `silent` | n/a (`audioUrl: null`) | n/a |
-
-### 14.6 User preferences APIs (unchanged paths)
+### 14.5 Preferences (unchanged paths)
 
 ```http
 GET  /api/v1/profile/azan-preferences
 PATCH /api/v1/profile/azan-preferences
+GET  /api/v1/azan/audio-defaults
 ```
 
-| Client | Auth | Behavior |
-|--------|------|----------|
-| Guest GET | none | Defaults + `isGuestDefaults: true` |
-| Guest PATCH | none | **401** — store locally until login |
-| Logged-in GET/PATCH | Bearer | Persist `azanSoundId` / `voiceId` + `notificationSoundId` |
+Flutter UX:
 
-### 14.7–14.9 Flutter notes / defaults
+- Render `nameAr` + `nameEn` + `descriptionAr`/`descriptionEn`
+- Preview via `previewUrl` / `audioUrl`
+- Show `license.attributionText` when `license.attributionRequired`
+- Do **not** claim Commons community recordings are famous Haramain voices
 
-- Player must support **ogg/oga** and **mp3**.
-- Cache media after first play for offline Azan.
-- Keep Quran reciter pipeline unchanged.
-- Guest / first install: Azan `beautiful_adhan`, notification `soft_chime`.
+### 14.6 Defaults
 
-### 14.10 Production verification — audio (Backend)
+| | id | Why |
+|--|----|-----|
+| Azan | `beautiful_adhan` | Highest-clarity CC0 option with full commercial + self-host rights (not a “famous” recording) |
+| Notification | `soft_chime` | Shortest, least intrusive calm tone |
 
-Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after expand deploy (`debdcdd`):
+### 14.7 Production verification
 
-| Check | Result |
-|-------|--------|
-| Azan count **7**, default `beautiful_adhan`, all self-hosted + reachable | PASS |
-| Notification count **13**, default `soft_chime`, all self-hosted + reachable | PASS |
-| Attribution required: `bell_chime`, `dingaling` | PASS |
-| Al Furqan rejected in `sourcePolicy` | PASS |
-| Guest prefs / guest PATCH 401 / auth PATCH new ids / legacy `makkah` | PASS |
-| Cairo prayers + Quran reciters intact | PASS |
-
-**Summary: 18/18 PASS** — READY (7 Azan + 13 notification options).
+Filled after deploy of the polished Islamic UX catalog.

@@ -120,13 +120,15 @@ function enrichPrefs(prefs: AzanPreferences): AzanPreferencesResponse {
   const azanSound: AzanSoundOption = {
     ...azanBase,
     audioUrl: mediaAbsoluteUrl(azanBase.mediaFile),
+    previewUrl: mediaAbsoluteUrl(azanBase.mediaFile),
   };
   const notificationSound: NotificationSoundOption = notificationBase.mediaFile
     ? {
         ...notificationBase,
         audioUrl: mediaAbsoluteUrl(notificationBase.mediaFile),
+        previewUrl: mediaAbsoluteUrl(notificationBase.mediaFile),
       }
-    : { ...notificationBase, audioUrl: null };
+    : { ...notificationBase, audioUrl: null, previewUrl: null };
   return {
     ...prefs,
     voiceId: azanSound.id,

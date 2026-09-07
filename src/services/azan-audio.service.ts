@@ -9,6 +9,7 @@ import {
   DEFAULT_AZAN_SOUND_ID,
   DEFAULT_NOTIFICATION_SOUND_ID,
   AUDIO_SOURCE_POLICY,
+  FAMOUS_AZAN_VOICE_AUDIT,
   getAzanSoundById,
   getNotificationSoundById,
   type AzanSoundOption,
@@ -51,11 +52,13 @@ function withAbsoluteUrls<T extends AzanSoundOption | NotificationSoundOption>(
   req?: Request,
 ): T {
   if (!('mediaFile' in option) || option.mediaFile == null) {
-    return { ...option, audioUrl: null } as T;
+    return { ...option, audioUrl: null, previewUrl: null } as T;
   }
+  const url = mediaAbsoluteUrl(option.mediaFile, req);
   return {
     ...option,
-    audioUrl: mediaAbsoluteUrl(option.mediaFile, req),
+    audioUrl: url,
+    previewUrl: url,
   };
 }
 
@@ -80,7 +83,8 @@ export function getAudioDefaults(req?: Request) {
     azanSound,
     notificationSound,
     sourcePolicy: AUDIO_SOURCE_POLICY,
-    note: 'Guests use these defaults locally. Logged-in users sync via GET/PATCH /profile/azan-preferences. Show license.attributionText when attributionRequired is true. Audio is self-hosted under /azan/media.',
+    famousVoicesAudit: FAMOUS_AZAN_VOICE_AUDIT,
+    note: 'Guests use these defaults locally. Logged-in users sync via GET/PATCH /profile/azan-preferences. Show license.attributionText when attributionRequired is true. Famous Haramain/Egyptian voices are listed in famousVoicesAudit as blocked until written rights exist. Preview uses the same URL as audioUrl (self-hosted /azan/media).',
   };
 }
 

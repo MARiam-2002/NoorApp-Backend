@@ -11,17 +11,23 @@ import {
   listNotificationSounds,
   resolveMediaFile,
 } from '../services/azan-audio.service';
-import { AUDIO_SOURCE_POLICY } from '../shared/constants/azan-sounds';
+import {
+  AUDIO_SOURCE_POLICY,
+  DEFAULT_AZAN_SOUND_ID,
+  DEFAULT_NOTIFICATION_SOUND_ID,
+  FAMOUS_AZAN_VOICE_AUDIT,
+} from '../shared/constants/azan-sounds';
 
 export const listAzanSoundsHandler = asyncHandler(async (req: Request, res: Response) => {
   const sounds = listAzanSounds(req);
   const data = {
-    defaultId: 'beautiful_adhan',
+    defaultId: DEFAULT_AZAN_SOUND_ID,
     count: sounds.length,
     sounds,
+    famousVoicesAudit: FAMOUS_AZAN_VOICE_AUDIT,
     sourcePolicy: {
       ...AUDIO_SOURCE_POLICY,
-      note: 'Only license-cleared Adhan recordings (CC0 / CC BY-SA), self-hosted. Al Furqan/Assabile, IslamCan, and Kiwifu catalogs are not used.',
+      note: 'Production Azan options are license-cleared Commons recordings (self-hosted). Famous Haramain/Egyptian voices remain blocked until written commercial-app rights are obtained — see famousVoicesAudit.',
     },
   };
   sendSuccess(res, data, 'Azan sounds retrieved successfully', req);
@@ -30,12 +36,12 @@ export const listAzanSoundsHandler = asyncHandler(async (req: Request, res: Resp
 export const listNotificationSoundsHandler = asyncHandler(async (req: Request, res: Response) => {
   const sounds = listNotificationSounds(req);
   const data = {
-    defaultId: 'soft_chime',
+    defaultId: DEFAULT_NOTIFICATION_SOUND_ID,
     count: sounds.length,
     sounds,
     sourcePolicy: {
       provider: 'freesound_selfhosted',
-      note: 'Only CC0 / CC BY notification tones, self-hosted. Google Actions library is not used (platform-restricted).',
+      note: 'Calm spiritual reminder tones (CC0 / CC BY), self-hosted. Generic game/UI beeps removed from the live catalog.',
     },
   };
   sendSuccess(res, data, 'Notification sounds retrieved successfully', req);
