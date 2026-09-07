@@ -371,35 +371,20 @@ Only recordings with **verified redistribution licenses** are exposed. **Quran a
 | Kiwifu/adhan-mp3 (jsDelivr) | **Rejected** | No LICENSE file; marketing “free for apps” is not an explicit CC grant |
 | Google Actions sounds | **Rejected** | Terms: use only inside Actions on Google; not for other apps |
 | Sabah Fakhry Commons MP3 | **Rejected** | Tagged Public domain, but provenance for a famous recording is uncertain |
-| Wikimedia Commons CC0 / CC BY-SA Adhan | **Accepted** | Explicit Creative Commons terms verified on file pages; **self-hosted** by Backend (Wikimedia hotlinking hits 429 and is not recommended for production apps) |
+| Wikimedia Commons CC0 / CC BY-SA Adhan | **Accepted** | Explicit Creative Commons terms verified on file pages; **self-hosted** by Backend |
 | Freesound CC0 / CC BY tones | **Accepted** | Explicit Creative Commons terms verified on sound pages; **self-hosted** by Backend |
 
 ### 14.3 Accepted sources (delivery)
 
 | Kind | Original source | Delivery | License class |
 |------|-----------------|----------|---------------|
-| Azan | Wikimedia Commons | `GET /api/v1/azan/media/:file` | CC0 1.0 or CC BY-SA 4.0 |
-| Notification | Freesound | `GET /api/v1/azan/media/:file` | CC0 1.0 or CC BY 4.0 |
+| Azan | Wikimedia Commons | `GET /api/v1/azan/media/:file` (self-hosted) | CC0 1.0 / CC BY-SA 3.0 / CC BY-SA 4.0 |
+| Notification | Freesound | `GET /api/v1/azan/media/:file` (self-hosted) | CC0 1.0 / CC BY 4.0 |
 | Silent | n/a | `audioUrl: null` | no audio |
 
 See also repo `assets/ATTRIBUTION.md`.
 
-Each catalog item includes a `license` object:
-
-```json
-{
-  "spdxOrName": "CC0-1.0",
-  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-  "attributionRequired": false,
-  "attributionText": "…",
-  "commercialUseAllowed": true,
-  "sourcePageUrl": "https://commons.wikimedia.org/wiki/File:…"
-}
-```
-
 Flutter **must** show `attributionText` in Settings / About when `attributionRequired: true`.
-
-`audioUrl` always points at this Backend’s self-hosted media (not `upload.wikimedia.org` / Freesound CDN).
 
 ### 14.4 Public catalog APIs (no auth) — unchanged catalog paths
 
@@ -409,7 +394,7 @@ Flutter **must** show `attributionText` in Settings / About when `attributionReq
 GET /api/v1/azan/sounds
 ```
 
-Defaults: `defaultId = beautiful_adhan` · count = **3**
+Defaults: `defaultId = beautiful_adhan` · count = **7**
 
 #### List notification sounds
 
@@ -417,7 +402,7 @@ Defaults: `defaultId = beautiful_adhan` · count = **3**
 GET /api/v1/azan/notification-sounds
 ```
 
-Defaults: `defaultId = soft_chime` · count = **4** (includes `silent`)
+Defaults: `defaultId = soft_chime` · count = **13** (includes `silent`)
 
 #### Guest defaults
 
@@ -425,39 +410,47 @@ Defaults: `defaultId = soft_chime` · count = **4** (includes `silent`)
 GET /api/v1/azan/audio-defaults
 ```
 
-Also returns `sourcePolicy` explaining the Al Furqan rejection and self-host delivery.
-
-#### Stream media (new)
+#### Stream media
 
 ```http
 GET /api/v1/azan/media/{file}
 ```
 
-Examples: `beautiful_adhan.ogg`, `azan_andrewler.ogg`, `islamic_call_mahfoudou.oga`, `soft_chime.mp3`, `ui_alert.mp3`, `bell_chime.mp3`  
 Supports HTTP `Range` (206).
 
 ### 14.5 Available option ids (current Production)
 
-**Azan (`azanSoundId` / `voiceId`):**
+**Azan (`azanSoundId` / `voiceId`) — 7 options:**
 
-| id | Format | License |
-|----|--------|---------|
-| `beautiful_adhan` (default) | ogg | CC0 1.0 |
-| `azan_andrewler` | ogg | CC BY-SA 4.0 |
-| `islamic_call_mahfoudou` | oga | CC BY-SA 4.0 |
+| id | Format | License | Attribution |
+|----|--------|---------|-------------|
+| `beautiful_adhan` (default) | ogg | CC0 1.0 | no |
+| `adhan_aishatu` | ogg | CC0 1.0 | no |
+| `azan_andrewler` | ogg | CC BY-SA 4.0 | yes |
+| `islamic_call_mahfoudou` | oga | CC BY-SA 4.0 | yes |
+| `adhan_wiki` | oga | CC BY-SA 3.0 | yes |
+| `aaqib_azeez` | mp3 | CC BY-SA 4.0 | yes |
+| `hassan_ii_casablanca` | mp3 | CC BY-SA 4.0 | yes |
 
-Legacy ids such as `makkah`, `egypt`, `mishary`, `aaqib_azeez` are **accepted as aliases** and resolve to a license-safe option (they do **not** claim the old recording).
+Legacy `makkah` → `beautiful_adhan`. Other legacy ids alias to a license-safe option (not claiming recording equivalence).
 
-**Notification (`notificationSoundId`):**
+**Notification (`notificationSoundId`) — 13 options:**
 
-| id | License |
-|----|---------|
-| `soft_chime` (default) | CC0 |
-| `ui_alert` | CC0 |
-| `bell_chime` | CC BY (attribution required) |
-| `silent` | n/a (`audioUrl: null`) |
-
-Legacy ids such as `beep_short` alias to `soft_chime`.
+| id | License | Attribution |
+|----|---------|-------------|
+| `soft_chime` (default) | CC0 | no |
+| `ui_alert` | CC0 | no |
+| `notify_beep` | CC0 | no |
+| `notify_punchy` | CC0 | no |
+| `xylophone_chime` | CC0 | no |
+| `gui_notify` | CC0 | no |
+| `digital_blip` | CC0 | no |
+| `game_notify` | CC0 | no |
+| `sparkle_tone` | CC0 | no |
+| `message_pop` | CC0 | no |
+| `bell_chime` | CC BY 4.0 | yes |
+| `dingaling` | CC BY 4.0 | yes |
+| `silent` | n/a (`audioUrl: null`) | n/a |
 
 ### 14.6 User preferences APIs (unchanged paths)
 
@@ -472,55 +465,13 @@ PATCH /api/v1/profile/azan-preferences
 | Guest PATCH | none | **401** — store locally until login |
 | Logged-in GET/PATCH | Bearer | Persist `azanSoundId` / `voiceId` + `notificationSoundId` |
 
-PATCH example:
+### 14.7–14.9 Flutter notes / defaults
 
-```json
-{
-  "azanSoundId": "azan_andrewler",
-  "notificationSoundId": "bell_chime",
-  "soundEnabled": true
-}
-```
-
-Response includes resolved `azanSound` / `notificationSound` (with `license` + self-hosted `audioUrl`).
-
-### 14.7 Flutter integration flow
-
-```text
-Settings
-  → GET /azan/sounds + /azan/notification-sounds
-  → GET /profile/azan-preferences
-  → Render options; show attribution when required
-  → Preview audioUrl (Backend /azan/media/…)
-  → Guest: local save · Logged-in: PATCH prefs
-
-Prayer time → play azanSound.audioUrl (ogg supported)
-Pre-reminder → play notificationSound.audioUrl (or silent)
-```
-
-### 14.8 Suggested Flutter notes
-
-- Prefer a player that supports **ogg** (default Azan is CC0 ogg) as well as mp3.  
-- Cache downloaded audio for offline Azan after first play.  
-- Keep Quran reciter pipeline unchanged.  
-- Do not hard-code Assabile / IslamCan / Google Actions / raw Wikimedia upload URLs.
-
-### 14.9 Defaults
-
-| User | Azan | Notification |
-|------|------|--------------|
-| Guest / first install | `beautiful_adhan` (CC0) | `soft_chime` (CC0) |
-| Invalid id | falls back to defaults | falls back to defaults |
+- Player must support **ogg/oga** and **mp3**.
+- Cache media after first play for offline Azan.
+- Keep Quran reciter pipeline unchanged.
+- Guest / first install: Azan `beautiful_adhan`, notification `soft_chime`.
 
 ### 14.10 Production verification — audio (Backend)
 
-Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after adding Mahfoudou (`a589596`):
-
-| Check | Result |
-|-------|--------|
-| `GET /azan/sounds` default `beautiful_adhan`, count **3** | PASS |
-| All three Azan media self-hosted + Ogg reachable | PASS |
-| Includes `islamic_call_mahfoudou` (CC BY-SA 4.0) | PASS |
-| Prior prefs / Cairo / Quran checks from 21/21 run remain valid | PASS |
-
-**Summary: READY** — 3 license-safe self-hosted Azan options + 4 notification options.
+Filled after expanded-catalog Production re-verification.

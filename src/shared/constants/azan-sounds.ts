@@ -9,10 +9,11 @@
  * - Google Actions sound library — Terms restrict use to Actions on Google only
  * - Commons “Call to prayer by Sabah Fakhry.mp3” — tagged Public domain, but provenance
  *   is uncertain for a famous commercial recording; excluded under clear-permission rule
+ * - Commons “Maliki doctrine.oga” — lecture about Adhan rules, not an Adhan recording
  *
- * ACCEPTED sources (explicit permissive licenses verified via Wikimedia / Freesound pages):
- * - Wikimedia Commons CC0 / CC BY-SA 4.0 Adhan recordings (self-hosted under assets/)
- * - Freesound CC0 / CC BY notification tones (self-hosted under assets/)
+ * ACCEPTED sources (explicit permissive licenses verified on file/sound pages):
+ * - Wikimedia Commons CC0 / CC BY-SA Adhan recordings (self-hosted under assets/azan/)
+ * - Freesound CC0 / CC BY notification tones (self-hosted under assets/notification/)
  *
  * Audio bytes are served from this Backend (`GET /azan/media/:file`) to avoid Wikimedia
  * hotlink rate-limits. Attribution / license metadata still points at original source pages.
@@ -21,7 +22,13 @@
  */
 
 export type AudioLicense = {
-  spdxOrName: 'CC0-1.0' | 'CC-BY-SA-4.0' | 'CC-BY-4.0' | 'CC-BY-3.0' | 'none';
+  spdxOrName:
+    | 'CC0-1.0'
+    | 'CC-BY-SA-4.0'
+    | 'CC-BY-SA-3.0'
+    | 'CC-BY-4.0'
+    | 'CC-BY-3.0'
+    | 'none';
   licenseUrl: string | null;
   attributionRequired: boolean;
   attributionText: string;
@@ -85,6 +92,25 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     },
   },
   {
+    id: 'adhan_aishatu',
+    nameEn: 'Adhan (Aishatu98)',
+    nameAr: 'أذان (عائشة)',
+    muezzinEn: 'Aishatu98 (recording)',
+    muezzinAr: 'عائشة (تسجيل)',
+    audioUrl: '',
+    mediaFile: 'adhan_aishatu.ogg',
+    format: 'ogg',
+    provider: 'wikimedia_commons_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText: 'Adhan.ogg by Aishatu98 (Wikimedia Commons, CC0 1.0)',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Adhan.ogg',
+    },
+  },
+  {
     id: 'azan_andrewler',
     nameEn: 'Adhan (Andrewler)',
     nameAr: 'أذان (أندرو لير)',
@@ -122,6 +148,70 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
         'Islamic call to worship.oga by Mahfoudou (Wikimedia Commons), CC BY-SA 4.0',
       commercialUseAllowed: true,
       sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Islamic_call_to_worship.oga',
+    },
+  },
+  {
+    id: 'adhan_wiki',
+    nameEn: 'Adhan (simple Sunni reading)',
+    nameAr: 'أذان (قراءة بسيطة)',
+    muezzinEn: 'Jarih (recording)',
+    muezzinAr: 'جاريه (تسجيل)',
+    audioUrl: '',
+    mediaFile: 'adhan_wiki.oga',
+    format: 'oga',
+    provider: 'wikimedia_commons_selfhosted',
+    license: {
+      spdxOrName: 'CC-BY-SA-3.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/',
+      attributionRequired: true,
+      attributionText:
+        'Adhan wiki.oga by Jarih (Wikimedia Commons), licensed under CC BY-SA 3.0',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Adhan_wiki.oga',
+    },
+  },
+  {
+    id: 'aaqib_azeez',
+    nameEn: 'Adhan — Aaqib Azeez',
+    nameAr: 'أذان — عاقب عزيز',
+    muezzinEn: 'Aaqib Azeez',
+    muezzinAr: 'عاقب عزيز',
+    audioUrl: '',
+    mediaFile: 'aaqib_azeez.mp3',
+    format: 'mp3',
+    provider: 'wikimedia_commons_selfhosted',
+    license: {
+      spdxOrName: 'CC-BY-SA-4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      attributionRequired: true,
+      attributionText:
+        'The Adhan - Muslim Call to Prayer - Aaqib Azeez.mp3 by Atcovi / Aaqib Azeez (Wikimedia Commons), CC BY-SA 4.0',
+      commercialUseAllowed: true,
+      sourcePageUrl:
+        'https://commons.wikimedia.org/wiki/File:The_Adhan_-_Muslim_Call_to_Prayer_-_Aaqib_Azeez.mp3',
+    },
+  },
+  {
+    id: 'hassan_ii_casablanca',
+    nameEn: 'Hassan II Mosque call (Casablanca)',
+    nameAr: 'نداء مسجد الحسن الثاني (الدار البيضاء)',
+    muezzinEn: 'Field recording — Fraguando',
+    muezzinAr: 'تسجيل ميداني — Fraguando',
+    locationEn: 'Hassan II Mosque, Casablanca',
+    locationAr: 'مسجد الحسن الثاني، الدار البيضاء',
+    audioUrl: '',
+    mediaFile: 'hassan_ii_casablanca.mp3',
+    format: 'mp3',
+    provider: 'wikimedia_commons_selfhosted',
+    license: {
+      spdxOrName: 'CC-BY-SA-4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      attributionRequired: true,
+      attributionText:
+        'Llamada a oración Mezquita Hassan II.wav by Fraguando (Wikimedia Commons), CC BY-SA 4.0 — self-hosted Commons MP3 transcode',
+      commercialUseAllowed: true,
+      sourcePageUrl:
+        'https://commons.wikimedia.org/wiki/File:Llamada_a_oración_Mezquita_Hassan_II.wav',
     },
   },
 ];
@@ -170,6 +260,166 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
     },
   },
   {
+    id: 'notify_beep',
+    nameEn: 'Notify beep',
+    nameAr: 'صفير تنبيه',
+    descriptionEn: 'Generic notification beep (CC0)',
+    descriptionAr: 'صفير تنبيه عام (CC0)',
+    audioUrl: '',
+    mediaFile: 'notify_beep.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'Notification 1 by chungus43A (Freesound), CC0 1.0 — https://freesound.org/s/580789/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/chungus43A/sounds/580789/',
+    },
+  },
+  {
+    id: 'notify_punchy',
+    nameEn: 'Punchy notify',
+    nameAr: 'تنبيه سريع',
+    descriptionEn: 'Short punchy notification (CC0)',
+    descriptionAr: 'تنبيه قصير حاد (CC0)',
+    audioUrl: '',
+    mediaFile: 'notify_punchy.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'Notification by Fupicat (Freesound), CC0 1.0 — https://freesound.org/s/538149/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/Fupicat/sounds/538149/',
+    },
+  },
+  {
+    id: 'xylophone_chime',
+    nameEn: 'Xylophone chime',
+    nameAr: 'نغمة إكسيليفون',
+    descriptionEn: 'Soft xylophone-style chime (CC0)',
+    descriptionAr: 'نغمة إكسيليفون ناعمة (CC0)',
+    audioUrl: '',
+    mediaFile: 'xylophone_chime.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'notify3.wav by Mihacappy (Freesound), CC0 1.0 — https://freesound.org/s/850177/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/Mihacappy/sounds/850177/',
+    },
+  },
+  {
+    id: 'gui_notify',
+    nameEn: 'GUI notify',
+    nameAr: 'تنبيه واجهة رسومية',
+    descriptionEn: 'Designed GUI notification (CC0)',
+    descriptionAr: 'تنبيه واجهة مصمم (CC0)',
+    audioUrl: '',
+    mediaFile: 'gui_notify.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'SFX-Notification3 by soundandmelodies (Freesound), CC0 1.0 — https://freesound.org/s/776183/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/soundandmelodies/sounds/776183/',
+    },
+  },
+  {
+    id: 'digital_blip',
+    nameEn: 'Digital blip',
+    nameAr: 'نبضة رقمية',
+    descriptionEn: 'Short digital hint blip (CC0)',
+    descriptionAr: 'نبضة رقمية قصيرة (CC0)',
+    audioUrl: '',
+    mediaFile: 'digital_blip.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'hint.wav by dland (Freesound), CC0 1.0 — https://freesound.org/s/320181/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/dland/sounds/320181/',
+    },
+  },
+  {
+    id: 'game_notify',
+    nameEn: 'Space beep',
+    nameAr: 'صفير فضائي',
+    descriptionEn: 'Space-button style beep (CC0)',
+    descriptionAr: 'صفير بأسلوب أزرار فضائية (CC0)',
+    audioUrl: '',
+    mediaFile: 'game_notify.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'Beep Space Button by GameAudio (Freesound), CC0 1.0 — https://freesound.org/s/220206/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/GameAudio/sounds/220206/',
+    },
+  },
+  {
+    id: 'sparkle_tone',
+    nameEn: 'Success sparkle',
+    nameAr: 'نغمة نجاح',
+    descriptionEn: 'Success / sparkle tone (CC0)',
+    descriptionAr: 'نغمة نجاح / بريق (CC0)',
+    audioUrl: '',
+    mediaFile: 'sparkle_tone.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'Powerup/success.wav by GabrielAraujo (Freesound), CC0 1.0 — https://freesound.org/s/242501/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/GabrielAraujo/sounds/242501/',
+    },
+  },
+  {
+    id: 'message_pop',
+    nameEn: 'Message pop',
+    nameAr: 'ظهور رسالة',
+    descriptionEn: 'Got-item / message pop (CC0)',
+    descriptionAr: 'نغمة ظهور عنصر / رسالة (CC0)',
+    audioUrl: '',
+    mediaFile: 'message_pop.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC0-1.0',
+      licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/',
+      attributionRequired: false,
+      attributionText:
+        'gotItem.mp3 by Kastenfrosch (Freesound), CC0 1.0 — https://freesound.org/s/162476/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/Kastenfrosch/sounds/162476/',
+    },
+  },
+  {
     id: 'bell_chime',
     nameEn: 'Bell chime',
     nameAr: 'جرس',
@@ -187,6 +437,26 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
         'Bell / alert sound by InspectorJ (Freesound), CC BY — https://freesound.org/s/411089/',
       commercialUseAllowed: true,
       sourcePageUrl: 'https://freesound.org/people/InspectorJ/sounds/411089/',
+    },
+  },
+  {
+    id: 'dingaling',
+    nameEn: 'Dingaling',
+    nameAr: 'رنين خفيف',
+    descriptionEn: 'Short SMS-style ding (CC BY — attribution required)',
+    descriptionAr: 'رنين قصير بأسلوب الرسائل (CC BY — يلزم ذكر المصدر)',
+    audioUrl: '',
+    mediaFile: 'dingaling.mp3',
+    format: 'mp3',
+    provider: 'freesound_selfhosted',
+    license: {
+      spdxOrName: 'CC-BY-4.0',
+      licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+      attributionRequired: true,
+      attributionText:
+        'dingaling by morrisjm based on RSilveira_88 (Freesound), CC BY — https://freesound.org/s/268756/',
+      commercialUseAllowed: true,
+      sourcePageUrl: 'https://freesound.org/people/morrisjm/sounds/268756/',
     },
   },
   {
@@ -221,49 +491,60 @@ const AZAN_ID_ALIASES: Record<string, string> = {
   beautiful_adhan: 'beautiful_adhan',
   makkah: 'beautiful_adhan',
   azan1: 'beautiful_adhan',
-  madinah: 'beautiful_adhan',
-  madina: 'beautiful_adhan',
-  azan2: 'beautiful_adhan',
+  madinah: 'adhan_aishatu',
+  madina: 'adhan_aishatu',
+  azan2: 'adhan_aishatu',
   aqsa: 'azan_andrewler',
   al_aqsa: 'azan_andrewler',
   azan3: 'azan_andrewler',
-  egypt: 'azan_andrewler',
-  egyptian: 'azan_andrewler',
-  cairo: 'azan_andrewler',
-  azan4: 'azan_andrewler',
+  egypt: 'aaqib_azeez',
+  egyptian: 'aaqib_azeez',
+  cairo: 'aaqib_azeez',
+  azan4: 'aaqib_azeez',
   turkey: 'islamic_call_mahfoudou',
   turkish: 'islamic_call_mahfoudou',
   azan5: 'islamic_call_mahfoudou',
-  soft: 'beautiful_adhan',
-  gentle: 'beautiful_adhan',
-  azan6: 'beautiful_adhan',
-  abdul_basit: 'azan_andrewler',
-  abdulbasit: 'azan_andrewler',
-  azan7: 'azan_andrewler',
+  soft: 'adhan_wiki',
+  gentle: 'adhan_wiki',
+  azan6: 'adhan_wiki',
+  abdul_basit: 'hassan_ii_casablanca',
+  abdulbasit: 'hassan_ii_casablanca',
+  azan7: 'hassan_ii_casablanca',
   mishary: 'azan_andrewler',
   alafasy: 'azan_andrewler',
   azan8: 'azan_andrewler',
   cairo_fajr: 'beautiful_adhan',
   makkah_fajr: 'beautiful_adhan',
-  yasser_dosari: 'azan_andrewler',
-  dosari: 'azan_andrewler',
+  yasser_dosari: 'aaqib_azeez',
+  dosari: 'aaqib_azeez',
   azan_andrewler: 'azan_andrewler',
   islamic_call_mahfoudou: 'islamic_call_mahfoudou',
-  // Still unavailable (Wikimedia 429); alias to nearest license-safe option:
-  aaqib_azeez: 'azan_andrewler',
+  adhan_wiki: 'adhan_wiki',
+  adhan_aishatu: 'adhan_aishatu',
+  aaqib_azeez: 'aaqib_azeez',
+  hassan_ii_casablanca: 'hassan_ii_casablanca',
 };
 
 const NOTIFICATION_ID_ALIASES: Record<string, string> = {
   soft_chime: 'soft_chime',
-  beep_short: 'soft_chime',
+  beep_short: 'notify_beep',
   medium_bell: 'bell_chime',
   dinner_bell: 'bell_chime',
-  digital_watch: 'ui_alert',
-  alarm_clock: 'ui_alert',
-  bugle: 'ui_alert',
-  phone_ring: 'ui_alert',
+  digital_watch: 'digital_blip',
+  alarm_clock: 'game_notify',
+  bugle: 'gui_notify',
+  phone_ring: 'dingaling',
   ui_alert: 'ui_alert',
   bell_chime: 'bell_chime',
+  notify_beep: 'notify_beep',
+  notify_punchy: 'notify_punchy',
+  xylophone_chime: 'xylophone_chime',
+  gui_notify: 'gui_notify',
+  digital_blip: 'digital_blip',
+  game_notify: 'game_notify',
+  sparkle_tone: 'sparkle_tone',
+  message_pop: 'message_pop',
+  dingaling: 'dingaling',
   silent: 'silent',
 };
 
@@ -321,28 +602,41 @@ export const AZAN_MEDIA_FILES: Record<
   string,
   { relativePath: string; contentType: string }
 > = {
-  'beautiful_adhan.ogg': {
-    relativePath: 'azan/beautiful_adhan.ogg',
-    contentType: 'audio/ogg',
-  },
-  'azan_andrewler.ogg': {
-    relativePath: 'azan/azan_andrewler.ogg',
-    contentType: 'audio/ogg',
-  },
+  'beautiful_adhan.ogg': { relativePath: 'azan/beautiful_adhan.ogg', contentType: 'audio/ogg' },
+  'adhan_aishatu.ogg': { relativePath: 'azan/adhan_aishatu.ogg', contentType: 'audio/ogg' },
+  'azan_andrewler.ogg': { relativePath: 'azan/azan_andrewler.ogg', contentType: 'audio/ogg' },
   'islamic_call_mahfoudou.oga': {
     relativePath: 'azan/islamic_call_mahfoudou.oga',
     contentType: 'audio/ogg',
   },
-  'soft_chime.mp3': {
-    relativePath: 'notification/soft_chime.mp3',
+  'adhan_wiki.oga': { relativePath: 'azan/adhan_wiki.oga', contentType: 'audio/ogg' },
+  'aaqib_azeez.mp3': { relativePath: 'azan/aaqib_azeez.mp3', contentType: 'audio/mpeg' },
+  'hassan_ii_casablanca.mp3': {
+    relativePath: 'azan/hassan_ii_casablanca.mp3',
     contentType: 'audio/mpeg',
   },
-  'ui_alert.mp3': {
-    relativePath: 'notification/ui_alert.mp3',
+  'soft_chime.mp3': { relativePath: 'notification/soft_chime.mp3', contentType: 'audio/mpeg' },
+  'ui_alert.mp3': { relativePath: 'notification/ui_alert.mp3', contentType: 'audio/mpeg' },
+  'notify_beep.mp3': { relativePath: 'notification/notify_beep.mp3', contentType: 'audio/mpeg' },
+  'notify_punchy.mp3': {
+    relativePath: 'notification/notify_punchy.mp3',
     contentType: 'audio/mpeg',
   },
-  'bell_chime.mp3': {
-    relativePath: 'notification/bell_chime.mp3',
+  'xylophone_chime.mp3': {
+    relativePath: 'notification/xylophone_chime.mp3',
     contentType: 'audio/mpeg',
   },
+  'gui_notify.mp3': { relativePath: 'notification/gui_notify.mp3', contentType: 'audio/mpeg' },
+  'digital_blip.mp3': {
+    relativePath: 'notification/digital_blip.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'game_notify.mp3': { relativePath: 'notification/game_notify.mp3', contentType: 'audio/mpeg' },
+  'sparkle_tone.mp3': {
+    relativePath: 'notification/sparkle_tone.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'message_pop.mp3': { relativePath: 'notification/message_pop.mp3', contentType: 'audio/mpeg' },
+  'bell_chime.mp3': { relativePath: 'notification/bell_chime.mp3', contentType: 'audio/mpeg' },
+  'dingaling.mp3': { relativePath: 'notification/dingaling.mp3', contentType: 'audio/mpeg' },
 };
