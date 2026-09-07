@@ -373,19 +373,23 @@ Fajr 05:06 · Dhuhr 12:54 · Asr 16:25 · Maghrib 19:11 · Isha 20:29
 GET /api/v1/azan/sounds
 ```
 
-`defaultId = mishary_alafasy` · **count = 3** · all `isFamousVoice: true`
+`defaultId = mishary_alafasy` · **count = 9** · all `isFamousVoice: true` · `available: true`
 
-| id | English | Arabic | audioUrl |
-|----|---------|--------|----------|
-| `mishary_alafasy` (default) | Mishary Alafasy | مشاري العفاسي | `/api/v1/azan/media/mishary_alafasy.mp3` |
-| `mishary_alafasy_2` | Mishary Alafasy (Variant 2) | مشاري العفاسي (نسخة ٢) | `/api/v1/azan/media/mishary_alafasy_2.mp3` |
-| `mishary_alafasy_3` | Mishary Alafasy (Variant 3) | مشاري العفاسي (نسخة ٣) | `/api/v1/azan/media/mishary_alafasy_3.mp3` |
+| id | English | Arabic | Source |
+|----|---------|--------|--------|
+| `mishary_alafasy` (default) | Mishary Alafasy | مشاري العفاسي | AlAdhan (mirrored) |
+| `mishary_alafasy_2` | Mishary Alafasy (Variant 2) | مشاري العفاسي (نسخة ٢) | AlAdhan (mirrored) |
+| `mishary_alafasy_3` | Mishary Alafasy (Variant 3) | مشاري العفاسي (نسخة ٣) | AlAdhan (mirrored) |
+| `ali_mulla` | Ali Ahmed Mulla | علي أحمد ملا | Assabile (mirrored) |
+| `yasser_al_dosari` | Yasser Al-Dosari | ياسر الدوسري | Assabile (mirrored) |
+| `nasser_al_qatami` | Nasser Al-Qatami | ناصر القطامي | Assabile (mirrored) |
+| `abdul_basit` | Abdul Basit Abdul Samad | عبد الباسط عبد الصمد | Assabile (mirrored) |
+| `mohamed_minshawi` | Mohamed Siddiq El-Minshawi | محمد صديق المنشاوي | Assabile (mirrored) |
+| `mohamed_rifaat` | Mohamed Rifaat | محمد رفعت | Assabile (mirrored) |
 
-**Why mirrored:** `cdn.aladhan.com` intermittently returns **502 Bad Gateway** in browsers/apps. Bytes are mirrored from AlAdhan (`a4`/`a7`/`a9`); Islamic Network allows bundling these Adhan files.
+**Why mirrored:** external CDNs can fail; Noor serves `/api/v1/azan/media/{file}` with Range support.
 
-Flutter: play `audioUrl` / `previewUrl` from Noor (Range-supported). Do **not** hard-code `cdn.aladhan.com`.
-
-**Removed:** previous Commons Azan recordings. Legacy ids alias → `mishary_alafasy`.
+Unavailable (see `famousVoicesAudit`): Bandar Baleela, Maher Al-Muaiqly, Abdul Rahman Al-Sudais, Ahmed Al-Ajmi, Saad Al-Ghamdi, Nasr El-Din ToubAr, Taha El-Fashny, Mohamed Imran.
 
 ### 14.4 Notification catalog (calm / spiritual)
 

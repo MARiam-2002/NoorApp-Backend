@@ -1,19 +1,29 @@
 # Noor App — Azan & notification audio attribution
 
-## Azan (AlAdhan mirrors — self-hosted for reliability)
+## Azan (mirrored for reliable playback)
 
-Source: [AlAdhan Download Adhans](https://aladhan.com/download-adhans).  
-Mirrored under `/api/v1/azan/media/` because `cdn.aladhan.com` intermittently returns **502 Bad Gateway**. Islamic Network has confirmed apps may bundle these Adhan files.
+### AlAdhan / Islamic Network
+Source: https://aladhan.com/download-adhans
 
-| id | Recording | Local file | Original CDN |
-|----|-----------|------------|--------------|
-| `mishary_alafasy` (default) | Dubai One TV — Mishary Rashid Alafasy | `azan/mishary_alafasy.mp3` | `…/a4.mp3` |
-| `mishary_alafasy_2` | Another Adhan — Mishary Rashid Alafasy | `azan/mishary_alafasy_2.mp3` | `…/a7.mp3` |
-| `mishary_alafasy_3` | Yet Another Adhan — Mishary Rashid Alafasy | `azan/mishary_alafasy_3.mp3` | `…/a9.mp3` |
+| id | Recording | Local file |
+|----|-----------|------------|
+| `mishary_alafasy` (default) | Dubai One TV — Mishary Rashid Alafasy | `azan/mishary_alafasy.mp3` |
+| `mishary_alafasy_2` | Another Adhan — Mishary Rashid Alafasy | `azan/mishary_alafasy_2.mp3` |
+| `mishary_alafasy_3` | Yet Another Adhan — Mishary Rashid Alafasy | `azan/mishary_alafasy_3.mp3` |
 
-Credit AlAdhan / Islamic Network; mu’adhin performance rights remain with the reciter.
+### Assabile Adhan catalog
+Source: https://www.assabile.com/adhan-call-prayer
 
-Other requested famous muezzins remain in API `famousVoicesAudit` as unavailable until a reliable source exists.
+| id | Recording | Local file |
+|----|-----------|------------|
+| `ali_mulla` | Ali Ibn Ahmad Mala — Masjid Al-Haram | `azan/ali_mulla.mp3` |
+| `yasser_al_dosari` | Yasser Al-Dosari — Saudi | `azan/yasser_al_dosari.mp3` |
+| `nasser_al_qatami` | Nasser Al Qatami — Riyadh | `azan/nasser_al_qatami.mp3` |
+| `abdul_basit` | Abdulbasit Abdusamad — Fajr Egypt | `azan/abdul_basit.mp3` |
+| `mohamed_minshawi` | Mohamed Siddiq El-Minshawi — Egypt | `azan/mohamed_minshawi.mp3` |
+| `mohamed_rifaat` | Muhammad Refaat — Cairo | `azan/mohamed_rifaat.mp3` |
+
+Served via `/api/v1/azan/media/{file}`. Mu’adhin performance rights remain with the reciter. See API `famousVoicesAudit` for priority voices still unavailable.
 
 ## Notification tones (Freesound) — self-hosted
 

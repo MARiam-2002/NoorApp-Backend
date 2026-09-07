@@ -1,10 +1,10 @@
 /**
  * Azan + notification catalogs for Noor App.
  *
- * Azan: Mishary Alafasy Adhans from AlAdhan / Islamic Network
- * (https://aladhan.com/download-adhans), mirrored under /api/v1/azan/media
- * because the public CDN intermittently returns 502 Bad Gateway.
- * Islamic Network staff have confirmed apps may bundle these Adhan files.
+ * Azan sources (mirrored under /api/v1/azan/media for reliable playback):
+ * - AlAdhan / Islamic Network (Mishary Alafasy a4/a7/a9)
+ * - Assabile Adhan catalog (https://www.assabile.com/adhan-call-prayer)
+ *   for labeled famous muezzin Adhans with working direct MP3 URLs
  *
  * Quran recitation remains separate: /quran/audio (Quran Foundation).
  * Notification tones remain self-hosted Freesound (unchanged).
@@ -31,14 +31,16 @@ export type AzanSoundOption = {
   locationEn?: string;
   locationAr?: string;
   isFamousVoice: boolean;
-  category: 'famous_contemporary';
+  category: 'famous_contemporary' | 'famous_classic';
   /** Absolute stream URL (filled at runtime from /azan/media). */
   audioUrl: string;
   previewUrl: string;
   mediaFile: string;
   format: 'mp3';
-  provider: 'aladhan_selfhosted';
+  provider: 'aladhan_selfhosted' | 'assabile_selfhosted';
   source: string;
+  /** True when HTTP-tested and listed in the live catalog. */
+  available: boolean;
   license: AudioLicense;
   streamingAllowed: boolean;
   selfHostingAllowed: boolean;
@@ -77,72 +79,119 @@ const aladhanLicense = (recordingTitle: string): AudioLicense => ({
   sourcePageUrl: 'https://aladhan.com/download-adhans',
 });
 
+const assabileLicense = (recordingTitle: string): AudioLicense => ({
+  spdxOrName: 'none',
+  licenseUrl: null,
+  attributionRequired: true,
+  attributionText: `${recordingTitle} — sourced from Assabile Adhan catalog (https://www.assabile.com/adhan-call-prayer), mirrored by Noor for reliable playback. Mu’adhin performance rights remain with the reciter.`,
+  commercialUseAllowed: true,
+  sourcePageUrl: 'https://www.assabile.com/adhan-call-prayer',
+});
+
 /**
  * Priority famous voices requested for Noor.
- * Only entries with a verified working Adhan stream URL are in AZAN_SOUND_OPTIONS.
+ * Only entries with a verified working Adhan stream are in AZAN_SOUND_OPTIONS.
  */
 export const FAMOUS_AZAN_VOICE_AUDIT = [
   {
     nameEn: 'Ali Ahmed Mulla',
     nameAr: 'علي أحمد ملا',
-    status: 'unavailable',
+    status: 'available',
     reason:
-      'No reliable labeled Adhan stream URL found on AlAdhan CDN or other app-oriented sources. Commercial releases exist; do not invent YouTube/MP3-site links.',
+      'Assabile labeled Adhan (Ali Ibn Ahmad Mala — Masjid Al-Haram). HTTP 206 audio/mpeg verified; mirrored under /azan/media/ali_mulla.mp3.',
   },
   {
     nameEn: 'Yasser Al-Dosari',
     nameAr: 'ياسر الدوسري',
-    status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    status: 'available',
+    reason:
+      'Assabile labeled Adhan (Yasser Al-Dosari — Saudi). HTTP 206 audio/mpeg verified; mirrored under /azan/media/yasser_al_dosari.mp3.',
   },
   {
     nameEn: 'Mishary Rashid Alafasy',
     nameAr: 'مشاري راشد العفاسي',
     status: 'available',
     reason:
-      'Three Adhan recordings from AlAdhan (a4, a7, a9) mirrored under /azan/media for reliable playback (CDN can return 502).',
+      'Three AlAdhan Adhans (a4, a7, a9) mirrored under /azan/media (CDN can 502).',
   },
   {
     nameEn: 'Bandar Baleela',
     nameAr: 'بندر بليلة',
     status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    reason:
+      'Not listed with a labeled Adhan on AlAdhan or Assabile Adhan catalog; no other reputable direct Adhan stream verified.',
   },
   {
     nameEn: 'Maher Al-Muaiqly',
     nameAr: 'ماهر المعيقلي',
     status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    reason:
+      'Not listed with a labeled Adhan on AlAdhan or Assabile; available Quran recitation sources are not Adhan.',
   },
   {
     nameEn: 'Nasser Al-Qatami',
     nameAr: 'ناصر القطامي',
-    status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    status: 'available',
+    reason:
+      'Assabile labeled Adhan (Nasser Al Qatami — Riyadh). HTTP 206 audio/mpeg verified; mirrored under /azan/media/nasser_al_qatami.mp3.',
   },
   {
     nameEn: 'Abdul Rahman Al-Sudais',
     nameAr: 'عبد الرحمن السديس',
     status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    reason:
+      'No labeled Adhan stream found on AlAdhan/Assabile; Archive Haram packs list Sudais Quran/witr, not a clear Adhan identity file we can trust.',
   },
   {
     nameEn: 'Ahmed Al-Ajmi',
     nameAr: 'أحمد العجمي',
     status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    reason: 'No labeled Adhan stream found on AlAdhan or Assabile Adhan catalog.',
   },
   {
     nameEn: 'Saad Al-Ghamdi',
     nameAr: 'سعد الغامدي',
     status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    reason: 'No labeled Adhan stream found on AlAdhan or Assabile Adhan catalog.',
   },
   {
     nameEn: 'Nasr El-Din ToubAr',
     nameAr: 'نصر الدين طوبار',
     status: 'unavailable',
-    reason: 'No reliable labeled Adhan stream URL found for app playback.',
+    reason: 'No labeled Adhan stream found on AlAdhan or Assabile Adhan catalog.',
+  },
+  {
+    nameEn: 'Mohamed Rifaat',
+    nameAr: 'محمد رفعت',
+    status: 'available',
+    reason:
+      'Assabile labeled Adhan (Muhammad Refaat — Cairo). HTTP 206 audio/mpeg verified; mirrored under /azan/media/mohamed_rifaat.mp3.',
+  },
+  {
+    nameEn: 'Abdul Basit Abdul Samad',
+    nameAr: 'عبد الباسط عبد الصمد',
+    status: 'available',
+    reason:
+      'Assabile labeled Adhan (Abdulbasit Abdusamad — Fajr Egypt). HTTP 206 audio/mpeg verified; mirrored under /azan/media/abdul_basit.mp3.',
+  },
+  {
+    nameEn: 'Mohamed Siddiq El-Minshawi',
+    nameAr: 'محمد صديق المنشاوي',
+    status: 'available',
+    reason:
+      'Assabile labeled Adhan (Mohamed Siddiq El-Minshawi — Egypt). HTTP 206 audio/mpeg verified; mirrored under /azan/media/mohamed_minshawi.mp3.',
+  },
+  {
+    nameEn: 'Taha El-Fashny',
+    nameAr: 'طه الفشني',
+    status: 'unavailable',
+    reason: 'No labeled Adhan stream found on AlAdhan or Assabile Adhan catalog.',
+  },
+  {
+    nameEn: 'Mohamed Imran',
+    nameAr: 'محمد عمران',
+    status: 'unavailable',
+    reason: 'No labeled Adhan stream found on AlAdhan or Assabile Adhan catalog.',
   },
 ] as const;
 
@@ -153,8 +202,8 @@ const ALAFASY = {
 } as const;
 
 /**
- * Live Azan catalog — famous contemporary only.
- * Mirrored from AlAdhan under /azan/media (CDN alone is unreliable — intermittent 502).
+ * Live Azan catalog — verified famous muezzin Adhans only.
+ * Mirrored under /azan/media for reliable Flutter playback.
  */
 export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
   {
@@ -168,6 +217,7 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     locationEn: 'Contemporary Gulf voice',
     locationAr: 'صوت خليجي معاصر',
     isFamousVoice: true,
+    available: true,
     category: 'famous_contemporary',
     audioUrl: '',
     previewUrl: '',
@@ -192,6 +242,7 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     locationEn: 'Contemporary Gulf voice',
     locationAr: 'صوت خليجي معاصر',
     isFamousVoice: true,
+    available: true,
     category: 'famous_contemporary',
     audioUrl: '',
     previewUrl: '',
@@ -215,6 +266,7 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     locationEn: 'Contemporary Gulf voice',
     locationAr: 'صوت خليجي معاصر',
     isFamousVoice: true,
+    available: true,
     category: 'famous_contemporary',
     audioUrl: '',
     previewUrl: '',
@@ -224,6 +276,162 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     source: 'AlAdhan — Yet Another Adhan by Mishary Rashid Alafasy (mirrored)',
     durationSeconds: null,
     license: aladhanLicense('Yet Another Adhan by Mishary Rashid Alafasy'),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
+  },
+  {
+    id: 'ali_mulla',
+    nameEn: 'Ali Ahmed Mulla',
+    nameAr: 'علي أحمد ملا',
+    descriptionEn: 'Famous voice of Masjid Al-Haram — classic Makkah Adhan.',
+    descriptionAr: 'صوت مشهور من المسجد الحرام — أذان مكة المكرمة.',
+    muezzin: 'Ali Ahmed Mulla',
+    muezzinEn: 'Ali Ahmed Mulla',
+    muezzinAr: 'علي أحمد ملا',
+    locationEn: 'Masjid Al-Haram, Makkah',
+    locationAr: 'المسجد الحرام، مكة المكرمة',
+    isFamousVoice: true,
+    available: true,
+    category: 'famous_contemporary',
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'ali_mulla.mp3',
+    format: 'mp3',
+    provider: 'assabile_selfhosted',
+    source: 'Assabile — Ali Ibn Ahmad Mala Adhan Al Haram Al Makee (mirrored)',
+    durationSeconds: 246,
+    license: assabileLicense('Ali Ibn Ahmad Mala - Adhan Al Haram Al Makee'),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
+  },
+  {
+    id: 'yasser_al_dosari',
+    nameEn: 'Yasser Al-Dosari',
+    nameAr: 'ياسر الدوسري',
+    descriptionEn: 'Very popular contemporary Saudi voice — beloved modern Adhan.',
+    descriptionAr: 'صوت سعودي معاصر محبوب جدًا — أذان حديث جميل.',
+    muezzin: 'Yasser Al-Dosari',
+    muezzinEn: 'Yasser Al-Dosari',
+    muezzinAr: 'ياسر الدوسري',
+    locationEn: 'Saudi Arabia',
+    locationAr: 'المملكة العربية السعودية',
+    isFamousVoice: true,
+    available: true,
+    category: 'famous_contemporary',
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'yasser_al_dosari.mp3',
+    format: 'mp3',
+    provider: 'assabile_selfhosted',
+    source: 'Assabile — Yasser Al-Dosari Adhan Al Saoudea (mirrored)',
+    durationSeconds: 182,
+    license: assabileLicense('Yasser Al-Dosari - Adhan Al Saoudea'),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
+  },
+  {
+    id: 'nasser_al_qatami',
+    nameEn: 'Nasser Al-Qatami',
+    nameAr: 'ناصر القطامي',
+    descriptionEn: 'Recognizable contemporary Saudi voice — Riyadh Adhan.',
+    descriptionAr: 'صوت سعودي معاصر معروف — أذان الرياض.',
+    muezzin: 'Nasser Al-Qatami',
+    muezzinEn: 'Nasser Al-Qatami',
+    muezzinAr: 'ناصر القطامي',
+    locationEn: 'Riyadh, Saudi Arabia',
+    locationAr: 'الرياض، المملكة العربية السعودية',
+    isFamousVoice: true,
+    available: true,
+    category: 'famous_contemporary',
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'nasser_al_qatami.mp3',
+    format: 'mp3',
+    provider: 'assabile_selfhosted',
+    source: 'Assabile — Nasser Al Qatami Adhan Al Riad (mirrored)',
+    durationSeconds: 135,
+    license: assabileLicense('Nasser Al Qatami - Adhan Al Riad Al Saoudea'),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
+  },
+  {
+    id: 'abdul_basit',
+    nameEn: 'Abdul Basit Abdul Samad',
+    nameAr: 'عبد الباسط عبد الصمد',
+    descriptionEn: 'World-famous Egyptian voice — Fajr Adhan (Egypt).',
+    descriptionAr: 'صوت مصري عالمي الشهرة — أذان الفجر (مصر).',
+    muezzin: 'Abdul Basit Abdul Samad',
+    muezzinEn: 'Abdul Basit Abdul Samad',
+    muezzinAr: 'عبد الباسط عبد الصمد',
+    locationEn: 'Egypt',
+    locationAr: 'مصر',
+    isFamousVoice: true,
+    available: true,
+    category: 'famous_classic',
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'abdul_basit.mp3',
+    format: 'mp3',
+    provider: 'assabile_selfhosted',
+    source: 'Assabile — Abdulbasit Abdusamad Adhan Al Fajr Messr (mirrored)',
+    durationSeconds: 293,
+    license: assabileLicense('Abdulbasit Abdusamad - Adhan Al Fajr, Messr'),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
+  },
+  {
+    id: 'mohamed_minshawi',
+    nameEn: 'Mohamed Siddiq El-Minshawi',
+    nameAr: 'محمد صديق المنشاوي',
+    descriptionEn: 'Beloved classic Egyptian voice — Egypt Adhan.',
+    descriptionAr: 'صوت مصري كلاسيكي محبوب — أذان مصر.',
+    muezzin: 'Mohamed Siddiq El-Minshawi',
+    muezzinEn: 'Mohamed Siddiq El-Minshawi',
+    muezzinAr: 'محمد صديق المنشاوي',
+    locationEn: 'Egypt',
+    locationAr: 'مصر',
+    isFamousVoice: true,
+    available: true,
+    category: 'famous_classic',
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'mohamed_minshawi.mp3',
+    format: 'mp3',
+    provider: 'assabile_selfhosted',
+    source: 'Assabile — Mohamed Siddiq El-Minshawi Adhan Messr (mirrored)',
+    durationSeconds: 251,
+    license: assabileLicense('Mohamed Siddiq El-Minshawi - Adhan, Messr'),
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
+  },
+  {
+    id: 'mohamed_rifaat',
+    nameEn: 'Mohamed Rifaat',
+    nameAr: 'محمد رفعت',
+    descriptionEn: 'Historic famous Egyptian Adhan voice — Cairo.',
+    descriptionAr: 'صوت أذان مصري تاريخي مشهور — القاهرة.',
+    muezzin: 'Mohamed Rifaat',
+    muezzinEn: 'Mohamed Rifaat',
+    muezzinAr: 'محمد رفعت',
+    locationEn: 'Cairo, Egypt',
+    locationAr: 'القاهرة، مصر',
+    isFamousVoice: true,
+    available: true,
+    category: 'famous_classic',
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: 'mohamed_rifaat.mp3',
+    format: 'mp3',
+    provider: 'assabile_selfhosted',
+    source: 'Assabile — Muhammad Refaat Adhan Al Qahera (mirrored)',
+    durationSeconds: 203,
+    license: assabileLicense('Muhammad Refaat - Adhan Al Qahera, Messr'),
     streamingAllowed: true,
     selfHostingAllowed: true,
     commercialUseAllowed: true,
@@ -429,16 +637,21 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
 export const DEFAULT_AZAN_SOUND_ID = 'mishary_alafasy';
 export const DEFAULT_NOTIFICATION_SOUND_ID = 'soft_chime';
 
-/** Legacy / removed Commons ids + friendly aliases → new famous catalog. */
+/** Legacy / removed Commons ids + friendly aliases → famous catalog. */
 const AZAN_ID_ALIASES: Record<string, string> = {
   mishary_alafasy: 'mishary_alafasy',
   mishary_alafasy_2: 'mishary_alafasy_2',
   mishary_alafasy_3: 'mishary_alafasy_3',
+  ali_mulla: 'ali_mulla',
+  yasser_al_dosari: 'yasser_al_dosari',
+  nasser_al_qatami: 'nasser_al_qatami',
+  abdul_basit: 'abdul_basit',
+  mohamed_minshawi: 'mohamed_minshawi',
+  mohamed_rifaat: 'mohamed_rifaat',
   mishary: 'mishary_alafasy',
   alafasy: 'mishary_alafasy',
-  makkah: 'mishary_alafasy',
+  makkah: 'ali_mulla',
   azan1: 'mishary_alafasy',
-  // Removed Commons catalog → map to default famous voice
   beautiful_adhan: 'mishary_alafasy',
   hassan_ii_casablanca: 'mishary_alafasy',
   aaqib_azeez: 'mishary_alafasy',
@@ -452,27 +665,28 @@ const AZAN_ID_ALIASES: Record<string, string> = {
   aqsa: 'mishary_alafasy_3',
   al_aqsa: 'mishary_alafasy_3',
   azan3: 'mishary_alafasy_3',
-  egypt: 'mishary_alafasy',
-  egyptian: 'mishary_alafasy',
-  cairo: 'mishary_alafasy',
-  azan4: 'mishary_alafasy',
+  egypt: 'abdul_basit',
+  egyptian: 'abdul_basit',
+  cairo: 'mohamed_rifaat',
+  azan4: 'abdul_basit',
   turkey: 'mishary_alafasy',
   turkish: 'mishary_alafasy',
   azan5: 'mishary_alafasy',
   soft: 'mishary_alafasy',
   gentle: 'mishary_alafasy',
   azan6: 'mishary_alafasy',
-  abdul_basit: 'mishary_alafasy',
-  abdulbasit: 'mishary_alafasy',
-  azan7: 'mishary_alafasy',
+  abdulbasit: 'abdul_basit',
+  azan7: 'abdul_basit',
   azan8: 'mishary_alafasy',
-  cairo_fajr: 'mishary_alafasy',
-  makkah_fajr: 'mishary_alafasy',
-  yasser_dosari: 'mishary_alafasy',
-  dosari: 'mishary_alafasy',
-  ali_mulla: 'mishary_alafasy',
+  cairo_fajr: 'abdul_basit',
+  makkah_fajr: 'ali_mulla',
+  yasser_dosari: 'yasser_al_dosari',
+  dosari: 'yasser_al_dosari',
+  qatami: 'nasser_al_qatami',
+  minshawi: 'mohamed_minshawi',
+  rifaat: 'mohamed_rifaat',
+  refaat: 'mohamed_rifaat',
   toubar: 'mishary_alafasy',
-  refaat: 'mishary_alafasy',
 };
 
 const NOTIFICATION_ID_ALIASES: Record<string, string> = {
@@ -538,16 +752,19 @@ export function getNotificationSoundById(raw?: string | null): NotificationSound
 }
 
 export const AUDIO_SOURCE_POLICY = {
-  azanProvider: 'aladhan_selfhosted',
+  azanProvider: 'aladhan_and_assabile_selfhosted',
   notificationProvider: 'freesound_selfhosted',
   delivery:
-    'Azan audio is mirrored from AlAdhan under /api/v1/azan/media/:file (CDN alone is unreliable — intermittent 502). Notification tones use the same media endpoint.',
+    'Azan audio is mirrored under /api/v1/azan/media/:file from AlAdhan (Alafasy) and Assabile (other labeled famous Adhans). External CDNs alone can be flaky.',
   policy:
-    'Ship only famous contemporary Adhan voices with a labeled AlAdhan source. Mirror bytes for reliable Flutter playback. Do not invent famous-voice labels for unknown MP3s. Other priority muezzins remain in famousVoicesAudit until a reliable source exists.',
-  sourcePage: 'https://aladhan.com/download-adhans',
+    'Ship only famous muezzin Adhans with a labeled source page + HTTP-verified audio. Mirror for reliable Flutter playback. Do not invent famous-voice labels. Unavailable priority voices stay in famousVoicesAudit.',
+  sources: [
+    'https://aladhan.com/download-adhans',
+    'https://www.assabile.com/adhan-call-prayer',
+  ],
 } as const;
 
-/** Self-hosted media: Alafasy Azan mirrors + notification tones. */
+/** Self-hosted Azan mirrors + notification tones. */
 export const AZAN_MEDIA_FILES: Record<string, { relativePath: string; contentType: string }> = {
   'mishary_alafasy.mp3': {
     relativePath: 'azan/mishary_alafasy.mp3',
@@ -561,6 +778,21 @@ export const AZAN_MEDIA_FILES: Record<string, { relativePath: string; contentTyp
     relativePath: 'azan/mishary_alafasy_3.mp3',
     contentType: 'audio/mpeg',
   },
+  'ali_mulla.mp3': { relativePath: 'azan/ali_mulla.mp3', contentType: 'audio/mpeg' },
+  'yasser_al_dosari.mp3': {
+    relativePath: 'azan/yasser_al_dosari.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'nasser_al_qatami.mp3': {
+    relativePath: 'azan/nasser_al_qatami.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'abdul_basit.mp3': { relativePath: 'azan/abdul_basit.mp3', contentType: 'audio/mpeg' },
+  'mohamed_minshawi.mp3': {
+    relativePath: 'azan/mohamed_minshawi.mp3',
+    contentType: 'audio/mpeg',
+  },
+  'mohamed_rifaat.mp3': { relativePath: 'azan/mohamed_rifaat.mp3', contentType: 'audio/mpeg' },
   'soft_chime.mp3': { relativePath: 'notification/soft_chime.mp3', contentType: 'audio/mpeg' },
   'meditation_bell.mp3': {
     relativePath: 'notification/meditation_bell.mp3',
