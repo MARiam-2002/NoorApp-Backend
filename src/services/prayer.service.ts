@@ -295,7 +295,6 @@ export function calculateDailyPrayerSchedule(
 
   return {
     date: referenceDate.toISOString().slice(0, 10),
-    timezone: tz,
     nextPrayer,
     schedule,
     completedCount: completedPrayers.length,
