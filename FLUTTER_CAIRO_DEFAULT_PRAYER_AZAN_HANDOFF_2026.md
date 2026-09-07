@@ -6,7 +6,7 @@
 **Updated:** 2026-09-07  
 **Language:** English only  
 
-**Backend status:** Cairo default prayer times & Azan location resolution are **READY** for Flutter integration.
+**Backend status:** Cairo default prayer times, Azan location resolution, and **Azan / notification sound catalogs** are **READY** for Flutter integration.
 
 ---
 
@@ -267,6 +267,9 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 | Guest Azan | Backend cannot push FCM to guests. Flutter schedules **local** notifications from Cairo (or query) times. |
 | Logged-in FCM backup | Cron uses prefs/profile location, else **Cairo** (no longer skips users with null coords). |
 | Prefs without GPS | `GET /profile/azan-preferences` returns Cairo `lastLat`/`lastLng` + `isDefaultLocation: true`. |
+| Azan audio catalog | `GET /azan/sounds` — multiple free Adhan MP3 options (not one hard-coded file). |
+| Notification tones | `GET /azan/notification-sounds` — short tones for pre-reminders. |
+| Quran audio | **Separate** — keep using `GET /quran/audio` (Quran Foundation). Do not mix. |
 
 ---
 
@@ -278,6 +281,8 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 - Trust `isDefaultLocation` / `locationSource` for UI messaging  
 - After location save, refresh prayers and reschedule Azan  
 - Prefer Backend schedule over hardcoded mock times when online  
+- Load Azan / notification options from `/azan/sounds` and `/azan/notification-sounds`  
+- Play `azanSound.audioUrl` at prayer time; play `notificationSound.audioUrl` for pre-reminders  
 
 **Do not:**
 
@@ -285,6 +290,8 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 - Require GPS before showing prayer times  
 - Assume missing coords = API error (Cairo is valid)  
 - Persist Cairo as if it were the user’s real city after they saved another location  
+- Use Quran reciter audio (`/quran/audio`) as Azan  
+- Hard-code a single Azan file URL in Flutter when the catalog is available  
 
 ---
 
@@ -298,6 +305,11 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 - [ ] Logged-in Home uses `/dashboard` or `/prayers/today` with Bearer  
 - [ ] On location change → cancel old Azan jobs → fetch → reschedule  
 - [ ] UI can show “Cairo (default)” only while `isDefaultLocation == true`  
+- [ ] Fetch `GET /azan/sounds` + `GET /azan/notification-sounds` for settings UI  
+- [ ] Guest: apply `GET /azan/audio-defaults` (or guest prefs) locally  
+- [ ] Logged-in: `GET/PATCH /profile/azan-preferences` with `azanSoundId` / `notificationSoundId`  
+- [ ] Cache selected `audioUrl` for offline playback after first download  
+- [ ] Keep Quran audio pipeline unchanged  
 
 ---
 
@@ -311,10 +323,14 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 | 200 + `locationSource: profile` | Use saved user location |
 | Location permission denied | Keep Cairo default; do not block app |
 | `PUT /profile/location` fails | Keep previous schedule; retry later |
+| Sound catalog fetch fails | Keep last cached catalog or Backend defaults (`makkah` / `beep_short`) |
+| Selected `audioUrl` fails to play | Fall back to default Azan / notification sound; keep schedule |
+| `notificationSoundId=silent` | Skip audio; vibration only if enabled |
+| Guest tries `PATCH` prefs | Expect **401** — store selection locally until login |
 
 ---
 
-## 13. Production verification (Backend)
+## 13. Production verification — Cairo location (Backend)
 
 **VERIFIED ON PRODUCTION** (2026-09-07) against  
 `https://noor-app-backend-one.vercel.app/api/v1`
@@ -333,4 +349,209 @@ Do **not** keep showing Cairo after a successful location save + refresh.
 Sample guest Cairo times on verification day:  
 Fajr 05:06 · Dhuhr 12:54 · Asr 16:25 · Maghrib 19:11 · Isha 20:29
 
-**Backend status: READY**
+---
+
+## 14. Azan & notification audio (NEW)
+
+### 14.1 Goal
+
+Flutter must let the user pick:
+
+1. **Azan sound** — full Adhan played at prayer time  
+2. **Notification sound** — short tone for pre-reminders / prayer alerts  
+
+Sources are free, multi-option catalogs (verified working in 2026). **Quran audio stays on `/quran/audio` (Quran Foundation) — never mix.**
+
+### 14.2 Sources (verified)
+
+| Kind | Provider | Base |
+|------|----------|------|
+| Azan (primary) | IslamCan free Adhan MP3s | `https://www.islamcan.com/audio/adhan/azan{1..8}.mp3` |
+| Azan (extra) | Kiwifu/adhan-mp3 via jsDelivr | `https://cdn.jsdelivr.net/gh/Kiwifu/adhan-mp3@main/...` |
+| Notification tones | Google Actions free sounds | `https://actions.google.com/sounds/v1/alarms/...` |
+
+### 14.3 Public catalog APIs (no auth)
+
+#### List Azan sounds
+
+```http
+GET /api/v1/azan/sounds
+```
+
+Response shape:
+
+```json
+{
+  "success": true,
+  "data": {
+    "defaultId": "makkah",
+    "count": 11,
+    "sounds": [
+      {
+        "id": "makkah",
+        "nameEn": "Masjid al-Haram (Makkah)",
+        "nameAr": "المسجد الحرام (مكة)",
+        "muezzinEn": "Sheikh Ali Ahmad Mulla",
+        "muezzinAr": "علي أحمد ملا",
+        "locationEn": "Makkah, Saudi Arabia",
+        "locationAr": "مكة المكرمة",
+        "audioUrl": "https://www.islamcan.com/audio/adhan/azan1.mp3",
+        "format": "mp3",
+        "provider": "islamcan",
+        "isDefault": true
+      }
+    ]
+  }
+}
+```
+
+#### List notification sounds
+
+```http
+GET /api/v1/azan/notification-sounds
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "defaultId": "beep_short",
+    "count": 8,
+    "sounds": [
+      {
+        "id": "beep_short",
+        "nameEn": "Short beep",
+        "nameAr": "صفارة قصيرة",
+        "descriptionEn": "Simple short alert",
+        "descriptionAr": "تنبيه قصير بسيط",
+        "audioUrl": "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
+        "format": "ogg",
+        "provider": "google_actions",
+        "isDefault": true
+      },
+      {
+        "id": "silent",
+        "nameEn": "Silent",
+        "nameAr": "صامت",
+        "audioUrl": null,
+        "format": "none",
+        "provider": "none"
+      }
+    ]
+  }
+}
+```
+
+#### Guest defaults (resolved objects)
+
+```http
+GET /api/v1/azan/audio-defaults
+```
+
+Returns `azanSoundId`, `notificationSoundId`, `voiceId`, plus full `azanSound` / `notificationSound` objects.
+
+### 14.4 Available option ids
+
+**Azan (`azanSoundId` / `voiceId`):**  
+`makkah` (default), `madinah`, `aqsa`, `egypt`, `turkey`, `soft`, `abdul_basit`, `mishary`, `cairo_fajr`, `makkah_fajr`, `yasser_dosari`
+
+**Notification (`notificationSoundId`):**  
+`beep_short` (default), `medium_bell`, `dinner_bell`, `digital_watch`, `alarm_clock`, `bugle`, `phone_ring`, `silent`
+
+### 14.5 User preferences APIs
+
+#### Get current preferences
+
+```http
+GET /api/v1/profile/azan-preferences
+```
+
+| Client | Auth | Behavior |
+|--------|------|----------|
+| Guest | none | **200** with defaults + `isGuestDefaults: true` (not persisted) |
+| Logged-in | Bearer | **200** with saved prefs + resolved `azanSound` / `notificationSound` |
+
+#### Save preferences (logged-in only)
+
+```http
+PATCH /api/v1/profile/azan-preferences
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "azanSoundId": "egypt",
+  "notificationSoundId": "medium_bell",
+  "soundEnabled": true,
+  "vibrationEnabled": true,
+  "preReminderEnabled": true,
+  "preReminderMinutes": 15
+}
+```
+
+Aliases accepted for Azan selection: `azanSoundId` **or** legacy `voiceId` (kept in sync).
+
+Response includes resolved objects:
+
+```json
+{
+  "success": true,
+  "data": {
+    "voiceId": "egypt",
+    "azanSoundId": "egypt",
+    "notificationSoundId": "medium_bell",
+    "azanSound": { "id": "egypt", "audioUrl": "https://www.islamcan.com/audio/adhan/azan4.mp3", "...": "..." },
+    "notificationSound": { "id": "medium_bell", "audioUrl": "https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg", "...": "..." },
+    "azanEnabled": true,
+    "soundEnabled": true
+  }
+}
+```
+
+Guest `PATCH` → **401** (save locally until login, then sync).
+
+### 14.6 Flutter integration flow
+
+```text
+Settings open
+  → GET /azan/sounds
+  → GET /azan/notification-sounds
+  → GET /profile/azan-preferences   (guest OK → defaults)
+
+User picks Azan + notification sound
+  → Preview: play audioUrl once (AudioPlayer)
+  → Guest: persist ids + urls in local storage
+  → Logged-in: PATCH /profile/azan-preferences { azanSoundId, notificationSoundId }
+
+Prayer time arrives
+  → If soundEnabled: play prefs.azanSound.audioUrl (full Azan)
+  → Else if vibrationEnabled: vibrate only
+
+Pre-reminder
+  → If notificationSound.audioUrl != null: play it
+  → If id == silent: no audio
+```
+
+### 14.7 Suggested Flutter models / services
+
+| Piece | Role |
+|-------|------|
+| `AzanSoundOption` | id, names, muezzin, `audioUrl`, format, provider, isDefault |
+| `NotificationSoundOption` | id, names, `audioUrl?`, format, provider |
+| `AzanAudioPreferences` | azanSoundId, notificationSoundId, flags, embedded sound objects |
+| `AzanAudioRepository` | fetch catalogs + get/patch prefs |
+| `AzanPlayerService` | download/cache + play Azan / notification URLs |
+| Settings Cubit/Bloc | selection UI state; optimistic local save for guests |
+
+### 14.8 Defaults
+
+| User | Azan | Notification |
+|------|------|--------------|
+| Guest / first install | `makkah` | `beep_short` |
+| Logged-in, never set | same defaults (server-side) | same |
+| Unknown / invalid id | falls back to default | falls back to default |
+
+### 14.9 Production verification — audio (Backend)
+
+Filled after live Production checks in this task (see final report).
+
+**Backend status: READY** (location + audio after Production PASS)

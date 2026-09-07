@@ -16,6 +16,7 @@ import { qiblaRouter } from './qibla';
 import { adhkarRouter } from './adhkar';
 import { devicesRouter } from './devices';
 import { cronRouter } from './cron';
+import { azanRouter } from './azan';
 
 export const v1Router = Router();
 
@@ -24,6 +25,7 @@ v1Router.use('/auth', authRouter);
 v1Router.use('/profile', profileRouter);
 v1Router.use('/dashboard', dashboardRouter);
 v1Router.use('/prayers', prayerRouter);
+v1Router.use('/azan', azanRouter);
 v1Router.use('/journey', journeyRouter);
 v1Router.use('/quran', quranRouter);
 v1Router.use('/challenges', challengesRouter);

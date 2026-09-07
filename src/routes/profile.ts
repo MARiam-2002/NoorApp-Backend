@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import { validate } from '../shared/utils/validator';
 import { ianaTimezoneSchema } from '../shared/schemas/validation.schemas';
 import * as profileController from '../controllers/profile.controller';
@@ -482,7 +482,11 @@ profileRouter.patch(
  *     summary: Update synced Azan preferences
  *     security: [ { bearerAuth: [] } ]
  */
-profileRouter.get('/azan-preferences', authenticate, getAzanPreferencesHandler);
+profileRouter.get(
+  '/azan-preferences',
+  optionalAuthenticate,
+  getAzanPreferencesHandler,
+);
 profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandler);
 
 /**

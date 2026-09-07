@@ -4,6 +4,16 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
+import {
+  DEFAULT_AZAN_SOUND_ID,
+  DEFAULT_NOTIFICATION_SOUND_ID,
+  getAzanSoundById,
+  getNotificationSoundById,
+  resolveAzanSoundId,
+  resolveNotificationSoundId,
+  type AzanSoundOption,
+  type NotificationSoundOption,
+} from '../shared/constants/azan-sounds';
 
 const prayerTogglesSchema = z.object({
   fajr: z.boolean(),
@@ -17,7 +27,17 @@ export const azanPreferencesSchema = z.object({
   azanEnabled: z.boolean().default(true),
   soundEnabled: z.boolean().default(true),
   vibrationEnabled: z.boolean().default(true),
-  voiceId: z.string().trim().min(1).max(64).default('makkah'),
+  /** Preferred Azan sound id (legacy field name kept for Flutter compatibility). */
+  voiceId: z.string().trim().min(1).max(64).default(DEFAULT_AZAN_SOUND_ID),
+  /** Preferred Azan sound id (alias of voiceId). */
+  azanSoundId: z.string().trim().min(1).max(64).optional(),
+  /** Short tone for pre-reminder / prayer notification. */
+  notificationSoundId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .default(DEFAULT_NOTIFICATION_SOUND_ID),
   calculationMethod: z
     .string()
     .trim()
@@ -45,6 +65,12 @@ export const azanPreferencesSchema = z.object({
 
 export type AzanPreferences = z.infer<typeof azanPreferencesSchema>;
 
+export type AzanPreferencesResponse = AzanPreferences & {
+  azanSoundId: string;
+  azanSound: AzanSoundOption;
+  notificationSound: NotificationSoundOption;
+};
+
 export function defaultAzanPreferences(): AzanPreferences {
   return azanPreferencesSchema.parse({});
 }
@@ -52,45 +78,87 @@ export function defaultAzanPreferences(): AzanPreferences {
 function normalizePrefs(raw: unknown): AzanPreferences {
   const base = defaultAzanPreferences();
   if (!raw || typeof raw !== 'object') return base;
-  const merged = { ...base, ...(raw as Record<string, unknown>) };
-  if (
-    merged.madhab &&
-    typeof merged.madhab === 'string'
-  ) {
+  const incoming = { ...(raw as Record<string, unknown>) };
+
+  // Prefer explicit azanSoundId when patching; keep voiceId in sync.
+  if (typeof incoming.azanSoundId === 'string' && incoming.azanSoundId.trim()) {
+    incoming.voiceId = resolveAzanSoundId(incoming.azanSoundId);
+    incoming.azanSoundId = incoming.voiceId;
+  } else if (typeof incoming.voiceId === 'string' && incoming.voiceId.trim()) {
+    incoming.voiceId = resolveAzanSoundId(incoming.voiceId);
+    incoming.azanSoundId = incoming.voiceId;
+  }
+
+  if (typeof incoming.notificationSoundId === 'string') {
+    incoming.notificationSoundId = resolveNotificationSoundId(
+      incoming.notificationSoundId,
+    );
+  }
+
+  const merged = { ...base, ...incoming };
+  if (merged.madhab && typeof merged.madhab === 'string') {
     merged.madhab = merged.madhab.toUpperCase() as AzanPreferences['madhab'];
   }
+
+  // Always keep voiceId + azanSoundId aligned to a known catalog id.
+  const soundId = resolveAzanSoundId(
+    (merged.azanSoundId as string) || (merged.voiceId as string),
+  );
+  merged.voiceId = soundId;
+  merged.azanSoundId = soundId;
+  merged.notificationSoundId = resolveNotificationSoundId(
+    merged.notificationSoundId as string,
+  );
+
   return azanPreferencesSchema.parse(merged);
 }
 
-export async function getAzanPreferences(userId: string): Promise<AzanPreferences> {
+function enrichPrefs(prefs: AzanPreferences): AzanPreferencesResponse {
+  const azanSound = getAzanSoundById(prefs.azanSoundId ?? prefs.voiceId);
+  const notificationSound = getNotificationSoundById(prefs.notificationSoundId);
+  return {
+    ...prefs,
+    voiceId: azanSound.id,
+    azanSoundId: azanSound.id,
+    notificationSoundId: notificationSound.id,
+    azanSound,
+    notificationSound,
+  };
+}
+
+export async function getAzanPreferences(userId: string): Promise<AzanPreferencesResponse> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { azanPreferences: true, prayerCalculationMethod: true, latitude: true, longitude: true, city: true },
+    select: {
+      azanPreferences: true,
+      prayerCalculationMethod: true,
+      latitude: true,
+      longitude: true,
+      city: true,
+    },
   });
   if (!user) {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
 
   const prefs = normalizePrefs(user.azanPreferences);
-  // Fill location defaults from profile when not set on prefs
   if (prefs.lastLat == null && user.latitude != null) prefs.lastLat = user.latitude;
   if (prefs.lastLng == null && user.longitude != null) prefs.lastLng = user.longitude;
   if (!prefs.lastLocationLabel && user.city) prefs.lastLocationLabel = user.city;
   if (prefs.calculationMethod === 'EGYPT' && user.prayerCalculationMethod) {
-    // Keep prefs.calculationMethod as the sync source of truth once stored;
-    // only hint Egyptian default from profile when prefs were never saved.
     if (user.azanPreferences == null) {
       const method = String(user.prayerCalculationMethod).toUpperCase();
       if (method.includes('EGYPT')) prefs.calculationMethod = 'EGYPT';
-      else if (method.includes('MWL') || method.includes('MUSLIM_WORLD')) prefs.calculationMethod = 'MWL';
-      else if (method.includes('MAKKAH') || method.includes('UMM')) prefs.calculationMethod = 'MAKKAH';
+      else if (method.includes('MWL') || method.includes('MUSLIM_WORLD'))
+        prefs.calculationMethod = 'MWL';
+      else if (method.includes('MAKKAH') || method.includes('UMM'))
+        prefs.calculationMethod = 'MAKKAH';
       else if (method.includes('KARACHI')) prefs.calculationMethod = 'KARACHI';
       else if (method.includes('ISNA')) prefs.calculationMethod = 'ISNA';
       else if (method.includes('TEHRAN')) prefs.calculationMethod = 'TEHRAN';
     }
   }
 
-  // Before real location exists: Cairo, Egypt for Azan scheduling / UI.
   const hasLocation =
     prefs.lastLat != null &&
     prefs.lastLng != null &&
@@ -111,18 +179,26 @@ export async function getAzanPreferences(userId: string): Promise<AzanPreference
     prefs.isDefaultLocation = isCairoDefault;
     prefs.locationSource = isCairoDefault ? 'default_cairo' : 'profile';
   }
-  return prefs;
+  return enrichPrefs(prefs);
 }
 
 export async function updateAzanPreferences(
   userId: string,
-  patch: Partial<AzanPreferences>,
-): Promise<AzanPreferences> {
+  patch: Partial<AzanPreferences> & { azanSoundId?: string },
+): Promise<AzanPreferencesResponse> {
   const current = await getAzanPreferences(userId);
   const next = normalizePrefs({ ...current, ...patch });
 
-  // Do not persist derived location flags — recomputed on GET.
-  const { isDefaultLocation: _i, locationSource: _s, ...persistable } = next;
+  const {
+    isDefaultLocation: _i,
+    locationSource: _s,
+    azanSound: _a,
+    notificationSound: _n,
+    ...persistable
+  } = next as AzanPreferences & {
+    azanSound?: unknown;
+    notificationSound?: unknown;
+  };
 
   const explicitLocation =
     patch.lastLat != null &&
