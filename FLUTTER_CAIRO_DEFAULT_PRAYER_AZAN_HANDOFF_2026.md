@@ -474,4 +474,15 @@ PATCH /api/v1/profile/azan-preferences
 
 ### 14.10 Production verification — audio (Backend)
 
-Filled after expanded-catalog Production re-verification.
+Verified live on `https://noor-app-backend-one.vercel.app/api/v1` after expand deploy (`debdcdd`):
+
+| Check | Result |
+|-------|--------|
+| Azan count **7**, default `beautiful_adhan`, all self-hosted + reachable | PASS |
+| Notification count **13**, default `soft_chime`, all self-hosted + reachable | PASS |
+| Attribution required: `bell_chime`, `dingaling` | PASS |
+| Al Furqan rejected in `sourcePolicy` | PASS |
+| Guest prefs / guest PATCH 401 / auth PATCH new ids / legacy `makkah` | PASS |
+| Cairo prayers + Quran reciters intact | PASS |
+
+**Summary: 18/18 PASS** — READY (7 Azan + 13 notification options).
