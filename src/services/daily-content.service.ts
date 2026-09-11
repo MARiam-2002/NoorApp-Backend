@@ -93,30 +93,50 @@ export async function getVerseOfTheDayLite(dayOfYear = getDayOfYear()) {
 }
 
 export async function getHadithOfTheDay(dayOfYear = getDayOfYear()) {
-  const stored = await prisma.hadithOfTheDay.findFirst({
-    where: { dayOfYear },
-  });
+  const year = new Date().getFullYear();
+  const curated = getCuratedHadithForDay(dayOfYear, year);
 
-  if (stored) return stored;
+  // Prefer verified Sahihayn bank as source of truth (never serve stale/unverified DB text).
+  try {
+    const stored = await prisma.hadithOfTheDay.findFirst({ where: { dayOfYear } });
+    if (
+      stored &&
+      stored.textAr === curated.textAr &&
+      stored.sourceAr === curated.sourceAr
+    ) {
+      return stored;
+    }
 
-  const curated = getCuratedHadithForDay(dayOfYear);
-  logger.warn('No HadithOfTheDay row in DB, returning curated day-rotated fallback', {
-    dayOfYear,
-  });
-  return {
-    id: `fallback-hadith-${dayOfYear}`,
-    dayOfYear,
-    textAr: curated.textAr,
-    sourceAr: curated.sourceAr,
-  };
+    return await prisma.hadithOfTheDay.upsert({
+      where: { dayOfYear },
+      create: {
+        dayOfYear,
+        textAr: curated.textAr,
+        sourceAr: curated.sourceAr,
+      },
+      update: {
+        textAr: curated.textAr,
+        sourceAr: curated.sourceAr,
+      },
+    });
+  } catch (err) {
+    logger.warn('HadithOfTheDay DB upsert failed, returning verified bank entry', {
+      dayOfYear,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return {
+      id: `verified-hadith-${year}-${dayOfYear}`,
+      dayOfYear,
+      textAr: curated.textAr,
+      sourceAr: curated.sourceAr,
+    };
+  }
 }
 
 export async function getHadithOfTheDayLite(dayOfYear = getDayOfYear()) {
-  const stored = await prisma.hadithOfTheDay.findFirst({ where: { dayOfYear } });
-  if (stored) {
-    return { textAr: stored.textAr, sourceAr: stored.sourceAr };
-  }
-  return getCuratedHadithForDay(dayOfYear);
+  const year = new Date().getFullYear();
+  // Deterministic verified selection — stable same day; no unverified static fallback.
+  return getCuratedHadithForDay(dayOfYear, year);
 }
 
 export async function getDailyChallengeTemplate(dayOfYear = getDayOfYear()) {

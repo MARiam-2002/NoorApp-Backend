@@ -5,7 +5,7 @@
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index.js" }],
   "functions": {
     "api/index.js": {
-      "includeFiles": "prisma/migrations/**,prisma/schema.prisma,assets/**"
+      "includeFiles": "prisma/migrations/**,prisma/schema.prisma,assets/**,src/shared/data/**,dist/shared/data/**"
     }
   }
 }

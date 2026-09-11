@@ -15,12 +15,19 @@ export const FALLBACK_VERSE_FULL_SURAH = {
 };
 
 export const FALLBACK_HADITH = {
+  // Classic Sahihayn opening — only used if bank import somehow fails at call sites.
   textAr: 'إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى',
   sourceAr: 'رواه البخاري ومسلم',
 };
 
-/** @deprecated Prefer getCuratedHadithForDay(dayOfYear) for day-stable fallbacks. */
-export { getCuratedHadithForDay, CURATED_HADITHS } from './curated-hadiths';
+/** Prefer getCuratedHadithForDay / VERIFIED_SAHIH_HADITHS for day-stable Daily Hadith. */
+export {
+  getCuratedHadithForDay,
+  CURATED_HADITHS,
+  VERIFIED_SAHIH_HADITHS,
+  HADITH_BANK_META,
+  getHadithBankStats,
+} from './curated-hadiths';
 
 export const FALLBACK_CHALLENGE = {
   titleAr: 'صفحتا قرآن',

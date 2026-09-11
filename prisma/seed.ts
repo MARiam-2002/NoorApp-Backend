@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient, RevelationType } from '@prisma/client';
-import { CURATED_HADITHS } from '../src/shared/constants/curated-hadiths';
+import { getCuratedHadithForDay } from '../src/shared/constants/curated-hadiths';
 
 const prisma = new PrismaClient();
 
@@ -67,8 +67,6 @@ const VERSE_REFS: { surahNumber: number; ayahNumber: number }[] = [
   { surahNumber: 57, ayahNumber: 21 },
   { surahNumber: 64, ayahNumber: 11 },
 ];
-
-const HADITHS = CURATED_HADITHS;
 
 const CHALLENGE_TYPES = ['QURAN_PAGES', 'PRAYER', 'ADHKAR', 'SADAQAH'] as const;
 type ChallengeType = typeof CHALLENGE_TYPES[number];
@@ -307,9 +305,10 @@ async function upsertVersesOfDay(): Promise<void> {
 }
 
 function buildHadiths(): { dayOfYear: number; textAr: string; sourceAr: string }[] {
+  const year = new Date().getFullYear();
   const result: { dayOfYear: number; textAr: string; sourceAr: string }[] = [];
   for (let day = 1; day <= 366; day += 1) {
-    const base = HADITHS[(day - 1) % HADITHS.length];
+    const base = getCuratedHadithForDay(day, year);
     result.push({ dayOfYear: day, textAr: base.textAr, sourceAr: base.sourceAr });
   }
   return result;

@@ -85,5 +85,11 @@ redis-data/
 .parcel-cache/
 .eslintcache
 
+# Large hadith source editions (rebuild bank via scripts/build-verified-hadith-bank.py)
+prisma/data/hadith/ara-*.json
+prisma/data/hadith/eng-*.json
+prisma/data/hadith/verified-sahih-pool.json
+prisma/data/hadith/_audit.txt
 
 .vercel
+prisma/data/hadith/verified-sahih-hadith-bank.json

@@ -193,7 +193,7 @@ GET /api/v1/content/hadith-of-day?day=254
     "id": "uuid-or-fallback-id",
     "dayOfYear": 254,
     "textAr": "…",
-    "sourceAr": "رواه مسلم"
+    "sourceAr": "رواه البخاري — رقم 1234"
   }
 }
 ```
@@ -203,7 +203,7 @@ GET /api/v1/content/hadith-of-day?day=254
 ```json
 "hadithOfTheDay": {
   "textAr": "…",
-  "sourceAr": "رواه البخاري ومسلم"
+  "sourceAr": "رواه مسلم — رقم 567"
 }
 ```
 
@@ -211,17 +211,23 @@ Do **not** invent Hadith text on the client. Always display `textAr` + `sourceAr
 
 ---
 
-## 6. Trusted Hadith source and reference format
+## 6. Trusted Hadith source and authenticity (2026 upgrade)
 
 | Item | Detail |
 |------|--------|
-| Source bank | Curated authentic narrations from classical collections (Bukhari, Muslim, Tirmidhi, Abu Dawud) |
-| Storage | `HadithOfTheDay` rows seeded per `dayOfYear` (1–366) |
-| Runtime fallback | Same curated bank, rotated by `dayOfYear` if a DB row is missing |
-| Reference field | `sourceAr` — e.g. `رواه البخاري ومسلم`, `رواه مسلم`, `رواه الترمذي` |
-| Not used | AI-generated Hadith, unverified paraphrases, invented references |
+| Verified pool size | **~4,750** unique Arabic matns |
+| Collections allowed | **Sahih al-Bukhari** and **Sahih Muslim** only (al-Sahihayn) |
+| Collections excluded | Tirmidhi, Abu Dawud, social media, unverified websites |
+| Why Sahihayn | Classical Ahl al-Sunnah scholarly consensus treats these two books as authentic (sahih) collections |
+| Edition source | Arabic editions from `fawazahmed0/hadith-api@1` (sunnah.com-derived Sahihayn texts) |
+| Matn handling | Quoted prophetic Arabic segments; isnad leftovers filtered; undiacritized dedupe |
+| `sourceAr` format | `رواه البخاري — رقم N` or `رواه مسلم — رقم N` |
+| Runtime source of truth | Verified bank (not a tiny static list); DB upserted to match |
+| Rebuild | `python scripts/build-verified-hadith-bank.py` (after downloading ara-bukhari/ara-muslim) |
 
-Preserve **`sourceAr` exactly** in the UI (e.g. `[ متفق عليه ]` style labels should map from Backend `sourceAr`, not hardcode conflicting text).
+**Quality over quantity:** Weak / unverified collections are not used to inflate the count.
+
+Preserve **`sourceAr` exactly** in the UI.
 
 ---
 
@@ -229,10 +235,14 @@ Preserve **`sourceAr` exactly** in the UI (e.g. `[ متفق عليه ]` style la
 
 | Rule | Behavior |
 |------|----------|
-| One Hadith per calendar day | Selected by `dayOfYear` |
-| Stable within the day | Same `dayOfYear` → same row / same curated index |
-| Changes next day | Next `dayOfYear` → next entry in rotation |
-| Dashboard vs public API | Same underlying service |
+| One Hadith per calendar day | Yes |
+| Stable within the day | Same `(dayOfYear, year)` → same bank index |
+| Different next day | Coprime `step` so consecutive days never share the same index |
+| Cover the pool | Year stride walks further through the ~4750 bank across years (not stuck on ~30) |
+| Fallback if DB miss | Same verified Sahihayn entry — never a weak/unverified quote |
+| Dashboard vs public API | Same selection service |
+
+Index formula: `((dayOfYear - 1) * step + year * yearStride) % bankCount`
 
 ---
 

@@ -1,77 +1,121 @@
 /**
- * Curated authentic Hadith bank for Hadith-of-the-Day.
- * Texts are well-known narrations with classical source labels
- * (Bukhari / Muslim / Tirmidhi / Abu Dawud). Used for:
- * 1) prisma seed → HadithOfTheDay rows (dayOfYear 1..366)
- * 2) Runtime fallback when a day row is missing (rotates by dayOfYear)
+ * Verified Daily Hadith bank — Sahih al-Bukhari & Sahih Muslim only.
  *
- * Do not invent or AI-generate Hadith content here.
+ * Authenticity policy:
+ * - Source texts: Arabic editions of Sahih al-Bukhari and Sahih Muslim
+ *   (al-Sahihayn). Classical Ahl al-Sunnah consensus treats these two works
+ *   as authentic (sahih) collections.
+ * - No Tirmidhi / Abu Dawud / unverified web quotes in this bank.
+ * - Matn extracted from quoted Arabic prophetic text; duplicates removed.
+ *
+ * Used for:
+ * 1) prisma seed → HadithOfTheDay rows (dayOfYear 1..366)
+ * 2) Runtime deterministic selection / fallback
+ *
+ * Flutter contract fields remain: textAr, sourceAr
  */
 
-export type CuratedHadith = {
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+export type VerifiedHadith = {
   textAr: string;
   sourceAr: string;
+  collection?: 'bukhari' | 'muslim';
+  collectionAr?: string;
+  hadithNumber?: number | null;
+  book?: number | null;
+  bookHadith?: number | null;
 };
 
-export const CURATED_HADITHS: CuratedHadith[] = [
-  { textAr: 'إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'من حسن إسلام المرء تركه ما لا يعنيه', sourceAr: 'رواه الترمذي' },
-  { textAr: 'لا يؤمن أحدكم حتى يحب لأخيه ما يحب لنفسه', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'الدين النصيحة', sourceAr: 'رواه مسلم' },
-  { textAr: 'من كان يؤمن بالله واليوم الآخر فليقل خيرا أو ليصمت', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'المسلم من سلم المسلمون من لسانه ويده', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'أحب الأعمال إلى الله أدومها وإن قل', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'الصدقة تطفئ الخطيئة كما يطفئ الماء النار', sourceAr: 'رواه الترمذي' },
-  {
-    textAr:
-      'إذا مات ابن آدم انقطع عمله إلا من ثلاث: صدقة جارية، أو علم ينتفع به، أو ولد صالح يدعو له',
-    sourceAr: 'رواه مسلم',
-  },
-  { textAr: 'من سلك طريقا يلتمس فيه علما سهل الله له به طريقا إلى الجنة', sourceAr: 'رواه مسلم' },
-  {
-    textAr: 'اتق الله حيثما كنت، وأتبع السيئة الحسنة تمحها، وخالق الناس بخلق حسن',
-    sourceAr: 'رواه الترمذي',
-  },
-  { textAr: 'لا تغضب', sourceAr: 'رواه البخاري' },
-  { textAr: 'الطهور شطر الإيمان', sourceAr: 'رواه مسلم' },
-  { textAr: 'من صلى علي صلاة صلى الله عليه بها عشرا', sourceAr: 'رواه مسلم' },
-  { textAr: 'يسروا ولا تعسروا، وبشروا ولا تنفروا', sourceAr: 'رواه البخاري ومسلم' },
-  {
-    textAr: 'إن الله لا ينظر إلى صوركم وأموالكم، ولكن ينظر إلى قلوبكم وأعمالكم',
-    sourceAr: 'رواه مسلم',
-  },
-  { textAr: 'من لا يرحم الناس لا يرحمه الله', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'المؤمن للمؤمن كالبنيان يشد بعضه بعضا', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'من غشنا فليس منا', sourceAr: 'رواه مسلم' },
-  { textAr: 'خيركم من تعلم القرآن وعلمه', sourceAr: 'رواه البخاري' },
-  { textAr: 'اقرأوا القرآن فإنه يأتي يوم القيامة شفيعا لأصحابه', sourceAr: 'رواه مسلم' },
-  { textAr: 'مثل الذي يذكر ربه والذي لا يذكر ربه مثل الحي والميت', sourceAr: 'رواه البخاري' },
-  {
-    textAr:
-      'كلمتان خفيفتان على اللسان، ثقيلتان في الميزان، حبيبتان إلى الرحمن: سبحان الله وبحمده، سبحان الله العظيم',
-    sourceAr: 'رواه البخاري ومسلم',
-  },
-  {
-    textAr: 'من قال سبحان الله وبحمده في يوم مائة مرة حطت خطاياه وإن كانت مثل زبد البحر',
-    sourceAr: 'رواه البخاري ومسلم',
-  },
-  {
-    textAr: 'الراحمون يرحمهم الرحمن، ارحموا من في الأرض يرحمكم من في السماء',
-    sourceAr: 'رواه الترمذي وأبو داود',
-  },
-  {
-    textAr: 'ليس الشديد بالصرعة، إنما الشديد الذي يملك نفسه عند الغضب',
-    sourceAr: 'رواه البخاري ومسلم',
-  },
-  { textAr: 'من كان يؤمن بالله واليوم الآخر فليكرم جاره', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'تبسمك في وجه أخيك صدقة', sourceAr: 'رواه الترمذي' },
-  { textAr: 'الحياء من الإيمان', sourceAr: 'رواه البخاري ومسلم' },
-  { textAr: 'من يرد الله به خيرا يفقهه في الدين', sourceAr: 'رواه البخاري ومسلم' },
-];
+type HadithBankFile = {
+  version: number;
+  count: number;
+  step: number;
+  yearStride: number;
+  policy?: Record<string, unknown>;
+  hadiths: VerifiedHadith[];
+};
 
-export function getCuratedHadithForDay(dayOfYear: number): CuratedHadith {
-  const idx =
-    ((Math.floor(dayOfYear) - 1) % CURATED_HADITHS.length + CURATED_HADITHS.length) %
-    CURATED_HADITHS.length;
-  return CURATED_HADITHS[idx]!;
+function resolveBankPath(): string {
+  const candidates = [
+    join(process.cwd(), 'src/shared/data/verified-sahih-hadith-bank.json'),
+    join(process.cwd(), 'dist/shared/data/verified-sahih-hadith-bank.json'),
+    join(process.cwd(), 'shared/data/verified-sahih-hadith-bank.json'),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  throw new Error(
+    'verified-sahih-hadith-bank.json not found (expected under src/shared/data or dist/shared/data)',
+  );
+}
+
+function loadBank(): HadithBankFile {
+  const raw = readFileSync(resolveBankPath(), 'utf8');
+  const parsed = JSON.parse(raw) as HadithBankFile;
+  if (!Array.isArray(parsed.hadiths) || parsed.hadiths.length === 0) {
+    throw new Error('Verified Sahih hadith bank is empty — refuse to serve unverified fallbacks');
+  }
+  return parsed;
+}
+
+const bank = loadBank();
+
+/** Full verified pool (Bukhari + Muslim matns only). */
+export const VERIFIED_SAHIH_HADITHS: VerifiedHadith[] = bank.hadiths;
+
+/** @deprecated Use VERIFIED_SAHIH_HADITHS — kept alias for older imports. */
+export const CURATED_HADITHS = VERIFIED_SAHIH_HADITHS;
+
+export const HADITH_BANK_META = {
+  version: bank.version,
+  count: bank.count,
+  step: bank.step,
+  yearStride: bank.yearStride,
+  collections: ['Sahih al-Bukhari', 'Sahih Muslim'] as const,
+  policy: bank.policy ?? null,
+};
+
+function mod(n: number, m: number): number {
+  return ((n % m) + m) % m;
+}
+
+/**
+ * Deterministic index into the verified pool for a calendar day.
+ * - Stable for the same (dayOfYear, year)
+ * - Different dayOfYear → different index (step coprime to pool size)
+ * - Year stride walks further through the pool across years
+ */
+export function getVerifiedHadithIndex(dayOfYear: number, year = new Date().getFullYear()): number {
+  const n = VERIFIED_SAHIH_HADITHS.length;
+  const step = bank.step || 1;
+  const yearStride = bank.yearStride || 17;
+  const day = Math.floor(dayOfYear);
+  return mod((day - 1) * step + year * yearStride, n);
+}
+
+export function getCuratedHadithForDay(
+  dayOfYear: number,
+  year = new Date().getFullYear(),
+): VerifiedHadith {
+  const idx = getVerifiedHadithIndex(dayOfYear, year);
+  const hit = VERIFIED_SAHIH_HADITHS[idx];
+  if (!hit?.textAr?.trim() || !hit.sourceAr?.trim()) {
+    const first = VERIFIED_SAHIH_HADITHS[0]!;
+    return { textAr: first.textAr, sourceAr: first.sourceAr };
+  }
+  return { textAr: hit.textAr, sourceAr: hit.sourceAr };
+}
+
+export function getHadithBankStats() {
+  const bukhari = VERIFIED_SAHIH_HADITHS.filter((h) => h.collection === 'bukhari').length;
+  const muslim = VERIFIED_SAHIH_HADITHS.filter((h) => h.collection === 'muslim').length;
+  return {
+    total: VERIFIED_SAHIH_HADITHS.length,
+    bukhari,
+    muslim,
+    step: bank.step,
+    yearStride: bank.yearStride,
+  };
 }
