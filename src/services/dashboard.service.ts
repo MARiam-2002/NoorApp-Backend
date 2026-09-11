@@ -81,6 +81,17 @@ export type DashboardData = {
     madhab?: string;
     locationSource?: string;
     isDefaultLocation?: boolean;
+    /** Additive: display-only sunrise (not in schedule, not completable). */
+    sunrise?: {
+      name: string;
+      key: string;
+      nameAr: string;
+      time: string;
+      displayAr?: string;
+      displayEn?: string;
+      iso?: string;
+      trackable: false;
+    };
   };
   verseOfTheDay: {
     textAr: string;
@@ -396,6 +407,16 @@ async function buildDashboardPayload(
           completed: false,
         };
       }),
+      sunrise: {
+        name: 'Sunrise',
+        key: 'SUNRISE',
+        nameAr: 'الشروق',
+        time: '00:00',
+        displayAr: 'الشروق',
+        displayEn: 'Sunrise',
+        iso: nowIso,
+        trackable: false,
+      },
       completedCount: 0,
       totalCount: 5,
       latitude: DEFAULT_LATITUDE,
@@ -486,6 +507,7 @@ async function buildDashboardPayload(
       madhab: prayers.madhab,
       locationSource: prayers.locationSource,
       isDefaultLocation: prayers.isDefaultLocation,
+      sunrise: prayers.sunrise,
     },
     verseOfTheDay: {
       textAr: verse.textAr,

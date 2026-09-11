@@ -76,11 +76,9 @@ prayerRouter.get('/today', optionalAuthenticate, getToday);
  *               success: true
  *               message: تم تسجيل صلاة العصر بنجاح
  *               data:
- *                 prayerId: ASR
+ *                 prayer: Asr
+ *                 key: ASR
  *                 completed: true
- *                 completedAt: '2026-07-27T15:30:00.000Z'
- *                 completedToday: 3
- *                 remainingToday: 2
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
  *       400:

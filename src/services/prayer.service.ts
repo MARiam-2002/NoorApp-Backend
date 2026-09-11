@@ -63,11 +63,30 @@ export type PrayerLocationMeta = {
   isDefaultLocation: boolean;
 };
 
+export type SunriseInfo = {
+  /** Display-only English label. */
+  name: 'Sunrise';
+  /** Not a PrayerName enum — never used for mark/completion. */
+  key: 'SUNRISE';
+  nameAr: 'الشروق';
+  time: string;
+  displayAr: string;
+  displayEn: string;
+  iso: string;
+  /**
+   * Always false — sunrise is display-only (not Azan, not journey completion).
+   * Flutter: show the row time; do not call PATCH mark for SUNRISE.
+   */
+  trackable: false;
+};
+
 export type DailyPrayerSchedule = {
   date: string;
   timezone: string;
   nextPrayer: NextPrayerInfo | null;
   schedule: PrayerScheduleItem[];
+  /** Additive (2026-09): sunrise time for Prayer screen row — NOT in schedule[]. */
+  sunrise: SunriseInfo;
   completedCount: number;
   totalCount: number;
 } & PrayerLocationMeta;
@@ -270,27 +289,56 @@ export function calculateDailyPrayerSchedule(
     };
   });
 
-  const nextPrayerEntry =
-    schedule.find((item) => item.timestamp instanceof Date && item.timestamp.getTime() > now) ??
-    schedule[0] ??
-    null;
+  const sunriseTs = prayerTimes.sunrise;
+  const sunrise: SunriseInfo = {
+    name: 'Sunrise',
+    key: 'SUNRISE',
+    nameAr: 'الشروق',
+    time: formatTime(sunriseTs, tz),
+    displayEn: formatDisplayEn(sunriseTs, tz),
+    displayAr: formatDisplayAr(sunriseTs, tz),
+    iso: sunriseTs.toISOString(),
+    trackable: false,
+  };
 
-  const nextPrayer: NextPrayerInfo | null = nextPrayerEntry
-    ? {
-        name: nextPrayerEntry.name,
-        key: nextPrayerEntry.key,
-        nameAr: nextPrayerEntry.nameAr,
-        time: nextPrayerEntry.time,
-        displayAr: nextPrayerEntry.displayAr,
-        displayEn: nextPrayerEntry.displayEn,
-        iso: nextPrayerEntry.iso,
-        timestamp: nextPrayerEntry.timestamp,
-        countdownSeconds: Math.max(
-          0,
-          Math.floor((nextPrayerEntry.timestamp.getTime() - now) / 1000),
-        ),
-      }
-    : null;
+  const upcomingToday = schedule.find(
+    (item) => item.timestamp instanceof Date && item.timestamp.getTime() > now,
+  );
+
+  let nextPrayer: NextPrayerInfo | null = null;
+  if (upcomingToday) {
+    nextPrayer = {
+      name: upcomingToday.name,
+      key: upcomingToday.key,
+      nameAr: upcomingToday.nameAr,
+      time: upcomingToday.time,
+      displayAr: upcomingToday.displayAr,
+      displayEn: upcomingToday.displayEn,
+      iso: upcomingToday.iso,
+      timestamp: upcomingToday.timestamp,
+      countdownSeconds: Math.max(
+        0,
+        Math.floor((upcomingToday.timestamp.getTime() - now) / 1000),
+      ),
+    };
+  } else {
+    // After Isha: roll to tomorrow's Fajr (same field shape; countdown > 0).
+    const tomorrow = new Date(referenceDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowTimes = new PrayerTimes(coordinates, tomorrow, params);
+    const fajrTs = tomorrowTimes.fajr;
+    nextPrayer = {
+      name: prayerEnumToTitle(PrayerNameEnum.FAJR),
+      key: PrayerNameEnum.FAJR,
+      nameAr: prayerLabelsAr[PrayerNameEnum.FAJR],
+      time: formatTime(fajrTs, tz),
+      displayAr: formatDisplayAr(fajrTs, tz),
+      displayEn: formatDisplayEn(fajrTs, tz),
+      iso: fajrTs.toISOString(),
+      timestamp: fajrTs,
+      countdownSeconds: Math.max(0, Math.floor((fajrTs.getTime() - now) / 1000)),
+    };
+  }
 
   const location = buildLocationMeta(lat, lng, tz, methodKey, madhabKey, {
     ...options,
@@ -301,6 +349,7 @@ export function calculateDailyPrayerSchedule(
     date: referenceDate.toISOString().slice(0, 10),
     nextPrayer,
     schedule,
+    sunrise,
     completedCount: completedPrayers.length,
     totalCount: PrayerOrder.length,
     ...location,

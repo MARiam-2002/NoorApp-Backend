@@ -204,7 +204,30 @@ Shared by `/prayers/today`, `/prayers/schedule`, and `dashboard.prayers`:
 }
 ```
 
-Always **5** prayers: Fajr, Dhuhr, Asr, Maghrib, Isha. Times are 24h `HH:mm`.
+Always **5** prayers in `schedule[]`: Fajr, Dhuhr, Asr, Maghrib, Isha. Times are 24h `HH:mm`.
+
+### Additive: Sunrise (display-only)
+
+Prayer screen UI may show **الشروق** between Fajr and Dhuhr. Backend now returns a sibling field (not inside `schedule[]`):
+
+```json
+"sunrise": {
+  "name": "Sunrise",
+  "key": "SUNRISE",
+  "nameAr": "الشروق",
+  "time": "06:28",
+  "displayAr": "٦:٢٨ ص",
+  "displayEn": "6:28 AM",
+  "iso": "…",
+  "trackable": false
+}
+```
+
+| Rule | Behavior |
+|------|----------|
+| In `schedule[]`? | **No** — keeps Flutter’s 5-prayer contract |
+| Completable / Azan? | **No** — `trackable: false`; do **not** call `PATCH /prayers/SUNRISE/mark` |
+| After Isha `nextPrayer` | Rolls to **tomorrow’s Fajr** with a real `countdownSeconds` |
 
 ---
 
