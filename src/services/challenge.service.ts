@@ -9,6 +9,7 @@ import {
   getDailyChallengeTemplateWithFallback,
 } from './daily-content.service';
 import { FALLBACK_CHALLENGE } from '../shared/constants/fallbacks';
+import { getJourneyLevelProgress } from '../shared/constants/journey-levels';
 
 type JourneySnapshot = {
   quranPagesRead: number;
@@ -104,7 +105,7 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
     );
   }
 
-  const [updatedCompletion] = await prisma.$transaction([
+  const [updatedCompletion, updatedUser] = await prisma.$transaction([
     prisma.challengeCompletion.upsert({
       where: { userId_dayOfYear: { userId, dayOfYear } },
       create: {
@@ -121,8 +122,18 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
     prisma.user.update({
       where: { id: userId },
       data: { points: { increment: template.rewardPoints } },
+      select: { points: true, level: true },
     }),
   ]);
+
+  // Keep User.level aligned with the Journey points ladder (same helper as /journey/today).
+  const levelProgress = getJourneyLevelProgress(updatedUser.points);
+  if (updatedUser.level !== levelProgress.level) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { level: levelProgress.level },
+    }).catch(() => undefined);
+  }
 
   try {
     await prisma.notification.create({

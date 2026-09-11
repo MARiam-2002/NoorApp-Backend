@@ -46,6 +46,14 @@ export const getJourneyBadges = asyncHandler(async (req: Request, res: Response)
     {
       badges: today.badges ?? [],
       streakDays: today.streakDays ?? 0,
+      // Additive — same Journey screen fields as GET /journey/today
+      streak: today.streak,
+      level: today.level,
+      rankTitleAr: today.rankTitleAr,
+      rankTitleEn: today.rankTitleEn,
+      levelProgressPercent: today.levelProgressPercent,
+      points: today.points,
+      pointsToNextLevel: today.pointsToNextLevel,
     },
     'Journey badges retrieved successfully',
     req,

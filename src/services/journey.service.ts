@@ -27,6 +27,7 @@ import {
 } from './daily-content.service';
 import { parsePrayerKey } from '../shared/utils/prayer-names';
 import { applyJourneyAdhkarToDhikrLedger, syncJourneyAdhkarFromDhikr } from './adhkar.service';
+import { getJourneyLevelProgress } from '../shared/constants/journey-levels';
 
 type SadaqahBreakdown = Partial<Record<SadaqahCategoryId, number>>;
 
@@ -244,6 +245,8 @@ export async function getTodayJourney(userId: string) {
 
   let points = 0;
   let streakDays = 0;
+  let levelProgress = getJourneyLevelProgress(0);
+  let streakDaysCompleted: Array<{ date: string; completed: boolean; index: number }> = [];
   let dailyChallenge: any = null;
   let badges: Array<{
     id: string;
@@ -267,7 +270,14 @@ export async function getTodayJourney(userId: string) {
       }).catch(() => null),
     ]);
     points = user?.points ?? 0;
-    const level = user?.level ?? 1;
+    levelProgress = getJourneyLevelProgress(points);
+    // Keep User.level aligned with points-derived ladder (profile + Journey screen).
+    if ((user?.level ?? 1) !== levelProgress.level) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { level: levelProgress.level },
+      }).catch(() => undefined);
+    }
 
     const datesSet = new Set(
       last30Progress
@@ -278,6 +288,19 @@ export async function getTodayJourney(userId: string) {
     while (datesSet.has(cursor.toISOString().slice(0, 10))) {
       streakDays += 1;
       cursor.setUTCDate(cursor.getUTCDate() - 1);
+    }
+
+    // Checkmarks for "سلسلة الحسنات" — one entry per consecutive streak day (newest last).
+    const streakCap = Math.min(streakDays, 30);
+    for (let i = streakCap - 1; i >= 0; i -= 1) {
+      const d = new Date(date);
+      d.setUTCDate(d.getUTCDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      streakDaysCompleted.push({
+        date: dateStr,
+        completed: true,
+        index: streakCap - i,
+      });
     }
 
     const challengeTemplateSafe = challengeTemplate ?? FALLBACK_CHALLENGE;
@@ -303,7 +326,16 @@ export async function getTodayJourney(userId: string) {
     };
 
     const nowIso = new Date().toISOString();
+    // Five medals for the Journey level card (earned vs locked).
     badges = [
+      {
+        id: 'first-steps',
+        key: 'FIRST_STEPS',
+        titleAr: 'الخطوات الأولى',
+        titleEn: 'First steps',
+        earned: true,
+        earnedAt: user?.createdAt?.toISOString?.() ?? nowIso,
+      },
       {
         id: 'streak-3',
         key: 'STREAK_3',
@@ -329,16 +361,14 @@ export async function getTodayJourney(userId: string) {
         earnedAt: prayersCompleted >= totalPrayers ? nowIso : null,
       },
       {
-        id: 'first-steps',
-        key: 'FIRST_STEPS',
-        titleAr: 'الخطوات الأولى',
-        titleEn: 'First steps',
-        earned: true,
-        earnedAt: user?.createdAt?.toISOString?.() ?? nowIso,
+        id: 'streak-14',
+        key: 'STREAK_14',
+        titleAr: 'سلسلة 14 يوماً',
+        titleEn: '14-day streak',
+        earned: streakDays >= 14,
+        earnedAt: streakDays >= 14 ? nowIso : null,
       },
     ];
-
-    void level;
   } catch { /* */ }
 
   return {
@@ -348,6 +378,26 @@ export async function getTodayJourney(userId: string) {
     badges,
     points,
     overallPercent,
+    /** Additive — Journey screen "المستوى الحالي" card */
+    level: levelProgress.level,
+    rankTitleAr: levelProgress.rankTitleAr,
+    rankTitleEn: levelProgress.rankTitleEn,
+    levelProgressPercent: levelProgress.levelProgressPercent,
+    pointsInLevel: levelProgress.pointsInLevel,
+    pointsToNextLevel: levelProgress.pointsToNextLevel,
+    nextLevel: levelProgress.nextLevel,
+    nextRankTitleAr: levelProgress.nextRankTitleAr,
+    nextRankTitleEn: levelProgress.nextRankTitleEn,
+    isMaxLevel: levelProgress.isMaxLevel,
+    /** Additive — Journey screen "سلسلة الحسنات" card */
+    streak: {
+      days: streakDays,
+      labelAr: 'سلسلة الحسنات',
+      labelEn: 'Good deeds streak',
+      unitAr: 'يوم متواصل',
+      unitEn: 'Consecutive days',
+      recentDays: streakDaysCompleted,
+    },
     dailyChallenge,
     quran: {
       pages: progress.quranPagesRead,
