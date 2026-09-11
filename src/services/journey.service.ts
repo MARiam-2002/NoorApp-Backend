@@ -26,6 +26,7 @@ import {
   getDailyChallengeTemplate,
 } from './daily-content.service';
 import { parsePrayerKey } from '../shared/utils/prayer-names';
+import { syncJourneyAdhkarFromDhikr } from './adhkar.service';
 
 type SadaqahBreakdown = Partial<Record<SadaqahCategoryId, number>>;
 
@@ -117,6 +118,8 @@ async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
 
 export async function getTodayJourney(userId: string) {
   const date = getTodayDateOnly();
+  // Align DailyProgress adhkar flags with Azkar item completions (same source of truth).
+  await syncJourneyAdhkarFromDhikr(userId, date).catch(() => undefined);
   const progress = await getOrCreateToday(userId);
 
   let prayersCompletedRows: Array<{ prayer: any }> = [];
@@ -537,18 +540,15 @@ export async function updateAdhkar(
   let morningFromCategory: boolean | undefined;
   let eveningFromCategory: boolean | undefined;
   if (category) {
-    if (category.includes('MORNING') || category.includes('SABAH') || category === 'GENERAL_WIRD') {
+    if (category === 'GENERAL_WIRD') {
+      // Completing daily wird marks overall journey Adhkar (same source as hub card).
       morningFromCategory = input.completed ?? true;
-    }
-    if (category.includes('EVENING') || category.includes('MASA')) {
       eveningFromCategory = input.completed ?? true;
-    }
-    // GENERAL_WIRD / unknown category with completed=true marks overall journey adhkar
-    if (
-      morningFromCategory === undefined &&
-      eveningFromCategory === undefined &&
-      input.completed !== undefined
-    ) {
+    } else if (category.includes('MORNING') || category.includes('SABAH')) {
+      morningFromCategory = input.completed ?? true;
+    } else if (category.includes('EVENING') || category.includes('MASA')) {
+      eveningFromCategory = input.completed ?? true;
+    } else if (input.completed !== undefined) {
       morningFromCategory = input.completed;
       eveningFromCategory = input.completed;
     }

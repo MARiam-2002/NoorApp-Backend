@@ -33,6 +33,7 @@ import {
   getHadithOfTheDayLite,
   getDailyChallengeTemplate,
 } from './daily-content.service';
+import { syncJourneyAdhkarFromDhikr } from './adhkar.service';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -103,7 +104,17 @@ export type DashboardData = {
   dailyJourney: {
     prayer: { completed: number; total: number; progress: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     quran: { pagesRead: number; target: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
-    adhkar: { completed: boolean; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
+    adhkar: {
+      completed: boolean;
+      labelAr: string;
+      labelEn: string;
+      captionAr: string;
+      captionEn: string;
+      /** Additive — same as Azkar hub وردك اليوم (ignored by older Flutter). */
+      progressItemsDone?: number;
+      progressItemsTotal?: number;
+      progressPercent?: number;
+    };
     sadaqah: {
       amount: number;
       labelAr: string;
@@ -327,6 +338,9 @@ async function buildDashboardPayload(
   const dayOfYear = getDayOfYear();
   const todayInfo = formatArabicDateInfo();
 
+  // Keep Dashboard Adhkar tile aligned with Azkar screen completions (same day ledger).
+  const adhkarFlags = await syncJourneyAdhkarFromDhikr(userId).catch(() => null);
+
   const [
     completedPrayers,
     journey,
@@ -442,7 +456,7 @@ async function buildDashboardPayload(
     challengeTemplate?.targetValue ?? FALLBACK_CHALLENGE.targetValue,
     {
       quranPagesRead: journey.quranPagesRead,
-      adhkarCompleted: journey.adhkarCompleted,
+      adhkarCompleted: adhkarFlags?.adhkarCompleted ?? Boolean(journey.adhkarCompleted),
       sadaqahAmount: journey.sadaqahAmount,
     },
     completedPrayers,
@@ -538,11 +552,20 @@ async function buildDashboardPayload(
         captionEn: `${journey.quranPagesRead} pages read today`,
       },
       adhkar: {
-        completed: journey.adhkarCompleted,
+        completed: adhkarFlags?.adhkarCompleted ?? Boolean(journey.adhkarCompleted),
         labelAr: 'الأذكار',
         labelEn: 'Adhkar',
-        captionAr: journey.adhkarCompleted ? 'تم الانتهاء من وردك اليومي ✅' : 'اكمل وردك اليومي',
-        captionEn: journey.adhkarCompleted ? 'Daily wird completed ✅' : 'Complete your daily wird',
+        captionAr:
+          (adhkarFlags?.adhkarCompleted ?? Boolean(journey.adhkarCompleted))
+            ? 'تم الانتهاء من وردك اليومي ✅'
+            : 'اكمل وردك اليومي',
+        captionEn:
+          (adhkarFlags?.adhkarCompleted ?? Boolean(journey.adhkarCompleted))
+            ? 'Daily wird completed ✅'
+            : 'Complete your daily wird',
+        progressItemsDone: adhkarFlags?.progressItemsDone,
+        progressItemsTotal: adhkarFlags?.progressItemsTotal,
+        progressPercent: adhkarFlags?.progressPercent,
       },
       sadaqah: {
         amount: Number(journey.sadaqahAmount) || 0,
