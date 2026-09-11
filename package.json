@@ -66,8 +66,5 @@
     "tz-lookup": "^6.1.25",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@types/tz-lookup": "^6.1.2"
   }
 }
