@@ -2,8 +2,8 @@
  * Prayer location helpers: timezone inference + local calendar day.
  * Used by prayer.service only — no second calculation engine.
  *
- * Uses tz-lookup (in-memory grid) so Vercel serverless does not need
- * geo-tz's large on-disk boundary files.
+ * Uses tz-lookup (in-memory grid, ~160KB) so Vercel serverless does not need
+ * geo-tz's large on-disk boundary files (which NFT often omits).
  */
 
 import tzlookup from 'tz-lookup';
