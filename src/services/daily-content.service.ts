@@ -6,12 +6,12 @@ import { getDayOfYear, getTodayDateOnly } from '../utils/date';
 import {
   FALLBACK_VERSE,
   FALLBACK_VERSE_FULL_SURAH,
-  FALLBACK_HADITH,
   FALLBACK_CHALLENGE,
   DAILY_JOURNEY_FALLBACK,
   DAY_OF_YEAR_MIN,
   DAY_OF_YEAR_MAX,
 } from '../shared/constants/fallbacks';
+import { getCuratedHadithForDay } from '../shared/constants/curated-hadiths';
 
 export function isValidDayOfYear(day: number): boolean {
   return Number.isInteger(day) && day >= DAY_OF_YEAR_MIN && day <= DAY_OF_YEAR_MAX;
@@ -99,12 +99,15 @@ export async function getHadithOfTheDay(dayOfYear = getDayOfYear()) {
 
   if (stored) return stored;
 
-  logger.warn('No HadithOfTheDay row in DB, returning unified fallback', { dayOfYear });
+  const curated = getCuratedHadithForDay(dayOfYear);
+  logger.warn('No HadithOfTheDay row in DB, returning curated day-rotated fallback', {
+    dayOfYear,
+  });
   return {
     id: `fallback-hadith-${dayOfYear}`,
     dayOfYear,
-    textAr: FALLBACK_HADITH.textAr,
-    sourceAr: FALLBACK_HADITH.sourceAr,
+    textAr: curated.textAr,
+    sourceAr: curated.sourceAr,
   };
 }
 
@@ -113,7 +116,7 @@ export async function getHadithOfTheDayLite(dayOfYear = getDayOfYear()) {
   if (stored) {
     return { textAr: stored.textAr, sourceAr: stored.sourceAr };
   }
-  return FALLBACK_HADITH;
+  return getCuratedHadithForDay(dayOfYear);
 }
 
 export async function getDailyChallengeTemplate(dayOfYear = getDayOfYear()) {

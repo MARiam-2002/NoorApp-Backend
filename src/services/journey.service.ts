@@ -9,9 +9,56 @@ import {
   FALLBACK_CHALLENGE,
 } from '../shared/constants/fallbacks';
 import {
+  DEFAULT_SADAQAH_GOAL_EGP,
+  SADAQAH_CATEGORIES,
+  SADAQAH_CURRENCY,
+  SADAQAH_CURRENCY_LABEL_AR,
+  SADAQAH_CURRENCY_LABEL_EN,
+  SADAQAH_FEATURED_BANNER,
+  SADAQAH_GOAL_CAPTION_AR,
+  SADAQAH_GOAL_CAPTION_EN,
+  SADAQAH_TRACKING_ONLY_NOTE_EN,
+  normalizeSadaqahCategoryId,
+  sadaqahProgressPercent,
+  type SadaqahCategoryId,
+} from '../shared/constants/sadaqah';
+import {
   getDailyChallengeTemplate,
 } from './daily-content.service';
 import { parsePrayerKey } from '../shared/utils/prayer-names';
+
+type SadaqahBreakdown = Partial<Record<SadaqahCategoryId, number>>;
+
+function parseSadaqahBreakdown(raw: unknown): SadaqahBreakdown {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: SadaqahBreakdown = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const category = normalizeSadaqahCategoryId(key);
+    const amount = Number(value);
+    if (category && Number.isFinite(amount) && amount >= 0) {
+      out[category] = amount;
+    }
+  }
+  return out;
+}
+
+function buildSadaqahPayload(amount: number, date: Date, breakdown?: SadaqahBreakdown, category?: SadaqahCategoryId) {
+  const goal = DEFAULT_SADAQAH_GOAL_EGP;
+  const percent = sadaqahProgressPercent(amount, goal);
+  return {
+    /** Existing Flutter contract field — keep forever. */
+    sadaqahAmount: amount,
+    amount,
+    goal,
+    percent,
+    currency: SADAQAH_CURRENCY,
+    currencyLabelAr: SADAQAH_CURRENCY_LABEL_AR,
+    currencyLabelEn: SADAQAH_CURRENCY_LABEL_EN,
+    date: date.toISOString().slice(0, 10),
+    ...(category ? { category } : {}),
+    ...(breakdown && Object.keys(breakdown).length > 0 ? { breakdown } : {}),
+  };
+}
 
 const VALID_PRAYER_KEYS = ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'] as const;
 type ValidPrayerKey = typeof VALID_PRAYER_KEYS[number];
@@ -106,7 +153,7 @@ export async function getTodayJourney(userId: string) {
 
   const totalPrayers = 5;
   const quranGoal = 4;
-  const sadaqahGoal = 50;
+  const sadaqahGoal = DEFAULT_SADAQAH_GOAL_EGP;
 
   const quranProgress = quranGoal > 0 ? Math.min(1, progress.quranPagesRead / quranGoal) : 0;
   const prayerProgress = prayersCompleted / totalPrayers;
@@ -314,7 +361,9 @@ export async function getTodayJourney(userId: string) {
       amount: sadaqahAmount,
       goal: sadaqahGoal,
       percent: sadaqahPercent,
-      currency: 'EGP',
+      currency: SADAQAH_CURRENCY,
+      currencyLabelAr: SADAQAH_CURRENCY_LABEL_AR,
+      currencyLabelEn: SADAQAH_CURRENCY_LABEL_EN,
     },
     prayers: {
       completed: prayersCompleted,
@@ -553,8 +602,23 @@ export async function updateAdhkar(
   };
 }
 
-export async function updateSadaqah(userId: string, amount: number) {
-  if (amount < 0) {
+export type UpdateSadaqahInput = {
+  amount: number;
+  /** Optional UI category (FOOD | CLOTHES | EDUCATION | MONEY | GENERAL). */
+  category?: string;
+  /**
+   * `set` (default) — replace today's total with `amount` (existing Flutter contract).
+   * `add` — increment today's total by `amount` (backward-compatible optional).
+   */
+  mode?: 'set' | 'add';
+};
+
+export async function updateSadaqah(userId: string, input: UpdateSadaqahInput | number) {
+  const body: UpdateSadaqahInput =
+    typeof input === 'number' ? { amount: input, mode: 'set' } : input;
+
+  const amount = Number(body.amount);
+  if (!Number.isFinite(amount) || amount < 0) {
     throw new AppError(
       'Amount must be zero or greater',
       HttpStatus.BAD_REQUEST,
@@ -562,14 +626,73 @@ export async function updateSadaqah(userId: string, amount: number) {
     );
   }
 
+  const mode = body.mode === 'add' ? 'add' : 'set';
+  const category = normalizeSadaqahCategoryId(body.category);
+  if (body.category != null && String(body.category).trim() !== '' && !category) {
+    throw new AppError(
+      'Invalid sadaqah category. Use FOOD, CLOTHES, EDUCATION, MONEY, or GENERAL',
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+    );
+  }
+
   const date = getTodayDateOnly();
-  const progress = await prisma.dailyProgress.upsert({
+  const existing = await prisma.dailyProgress.findUnique({
     where: { userId_date: { userId, date } },
-    create: { userId, date, sadaqahAmount: amount },
-    update: { sadaqahAmount: amount },
   });
 
-  return { sadaqahAmount: Number(progress.sadaqahAmount) };
+  const currentAmount = existing ? Number(existing.sadaqahAmount) : 0;
+  const nextAmount = mode === 'add' ? currentAmount + amount : amount;
+  const breakdown = parseSadaqahBreakdown(existing?.sadaqahBreakdown);
+
+  if (category) {
+    const currentCat = breakdown[category] ?? 0;
+    breakdown[category] = mode === 'add' ? currentCat + amount : amount;
+  }
+
+  const progress = await prisma.dailyProgress.upsert({
+    where: { userId_date: { userId, date } },
+    create: {
+      userId,
+      date,
+      sadaqahAmount: nextAmount,
+      sadaqahBreakdown: Object.keys(breakdown).length > 0 ? breakdown : undefined,
+    },
+    update: {
+      sadaqahAmount: nextAmount,
+      ...(category ? { sadaqahBreakdown: breakdown } : {}),
+    },
+  });
+
+  return buildSadaqahPayload(
+    Number(progress.sadaqahAmount),
+    date,
+    parseSadaqahBreakdown(progress.sadaqahBreakdown),
+    category,
+  );
+}
+
+/** Full Sadaqah screen payload (auth). Personal tracking only — no payments. */
+export async function getSadaqahToday(userId: string) {
+  const date = getTodayDateOnly();
+  const progress = await prisma.dailyProgress.findUnique({
+    where: { userId_date: { userId, date } },
+  });
+  const amount = progress ? Number(progress.sadaqahAmount) : 0;
+  const breakdown = parseSadaqahBreakdown(progress?.sadaqahBreakdown);
+  const base = buildSadaqahPayload(amount, date, breakdown);
+
+  return {
+    ...base,
+    goalTitleAr: 'هدف الصدقة',
+    goalTitleEn: 'Sadaqah goal',
+    goalCaptionAr: SADAQAH_GOAL_CAPTION_AR,
+    goalCaptionEn: SADAQAH_GOAL_CAPTION_EN,
+    featured: SADAQAH_FEATURED_BANNER,
+    categories: SADAQAH_CATEGORIES.filter((c) => c.id !== 'GENERAL'),
+    trackingOnly: true,
+    trackingNoteEn: SADAQAH_TRACKING_ONLY_NOTE_EN,
+  };
 }
 
 export async function getJourneyProgress(userId: string, days = 7) {
@@ -600,7 +723,7 @@ export async function getJourneyProgress(userId: string, days = 7) {
   }
 
   const QURAN_GOAL = 4;
-  const SADAQAH_GOAL = 50;
+  const SADAQAH_GOAL = DEFAULT_SADAQAH_GOAL_EGP;
   const TOTAL_PRAYERS = 5;
 
   const daily = progress.map((p) => {

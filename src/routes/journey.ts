@@ -6,6 +6,7 @@ import {
   getJourneyProgress,
   getJourneyToday,
   getJourneyBadges,
+  getSadaqah,
   incrementQuranPages,
   patchAdhkar,
   updateQuranPagesHandler,
@@ -42,6 +43,14 @@ const adhkarSchema = z.object({
 
 const sadaqahSchema = z.object({
   amount: z.coerce.number().min(0),
+  category: z
+    .string()
+    .trim()
+    .min(1)
+    .max(32)
+    .optional()
+    .transform((v) => (v ? v.toUpperCase() : undefined)),
+  mode: z.enum(['set', 'add']).optional().default('set'),
 });
 
 const prayerSchema = z.object({
@@ -89,10 +98,12 @@ export const journeyRouter = Router();
  *                   overallCompleted: false
  *                   percent: 50
  *                 sadaqah:
- *                   amount: 25
- *                   goal: 50
- *                   percent: 50
+ *                   amount: 350
+ *                   goal: 1000
+ *                   percent: 35
  *                   currency: EGP
+ *                   currencyLabelAr: جنيه
+ *                   currencyLabelEn: EGP
  *                 prayers:
  *                   completed: 3
  *                   total: 5
@@ -310,6 +321,18 @@ journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), patchAdhkar
 /**
  * @openapi
  * /journey/sadaqah:
+ *   get:
+ *     tags: ['Journey']
+ *     summary: Today's personal Sadaqah tracking (goal, categories, amount)
+ *     description: >
+ *       Personal sadaqah tracking only — no payments or gateways.
+ *       Auth required; returns only the authenticated user's data.
+ *     security: [ { bearerAuth: [] } ]
+ *     responses:
+ *       200:
+ *         description: Today's sadaqah screen payload
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *   patch:
  *     tags: ['Journey']
  *     summary: تحديث مبلغ الصدقة لليوم
@@ -325,12 +348,27 @@ journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), patchAdhkar
  *               amount:
  *                 type: number
  *                 example: 50.0
- *                 description: "إجمالي الصدقة بالعملة المحلية"
+ *                 description: "إجمالي الصدقة بالعملة المحلية (mode=set) أو الزيادة (mode=add)"
+ *               category:
+ *                 type: string
+ *                 enum: [FOOD, CLOTHES, EDUCATION, MONEY, GENERAL]
+ *                 description: "Optional UI category (backward-compatible)"
+ *               mode:
+ *                 type: string
+ *                 enum: [set, add]
+ *                 default: set
+ *                 description: "set = replace today's total (existing Flutter contract); add = increment"
  *           examples:
  *             default:
- *               summary: تسجيل 50 جنيه صدقة
+ *               summary: تسجيل 50 جنيه صدقة (existing Flutter body)
  *               value:
  *                 amount: 50
+ *             withCategory:
+ *               summary: Add food sadaqah amount
+ *               value:
+ *                 amount: 100
+ *                 category: FOOD
+ *                 mode: add
  *     responses:
  *       200:
  *         description: ✅ تم التحديث
@@ -340,16 +378,18 @@ journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), patchAdhkar
  *               success: true
  *               message: تم تحديث مبلغ الصدقة بنجاح
  *               data:
- *                 date: '2026-07-27'
- *                 amount: 50
- *                 goal: 50
- *                 percent: 100
+ *                 sadaqahAmount: 350
+ *                 date: '2026-09-11'
+ *                 amount: 350
+ *                 goal: 1000
+ *                 percent: 35
  *                 currency: EGP
  *               meta: null
- *               timestamp: '2026-07-27T10:30:00.000Z'
+ *               timestamp: '2026-09-11T10:30:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
+journeyRouter.get('/sadaqah', authenticate, getSadaqah);
 journeyRouter.patch('/sadaqah', authenticate, validate(sadaqahSchema), patchSadaqah);
 
 /**

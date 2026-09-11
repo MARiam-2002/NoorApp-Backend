@@ -19,6 +19,9 @@ export const FALLBACK_HADITH = {
   sourceAr: 'رواه البخاري ومسلم',
 };
 
+/** @deprecated Prefer getCuratedHadithForDay(dayOfYear) for day-stable fallbacks. */
+export { getCuratedHadithForDay, CURATED_HADITHS } from './curated-hadiths';
+
 export const FALLBACK_CHALLENGE = {
   titleAr: 'صفحتا قرآن',
   titleEn: 'Two Quran Pages',

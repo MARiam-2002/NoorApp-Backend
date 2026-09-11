@@ -17,9 +17,16 @@ import { resolveSurahNameAr, resolveSurahNameEn } from '../lib/surah-names';
 import { prayerEnumToTitle } from '../shared/utils/prayer-names';
 import {
   FALLBACK_VERSE,
-  FALLBACK_HADITH,
   FALLBACK_CHALLENGE,
+  getCuratedHadithForDay,
 } from '../shared/constants/fallbacks';
+import {
+  DEFAULT_SADAQAH_GOAL_EGP,
+  SADAQAH_CURRENCY,
+  SADAQAH_CURRENCY_LABEL_AR,
+  SADAQAH_CURRENCY_LABEL_EN,
+  sadaqahProgressPercent,
+} from '../shared/constants/sadaqah';
 import {
   getTodayJourneyWithFallback,
   getVerseOfTheDayLite,
@@ -86,7 +93,19 @@ export type DashboardData = {
     prayer: { completed: number; total: number; progress: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     quran: { pagesRead: number; target: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     adhkar: { completed: boolean; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
-    sadaqah: { amount: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
+    sadaqah: {
+      amount: number;
+      labelAr: string;
+      labelEn: string;
+      captionAr: string;
+      captionEn: string;
+      /** Backward-compatible additive fields (2026-09). */
+      goal?: number;
+      percent?: number;
+      currency?: string;
+      currencyLabelAr?: string;
+      currencyLabelEn?: string;
+    };
   };
   khatmah: {
     surahId: number;
@@ -237,12 +256,23 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         totalCount: 5,
       },
       verseOfTheDay: FALLBACK_VERSE,
-      hadithOfTheDay: FALLBACK_HADITH,
+      hadithOfTheDay: getCuratedHadithForDay(getDayOfYear()),
       dailyJourney: {
         prayer: { completed: 0, total: 5, progress: 0, labelAr: 'الصلوات', labelEn: 'Prayers', captionAr: 'صلاة مكتملة اليوم', captionEn: 'prayers completed today' },
         quran: { pagesRead: 0, target: 5, labelAr: 'القرآن', labelEn: 'Quran', captionAr: 'صفحة مقروءة اليوم', captionEn: 'pages read today' },
         adhkar: { completed: false, labelAr: 'الأذكار', labelEn: 'Adhkar', captionAr: 'اكمل وردك اليومي', captionEn: 'Complete your daily wird' },
-        sadaqah: { amount: 0, labelAr: 'الصدقة', labelEn: 'Sadaqah', captionAr: 'ج.م مصدقة اليوم', captionEn: 'EGP donated today' },
+        sadaqah: {
+          amount: 0,
+          labelAr: 'الصدقة',
+          labelEn: 'Sadaqah',
+          captionAr: 'ج.م مصدقة اليوم',
+          captionEn: 'EGP donated today',
+          goal: DEFAULT_SADAQAH_GOAL_EGP,
+          percent: 0,
+          currency: SADAQAH_CURRENCY,
+          currencyLabelAr: SADAQAH_CURRENCY_LABEL_AR,
+          currencyLabelEn: SADAQAH_CURRENCY_LABEL_EN,
+        },
       },
       khatmah: {
         surahId: 2,
@@ -299,7 +329,7 @@ async function buildDashboardPayload(
     getTodayJourneyWithFallback(userId),
     getOrCreateKhatmah(userId),
     getVerseOfTheDayLite(dayOfYear).catch(() => FALLBACK_VERSE),
-    getHadithOfTheDayLite(dayOfYear).catch(() => FALLBACK_HADITH),
+    getHadithOfTheDayLite(dayOfYear).catch(() => getCuratedHadithForDay(dayOfYear)),
     getDailyChallengeTemplate(dayOfYear).catch(() => null),
     getChallengeCompletion(userId, dayOfYear).catch(() => null),
   ]);
@@ -498,6 +528,11 @@ async function buildDashboardPayload(
         labelEn: 'Sadaqah',
         captionAr: `${Number(journey.sadaqahAmount) || 0} ج.م مصدقة اليوم`,
         captionEn: `${Number(journey.sadaqahAmount) || 0} EGP donated today`,
+        goal: DEFAULT_SADAQAH_GOAL_EGP,
+        percent: sadaqahProgressPercent(Number(journey.sadaqahAmount) || 0),
+        currency: SADAQAH_CURRENCY,
+        currencyLabelAr: SADAQAH_CURRENCY_LABEL_AR,
+        currencyLabelEn: SADAQAH_CURRENCY_LABEL_EN,
       },
     },
     khatmah: {
