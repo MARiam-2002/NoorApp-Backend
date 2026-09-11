@@ -26,7 +26,7 @@ import {
   getDailyChallengeTemplate,
 } from './daily-content.service';
 import { parsePrayerKey } from '../shared/utils/prayer-names';
-import { syncJourneyAdhkarFromDhikr } from './adhkar.service';
+import { applyJourneyAdhkarToDhikrLedger, syncJourneyAdhkarFromDhikr } from './adhkar.service';
 
 type SadaqahBreakdown = Partial<Record<SadaqahCategoryId, number>>;
 
@@ -539,11 +539,13 @@ export async function updateAdhkar(
   const category = (input.categoryKey ?? '').toUpperCase();
   let morningFromCategory: boolean | undefined;
   let eveningFromCategory: boolean | undefined;
+  let wirdFromCategory = false;
   if (category) {
     if (category === 'GENERAL_WIRD') {
       // Completing daily wird marks overall journey Adhkar (same source as hub card).
       morningFromCategory = input.completed ?? true;
       eveningFromCategory = input.completed ?? true;
+      wirdFromCategory = (input.completed ?? true) === true;
     } else if (category.includes('MORNING') || category.includes('SABAH')) {
       morningFromCategory = input.completed ?? true;
     } else if (category.includes('EVENING') || category.includes('MASA')) {
@@ -570,8 +572,28 @@ export async function updateAdhkar(
         : input.completed !== undefined
           ? input.completed
           : existing?.eveningAdhkarCompleted ?? false;
-  const overallSet = morningSet && eveningSet;
 
+  // Mirror true completions into DailyDhikrCompletion so Dashboard sync cannot wipe them.
+  if (wirdFromCategory || morningSet || eveningSet) {
+    const flags = await applyJourneyAdhkarToDhikrLedger(userId, {
+      wirdCompleted: wirdFromCategory,
+      morningCompleted: morningSet === true,
+      eveningCompleted: eveningSet === true,
+    });
+    const morningCompleted = flags.morningAdhkarCompleted;
+    const eveningCompleted = flags.eveningAdhkarCompleted;
+    const overallCompleted = flags.adhkarCompleted;
+    const percent = Math.round(((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2 * 100);
+    return {
+      morningCompleted,
+      eveningCompleted,
+      overallCompleted,
+      adhkarCompleted: overallCompleted,
+      percent,
+    };
+  }
+
+  const overallSet = morningSet && eveningSet;
   const progress = await prisma.dailyProgress.upsert({
     where: { userId_date: { userId, date } },
     create: {

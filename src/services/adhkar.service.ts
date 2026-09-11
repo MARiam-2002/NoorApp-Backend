@@ -1335,6 +1335,74 @@ async function isCategoryCompleteForUser(
   }
 }
 
+/**
+ * Mark category items complete in DailyDhikrCompletion (same ledger as PUT /adhkar/progress).
+ * Used by PATCH /journey/adhkar so Dashboard re-sync does not wipe the override.
+ */
+async function markCategoryItemsCompleteInLedger(
+  userId: string,
+  categoryKey: CategoryKey,
+  date: Date,
+  limit?: number,
+): Promise<void> {
+  let categoryId: string | null = null;
+  let items: { id: string; repeatCount: number }[] = [];
+
+  try {
+    const dbCat = await prisma.dhikrCategory.findFirst({
+      where: { key: categoryKey as any },
+      include: {
+        items: {
+          orderBy: { orderInCategory: 'asc' },
+          ...(limit ? { take: limit } : {}),
+          select: { id: true, repeatCount: true },
+        },
+      },
+    });
+    if (dbCat) {
+      categoryId = dbCat.id;
+      items = dbCat.items;
+    }
+  } catch {
+    /* fallback below */
+  }
+
+  if (items.length === 0) {
+    const fallback = FALLBACK_ITEMS[categoryKey] ?? [];
+    items = (limit ? fallback.slice(0, limit) : fallback).map((fi) => ({
+      id: fi.id,
+      repeatCount: fi.repeatCount,
+    }));
+  }
+
+  for (const item of items) {
+    try {
+      await prisma.dailyDhikrCompletion.upsert({
+        where: {
+          userId_date_categoryId_itemId: {
+            userId,
+            date,
+            categoryId: categoryId ?? '',
+            itemId: item.id,
+          },
+        },
+        create: {
+          userId,
+          date,
+          categoryId,
+          itemId: item.id,
+          countDone: item.repeatCount,
+        },
+        update: {
+          countDone: item.repeatCount,
+        },
+      });
+    } catch {
+      /* table / unique edge — ignore single item */
+    }
+  }
+}
+
 export type AdhkarJourneyFlags = {
   morningAdhkarCompleted: boolean;
   eveningAdhkarCompleted: boolean;
@@ -1344,6 +1412,38 @@ export type AdhkarJourneyFlags = {
   progressItemsTotal: number;
   progressPercent: number;
 };
+
+/**
+ * Apply Journey Adhkar PATCH onto the Dhikr ledger, then re-derive DailyProgress.
+ * Keeps one source of truth so GET /dashboard stays aligned.
+ */
+export async function applyJourneyAdhkarToDhikrLedger(
+  userId: string,
+  input: {
+    morningCompleted?: boolean;
+    eveningCompleted?: boolean;
+    wirdCompleted?: boolean;
+  },
+): Promise<AdhkarJourneyFlags> {
+  const date = getTodayDate();
+
+  if (input.wirdCompleted) {
+    await markCategoryItemsCompleteInLedger(
+      userId,
+      'GENERAL_WIRD',
+      date,
+      DAILY_WIRD_ITEM_GOAL,
+    );
+  }
+  if (input.morningCompleted) {
+    await markCategoryItemsCompleteInLedger(userId, 'MORNING', date);
+  }
+  if (input.eveningCompleted) {
+    await markCategoryItemsCompleteInLedger(userId, 'EVENING', date);
+  }
+
+  return syncJourneyAdhkarFromDhikr(userId, date);
+}
 
 /**
  * Single source of truth for Azkar hub + Dashboard Journey:

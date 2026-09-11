@@ -46,7 +46,7 @@
 | `GET` | `/journey/today` | Bearer |
 | `PATCH` | `/journey/adhkar` | Bearer (optional manual override) |
 
-**After `PUT /adhkar/progress`, refresh Dashboard** (or rely on next `GET /dashboard`) — Backend already synced `DailyProgress`.
+**After `PUT /adhkar/progress` or `PATCH /journey/adhkar` (complete), refresh Dashboard** — Backend syncs `DailyDhikrCompletion` → `DailyProgress` (one ledger). Journey PATCH for `GENERAL_WIRD` / morning / evening **writes the same Dhikr ledger**, so Dashboard cannot wipe the override on the next `GET /dashboard`.
 
 ---
 
