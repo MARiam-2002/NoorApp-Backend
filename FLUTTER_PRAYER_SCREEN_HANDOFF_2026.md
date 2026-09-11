@@ -6,7 +6,9 @@
 **Updated:** 2026-09-11  
 **Language:** English only  
 
-**Backend status:** Prayer times, next-prayer countdown, Cairo defaults, and personal completion for the **five obligatory prayers** are **implemented and Production-ready**. Sunrise is available as an **additive display-only** field. Existing Flutter contracts for `schedule[]` (length 5) are preserved.
+**Backend status:** Prayer times, next-prayer countdown, Cairo defaults, **global lat/lng + timezone inference**, and personal completion for the **five obligatory prayers** are **implemented**. Sunrise is an **additive display-only** field. Existing Flutter contracts for `schedule[]` (length 5) are preserved.
+
+**Location rule:** Cairo is only the default when no coords exist (`isDefaultLocation: true`). Query GPS or saved profile lat/lng override Cairo; Backend infers IANA timezone from coordinates when `timezone` is omitted or still the stale Prisma default `Africa/Cairo`. Optional query labels: `city`, `cityAr`, `country`, `countryAr`.
 
 **Related:** [`FLUTTER_CAIRO_DEFAULT_PRAYER_AZAN_HANDOFF_2026.md`](FLUTTER_CAIRO_DEFAULT_PRAYER_AZAN_HANDOFF_2026.md) (Cairo default / Azan) · [`FLUTTER_SADAQAH_HADITH_HANDOFF_2026.md`](FLUTTER_SADAQAH_HADITH_HANDOFF_2026.md) (Home Sadaqah + Hadith)
 
@@ -121,6 +123,9 @@ Also on `GET /dashboard` → `data.prayers.sunrise` (same shape).
 | Add `sunrise` on schedule responses + dashboard | Additive |
 | After-Isha → tomorrow Fajr countdown | Same fields; better behavior |
 | OpenAPI mark example aligned to `{ prayer, key, completed }` | Docs only |
+| Infer timezone from lat/lng (`geo-tz`); local calendar day for Adhan | Additive behavior; same response fields |
+| Optional `city` / `cityAr` / `country` / `countryAr` on `/prayers/today` | Additive query params |
+| Profile `PUT /profile/location` infers timezone when omitted | Same path; better stored TZ |
 
 **Not changed:** payment APIs, Azan media catalog, `schedule[]` length, completion enum.
 

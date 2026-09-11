@@ -12,6 +12,12 @@ import {
 import { DefaultTimezone, PrayerNameEnum, PrayerOrder } from '../utils/constants';
 import { getTodayDateOnly } from '../utils/date';
 import { parsePrayerKey, prayerEnumToTitle } from '../shared/utils/prayer-names';
+import {
+  addCalendarDaysUtcNoon,
+  getZonedYmd,
+  inferTimezoneFromCoordinates,
+  zonedCalendarDateForAdhan,
+} from '../shared/utils/prayer-location';
 
 const prayerLabelsAr: Record<PrayerNameEnum, string> = {
   [PrayerNameEnum.FAJR]: 'الفجر',
@@ -165,6 +171,11 @@ type PrayerCalcOptions = {
   cityAr?: string | null;
   country?: string | null;
   countryAr?: string | null;
+  /**
+   * When true, `timezone` argument is treated as an explicit client/profile value
+   * and must not be replaced by geo inference.
+   */
+  timezoneExplicit?: boolean;
 };
 
 function normalizeMethodKey(method?: string | null): string {
@@ -226,20 +237,24 @@ function buildLocationMeta(
   const cityFallback =
     locationSource === 'profile'
       ? options?.city?.trim() || 'Saved location'
-      : 'Custom';
+      : locationSource === 'query'
+        ? options?.city?.trim() || 'Current location'
+        : 'Custom';
   return {
     latitude: lat,
     longitude: lng,
     city: options?.city?.trim() || (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.city : cityFallback),
     cityAr:
       options?.cityAr?.trim() ||
-      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.cityAr : options?.city?.trim() || 'موقع محفوظ'),
+      (isDefaultLocation
+        ? DEFAULT_PRAYER_LOCATION.cityAr
+        : options?.city?.trim() || (locationSource === 'query' ? 'موقعك الحالي' : 'موقع محفوظ')),
     country:
       options?.country?.trim() ||
-      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.country : options?.country?.trim() || 'Unknown'),
+      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.country : options?.country?.trim() || '—'),
     countryAr:
       options?.countryAr?.trim() ||
-      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.countryAr : 'غير محدد'),
+      (isDefaultLocation ? DEFAULT_PRAYER_LOCATION.countryAr : options?.countryAr?.trim() || '—'),
     timezone: tz,
     calculationMethod: methodKey.includes('EGYPT')
       ? DEFAULT_PRAYER_LOCATION.calculationMethodLabel
@@ -263,15 +278,35 @@ export function calculateDailyPrayerSchedule(
   const lng = Number.isFinite(longitude) ? longitude : DEFAULT_LONGITUDE;
   const locationSource: PrayerLocationSource =
     options?.locationSource ?? (usedDefaultCoords ? 'default_cairo' : 'query');
+
+  const providedTz = timezone?.trim() || '';
+  const looksLikeStaleCairoDefault =
+    locationSource !== 'default_cairo' &&
+    providedTz === DEFAULT_PRAYER_LOCATION.timezone &&
+    (Math.abs(lat - DEFAULT_LATITUDE) > 0.05 || Math.abs(lng - DEFAULT_LONGITUDE) > 0.05);
+
+  // Stale Africa/Cairo on non-Cairo coords wins over "explicit" — User.timezone
+  // and many clients default to Cairo even after GPS updates elsewhere.
   const tz = resolveTimezone(
-    timezone ||
-      (locationSource === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.timezone : DefaultTimezone),
+    looksLikeStaleCairoDefault
+      ? inferTimezoneFromCoordinates(lat, lng, DEFAULT_PRAYER_LOCATION.timezone)
+      : options?.timezoneExplicit && providedTz
+        ? providedTz
+        : providedTz
+          ? providedTz
+          : locationSource === 'default_cairo'
+            ? DEFAULT_PRAYER_LOCATION.timezone
+            : inferTimezoneFromCoordinates(lat, lng, DEFAULT_PRAYER_LOCATION.timezone),
   );
+
+  const nowInstant = referenceDate;
+  // Adhan day = local calendar day in the prayer timezone (not server UTC day).
+  const adhanDay = zonedCalendarDateForAdhan(nowInstant, tz);
   const coordinates = new Coordinates(lat, lng);
   const { params, methodKey, madhabKey } = resolveCalculationParams(options);
-  const prayerTimes = new PrayerTimes(coordinates, referenceDate, params);
+  const prayerTimes = new PrayerTimes(coordinates, adhanDay, params);
   const prayerDateMap = getPrayerDateMap(prayerTimes);
-  const now = referenceDate.getTime();
+  const now = nowInstant.getTime();
   const completedSet = new Set(completedPrayers.map((p) => String(p).toUpperCase()));
 
   const schedule: PrayerScheduleItem[] = PrayerOrder.map((key) => {
@@ -322,9 +357,7 @@ export function calculateDailyPrayerSchedule(
       ),
     };
   } else {
-    // After Isha: roll to tomorrow's Fajr (same field shape; countdown > 0).
-    const tomorrow = new Date(referenceDate);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrow = addCalendarDaysUtcNoon(adhanDay, 1);
     const tomorrowTimes = new PrayerTimes(coordinates, tomorrow, params);
     const fajrTs = tomorrowTimes.fajr;
     nextPrayer = {
@@ -345,8 +378,10 @@ export function calculateDailyPrayerSchedule(
     locationSource,
   });
 
+  const localDate = getZonedYmd(nowInstant, tz).dateStr;
+
   return {
-    date: referenceDate.toISOString().slice(0, 10),
+    date: localDate,
     nextPrayer,
     schedule,
     sunrise,
@@ -396,6 +431,7 @@ export async function getTodayPrayers(userId: string) {
       longitude: true,
       timezone: true,
       city: true,
+      country: true,
       prayerCalculationMethod: true,
     },
   });
@@ -411,20 +447,35 @@ export async function getTodayPrayers(userId: string) {
     Number.isFinite(user.latitude) &&
     Number.isFinite(user.longitude);
 
+  const lat = hasProfileLocation ? (user.latitude as number) : DEFAULT_LATITUDE;
+  const lng = hasProfileLocation ? (user.longitude as number) : DEFAULT_LONGITUDE;
+  const profileTz = user.timezone?.trim() || '';
+  const coordsNearCairo =
+    Math.abs(lat - DEFAULT_LATITUDE) < 0.5 && Math.abs(lng - DEFAULT_LONGITUDE) < 0.5;
+  // Prisma default timezone is Africa/Cairo — treat as stale when coords are clearly elsewhere.
+  const staleDefaultTimezone =
+    hasProfileLocation &&
+    profileTz === DEFAULT_PRAYER_LOCATION.timezone &&
+    !coordsNearCairo;
+  const explicitTimezone = Boolean(profileTz) && !staleDefaultTimezone;
+
   return calculateDailyPrayerSchedule(
-    hasProfileLocation ? (user.latitude as number) : DEFAULT_LATITUDE,
-    hasProfileLocation ? (user.longitude as number) : DEFAULT_LONGITUDE,
-    user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone,
+    lat,
+    lng,
+    explicitTimezone ? profileTz : hasProfileLocation ? '' : DEFAULT_PRAYER_LOCATION.timezone,
     completed as PrayerNameEnum[],
     new Date(),
     {
       method: user.prayerCalculationMethod ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
       locationSource: hasProfileLocation ? 'profile' : 'default_cairo',
+      timezoneExplicit: explicitTimezone,
       city: hasProfileLocation ? user.city : DEFAULT_PRAYER_LOCATION.city,
       cityAr: hasProfileLocation
         ? user.city ?? undefined
         : DEFAULT_PRAYER_LOCATION.cityAr,
-      country: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.country,
+      country: hasProfileLocation
+        ? user.country ?? undefined
+        : DEFAULT_PRAYER_LOCATION.country,
       countryAr: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.countryAr,
     },
   );
@@ -449,6 +500,9 @@ export async function getPrayerSchedule(
   madhab?: string,
   locationSource?: PrayerLocationSource,
   city?: string | null,
+  cityAr?: string | null,
+  country?: string | null,
+  countryAr?: string | null,
 ) {
   const hasCoords =
     latitude != null &&
@@ -459,19 +513,25 @@ export async function getPrayerSchedule(
   const lng = hasCoords ? (longitude as number) : DEFAULT_LONGITUDE;
   const source: PrayerLocationSource =
     locationSource ?? (hasCoords ? 'query' : 'default_cairo');
-  const tz =
-    timezone ??
-    (source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.timezone : DefaultTimezone);
+  const explicitTimezone = Boolean(timezone?.trim());
+  const tz = explicitTimezone
+    ? (timezone as string)
+    : source === 'default_cairo'
+      ? DEFAULT_PRAYER_LOCATION.timezone
+      : ''; // infer inside calculateDailyPrayerSchedule
   const refDate = dateStr ? new Date(dateStr) : new Date();
 
   return calculateDailyPrayerSchedule(lat, lng, tz, [], refDate, {
     method: method ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
     madhab: madhab ?? DEFAULT_PRAYER_LOCATION.madhab,
     locationSource: source,
+    timezoneExplicit: explicitTimezone,
     city: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.city : city,
-    cityAr: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.cityAr : city,
-    country: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.country : undefined,
-    countryAr: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.countryAr : undefined,
+    cityAr:
+      source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.cityAr : cityAr ?? city,
+    country: source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.country : country,
+    countryAr:
+      source === 'default_cairo' ? DEFAULT_PRAYER_LOCATION.countryAr : countryAr,
   });
 }
 

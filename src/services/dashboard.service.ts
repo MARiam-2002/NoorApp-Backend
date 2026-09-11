@@ -203,6 +203,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     latitude: null as number | null,
     longitude: null as number | null,
     city: null as string | null,
+    country: null as string | null,
     prayerCalculationMethod: 'EGYPT' as string | null,
   };
 
@@ -219,6 +220,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         latitude: true,
         longitude: true,
         city: true,
+        country: true,
         prayerCalculationMethod: true,
       },
     });
@@ -331,6 +333,7 @@ async function buildDashboardPayload(
     latitude: number | null;
     longitude: number | null;
     city?: string | null;
+    country?: string | null;
     prayerCalculationMethod?: string | null;
   },
 ): Promise<DashboardData> {
@@ -370,7 +373,20 @@ async function buildDashboardPayload(
     Number.isFinite(user.longitude);
   const latitude = hasProfileLocation ? (user.latitude as number) : DEFAULT_LATITUDE;
   const longitude = hasProfileLocation ? (user.longitude as number) : DEFAULT_LONGITUDE;
-  const timezone = user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone;
+  const profileTz = user.timezone?.trim() || '';
+  const coordsNearCairo =
+    Math.abs(latitude - DEFAULT_LATITUDE) < 0.5 &&
+    Math.abs(longitude - DEFAULT_LONGITUDE) < 0.5;
+  const staleDefaultTimezone =
+    hasProfileLocation &&
+    profileTz === DEFAULT_PRAYER_LOCATION.timezone &&
+    !coordsNearCairo;
+  const explicitTimezone = Boolean(profileTz) && !staleDefaultTimezone;
+  const timezone = explicitTimezone
+    ? profileTz
+    : hasProfileLocation
+      ? ''
+      : DEFAULT_PRAYER_LOCATION.timezone;
 
   let prayers: DailyPrayerSchedule;
   try {
@@ -383,11 +399,14 @@ async function buildDashboardPayload(
       {
         method: user.prayerCalculationMethod ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
         locationSource: hasProfileLocation ? 'profile' : 'default_cairo',
+        timezoneExplicit: explicitTimezone,
         city: hasProfileLocation ? user.city : DEFAULT_PRAYER_LOCATION.city,
         cityAr: hasProfileLocation
           ? user.city ?? undefined
           : DEFAULT_PRAYER_LOCATION.cityAr,
-        country: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.country,
+        country: hasProfileLocation
+          ? user.country ?? undefined
+          : DEFAULT_PRAYER_LOCATION.country,
         countryAr: hasProfileLocation ? undefined : DEFAULT_PRAYER_LOCATION.countryAr,
       },
     );

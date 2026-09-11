@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { hashPassword, verifyPassword } from '../lib/auth';
+import { inferTimezoneFromCoordinates } from '../shared/utils/prayer-location';
 
 export type UserProfile = {
   id: string;
@@ -414,7 +415,12 @@ export async function updateLocation(
     longitude: data.longitude,
   };
 
-  if (data.timezone !== undefined) updateData.timezone = data.timezone;
+  if (data.timezone !== undefined) {
+    updateData.timezone = data.timezone;
+  } else {
+    // When Flutter saves GPS without timezone, infer IANA zone from coordinates.
+    updateData.timezone = inferTimezoneFromCoordinates(data.latitude, data.longitude);
+  }
   if (data.city !== undefined) updateData.city = data.city ? data.city.trim() : null;
   if (data.country !== undefined) updateData.country = data.country ? data.country.trim() : null;
 

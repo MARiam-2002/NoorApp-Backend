@@ -12,7 +12,19 @@ import {
 
 export const getToday = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
-  const { latitude, longitude, lat, lng, timezone, method, madhab } = req.query as {
+  const {
+    latitude,
+    longitude,
+    lat,
+    lng,
+    timezone,
+    method,
+    madhab,
+    city,
+    cityAr,
+    country,
+    countryAr,
+  } = req.query as {
     latitude?: string;
     longitude?: string;
     lat?: string;
@@ -20,6 +32,10 @@ export const getToday = asyncHandler(async (req: Request, res: Response) => {
     timezone?: string;
     method?: string;
     madhab?: string;
+    city?: string;
+    cityAr?: string;
+    country?: string;
+    countryAr?: string;
   };
 
   const resolvedLat = latitude ?? lat;
@@ -42,6 +58,10 @@ export const getToday = asyncHandler(async (req: Request, res: Response) => {
       method,
       madhab,
       'query',
+      city,
+      cityAr,
+      country,
+      countryAr,
     );
     if (userId) {
       const today = await getTodayPrayers(userId);
