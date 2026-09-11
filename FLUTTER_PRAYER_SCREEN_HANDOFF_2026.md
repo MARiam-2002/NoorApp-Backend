@@ -123,7 +123,7 @@ Also on `GET /dashboard` → `data.prayers.sunrise` (same shape).
 | Add `sunrise` on schedule responses + dashboard | Additive |
 | After-Isha → tomorrow Fajr countdown | Same fields; better behavior |
 | OpenAPI mark example aligned to `{ prayer, key, completed }` | Docs only |
-| Infer timezone from lat/lng (`geo-tz`); local calendar day for Adhan | Additive behavior; same response fields |
+| Infer timezone from lat/lng (`tz-lookup`); local calendar day for Adhan | Additive behavior; same response fields |
 | Optional `city` / `cityAr` / `country` / `countryAr` on `/prayers/today` | Additive query params |
 | Profile `PUT /profile/location` infers timezone when omitted | Same path; better stored TZ |
 

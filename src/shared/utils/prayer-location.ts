@@ -1,9 +1,12 @@
 /**
  * Prayer location helpers: timezone inference + local calendar day.
  * Used by prayer.service only — no second calculation engine.
+ *
+ * Uses tz-lookup (in-memory grid) so Vercel serverless does not need
+ * geo-tz's large on-disk boundary files.
  */
 
-import { find as findTimezones } from 'geo-tz';
+import tzlookup from 'tz-lookup';
 import { DEFAULT_PRAYER_LOCATION } from '../constants/default-location';
 
 /**
@@ -19,10 +22,8 @@ export function inferTimezoneFromCoordinates(
     return fallback;
   }
   try {
-    const zones = findTimezones(latitude, longitude);
-    const zone = zones?.[0]?.trim();
+    const zone = String(tzlookup(latitude, longitude) || '').trim();
     if (zone) {
-      // Validate
       Intl.DateTimeFormat('en-US', { timeZone: zone }).format(new Date());
       return zone;
     }

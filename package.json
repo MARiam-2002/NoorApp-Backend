@@ -51,7 +51,6 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.0",
     "firebase-admin": "^13.10.0",
-    "geo-tz": "^8.1.8",
     "glob": "^11.0.0",
     "helmet": "^8.3.0",
     "hpp": "^0.2.3",
@@ -64,7 +63,11 @@
     "swagger-ui-express": "^5.0.1",
     "tsx": "^4.23.1",
     "typescript": "^5.8.3",
+    "tz-lookup": "^6.1.25",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/tz-lookup": "^6.1.2"
   }
 }
