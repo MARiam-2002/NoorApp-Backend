@@ -247,6 +247,12 @@ export async function getTodayJourney(userId: string) {
   let streakDays = 0;
   let levelProgress = getJourneyLevelProgress(0);
   let streakDaysCompleted: Array<{ date: string; completed: boolean; index: number }> = [];
+  let streakDisplayDays: Array<{
+    date: string;
+    completed: boolean;
+    inCurrentStreak: boolean;
+    index: number;
+  }> = [];
   let dailyChallenge: any = null;
   let badges: Array<{
     id: string;
@@ -300,6 +306,23 @@ export async function getTodayJourney(userId: string) {
         date: dateStr,
         completed: true,
         index: streakCap - i,
+      });
+    }
+
+    // Fixed 10-slot row matching the Journey mock (filled vs empty circles).
+    const displayWindow = 10;
+    for (let i = displayWindow - 1; i >= 0; i -= 1) {
+      const d = new Date(date);
+      d.setUTCDate(d.getUTCDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const completed = datesSet.has(dateStr);
+      const daysAgo = i;
+      const inCurrentStreak = streakDays > 0 && daysAgo < streakDays;
+      streakDisplayDays.push({
+        date: dateStr,
+        completed,
+        inCurrentStreak,
+        index: displayWindow - i,
       });
     }
 
@@ -396,7 +419,11 @@ export async function getTodayJourney(userId: string) {
       labelEn: 'Good deeds streak',
       unitAr: 'يوم متواصل',
       unitEn: 'Consecutive days',
+      /** Consecutive completed days in the current streak (variable length). */
       recentDays: streakDaysCompleted,
+      /** Fixed last-10 calendar days for the checkmark row on the Journey screen. */
+      displayDays: streakDisplayDays,
+      displayDaysCount: 10,
     },
     dailyChallenge,
     quran: {

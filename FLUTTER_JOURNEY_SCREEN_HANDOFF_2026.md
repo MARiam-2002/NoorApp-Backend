@@ -23,7 +23,7 @@
 | 5 medal icons | same | `badges[]` (exactly **5**; use `earned`) |
 | سلسلة الحسنات count | same | `streak.days` **or** existing `streakDays` |
 | يوم متواصل labels | same | `streak.labelAr/En`, `streak.unitAr/En` |
-| Streak checkmark row | same | `streak.recentDays[]` (`date`, `completed`, `index`) |
+| Streak checkmark row | same | Prefer `streak.displayDays[]` (fixed **10** slots) or `streak.recentDays[]` |
 
 **Primary endpoint:** `GET /journey/today` (Bearer required).
 
@@ -87,12 +87,19 @@ Dashboard Home tiles remain on `GET /dashboard` → `dailyJourney` (same `DailyP
     "recentDays": [
       { "date": "2026-09-04", "completed": true, "index": 1 },
       { "date": "2026-09-12", "completed": true, "index": 9 }
+    ],
+    "displayDaysCount": 10,
+    "displayDays": [
+      { "date": "2026-09-03", "completed": false, "inCurrentStreak": false, "index": 1 },
+      { "date": "2026-09-12", "completed": true, "inCurrentStreak": true, "index": 10 }
     ]
   }
 }
 ```
 
-**Streak rule (unchanged):** consecutive calendar days with any of: Quran pages > 0, morning/evening Adhkar, or sadaqah > 0. `recentDays` length = `streakDays` (capped at 30).
+**Streak rule (unchanged):** consecutive calendar days with any of: Quran pages > 0, morning/evening Adhkar, or sadaqah > 0.  
+**UI row:** use `streak.displayDays` (always length 10) — paint filled when `completed` or `inCurrentStreak`.  
+**Alternate:** `recentDays` length = `streakDays` (capped at 30), all `completed: true`.
 
 ### 3.4 Badges (5 medals)
 
@@ -113,7 +120,7 @@ Each: `{ id, key, titleAr, titleEn, earned, earnedAt }`. Paint gold when `earned
 1. `GET /journey/today` with Bearer.  
 2. Level card: `level`, `rankTitleAr`, bar from `levelProgressPercent`.  
 3. Medals: `badges` in order; `earned` → filled vs locked.  
-4. Streak card: `streak.days` (or `streakDays`), labels from `streak.*`, checkmarks from `streak.recentDays`.  
+4. Streak card: `streak.days` (or `streakDays`), labels from `streak.*`, checkmarks from **`streak.displayDays`** (10 slots) or `streak.recentDays`.  
 5. Do **not** invent a second streak/level store offline that disagrees after sync.  
 6. Daily task cards (if still shown elsewhere): keep using existing `tasks[]` / nested quran/prayer/adhkar/sadaqah.
 
@@ -132,7 +139,7 @@ All Journey routes require Bearer. Data is scoped to `req.user.sub` only.
 | `/journey/today`, tasks, points, overallPercent, streakDays, 4 badges | Unchanged paths |
 | `User.points` / `User.level` | Level now **derived from points** + exposed on Journey |
 | Computed badges | Expanded to **5**; order matches medals UI |
-| Streak count | Additive `streak` object + `recentDays` checkmarks |
+| Streak count | Additive `streak` object + `recentDays` + fixed `displayDays` (10) |
 | Rank titles | **New** ladder constants (عبد شاكر at level 6) |
 | DailyProgress / Azkar / Prayer ledgers | Unchanged — still shared with Dashboard |
 
@@ -155,6 +162,7 @@ All Journey routes require Bearer. Data is scoped to `req.user.sub` only.
 - [x] `GET /journey/today` returns `level`, `rankTitleAr`, `levelProgressPercent`  
 - [x] `badges.length === 5` with `earned` booleans  
 - [x] `streak.days` matches `streakDays`; `recentDays` length matches streak (≤30)  
+- [x] `streak.displayDays.length === 10` for the checkmark row  
 - [x] Unauthenticated Journey → 401  
 - [x] Existing fields preserved  
 
