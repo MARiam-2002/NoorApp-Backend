@@ -1568,13 +1568,35 @@ export async function getAyahTafsir(
   ayahNumber: number;
   provider: 'quran_foundation' | 'unavailable';
   language?: string;
+  /** Additive — Quran Foundation / catalog attribution for Flutter UI. */
+  resourceId?: number;
+  sourceNameAr?: string;
+  sourceNameEn?: string;
+  authorAr?: string;
+  authorEn?: string;
 }> {
   const catalog =
     QURAN_TAFSIRS.find((t) => matchesCatalogId(t, sourceId)) ??
     QURAN_TAFSIRS[0] ??
-    { id: 'Ibn_Kathir', code: 'Ibn_Kathir' };
+    ({
+      id: 'Ibn_Kathir',
+      code: 'Ibn_Kathir',
+      nameAr: 'تفسير ابن كثير',
+      nameEn: 'Tafsir Ibn Kathir',
+      language: 'Arabic',
+      resourceId: 14,
+    } as TafsirOption);
 
   const resourceId = resolveTafsirResourceId(sourceId ?? catalog.id);
+  const attribution = {
+    resourceId: typeof resourceId === 'number' ? resourceId : catalog.resourceId,
+    sourceNameAr: catalog.nameAr,
+    sourceNameEn: catalog.nameEn ?? catalog.name,
+    authorAr: catalog.authorAr,
+    authorEn: catalog.authorEn,
+    language: catalog.language ?? 'Arabic',
+  };
+
   try {
     const qf = await fetchQfTafsirByVerse(resourceId, verseKey(surahId, ayahNumber));
     if (qf?.text) {
@@ -1586,7 +1608,13 @@ export async function getAyahTafsir(
         surahId,
         ayahNumber,
         provider: 'quran_foundation',
-        language: qf.language,
+        // Prefer catalog language — QF sometimes returns "english" for Arabic resources.
+        language: attribution.language || qf.language,
+        resourceId: qf.resourceId || attribution.resourceId,
+        sourceNameAr: attribution.sourceNameAr,
+        sourceNameEn: attribution.sourceNameEn,
+        authorAr: attribution.authorAr,
+        authorEn: attribution.authorEn,
       };
     }
   } catch (err) {
@@ -1602,6 +1630,12 @@ export async function getAyahTafsir(
     surahId,
     ayahNumber,
     provider: 'unavailable',
+    language: attribution.language,
+    resourceId: attribution.resourceId,
+    sourceNameAr: attribution.sourceNameAr,
+    sourceNameEn: attribution.sourceNameEn,
+    authorAr: attribution.authorAr,
+    authorEn: attribution.authorEn,
   };
 }
 

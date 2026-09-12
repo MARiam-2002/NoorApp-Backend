@@ -894,8 +894,8 @@ quranRouter.get('/audio', validate(getAyahAudioQuerySchema, 'query'), getAyahAud
  * /quran/tafsir:
  *   get:
  *     tags: ['Quran']
- *     summary: الحصول على تفسير آية (قريباً)
- *     description: يعيد نص التفسير لآية محددة مع المصدر المختار. (Coming soon — P2)
+ *     summary: الحصول على تفسير آية
+ *     description: يعيد نص التفسير لآية محددة من Quran Foundation Content API مع المصدر المختار.
  *     parameters:
  *       - in: query
  *         name: surahId
