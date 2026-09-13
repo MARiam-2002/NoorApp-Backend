@@ -15,6 +15,11 @@ import {
   resolveTranslationResourceId,
   verseKey,
 } from '../lib/quran-foundation';
+import {
+  fetchQulQurtubiByVerse,
+  isAlQurtubiCatalogId,
+  QUL_QURTUBI_RESOURCE_ID,
+} from '../lib/qurtubi-qul';
 import { ARABIC_DIACRITICS_FOR_TRANSLATE, stripArabicDiacritics } from '../shared/utils/arabic-text';
 import {
   QURAN_STATIC_CATALOG_VERSION,
@@ -1566,7 +1571,7 @@ export async function getAyahTafsir(
   source: string;
   surahId: number;
   ayahNumber: number;
-  provider: 'quran_foundation' | 'unavailable';
+  provider: 'quran_foundation' | 'qul' | 'unavailable';
   language?: string;
   /** Additive — Quran Foundation / catalog attribution for Flutter UI. */
   resourceId?: number;
@@ -1574,6 +1579,9 @@ export async function getAyahTafsir(
   sourceNameEn?: string;
   authorAr?: string;
   authorEn?: string;
+  /** Additive — QUL edition id when Al-Qurtubi is served from the formatted mirror. */
+  qulResourceId?: number;
+  contentEdition?: string;
 }> {
   const catalog =
     QURAN_TAFSIRS.find((t) => matchesCatalogId(t, sourceId)) ??
@@ -1596,6 +1604,37 @@ export async function getAyahTafsir(
     authorEn: catalog.authorEn,
     language: catalog.language ?? 'Arabic',
   };
+
+  // Al-Qurtubi: prefer QUL-formatted edition (proper spacing). Never rewrite Arabic heuristically.
+  // Keep catalog `resourceId` 90 for Flutter preference compatibility; QF remains fallback.
+  if (isAlQurtubiCatalogId(catalog.id, attribution.resourceId)) {
+    try {
+      const qul = await fetchQulQurtubiByVerse(surahId, ayahNumber);
+      if (qul?.text) {
+        return {
+          textAr: qul.text,
+          text: qul.text,
+          textHtml: qul.textHtml,
+          source: catalog.id,
+          surahId,
+          ayahNumber,
+          provider: 'qul',
+          language: attribution.language,
+          resourceId: attribution.resourceId ?? 90,
+          sourceNameAr: attribution.sourceNameAr,
+          sourceNameEn: attribution.sourceNameEn,
+          authorAr: attribution.authorAr,
+          authorEn: attribution.authorEn,
+          qulResourceId: qul.qulResourceId ?? QUL_QURTUBI_RESOURCE_ID,
+          contentEdition: qul.editionSlug,
+        };
+      }
+    } catch (err) {
+      logger.warn('[Quran] QUL Qurtubi lookup failed; falling back to QF', {
+        message: (err as Error)?.message,
+      });
+    }
+  }
 
   try {
     const qf = await fetchQfTafsirByVerse(resourceId, verseKey(surahId, ayahNumber));

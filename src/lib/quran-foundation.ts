@@ -269,6 +269,7 @@ export const QF_RESOURCE_MAP: QfResourceMaps = {
     al_tabari: 15,
     Al_Qurtubi: 90,
     al_qurtubi: 90,
+    'ar-tafseer-al-qurtubi': 90,
     Ibn_Kathir_Muyassar: 16,
     Al_Muyassar: 16,
     'ar-tafsir-muyassar': 16,
