@@ -10,6 +10,29 @@ import { appConfig, env, ErrorCodes, HttpStatus } from '../config';
 import { morganStream } from '../lib/logger';
 import { buildError } from '../shared/utils/response';
 
+function buildCorsOriginOption(): cors.CorsOptions['origin'] {
+  const raw = (env.CORS_ORIGIN || '').trim();
+  if (!raw) return false;
+  if (raw === '*') {
+    // Reflect request origin when wildcard is explicitly configured.
+    // Prefer an explicit allow-list in production (comma-separated CORS_ORIGIN).
+    return true;
+  }
+  const list = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (list.length === 0) return false;
+  if (list.length === 1) return list[0];
+  return (origin, callback) => {
+    if (!origin || list.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  };
+}
+
 export function applySecurityMiddlewares(app: Express): void {
   app.set('trust proxy', 1);
   app.use(
@@ -30,10 +53,16 @@ export function applySecurityMiddlewares(app: Express): void {
   );
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: buildCorsOriginOption(),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'X-Request-ID',
+        'X-Cron-Secret',
+      ],
     }),
   );
   app.use(compression());

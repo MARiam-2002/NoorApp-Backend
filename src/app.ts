@@ -3,13 +3,14 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { appConfig } from './config';
+import { appConfig, env } from './config';
 import { errorHandler, notFoundHandler, requestIdMiddleware } from './middleware/common';
 import { connectDatabase } from './lib/prisma';
 import { httpLogger, applySecurityMiddlewares, apiRateLimiter } from './middleware/http';
 import { setupSwagger } from './lib/swagger';
 import { v1Router } from './routes';
 import { logger } from './lib/logger';
+import { warmRedisConnection } from './lib/redis';
 
 let migrationsRan = false;
 
@@ -146,6 +147,9 @@ export function createApp(): express.Application {
 
   app.get('/', (_req, res) => {
     const year = new Date().getFullYear();
+    const publicOrigin =
+      (env.PUBLIC_APP_ORIGIN || '').replace(/\/$/, '') ||
+      'https://YOUR-RAILWAY-DOMAIN.up.railway.app';
     res.type('html').send(`<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -199,8 +203,8 @@ code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:rgba(
       </div>
     </div>
   </div>
-  <div class="s"><span>Base URL للاستخدام في تطبيق Flutter:</span><code>https://noor-app-backend-one.vercel.app/api/v1</code></div>
-  <footer>© ${year} Noor App — Express · TypeScript · Prisma · Neon PostgreSQL · Vercel</footer>
+  <div class="s"><span>Base URL للاستخدام في تطبيق Flutter:</span><code>${publicOrigin}/api/v1</code></div>
+  <footer>© ${year} Noor App — Express · TypeScript · Prisma · Neon PostgreSQL</footer>
 </main>
 </body>
 </html>`);
@@ -219,6 +223,11 @@ code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:rgba(
 /** @deprecated use createApp() — kept for server.ts local bootstrap */
 export async function initializeApp(): Promise<express.Application> {
   await connectDatabase();
+  await warmRedisConnection().catch((error: unknown) => {
+    logger.warn('[Redis] warm-up failed (non-fatal)', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+  });
   return createApp();
 }
 

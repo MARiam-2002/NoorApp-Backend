@@ -1,6 +1,14 @@
 # Cron: FCM Azan prayer-reminder backup
-# Calls Production every 10 minutes. Requires repo secret CRON_SECRET
-# matching the Vercel env var CRON_SECRET.
+# Calls the API every 10 minutes.
+#
+# IMPORTANT — avoid duplicate cron:
+# - If you use Railway Cron Jobs for this endpoint, disable this workflow
+#   (or remove the schedule trigger).
+# - If you keep GitHub Actions, set API_BASE to your Railway public URL
+#   (e.g. https://YOUR-SERVICE.up.railway.app/api/v1) and ensure
+#   CRON_SECRET matches the Railway service variable.
+#
+# Requires repo secret CRON_SECRET matching the host CRON_SECRET.
 
 name: Prayer Reminder Cron
 
@@ -16,11 +24,13 @@ jobs:
       - name: Trigger prayer-reminders
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          API_BASE: https://noor-app-backend-one.vercel.app/api/v1
+          # Set repo variable API_BASE to your Railway URL when migrating off Vercel.
+          API_BASE: ${{ vars.API_BASE }}
         run: |
           set -euo pipefail
+          API_BASE="${API_BASE:-https://noor-app-backend-one.vercel.app/api/v1}"
           if [ -z "${CRON_SECRET}" ]; then
-            echo "CRON_SECRET repo secret is not set. Add it to match Vercel CRON_SECRET."
+            echo "CRON_SECRET repo secret is not set. Add it to match the host CRON_SECRET."
             exit 1
           fi
           code=$(curl -sS -o /tmp/cron-out.json -w "%{http_code}" \

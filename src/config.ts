@@ -15,8 +15,20 @@ const envSchema = z.object({
     .enum([Environment.Development, Environment.Staging, Environment.Production, Environment.Test])
     .default(Environment.Development),
   PORT: z.coerce.number().int().positive().default(3000),
+  /** Bind address for Railway/containers. Default 0.0.0.0 so the service is reachable. */
+  HOST: z.string().default('0.0.0.0'),
   DATABASE_URL: z.string().min(1),
+  /**
+   * Comma-separated allowed CORS origins (e.g. https://app.example.com,http://localhost:3000).
+   * Use a single origin or an explicit list — avoid bare `*` with credentials in production.
+   */
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  /**
+   * Public HTTPS origin of this API (no trailing slash), used when request Host
+   * headers are unavailable (e.g. background jobs generating absolute media URLs).
+   * Example: https://noor-api.up.railway.app
+   */
+  PUBLIC_APP_ORIGIN: z.string().default(''),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   JWT_SECRET: z.string().min(32),
@@ -42,9 +54,11 @@ const envSchema = z.object({
   STORAGE_PROVIDER: z.enum(['local', 's3', 'cloudinary']).default('local'),
   STORAGE_LOCAL_DIR: z.string().default('uploads'),
   STORAGE_LOCAL_PUBLIC_URL: z.string().default('http://localhost:3000/uploads'),
+  /** Current runtime cache is in-memory unless you wire a Redis client against REDIS_URL. */
   CACHE_PROVIDER: z.enum(['memory', 'redis']).default('memory'),
   CACHE_DEFAULT_TTL_SECONDS: z.coerce.number().int().positive().default(300),
-  REDIS_URL: z.string().default('redis://localhost:6379'),
+  /** Railway Redis / Key Value URL (redis://… or rediss://…). Empty = unused. */
+  REDIS_URL: z.string().default(''),
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_CALLBACK_URL: z.string().default('http://localhost:3000/api/v1/auth/google/callback'),
@@ -53,7 +67,7 @@ const envSchema = z.object({
   QF_CLIENT_ID: z.string().default(''),
   QF_CLIENT_SECRET: z.string().default(''),
   QF_ENV: z.string().default('production'),
-  // Firebase Cloud Messaging (optional until credentials are set in Vercel)
+  // Firebase Cloud Messaging (optional until credentials are set)
   FIREBASE_PROJECT_ID: z.string().default(''),
   FIREBASE_CLIENT_EMAIL: z.string().default(''),
   FIREBASE_PRIVATE_KEY: z.string().default(''),
@@ -77,6 +91,7 @@ export const env = parseEnv();
 export const appConfig = {
   nodeEnv: env.NODE_ENV,
   port: env.PORT,
+  host: env.HOST,
   apiPrefix: API_PREFIX,
   isProduction: env.NODE_ENV === Environment.Production,
   isDevelopment: env.NODE_ENV === Environment.Development,

@@ -40,7 +40,10 @@ export function resolvePublicOrigin(req?: Request): string {
       ?.trim();
     if (proto && host) return `${proto}://${host}`;
   }
-  return process.env.PUBLIC_APP_ORIGIN?.trim() || PRODUCTION_PUBLIC_ORIGIN;
+  const fromEnv = process.env.PUBLIC_APP_ORIGIN?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  // Legacy Vercel fallback only when PUBLIC_APP_ORIGIN is unset (keeps existing media URLs working).
+  return PRODUCTION_PUBLIC_ORIGIN;
 }
 
 export function mediaAbsoluteUrl(file: string, req?: Request): string {
