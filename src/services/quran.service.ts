@@ -20,6 +20,10 @@ import {
   isAlQurtubiCatalogId,
   QUL_QURTUBI_RESOURCE_ID,
 } from '../lib/qurtubi-qul';
+import {
+  getProviderCooldownRemainingMs,
+  PROVIDER_KEYS,
+} from '../lib/provider-cooldown';
 import { ARABIC_DIACRITICS_FOR_TRANSLATE, stripArabicDiacritics } from '../shared/utils/arabic-text';
 import {
   QURAN_STATIC_CATALOG_VERSION,
@@ -1577,7 +1581,7 @@ export async function getAyahTafsir(
   source: string;
   surahId: number;
   ayahNumber: number;
-  provider: 'quran_foundation' | 'qul' | 'unavailable';
+  provider: 'quran_foundation' | 'qul';
   language?: string;
   /** Additive — Quran Foundation / catalog attribution for Flutter UI. */
   resourceId?: number;
@@ -1613,6 +1617,7 @@ export async function getAyahTafsir(
 
   // Al-Qurtubi: prefer QUL-formatted edition (proper spacing). Never rewrite Arabic heuristically.
   // Keep catalog `resourceId` 90 for Flutter preference compatibility; QF remains fallback.
+  // On QUL 429/cooldown/failure → fall back to QF silently (no raw provider errors to clients).
   if (isAlQurtubiCatalogId(catalog.id, attribution.resourceId)) {
     try {
       const qul = await fetchQulQurtubiByVerse(surahId, ayahNumber);
@@ -1668,20 +1673,19 @@ export async function getAyahTafsir(
     });
   }
 
-  return {
-    textAr: 'تفسير غير متاح حالياً',
-    text: 'Tafsir unavailable right now',
-    source: catalog.id,
-    surahId,
-    ayahNumber,
-    provider: 'unavailable',
-    language: attribution.language,
-    resourceId: attribution.resourceId,
-    sourceNameAr: attribution.sourceNameAr,
-    sourceNameEn: attribution.sourceNameEn,
-    authorAr: attribution.authorAr,
-    authorEn: attribution.authorEn,
-  };
+  const retryAfterSec = Math.max(
+    Math.ceil(getProviderCooldownRemainingMs(PROVIDER_KEYS.QUL_QURTUBI) / 1000),
+    Math.ceil(getProviderCooldownRemainingMs(PROVIDER_KEYS.QURAN_FOUNDATION) / 1000),
+    5,
+  );
+
+  // Stable Flutter contract — never leak raw 429 / urllib / provider internals.
+  throw new AppError(
+    'Tafsir is temporarily unavailable. Please try again later.',
+    HttpStatus.SERVICE_UNAVAILABLE,
+    ErrorCodes.TAFSIR_TEMPORARILY_UNAVAILABLE,
+    { retryAfterSeconds: retryAfterSec },
+  );
 }
 
 export async function getAyahTranslation(

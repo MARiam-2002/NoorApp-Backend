@@ -73,7 +73,7 @@ Auth: **not required** (same as other Quran read endpoints).
 | `textHtml` | **Existing** | Optional rich render; strip tags if unused |
 | `source` | **Existing** | Catalog id of the resource used |
 | `surahId` / `ayahNumber` | **Existing** | Echo of request |
-| `provider` | **Existing** (value extended) | `quran_foundation`, `qul`, or `unavailable` — do not hard-require only `quran_foundation` |
+| `provider` | **Existing** (value extended) | `quran_foundation` or `qul` — do not hard-require only `quran_foundation` |
 | `language` | Existing | Prefer catalog language |
 | `resourceId` | **Additive** | Catalog / QF id (**90** for Qurtubi preference compatibility) |
 | `sourceNameAr` / `sourceNameEn` | **Additive** | Show under «التفسير» |
@@ -113,6 +113,25 @@ User preference: `GET/PATCH /profile/reading-preferences` → `quranTafsir` (sam
    using additive `sourceNameAr` (fallback: map `source` via `/quran/tafsirs`).
 4. Keep dropdown options from **`GET /quran/tafsirs`**, not a hardcoded list.
 5. When preference changes, refetch the open ayah with the new `tafsirId`.
+6. **Errors:** Flutter must never see raw HTTP 429 / provider / urllib messages. Handle only:
+   - **200** + normal `data` (QUL or QF fallback)
+   - **503** stable unavailable contract (below)
+
+### Temporary unavailability (both upstream sources down / rate-limited)
+
+HTTP **503**
+
+```json
+{
+  "success": false,
+  "message": "Tafsir is temporarily unavailable. Please try again later.",
+  "code": "TAFSIR_TEMPORARILY_UNAVAILABLE",
+  "timestamp": "…",
+  "requestId": "…"
+}
+```
+
+Optional response header: `Retry-After: <seconds>`. Show a friendly retry UI; do not surface stack traces or provider names.
 
 ---
 
@@ -120,6 +139,7 @@ User preference: `GET/PATCH /profile/reading-preferences` → `quranTafsir` (sam
 
 - Ibn Kathir usually includes HTML paragraphs (`textHtml`); plain `textAr` is already stripped with newlines.
 - **Al-Qurtubi spacing (2026):** Backend prefers the **QUL / Tarteel** digitization (resource **23**, mirrored for production), which is properly spaced classical Arabic. Quran Foundation resource **90** remains fallback only. Backend does **not** invent word breaks.
+- On QUL **429** / cooldown, Backend falls back to QF 90 silently (may still have upstream spacing issues for some ayahs until QUL recovers).
 - Short surahs (e.g. الإخلاص) may return the **same full-surah Qurtubi block** for each ayah — that matches classical ayah-grouping in the source edition, not a bug.
 - Sheet layout, font size, drag handle, and RTL wrapping are **Flutter UI**.
 
@@ -133,6 +153,7 @@ User preference: `GET/PATCH /profile/reading-preferences` → `quranTafsir` (sam
 | Preference wiring | Confirm Flutter sends `Al_Qurtubi` (or the saved preference) when showing Qurtubi |
 | Optional HTML | If using `textHtml`, sanitize; otherwise use `textAr` |
 | `provider` values | Accept `qul` as well as `quran_foundation` (do not treat unknown provider as error) |
+| 503 handling | Handle `TAFSIR_TEMPORARILY_UNAVAILABLE` with retry UI |
 
 **Not Backend defects:** bottom-sheet chrome, fonts, spacing of the sheet itself.
 

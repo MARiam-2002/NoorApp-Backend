@@ -1,5 +1,11 @@
 import { env } from '../config';
 import { logger } from './logger';
+import {
+  clearProviderCooldown,
+  isProviderCoolingDown,
+  markProviderRateLimited,
+  PROVIDER_KEYS,
+} from './provider-cooldown';
 
 type QfEnv = 'prelive' | 'production';
 
@@ -95,6 +101,11 @@ async function qfFetchJson<T>(
   path: string,
   query?: Record<string, string | number | undefined>,
 ): Promise<T | null> {
+  if (isProviderCoolingDown(PROVIDER_KEYS.QURAN_FOUNDATION)) {
+    logger.warn('[QF] skipping fetch; provider cooling down after rate limit');
+    return null;
+  }
+
   const qs = new URLSearchParams();
   if (query) {
     for (const [k, v] of Object.entries(query)) {
@@ -120,6 +131,10 @@ async function qfFetchJson<T>(
         },
       });
       if (res.status === 401 && !forceRefresh) continue;
+      if (res.status === 429) {
+        markProviderRateLimited(PROVIDER_KEYS.QURAN_FOUNDATION, res.headers.get('retry-after'));
+        return null;
+      }
       if (!res.ok) {
         logger.warn('[QF] authenticated content request failed', {
           path: pathWithQuery,
@@ -127,6 +142,7 @@ async function qfFetchJson<T>(
         });
         break;
       }
+      clearProviderCooldown(PROVIDER_KEYS.QURAN_FOUNDATION);
       return (await res.json()) as T;
     }
   }
@@ -135,6 +151,10 @@ async function qfFetchJson<T>(
   const publicRes = await fetchWithTimeout(`${PUBLIC_CONTENT_BASE}${pathWithQuery}`, {
     headers: { Accept: 'application/json' },
   });
+  if (publicRes.status === 429) {
+    markProviderRateLimited(PROVIDER_KEYS.QURAN_FOUNDATION, publicRes.headers.get('retry-after'));
+    return null;
+  }
   if (!publicRes.ok) {
     logger.warn('[QF] public content request failed', {
       path: pathWithQuery,
@@ -142,6 +162,7 @@ async function qfFetchJson<T>(
     });
     return null;
   }
+  clearProviderCooldown(PROVIDER_KEYS.QURAN_FOUNDATION);
   return (await publicRes.json()) as T;
 }
 

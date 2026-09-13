@@ -80,6 +80,18 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   }
 
   if (err instanceof AppError) {
+    if (
+      err.code === ErrorCodes.TAFSIR_TEMPORARILY_UNAVAILABLE &&
+      err.details &&
+      typeof err.details === 'object' &&
+      typeof (err.details as { retryAfterSeconds?: unknown }).retryAfterSeconds === 'number'
+    ) {
+      const retryAfter = Math.max(
+        1,
+        Math.ceil((err.details as { retryAfterSeconds: number }).retryAfterSeconds),
+      );
+      res.setHeader('Retry-After', String(retryAfter));
+    }
     sendError(
       res,
       err.message,
@@ -87,7 +99,10 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
       err.statusCode,
       req,
       undefined,
-      err.details,
+      // Do not forward provider internals to Flutter — only stable retry hint if present.
+      err.code === ErrorCodes.TAFSIR_TEMPORARILY_UNAVAILABLE
+        ? undefined
+        : err.details,
     );
     return;
   }

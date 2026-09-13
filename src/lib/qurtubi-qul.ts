@@ -1,4 +1,10 @@
 import { logger } from './logger';
+import {
+  clearProviderCooldown,
+  isProviderCoolingDown,
+  markProviderRateLimited,
+  PROVIDER_KEYS,
+} from './provider-cooldown';
 
 /**
  * Formatted Al-Qurtubi (classical Arabic) from QUL / Tarteel resource 23,
@@ -12,6 +18,9 @@ import { logger } from './logger';
  *
  * Classical wording is public-domain (d. 671 AH). Packaging attribution:
  * QUL / Tarteel AI + spa5k/tafsir_api (MIT).
+ *
+ * Rate limits: on HTTP 429, cool down (Retry-After / exponential backoff) and
+ * return null so the service can fall back to QF — never throw raw provider errors.
  */
 
 const QUL_QURTUBI_SLUG = 'ar-tafseer-al-qurtubi';
@@ -26,6 +35,11 @@ const CDN_BASES = [
 type CacheEntry = { text: string; expiresAtMs: number };
 const ayahCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h warm-instance cache
+
+/** Clears in-memory ayah cache (tests / admin only). */
+export function clearQulQurtubiAyahCache(): void {
+  ayahCache.clear();
+}
 
 async function fetchWithTimeout(url: string, timeoutMs = 10_000): Promise<Response> {
   const controller = new AbortController();
@@ -60,7 +74,8 @@ export function plainTafsirToSafeHtml(text: string): string {
 
 /**
  * Fetch properly spaced Al-Qurtubi for one ayah from the QUL-sourced mirror.
- * Returns null on failure (caller should fall back to Quran Foundation).
+ * Returns null on failure / cooldown / 429 (caller falls back to Quran Foundation).
+ * Never throws provider/HTTP internals to the request layer.
  */
 export async function fetchQulQurtubiByVerse(
   surahId: number,
@@ -81,18 +96,28 @@ export async function fetchQulQurtubiByVerse(
     };
   }
 
+  if (isProviderCoolingDown(PROVIDER_KEYS.QUL_QURTUBI)) {
+    logger.warn('[QurtubiQUL] skipping fetch; provider cooling down after rate limit');
+    return null;
+  }
+
   for (const base of CDN_BASES) {
     const url = `${base}/${surahId}/${ayahNumber}.json`;
     try {
       const res = await fetchWithTimeout(url);
+      if (res.status === 429) {
+        markProviderRateLimited(PROVIDER_KEYS.QUL_QURTUBI, res.headers.get('retry-after'));
+        return null;
+      }
       if (!res.ok) {
-        logger.warn('[QurtubiQUL] ayah fetch non-OK', { url, status: res.status });
+        logger.warn('[QurtubiQUL] ayah fetch non-OK', { status: res.status });
         continue;
       }
       const data = (await res.json()) as { text?: string };
       const text = typeof data?.text === 'string' ? data.text.trim() : '';
       if (!text) continue;
 
+      clearProviderCooldown(PROVIDER_KEYS.QUL_QURTUBI);
       ayahCache.set(key, { text, expiresAtMs: now + CACHE_TTL_MS });
       return {
         text,
@@ -102,7 +127,6 @@ export async function fetchQulQurtubiByVerse(
       };
     } catch (err) {
       logger.warn('[QurtubiQUL] ayah fetch failed', {
-        url,
         message: (err as Error)?.message,
       });
     }
