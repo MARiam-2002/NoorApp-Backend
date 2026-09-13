@@ -4,16 +4,37 @@ import { getAzanPreferences } from './azan.service';
 import { sendPushToUser } from './device.service';
 import { getPrayerSchedule } from './prayer.service';
 import { createNotification } from './notification.service';
-import { runSalawatReminders } from './salawat-reminder.service';
+import {
+  getLocalClock,
+  resolveTimezone,
+  runSalawatReminders,
+} from './salawat-reminder.service';
 import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
 
 type ScheduleRow = { name: string; time: string };
 
-function minutesUntil(hhmm: string, now = new Date()): number {
-  const [h, m] = hhmm.split(':').map((x) => Number(x));
-  const target = new Date(now);
-  target.setHours(h ?? 0, m ?? 0, 0, 0);
-  return Math.round((target.getTime() - now.getTime()) / 60_000);
+/**
+ * Minutes from "now" (in the given IANA timezone) until a local HH:mm prayer time
+ * on the same local calendar day. Positive = upcoming; negative = already passed.
+ * Uses Intl (same pattern as Salawat) — not the Railway/server process timezone.
+ */
+export function minutesUntilPrayer(
+  hhmm: string,
+  timeZone: string,
+  now = new Date(),
+): number {
+  const tz = resolveTimezone(timeZone);
+  const [hRaw, mRaw] = String(hhmm).split(':');
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const clock = getLocalClock(now, tz);
+  const nowMinutes = clock.hour * 60 + clock.minute;
+  const targetMinutes = h * 60 + m;
+  return targetMinutes - nowMinutes;
 }
 
 /**
@@ -44,12 +65,12 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
       // Prefer Azan prefs / profile location; fall back to Cairo for users without GPS yet.
       const lat = prefs.lastLat ?? user.latitude ?? DEFAULT_PRAYER_LOCATION.latitude;
       const lng = prefs.lastLng ?? user.longitude ?? DEFAULT_PRAYER_LOCATION.longitude;
-      const tz = user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone;
+      const profileTz = user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone;
 
       const schedule = await getPrayerSchedule(
         lat,
         lng,
-        tz,
+        profileTz,
         undefined,
         prefs.calculationMethod,
         String(prefs.madhab).toUpperCase(),
@@ -59,6 +80,10 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           : 'profile',
       );
       const rows = (schedule.schedule ?? []) as ScheduleRow[];
+      // Use the timezone that produced schedule HH:mm values (may be inferred from coords).
+      const evaluationTz = resolveTimezone(
+        schedule.timezone || profileTz || DEFAULT_PRAYER_LOCATION.timezone,
+      );
 
       for (const row of rows) {
         const key = row.name.toLowerCase();
@@ -67,7 +92,7 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           (prefs.prayers as any)?.[key] === undefined;
         if (!enabled) continue;
 
-        const mins = minutesUntil(row.time);
+        const mins = minutesUntilPrayer(row.time, evaluationTz);
         const pre = prefs.preReminderEnabled ? prefs.preReminderMinutes : 0;
         const hitNow = mins >= 0 && mins <= windowMinutes;
         const hitPre =

@@ -115,9 +115,10 @@ Existing HTTP cron (unchanged contract):
 
 - `POST /api/v1/cron/prayer-reminders`
 - `GET  /api/v1/cron/prayer-reminders`
-- Auth: `Authorization: Bearer <CRON_SECRET>` or header `X-Cron-Secret: <CRON_SECRET>`
+- Auth: `Authorization: Bearer <CRON_SECRET>` or header `X-Cron-Secret: <CRON_SECRET>` (or `?secret=`).
+- **`x-vercel-cron` is NOT accepted.** Empty `CRON_SECRET` → always `401`.
 
-### Recommended schedule
+### Recommended schedule (sole production scheduler)
 
 ```text
 */10 * * * *
@@ -125,7 +126,7 @@ Existing HTTP cron (unchanged contract):
 
 (every 10 minutes — Azan backup window + Salawat reminders)
 
-### Railway Cron Job command example
+### Railway Cron Job command
 
 Replace the public domain and ensure `CRON_SECRET` is available to the cron runner:
 
@@ -135,12 +136,12 @@ curl -fsS -X POST "https://YOUR-RAILWAY-DOMAIN.up.railway.app/api/v1/cron/prayer
   -H "Content-Type: application/json"
 ```
 
-### Avoid duplicate execution
+### Single scheduler policy
 
-| Source | Action |
+| Source | Status |
 |--------|--------|
-| Railway Cron | Use this **or** |
-| GitHub Actions `.github/workflows/prayer-reminder-cron.yml` | Disable / update `API_BASE` to Railway if preferred |
+| **Railway Cron** | **Use this** (production) |
+| GitHub Actions `.github/workflows/prayer-reminder-cron.yml` | **Disabled** (no schedule; emergency dispatch only with `confirm=ENABLE`) |
 
 There is **no** in-process `node-cron` loop — only the HTTP endpoint. Restarts do not spawn a second internal scheduler.
 

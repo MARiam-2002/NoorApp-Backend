@@ -1,36 +1,43 @@
-# Cron: FCM Azan prayer-reminder backup
-# Calls the API every 10 minutes.
+# DISABLED — production prayer-reminder cron is Railway Cron only.
 #
-# IMPORTANT — avoid duplicate cron:
-# - If you use Railway Cron Jobs for this endpoint, disable this workflow
-#   (or remove the schedule trigger).
-# - If you keep GitHub Actions, set API_BASE to your Railway public URL
-#   (e.g. https://YOUR-SERVICE.up.railway.app/api/v1) and ensure
-#   CRON_SECRET matches the Railway service variable.
+# Schedule on Railway: */10 * * * *
+# Command:
+#   curl -fsS -X POST "https://YOUR-RAILWAY-DOMAIN.up.railway.app/api/v1/cron/prayer-reminders" \
+#     -H "Authorization: Bearer ${CRON_SECRET}" \
+#     -H "Content-Type: application/json"
 #
-# Requires repo secret CRON_SECRET matching the host CRON_SECRET.
+# This GitHub Actions workflow intentionally has no schedule and does not run,
+# so there is exactly ONE production scheduler (Railway).
 
-name: Prayer Reminder Cron
+name: Prayer Reminder Cron (DISABLED)
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'
+  # No production triggers. Emergency manual only if explicitly confirmed.
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type ENABLE to force a one-off trigger (prefer Railway Cron)'
+        required: true
+        default: ''
 
 jobs:
   prayer-reminders:
+    if: ${{ github.event.inputs.confirm == 'ENABLE' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger prayer-reminders
+      - name: Trigger prayer-reminders (emergency only)
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          # Set repo variable API_BASE to your Railway URL when migrating off Vercel.
           API_BASE: ${{ vars.API_BASE }}
         run: |
           set -euo pipefail
-          API_BASE="${API_BASE:-https://noor-app-backend-one.vercel.app/api/v1}"
+          API_BASE="${API_BASE:-}"
+          if [ -z "${API_BASE}" ]; then
+            echo "Set repo variable API_BASE to your Railway /api/v1 base URL."
+            exit 1
+          fi
           if [ -z "${CRON_SECRET}" ]; then
-            echo "CRON_SECRET repo secret is not set. Add it to match the host CRON_SECRET."
+            echo "CRON_SECRET repo secret is not set."
             exit 1
           fi
           code=$(curl -sS -o /tmp/cron-out.json -w "%{http_code}" \
