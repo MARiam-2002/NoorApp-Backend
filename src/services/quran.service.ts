@@ -1490,11 +1490,17 @@ export async function listTranslations(): Promise<TranslationOption[]> {
 export type { ReciterOption, TafsirOption, TranslationOption };
 
 function matchesCatalogId(
-  entry: { id: string; code?: string; resourceId?: number },
+  entry: { id: string; code?: string; resourceId?: number; source?: string },
   requested?: string,
 ): boolean {
   if (requested == null || requested === '') return false;
-  if (entry.id === requested || entry.code === requested) return true;
+  if (
+    entry.id === requested ||
+    entry.code === requested ||
+    (entry.source != null && entry.source === requested)
+  ) {
+    return true;
+  }
   const asNum = Number(requested);
   return Number.isFinite(asNum) && entry.resourceId != null && entry.resourceId === asNum;
 }
