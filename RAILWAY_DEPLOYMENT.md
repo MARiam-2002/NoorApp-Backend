@@ -36,7 +36,7 @@ Production database stays on **Neon PostgreSQL**. Redis is optional (Railway Red
 |----------|--------|
 | `PORT` | Injected by Railway automatically |
 | `HOST` | Default `0.0.0.0` (already set in code) |
-| `PUBLIC_APP_ORIGIN` | e.g. `https://noor-api.up.railway.app` (no trailing slash) |
+| `PUBLIC_APP_ORIGIN` | `https://noorapp-backend-production.up.railway.app` (no trailing slash) |
 | `CORS_ORIGIN` | Comma-separated frontend origins |
 | `CRON_SECRET` | Shared secret for `/api/v1/cron/prayer-reminders` |
 | `MAIL_*` / `EMAIL_PROVIDER` / `RESEND_API_KEY` | Password-reset email (Brevo SMTP recommended) |
@@ -131,7 +131,7 @@ Existing HTTP cron (unchanged contract):
 Replace the public domain and ensure `CRON_SECRET` is available to the cron runner:
 
 ```bash
-curl -fsS -X POST "https://YOUR-RAILWAY-DOMAIN.up.railway.app/api/v1/cron/prayer-reminders" \
+curl -fsS -X POST "https://noorapp-backend-production.up.railway.app/api/v1/cron/prayer-reminders" \
   -H "Authorization: Bearer ${CRON_SECRET}" \
   -H "Content-Type: application/json"
 ```

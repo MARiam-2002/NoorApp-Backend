@@ -2,7 +2,7 @@
 #
 # Schedule on Railway: */10 * * * *
 # Command:
-#   curl -fsS -X POST "https://YOUR-RAILWAY-DOMAIN.up.railway.app/api/v1/cron/prayer-reminders" \
+#   curl -fsS -X POST "https://noorapp-backend-production.up.railway.app/api/v1/cron/prayer-reminders" \
 #     -H "Authorization: Bearer ${CRON_SECRET}" \
 #     -H "Content-Type: application/json"
 #

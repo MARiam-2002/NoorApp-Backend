@@ -26,7 +26,7 @@ const envSchema = z.object({
   /**
    * Public HTTPS origin of this API (no trailing slash), used when request Host
    * headers are unavailable (e.g. background jobs generating absolute media URLs).
-   * Example: https://noor-api.up.railway.app
+   * Example: https://noorapp-backend-production.up.railway.app
    */
   PUBLIC_APP_ORIGIN: z.string().default(''),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),

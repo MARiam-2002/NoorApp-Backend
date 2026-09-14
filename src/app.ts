@@ -149,7 +149,7 @@ export function createApp(): express.Application {
     const year = new Date().getFullYear();
     const publicOrigin =
       (env.PUBLIC_APP_ORIGIN || '').replace(/\/$/, '') ||
-      'https://YOUR-RAILWAY-DOMAIN.up.railway.app';
+      'https://noorapp-backend-production.up.railway.app';
     res.type('html').send(`<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
