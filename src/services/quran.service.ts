@@ -6,6 +6,7 @@ import { resolveSurahNameAr, resolveSurahNameEn, withResolvedSurahNames } from '
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
 import { getTodayDateOnly } from '../utils/date';
 import { logger } from '../lib/logger';
+import { withPerfTiming } from '../lib/perf';
 import {
   fetchQfAudioByVerse,
   fetchQfTafsirByVerse,
@@ -1045,38 +1046,81 @@ export async function listJuz() {
 }
 
 export async function listJuzSurahs(juzNumber: number) {
+  return withPerfTiming('quran.listJuzSurahs', async () => {
   if (juzNumber < 1 || juzNumber > 30) {
     throw new AppError('Invalid juz number (1..30)', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
-  const surahIds = await prisma.ayah.findMany({
+
+  // Single ayah scan for the juz (ordered) + one Surah batch — avoids per-surah N+1.
+  const ayahs = await prisma.ayah.findMany({
     where: { juz: juzNumber },
-    distinct: ['surahId'],
-    select: { surahId: true },
-    orderBy: { surahId: 'asc' },
+    select: { surahId: true, ayahNumber: true, page: true },
+    orderBy: [{ surahId: 'asc' }, { ayahNumber: 'asc' }],
   });
-  const rows = await Promise.all(
-    surahIds.map(async ({ surahId }) => {
-      const [surah, first, last, count] = await Promise.all([
-        prisma.surah.findUnique({
-          where: { id: surahId },
-          select: { id: true, nameEn: true, nameAr: true, totalAyahs: true, totalPages: true, revelationType: true },
-        }),
-        prisma.ayah.findFirst({ where: { juz: juzNumber, surahId }, orderBy: { ayahNumber: 'asc' }, select: { ayahNumber: true, page: true } }),
-        prisma.ayah.findFirst({ where: { juz: juzNumber, surahId }, orderBy: { ayahNumber: 'desc' }, select: { ayahNumber: true, page: true } }),
-        prisma.ayah.count({ where: { juz: juzNumber, surahId } }),
-      ]);
-      const resolvedSurah = surah ? withResolvedSurahNames(surah) : null;
-      return {
-        ...resolvedSurah,
-        fromAyah: first?.ayahNumber ?? 1,
-        toAyah: last?.ayahNumber ?? 1,
-        startPage: first?.page ?? null,
-        endPage: last?.page ?? null,
-        ayahsInJuz: count,
-      };
-    }),
-  );
-  return { juzNumber, nameAr: JUZ_ARABIC_NAMES[juzNumber - 1], nameEn: JUZ_ENGLISH_NAMES[juzNumber - 1], surahs: rows };
+
+  type Group = {
+    fromAyah: number;
+    toAyah: number;
+    startPage: number | null;
+    endPage: number | null;
+    ayahsInJuz: number;
+  };
+  const groups = new Map<number, Group>();
+  for (const ayah of ayahs) {
+    const existing = groups.get(ayah.surahId);
+    if (!existing) {
+      groups.set(ayah.surahId, {
+        fromAyah: ayah.ayahNumber,
+        toAyah: ayah.ayahNumber,
+        startPage: ayah.page ?? null,
+        endPage: ayah.page ?? null,
+        ayahsInJuz: 1,
+      });
+    } else {
+      existing.toAyah = ayah.ayahNumber;
+      existing.endPage = ayah.page ?? null;
+      existing.ayahsInJuz += 1;
+    }
+  }
+
+  const surahIds = Array.from(groups.keys()).sort((a, b) => a - b);
+  const surahRows =
+    surahIds.length === 0
+      ? []
+      : await prisma.surah.findMany({
+          where: { id: { in: surahIds } },
+          select: {
+            id: true,
+            nameEn: true,
+            nameAr: true,
+            totalAyahs: true,
+            totalPages: true,
+            revelationType: true,
+          },
+        });
+  const surahById = new Map(surahRows.map((s) => [s.id, s] as const));
+
+  const rows = surahIds.map((surahId) => {
+    const surah = surahById.get(surahId);
+    const resolvedSurah = surah ? withResolvedSurahNames(surah) : null;
+    const g = groups.get(surahId)!;
+    return {
+      ...resolvedSurah,
+      fromAyah: g.fromAyah,
+      toAyah: g.toAyah,
+      startPage: g.startPage,
+      endPage: g.endPage,
+      ayahsInJuz: g.ayahsInJuz,
+    };
+  });
+
+  return {
+    juzNumber,
+    nameAr: JUZ_ARABIC_NAMES[juzNumber - 1],
+    nameEn: JUZ_ENGLISH_NAMES[juzNumber - 1],
+    surahs: rows,
+  };
+  });
 }
 
 export async function listAyahsByPage(pageNumber: number) {

@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { logger } from '../lib/logger';
+import { withPerfTiming } from '../lib/perf';
 import { getDayOfYear } from '../utils/date';
 import {
   ADHKAR_DHIKR_CATEGORIES_FALLBACK,
@@ -1414,6 +1415,29 @@ export type AdhkarJourneyFlags = {
 };
 
 /**
+ * Cosmetic "وردك اليوم" counters used when GENERAL_WIRD is missing/empty in DB.
+ * Must match getDailyWird() / getDailyWirdForUser() degraded-path formula exactly.
+ */
+export function getCosmeticWirdProgress(fallbackItemCount?: number): {
+  progressItemsDone: number;
+  progressItemsTotal: number;
+  progressPercent: number;
+} {
+  const totalItems =
+    fallbackItemCount && fallbackItemCount > 0
+      ? fallbackItemCount
+      : FALLBACK_ITEMS.GENERAL_WIRD?.length || 8;
+  const goal = Math.min(8, totalItems);
+  const day = getDayOfYearSafe();
+  const progress = (((day * 37) % Math.max(1, goal)) + 1);
+  return {
+    progressItemsDone: progress,
+    progressItemsTotal: goal,
+    progressPercent: Math.round((progress / goal) * 100),
+  };
+}
+
+/**
  * Apply Journey Adhkar PATCH onto the Dhikr ledger, then re-derive DailyProgress.
  * Keeps one source of truth so GET /dashboard stays aligned.
  */
@@ -1446,6 +1470,55 @@ export async function applyJourneyAdhkarToDhikrLedger(
 }
 
 /**
+ * Pure derivation of Journey/Dashboard Adhkar flags from category items + completions.
+ * Kept identical to prior isCategoryCompleteForUser + wird progress rules.
+ */
+export function deriveAdhkarJourneyFlags(input: {
+  morningItems: Array<{ id: string; repeatCount: number }>;
+  eveningItems: Array<{ id: string; repeatCount: number }>;
+  wirdItems: Array<{ id: string; repeatCount: number }>;
+  /** itemId → countDone (already filtered to the relevant category when applicable) */
+  morningDoneByItem: Map<string, number>;
+  eveningDoneByItem: Map<string, number>;
+  wirdDoneByItem: Map<string, number>;
+}): AdhkarJourneyFlags {
+  const isComplete = (
+    items: Array<{ id: string; repeatCount: number }>,
+    doneByItem: Map<string, number>,
+  ): boolean => {
+    if (items.length === 0) return false;
+    return items.every((item) => (doneByItem.get(item.id) ?? 0) >= item.repeatCount);
+  };
+
+  const morningDone = isComplete(input.morningItems, input.morningDoneByItem);
+  const eveningDone = isComplete(input.eveningItems, input.eveningDoneByItem);
+  const wirdDone = isComplete(input.wirdItems, input.wirdDoneByItem);
+
+  let progressItemsDone = 0;
+  for (const item of input.wirdItems) {
+    if ((input.wirdDoneByItem.get(item.id) ?? 0) >= item.repeatCount) {
+      progressItemsDone += 1;
+    }
+  }
+  const progressItemsTotal =
+    input.wirdItems.length > 0 ? input.wirdItems.length : DAILY_WIRD_ITEM_GOAL;
+  const progressPercent =
+    progressItemsTotal > 0
+      ? Math.round((progressItemsDone / progressItemsTotal) * 100)
+      : 0;
+
+  const overall = wirdDone || (morningDone && eveningDone);
+  return {
+    morningAdhkarCompleted: morningDone || wirdDone,
+    eveningAdhkarCompleted: eveningDone || wirdDone,
+    adhkarCompleted: overall,
+    progressItemsDone,
+    progressItemsTotal,
+    progressPercent,
+  };
+}
+
+/**
  * Single source of truth for Azkar hub + Dashboard Journey:
  * DailyDhikrCompletion for today → derived DailyProgress flags.
  *
@@ -1454,69 +1527,145 @@ export async function applyJourneyAdhkarToDhikrLedger(
  * - First 8 GENERAL_WIRD items done → daily wird complete
  * - adhkarCompleted = wirdDone OR (morning && evening)
  * - When wird is done, morning+evening are also set so Journey percent hits 100%
+ *
+ * Phase 1: batched category + completion reads (same semantics as prior N queries).
  */
 export async function syncJourneyAdhkarFromDhikr(
   userId: string,
   date = getTodayDate(),
 ): Promise<AdhkarJourneyFlags> {
-  const morningDone = await isCategoryCompleteForUser(userId, 'MORNING', date);
-  const eveningDone = await isCategoryCompleteForUser(userId, 'EVENING', date);
-  const wirdDone = await isCategoryCompleteForUser(
-    userId,
-    'GENERAL_WIRD',
-    date,
-    DAILY_WIRD_ITEM_GOAL,
-  );
+  return withPerfTiming('adhkar.syncJourneyAdhkarFromDhikr', async () => {
+    const syncKeys = ['MORNING', 'EVENING', 'GENERAL_WIRD'] as const;
 
-  let progressItemsDone = 0;
-  let progressItemsTotal = DAILY_WIRD_ITEM_GOAL;
-  try {
-    const wird = await getDailyWirdForUser(userId);
-    progressItemsDone = Number(wird.progressItemsDone) || 0;
-    progressItemsTotal = Number(wird.progressItemsTotal) || DAILY_WIRD_ITEM_GOAL;
-  } catch {
-    /* keep defaults */
-  }
-  const progressPercent =
-    progressItemsTotal > 0
-      ? Math.round((progressItemsDone / progressItemsTotal) * 100)
-      : 0;
+    type CatRow = {
+      id: string;
+      key: string;
+      items: Array<{ id: string; repeatCount: number; orderInCategory: number }>;
+    };
 
-  const overall = wirdDone || (morningDone && eveningDone);
-  const morningAdhkarCompleted = morningDone || wirdDone;
-  const eveningAdhkarCompleted = eveningDone || wirdDone;
+    let categories: CatRow[] = [];
+    try {
+      categories = await prisma.dhikrCategory.findMany({
+        where: { key: { in: [...syncKeys] as any } },
+        select: {
+          id: true,
+          key: true,
+          items: {
+            orderBy: { orderInCategory: 'asc' },
+            select: { id: true, repeatCount: true, orderInCategory: true },
+          },
+        },
+      });
+    } catch {
+      categories = [];
+    }
 
-  try {
-    await prisma.dailyProgress.upsert({
-      where: { userId_date: { userId, date } },
-      create: {
+    const byKey = new Map(categories.map((c) => [String(c.key), c] as const));
+
+    const resolveItems = (
+      key: (typeof syncKeys)[number],
+      limit?: number,
+    ): { categoryId: string | undefined; items: Array<{ id: string; repeatCount: number }> } => {
+      const dbCat = byKey.get(key);
+      let items = dbCat?.items ?? [];
+      if (!dbCat || items.length === 0) {
+        const fallback = FALLBACK_ITEMS[key] ?? [];
+        const sliced = limit ? fallback.slice(0, limit) : fallback;
+        return {
+          categoryId: undefined,
+          items: sliced.map((fi) => ({ id: fi.id, repeatCount: fi.repeatCount })),
+        };
+      }
+      if (limit) items = items.slice(0, limit);
+      return {
+        categoryId: dbCat.id,
+        items: items.map((it) => ({ id: it.id, repeatCount: it.repeatCount })),
+      };
+    };
+
+    const morning = resolveItems('MORNING');
+    const evening = resolveItems('EVENING');
+    const wird = resolveItems('GENERAL_WIRD', DAILY_WIRD_ITEM_GOAL);
+
+    const allItemIds = Array.from(
+      new Set([
+        ...morning.items.map((i) => i.id),
+        ...evening.items.map((i) => i.id),
+        ...wird.items.map((i) => i.id),
+      ]),
+    );
+
+    type CompletionRow = { itemId: string | null; countDone: number; categoryId: string | null };
+    let completions: CompletionRow[] = [];
+    if (allItemIds.length > 0) {
+      try {
+        completions = await prisma.dailyDhikrCompletion.findMany({
+          where: {
+            userId,
+            date,
+            itemId: { in: allItemIds },
+          },
+          select: { itemId: true, countDone: true, categoryId: true },
+        });
+      } catch {
+        completions = [];
+      }
+    }
+
+    const mapForCategory = (categoryId: string | undefined): Map<string, number> => {
+      const map = new Map<string, number>();
+      for (const row of completions) {
+        if (!row.itemId) continue;
+        if (categoryId && row.categoryId !== categoryId) continue;
+        map.set(row.itemId, row.countDone);
+      }
+      return map;
+    };
+
+    const flags = deriveAdhkarJourneyFlags({
+      morningItems: morning.items,
+      eveningItems: evening.items,
+      wirdItems: wird.items,
+      morningDoneByItem: mapForCategory(morning.categoryId),
+      eveningDoneByItem: mapForCategory(evening.categoryId),
+      wirdDoneByItem: mapForCategory(wird.categoryId),
+    });
+
+    // Degraded path: GENERAL_WIRD missing/empty in DB.
+    // Keep completion flags from fallback ledger (same as old isCategoryCompleteForUser),
+    // but restore OLD cosmetic progressItems* from getDailyWirdForUser → baseWird.
+    const resultFlags: AdhkarJourneyFlags = !wird.categoryId
+      ? {
+          ...flags,
+          ...getCosmeticWirdProgress(FALLBACK_ITEMS.GENERAL_WIRD?.length),
+        }
+      : flags;
+
+    try {
+      await prisma.dailyProgress.upsert({
+        where: { userId_date: { userId, date } },
+        create: {
+          userId,
+          date,
+          morningAdhkarCompleted: resultFlags.morningAdhkarCompleted,
+          eveningAdhkarCompleted: resultFlags.eveningAdhkarCompleted,
+          adhkarCompleted: resultFlags.adhkarCompleted,
+        },
+        update: {
+          morningAdhkarCompleted: resultFlags.morningAdhkarCompleted,
+          eveningAdhkarCompleted: resultFlags.eveningAdhkarCompleted,
+          adhkarCompleted: resultFlags.adhkarCompleted,
+        },
+      });
+    } catch (err: any) {
+      logger.warn('[Adhkar] syncJourneyAdhkarFromDhikr DailyProgress upsert failed', {
         userId,
-        date,
-        morningAdhkarCompleted,
-        eveningAdhkarCompleted,
-        adhkarCompleted: overall,
-      },
-      update: {
-        morningAdhkarCompleted,
-        eveningAdhkarCompleted,
-        adhkarCompleted: overall,
-      },
-    });
-  } catch (err: any) {
-    logger.warn('[Adhkar] syncJourneyAdhkarFromDhikr DailyProgress upsert failed', {
-      userId,
-      message: err?.message,
-    });
-  }
+        message: err?.message,
+      });
+    }
 
-  return {
-    morningAdhkarCompleted,
-    eveningAdhkarCompleted,
-    adhkarCompleted: overall,
-    progressItemsDone,
-    progressItemsTotal,
-    progressPercent,
-  };
+    return resultFlags;
+  });
 }
 
 export async function getAdhkarProgress(userId: string, categoryKey: string) {

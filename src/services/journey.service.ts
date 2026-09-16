@@ -896,44 +896,53 @@ function computeDaysStreak(progress: Array<{ date: Date }>, today: Date): number
 const TOTAL_QURAN_PAGES = 604;
 
 export async function getJourneyOverview(userId: string) {
-  const [user, khatmah, allDailyProgress, challengeCompletions, tasbihLogs] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        createdAt: true,
-        points: true,
-        username: true,
-      },
-    }),
-    prisma.khatmah.findUnique({
-      where: { userId },
-      include: {
-        currentSurah: {
-          select: {
-            id: true,
-            nameEn: true,
-            nameAr: true,
+  const [user, khatmah, progressAgg, adhkarDaysCompleted, challengesCompleted, tasbihAgg] =
+    await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          createdAt: true,
+          points: true,
+          username: true,
+        },
+      }),
+      prisma.khatmah.findUnique({
+        where: { userId },
+        include: {
+          currentSurah: {
+            select: {
+              id: true,
+              nameEn: true,
+              nameAr: true,
+            },
           },
         },
-      },
-    }),
-    prisma.dailyProgress.findMany({
-      where: { userId },
-    }),
-    prisma.challengeCompletion.findMany({
-      where: { userId, claimedAt: { not: null } },
-    }),
-    prisma.tasbihLog.findMany({
-      where: { userId },
-    }),
-  ]);
+      }),
+      // Aggregate instead of loading every DailyProgress row (same totals).
+      prisma.dailyProgress.aggregate({
+        where: { userId },
+        _sum: { quranPagesRead: true },
+        _count: { _all: true },
+      }),
+      prisma.dailyProgress.count({
+        where: { userId, adhkarCompleted: true },
+      }),
+      prisma.challengeCompletion.count({
+        where: { userId, claimedAt: { not: null } },
+      }),
+      prisma.tasbihLog.aggregate({
+        where: { userId },
+        _sum: { totalAllTime: true },
+      }),
+    ]);
 
-  const totalQuranPagesRead = allDailyProgress.reduce((sum, day) => sum + day.quranPagesRead, 0);
-  const totalAdhkarDays = allDailyProgress.filter((day) => day.adhkarCompleted).length;
+  const totalQuranPagesRead = progressAgg._sum.quranPagesRead ?? 0;
+  const totalDaysActive = progressAgg._count._all;
+  const totalAdhkarDays = adhkarDaysCompleted;
   const khatmahProgress = khatmah
     ? Math.round((khatmah.totalPagesRead / TOTAL_QURAN_PAGES) * 100)
     : 0;
-  const totalTasbih = tasbihLogs.reduce((sum, log) => sum + log.totalAllTime, 0);
+  const totalTasbih = tasbihAgg._sum.totalAllTime ?? 0;
 
   return {
     user: {
@@ -950,19 +959,19 @@ export async function getJourneyOverview(userId: string) {
       },
       adhkarConsistency: {
         daysCompleted: totalAdhkarDays,
-        percentage: allDailyProgress.length > 0 ? Math.round((totalAdhkarDays / allDailyProgress.length) * 100) : 0,
+        percentage: totalDaysActive > 0 ? Math.round((totalAdhkarDays / totalDaysActive) * 100) : 0,
       },
       tasbeehTally: {
         total: totalTasbih,
       },
       challengesCompleted: {
-        total: challengeCompletions.length,
+        total: challengesCompleted,
       },
     },
     stats: {
-      totalDaysActive: allDailyProgress.length,
+      totalDaysActive,
       totalQuranPagesRead,
-      totalChallengesCompleted: challengeCompletions.length,
+      totalChallengesCompleted: challengesCompleted,
       totalTasbih,
     },
   };
