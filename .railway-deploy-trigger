@@ -1,3 +1,4 @@
 Railway deployment trigger
-Timestamp: 2026-09-17T17:03:00Z
-Reason: Force rebuild to deploy Ayah feature endpoints
+Timestamp: 2026-09-17T17:18:31Z
+Deployment: 2
+Reason: Force rebuild to deploy Ayah feature endpoints (retry)
