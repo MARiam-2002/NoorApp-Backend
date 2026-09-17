@@ -57,6 +57,7 @@ model User {
   userTasbihs             UserTasbih[]
   adhkarFavorites         AdhkarFavorite[]
   adhkarResumeMarks       AdhkarResumeMark[]
+  ayahHistory             UserAyahHistory[]
 
   @@map("users")
 }
@@ -155,13 +156,14 @@ model Surah {
 }
 
 model Ayah {
-  id         String @id @default(uuid())
-  surahId    Int
-  ayahNumber Int
-  textAr     String
-  page       Int?
-  juz        Int?
-  surah      Surah  @relation(fields: [surahId], references: [id], onDelete: Cascade)
+  id             String            @id @default(uuid())
+  surahId        Int
+  ayahNumber     Int
+  textAr         String
+  page           Int?
+  juz            Int?
+  surah          Surah             @relation(fields: [surahId], references: [id], onDelete: Cascade)
+  userAyahHistory UserAyahHistory[]
 
   @@unique([surahId, ayahNumber])
   @@index([surahId])
@@ -408,6 +410,23 @@ model AdhkarResumeMark {
   @@unique([userId, categoryKey])
   @@index([userId, categoryKey])
   @@map("adhkar_resume_marks")
+}
+
+model UserAyahHistory {
+  id          String   @id @default(uuid())
+  userId      String
+  sessionId   String   @db.Uuid
+  surahId     Int
+  ayahNumber  Int
+  displayDate DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ayah Ayah  @relation(fields: [surahId, ayahNumber], references: [surahId, ayahNumber], onDelete: Cascade)
+
+  @@unique([userId, sessionId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("user_ayah_history")
 }
 
 model Notification {
