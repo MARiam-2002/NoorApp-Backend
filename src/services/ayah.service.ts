@@ -235,6 +235,7 @@ export async function getUserAyahHistory(
         id: true,
         surahId: true,
         ayahNumber: true,
+        sessionId: true,
         displayDate: true,
         createdAt: true,
       },
@@ -298,6 +299,7 @@ export async function getUserAyahHistory(
       } as unknown as AyahWithSurah,
       {
         historyId: row.id,
+        sessionId: row.sessionId,
         displayDate: row.displayDate.toISOString().slice(0, 10),
         createdAt: row.createdAt.toISOString(),
       },
