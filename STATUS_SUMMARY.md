@@ -1,7 +1,7 @@
 # Backend Status Summary — Quick Reference
 
 **Date:** 2026-08-28  
-**Base URL:** `https://noor-app-backend-one.vercel.app/api/v1`
+**Base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`
 
 ---
 
@@ -230,14 +230,14 @@
 
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  https://noor-app-backend-one.vercel.app/api/v1/journey/today
+  https://noorapp-backend-production.up.railway.app/api/v1/journey/today
 ```
 
 ### Adhkar Progress:
 
 ```bash
 curl -H "Authorization: Bearer <token>" \
-  "https://noor-app-backend-one.vercel.app/api/v1/adhkar/progress?categoryKey=MORNING"
+  "https://noorapp-backend-production.up.railway.app/api/v1/adhkar/progress?categoryKey=MORNING"
 ```
 
 ### Save Adhkar Progress:
@@ -246,7 +246,7 @@ curl -H "Authorization: Bearer <token>" \
 curl -X PUT -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"categoryKey":"MORNING","itemId":"fb-m-1","tapCount":3}' \
-  https://noor-app-backend-one.vercel.app/api/v1/adhkar/progress
+  https://noorapp-backend-production.up.railway.app/api/v1/adhkar/progress
 ```
 
 ### Quran Import (Guest Merge):
@@ -255,7 +255,7 @@ curl -X PUT -H "Authorization: Bearer <token>" \
 curl -X POST -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"bookmarks":[{"surahId":2,"ayahNumber":255,"page":42}],"lastRead":{"surahId":18,"page":293}}' \
-  https://noor-app-backend-one.vercel.app/api/v1/quran/import-local
+  https://noorapp-backend-production.up.railway.app/api/v1/quran/import-local
 ```
 
 ---

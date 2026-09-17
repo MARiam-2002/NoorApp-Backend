@@ -2,7 +2,7 @@
 
 **Audience:** Backend / Flutter / product  
 **Type:** Audit only (no code changes)  
-**Production base:** `https://noor-app-backend-one.vercel.app/api/v1`  
+**Production base:** `https://noorapp-backend-production.up.railway.app/api/v1`  
 **Audited:** 2026-09-06  
 **Language:** English only  
 
@@ -111,7 +111,7 @@ Swagger example text `"Translation coming soon"` is **outdated documentation** i
 
 ## 7. Exact Flutter API endpoints
 
-**Base:** `https://noor-app-backend-one.vercel.app/api/v1`  
+**Base:** `https://noorapp-backend-production.up.railway.app/api/v1`  
 **Auth:** none required on these routes  
 
 | Purpose | Method | Path | Query |

@@ -1,7 +1,7 @@
 # الباك إند جاهز للفلاتر! 🚀
 
 **التاريخ:** 28 أغسطس 2026  
-**Production URL:** `https://noor-app-backend-one.vercel.app/api/v1`
+**Production URL:** `https://noorapp-backend-production.up.railway.app/api/v1`
 
 ---
 
@@ -139,7 +139,7 @@ PUT  /adhkar/progress
 ### 1. غير الـ Base URL
 ```dart
 class ApiConfig {
-  static const String baseUrl = 'https://noor-app-backend-one.vercel.app/api/v1';
+  static const String baseUrl = 'https://noorapp-backend-production.up.railway.app/api/v1';
 }
 ```
 

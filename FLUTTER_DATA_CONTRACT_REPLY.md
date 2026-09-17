@@ -2,8 +2,8 @@
 
 **Audience:** Flutter team  
 **From:** Noor Backend  
-**Production base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-09-04  
+**Production base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`  
+**Updated:** 2026-09-17  
 **Language:** English only  
 
 This document is the **verified** Backend → Flutter contract after Production testing. It also lists every Flutter-side deliverable from `BACKEND_REQUIREMENTS.md`, `BACKEND_DATA_CONTRACT.md`, `AZAN_FEATURE.md`, and `APP_ENHANCEMENTS.md`.

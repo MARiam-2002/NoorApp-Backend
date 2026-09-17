@@ -24,7 +24,7 @@
 ## 🔹 Offline Catalog Integration Summary
 
 - **Base URLs (store these in `env` / flavors)**: Same as the main integration guide.
-  - Production (Vercel): `https://noor-app-backend-one.vercel.app/api/v1`
+  - Production (Railway): `https://noorapp-backend-production.up.railway.app/api/v1`
   - Local dev: `http://localhost:3000/api/v1`
   - Swagger UI (always the source of truth): `<base>/api/v1/docs`
 - **Auth pattern**: Both endpoints below are **100% Public** (no Bearer token required). A signed-out Guest user must be able to download the full Quran cache before ever creating an account or signing in. Do NOT wrap these calls inside the `Authorization` interceptor.

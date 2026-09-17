@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../lib/validation';
@@ -6,17 +7,36 @@ import {
   getAyahHandler,
   getAyahHistoryHandler,
 } from '../controllers/ayah.controller';
+import { AppError } from '../lib/errors';
+import { ErrorCodes, HttpStatus } from '../config';
 
 const ayahCurrentHeaderSchema = z.object({
   'x-noor-app-open-id': z
     .string({
-      required_error:
+      message:
         'Missing required header X-Noor-App-Open-Id: send a new uuid RFC-4122 v4 once per real Flutter app open / cold start',
-      invalid_type_error:
-        'X-Noor-App-Open-Id must be a string uuid RFC-4122',
     })
     .uuid({ message: 'X-Noor-App-Open-Id must be a valid uuid RFC-4122' }),
 });
+
+// Custom middleware to validate headers
+const validateAyahHeaders: RequestHandler = (req, _res, next) => {
+  const result = ayahCurrentHeaderSchema.safeParse({
+    'x-noor-app-open-id': req.headers['x-noor-app-open-id'],
+  });
+
+  if (!result.success) {
+    const firstError = result.error.issues[0];
+    throw new AppError(
+      firstError?.message || 'Invalid X-Noor-App-Open-Id header',
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+      { errors: result.error.issues }
+    );
+  }
+
+  next();
+};
 
 const ayahHistoryQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1).optional(),
@@ -66,8 +86,8 @@ export const ayahRouter = Router();
  */
 ayahRouter.get(
   '/',
-  validate(ayahCurrentHeaderSchema, 'headers'),
   authenticate,
+  validateAyahHeaders,
   getAyahHandler,
 );
 

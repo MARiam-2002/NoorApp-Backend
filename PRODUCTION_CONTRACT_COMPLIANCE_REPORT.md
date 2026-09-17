@@ -1,7 +1,7 @@
 # Production Contract Compliance Report
 
 **Date:** August 28, 2026  
-**Backend URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
+**Backend URL:** `https://noorapp-backend-production.up.railway.app/api/v1`  
 **Contract:** BACKEND_DATA_CONTRACT.md  
 **Test Script:** `scripts/production-contract-test.py`
 
@@ -344,7 +344,7 @@ The backend sends **exactly** what Flutter expects. No client-side patches neede
 - Journey data (all 4 task types)
 - Last-read resume (ayahNumber persisted)
 
-**Deployment Status:** ✅ Production deployment verified at `https://noor-app-backend-one.vercel.app/api/v1`
+**Deployment Status:** ✅ Production deployment verified at `https://noorapp-backend-production.up.railway.app/api/v1`
 
 **Next Steps for Flutter Team:**
 1. Update base URL to production

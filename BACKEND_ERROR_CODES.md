@@ -2,8 +2,8 @@
 
 **Audience:** Flutter team (`lib/`)  
 **From:** Noor Backend team  
-**Base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-09-03  
+**Base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`  
+**Updated:** 2026-09-17  
 **Purpose:** Every error code + message the backend sends, with Arabic/English strings for localization
 
 **⚠️ Note on Error Code Granularity:**  

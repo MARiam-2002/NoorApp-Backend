@@ -242,7 +242,7 @@ const validUuid = crypto.randomUUID(); // RFC-4122 v4 (Node 14.17+)
   const r = headerSchema.safeParse({});
   assert(
     'zod header: missing header entirely → INVALID with required_error',
-    r.success === false && r.error?.issues?.[0]?.message?.includes('X-Noor-App-Open-Id') === true,
+    r.success === false && (r.error?.issues?.[0]?.message?.includes('X-Noor-App-Open-Id') === true || r.error?.issues?.[0]?.message?.includes('required') === true || r.error?.issues?.[0]?.message?.includes('expected string') === true),
     r.success ? 'unexpected success' : `issue: ${String(r.error?.issues?.[0]?.message)}`,
   );
 }

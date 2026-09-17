@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 import type { ZodType } from 'zod';
 import { z } from 'zod';
 
-type RequestProperty = 'body' | 'query' | 'params';
+type RequestProperty = 'body' | 'query' | 'params' | 'headers';
 
 export const passwordFieldSchema = z
   .string()
@@ -17,6 +17,11 @@ function applyValidatedData(
 ): void {
   if (property === 'body') {
     req.body = data;
+    return;
+  }
+  if (property === 'headers') {
+    // For headers, merge validated data back into req.headers
+    Object.assign(req.headers, data as Record<string, unknown>);
     return;
   }
   Object.assign(req[property] as Record<string, unknown>, data as Record<string, unknown>);

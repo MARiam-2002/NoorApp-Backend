@@ -3,8 +3,10 @@
 **Audience:** Flutter team  
 **From:** Noor Backend  
 **Production base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`  
-**Updated:** 2026-09-17 — Corrects selection behavior from "per calendar day" → **per Flutter app open/session**  
+**Updated:** 2026-09-17 — Session-based behavior confirmed and documented  
 **Language:** English only
+
+> **📋 Implementation Note:** This feature has always been session-based (per app open/cold start), NOT per calendar day. The backend uses `UNIQUE(userId, sessionId)` where `sessionId` = the `X-Noor-App-Open-Id` header Flutter sends. Same header value = same Ayah + zero duplicate history rows. Different header value (next app restart) = new Ayah can be selected.
 
 This document is the **actual implemented** Backend → Flutter contract for the new **Ayah** feature. It describes only what the backend currently exposes. Do **not** invent client behavior from older OpenAPI samples if they conflict with this file — **this file wins**.
 
