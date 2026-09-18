@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import {
+  SADAQAH_GOAL_MAX_EGP,
+  SADAQAH_GOAL_MIN_EGP,
+} from '../shared/constants/sadaqah';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../lib/validation';
 import {
@@ -41,17 +45,27 @@ const adhkarSchema = z.object({
   }
 });
 
-const sadaqahSchema = z.object({
-  amount: z.coerce.number().min(0),
-  category: z
-    .string()
-    .trim()
-    .min(1)
-    .max(32)
-    .optional()
-    .transform((v) => (v ? v.toUpperCase() : undefined)),
-  mode: z.enum(['set', 'add']).optional().default('set'),
-});
+export const sadaqahSchema = z
+  .object({
+    amount: z.coerce.number().finite().min(0).max(SADAQAH_GOAL_MAX_EGP).optional(),
+    goal: z.coerce
+      .number()
+      .finite()
+      .min(SADAQAH_GOAL_MIN_EGP)
+      .max(SADAQAH_GOAL_MAX_EGP)
+      .optional(),
+    category: z
+      .string()
+      .trim()
+      .min(1)
+      .max(32)
+      .optional()
+      .transform((v) => (v ? v.toUpperCase() : undefined)),
+    mode: z.enum(['set', 'add']).optional().default('set'),
+  })
+  .refine((body) => body.amount !== undefined || body.goal !== undefined, {
+    message: 'amount or goal is required',
+  });
 
 const prayerSchema = z.object({
   prayer: z
@@ -343,12 +357,16 @@ journeyRouter.patch('/adhkar', authenticate, validate(adhkarSchema), patchAdhkar
  *         application/json:
  *           schema:
  *             type: object
- *             required: [amount]
+ *             required: []
  *             properties:
  *               amount:
  *                 type: number
  *                 example: 50.0
- *                 description: "إجمالي الصدقة بالعملة المحلية (mode=set) أو الزيادة (mode=add)"
+ *                 description: "إجمالي الصدقة بالعملة المحلية (mode=set) أو الزيادة (mode=add). Optional if goal is sent."
+ *               goal:
+ *                 type: number
+ *                 example: 1000
+ *                 description: "Personal daily Sadaqah goal (EGP). Does not reset today's amount."
  *               category:
  *                 type: string
  *                 enum: [FOOD, CLOTHES, EDUCATION, MONEY, GENERAL]

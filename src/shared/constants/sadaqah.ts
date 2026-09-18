@@ -4,6 +4,17 @@
  */
 
 export const DEFAULT_SADAQAH_GOAL_EGP = 1000;
+/** Inclusive bounds for persisted personal goal (Decimal(10,2) safe). */
+export const SADAQAH_GOAL_MIN_EGP = 1;
+export const SADAQAH_GOAL_MAX_EGP = 1_000_000;
+
+export function normalizeSadaqahGoal(value: unknown, fallback = DEFAULT_SADAQAH_GOAL_EGP): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n) || n < SADAQAH_GOAL_MIN_EGP || n > SADAQAH_GOAL_MAX_EGP) {
+    return fallback;
+  }
+  return Math.round(n * 100) / 100;
+}
 export const SADAQAH_CURRENCY = 'EGP' as const;
 export const SADAQAH_CURRENCY_LABEL_AR = 'جنيه';
 export const SADAQAH_CURRENCY_LABEL_EN = 'EGP';

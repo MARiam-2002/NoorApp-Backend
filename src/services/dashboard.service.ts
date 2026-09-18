@@ -222,6 +222,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         city: true,
         country: true,
         prayerCalculationMethod: true,
+        sadaqahGoal: true,
       },
     });
     if (fetched) user = { ...fallbackUser, ...fetched };
@@ -335,6 +336,7 @@ async function buildDashboardPayload(
     city?: string | null;
     country?: string | null;
     prayerCalculationMethod?: string | null;
+    sadaqahGoal?: unknown;
   },
 ): Promise<DashboardData> {
 
@@ -592,8 +594,15 @@ async function buildDashboardPayload(
         labelEn: 'Sadaqah',
         captionAr: `${Number(journey.sadaqahAmount) || 0} ج.م مصدقة اليوم`,
         captionEn: `${Number(journey.sadaqahAmount) || 0} EGP donated today`,
-        goal: DEFAULT_SADAQAH_GOAL_EGP,
-        percent: sadaqahProgressPercent(Number(journey.sadaqahAmount) || 0),
+        goal: user.sadaqahGoal != null
+          ? Number(user.sadaqahGoal) || DEFAULT_SADAQAH_GOAL_EGP
+          : DEFAULT_SADAQAH_GOAL_EGP,
+        percent: sadaqahProgressPercent(
+          Number(journey.sadaqahAmount) || 0,
+          user.sadaqahGoal != null
+            ? Number(user.sadaqahGoal) || DEFAULT_SADAQAH_GOAL_EGP
+            : DEFAULT_SADAQAH_GOAL_EGP,
+        ),
         currency: SADAQAH_CURRENCY,
         currencyLabelAr: SADAQAH_CURRENCY_LABEL_AR,
         currencyLabelEn: SADAQAH_CURRENCY_LABEL_EN,

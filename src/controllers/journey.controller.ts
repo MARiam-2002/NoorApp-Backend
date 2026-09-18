@@ -142,12 +142,13 @@ export const patchSadaqah = asyncHandler(async (req: Request, res: Response) => 
     );
   }
 
-  const { amount, category, mode } = req.body as {
-    amount: number;
+  const { amount, category, mode, goal } = req.body as {
+    amount?: number;
+    goal?: number;
     category?: string;
     mode?: 'set' | 'add';
   };
-  const data = await updateSadaqah(userId, { amount, category, mode });
+  const data = await updateSadaqah(userId, { amount, category, mode, goal });
   sendSuccess(res, data, 'Sadaqah updated successfully', req);
 });
 

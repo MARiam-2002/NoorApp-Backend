@@ -46,6 +46,8 @@ model User {
   salawatWindowStart      String                 @default("08:00")
   /// Active local window end (HH:mm). May be overnight vs start.
   salawatWindowEnd        String                 @default("22:00")
+  /// Personal daily Sadaqah target (EGP). Progress is DailyProgress.sadaqahAmount.
+  sadaqahGoal             Decimal                @default(1000) @db.Decimal(10, 2)
   challengeCompletions    ChallengeCompletion[]
   dailyDhikrCompletions   DailyDhikrCompletion[]
   dailyProgress           DailyProgress[]

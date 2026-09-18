@@ -17,8 +17,11 @@ import {
   SADAQAH_FEATURED_BANNER,
   SADAQAH_GOAL_CAPTION_AR,
   SADAQAH_GOAL_CAPTION_EN,
+  SADAQAH_GOAL_MAX_EGP,
+  SADAQAH_GOAL_MIN_EGP,
   SADAQAH_TRACKING_ONLY_NOTE_EN,
   normalizeSadaqahCategoryId,
+  normalizeSadaqahGoal,
   sadaqahProgressPercent,
   type SadaqahCategoryId,
 } from '../shared/constants/sadaqah';
@@ -44,8 +47,21 @@ function parseSadaqahBreakdown(raw: unknown): SadaqahBreakdown {
   return out;
 }
 
-function buildSadaqahPayload(amount: number, date: Date, breakdown?: SadaqahBreakdown, category?: SadaqahCategoryId) {
-  const goal = DEFAULT_SADAQAH_GOAL_EGP;
+export async function getUserSadaqahGoal(userId: string): Promise<number> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { sadaqahGoal: true },
+  });
+  return normalizeSadaqahGoal(user?.sadaqahGoal, DEFAULT_SADAQAH_GOAL_EGP);
+}
+
+function buildSadaqahPayload(
+  amount: number,
+  date: Date,
+  breakdown?: SadaqahBreakdown,
+  category?: SadaqahCategoryId,
+  goal: number = DEFAULT_SADAQAH_GOAL_EGP,
+) {
   const percent = sadaqahProgressPercent(amount, goal);
   return {
     /** Existing Flutter contract field — keep forever. */
@@ -157,7 +173,7 @@ export async function getTodayJourney(userId: string) {
 
   const totalPrayers = 5;
   const quranGoal = 4;
-  const sadaqahGoal = DEFAULT_SADAQAH_GOAL_EGP;
+  const sadaqahGoal = await getUserSadaqahGoal(userId);
 
   const quranProgress = quranGoal > 0 ? Math.min(1, progress.quranPagesRead / quranGoal) : 0;
   const prayerProgress = prayersCompleted / totalPrayers;
@@ -702,7 +718,9 @@ export async function updateAdhkar(
 }
 
 export type UpdateSadaqahInput = {
-  amount: number;
+  amount?: number;
+  /** Personal daily goal (EGP). Does not change today's accumulated amount. */
+  goal?: number;
   /** Optional UI category (FOOD | CLOTHES | EDUCATION | MONEY | GENERAL). */
   category?: string;
   /**
@@ -716,70 +734,105 @@ export async function updateSadaqah(userId: string, input: UpdateSadaqahInput | 
   const body: UpdateSadaqahInput =
     typeof input === 'number' ? { amount: input, mode: 'set' } : input;
 
-  const amount = Number(body.amount);
-  if (!Number.isFinite(amount) || amount < 0) {
+  const hasAmount = body.amount !== undefined && body.amount !== null;
+  const hasGoal = body.goal !== undefined && body.goal !== null;
+  if (!hasAmount && !hasGoal) {
     throw new AppError(
-      'Amount must be zero or greater',
+      'amount or goal is required',
       HttpStatus.BAD_REQUEST,
       ErrorCodes.VALIDATION_ERROR,
     );
   }
 
-  const mode = body.mode === 'add' ? 'add' : 'set';
-  const category = normalizeSadaqahCategoryId(body.category);
-  if (body.category != null && String(body.category).trim() !== '' && !category) {
-    throw new AppError(
-      'Invalid sadaqah category. Use FOOD, CLOTHES, EDUCATION, MONEY, or GENERAL',
-      HttpStatus.BAD_REQUEST,
-      ErrorCodes.VALIDATION_ERROR,
-    );
+  let goalValue: number | undefined;
+  if (hasGoal) {
+    const raw = Number(body.goal);
+    if (!Number.isFinite(raw) || raw < SADAQAH_GOAL_MIN_EGP || raw > SADAQAH_GOAL_MAX_EGP) {
+      throw new AppError(
+        `Goal must be between ${SADAQAH_GOAL_MIN_EGP} and ${SADAQAH_GOAL_MAX_EGP}`,
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.VALIDATION_ERROR,
+      );
+    }
+    goalValue = Math.round(raw * 100) / 100;
+    await prisma.user.update({
+      where: { id: userId },
+      data: { sadaqahGoal: goalValue },
+    });
   }
 
   const date = getTodayDateOnly();
   const existing = await prisma.dailyProgress.findUnique({
     where: { userId_date: { userId, date } },
   });
-
   const currentAmount = existing ? Number(existing.sadaqahAmount) : 0;
-  const nextAmount = mode === 'add' ? currentAmount + amount : amount;
-  const breakdown = parseSadaqahBreakdown(existing?.sadaqahBreakdown);
 
-  if (category) {
-    const currentCat = breakdown[category] ?? 0;
-    breakdown[category] = mode === 'add' ? currentCat + amount : amount;
+  let nextAmount = currentAmount;
+  let breakdown = parseSadaqahBreakdown(existing?.sadaqahBreakdown);
+  let category = normalizeSadaqahCategoryId(body.category);
+
+  if (hasAmount) {
+    const amount = Number(body.amount);
+    if (!Number.isFinite(amount) || amount < 0 || amount > SADAQAH_GOAL_MAX_EGP) {
+      throw new AppError(
+        'Amount must be between 0 and 1000000',
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.VALIDATION_ERROR,
+      );
+    }
+    const mode = body.mode === 'add' ? 'add' : 'set';
+    if (body.category != null && String(body.category).trim() !== '' && !category) {
+      throw new AppError(
+        'Invalid sadaqah category. Use FOOD, CLOTHES, EDUCATION, MONEY, or GENERAL',
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.VALIDATION_ERROR,
+      );
+    }
+    nextAmount = mode === 'add' ? currentAmount + amount : amount;
+    if (nextAmount > SADAQAH_GOAL_MAX_EGP) {
+      throw new AppError(
+        'Amount must be between 0 and 1000000',
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.VALIDATION_ERROR,
+      );
+    }
+    if (category) {
+      const currentCat = breakdown[category] ?? 0;
+      breakdown[category] = mode === 'add' ? currentCat + amount : amount;
+    }
+    const progress = await prisma.dailyProgress.upsert({
+      where: { userId_date: { userId, date } },
+      create: {
+        userId,
+        date,
+        sadaqahAmount: nextAmount,
+        sadaqahBreakdown: Object.keys(breakdown).length > 0 ? breakdown : undefined,
+      },
+      update: {
+        sadaqahAmount: nextAmount,
+        ...(category ? { sadaqahBreakdown: breakdown } : {}),
+      },
+    });
+    nextAmount = Number(progress.sadaqahAmount);
+    breakdown = parseSadaqahBreakdown(progress.sadaqahBreakdown);
   }
 
-  const progress = await prisma.dailyProgress.upsert({
-    where: { userId_date: { userId, date } },
-    create: {
-      userId,
-      date,
-      sadaqahAmount: nextAmount,
-      sadaqahBreakdown: Object.keys(breakdown).length > 0 ? breakdown : undefined,
-    },
-    update: {
-      sadaqahAmount: nextAmount,
-      ...(category ? { sadaqahBreakdown: breakdown } : {}),
-    },
-  });
-
-  return buildSadaqahPayload(
-    Number(progress.sadaqahAmount),
-    date,
-    parseSadaqahBreakdown(progress.sadaqahBreakdown),
-    category,
-  );
+  const goal = goalValue ?? (await getUserSadaqahGoal(userId));
+  return buildSadaqahPayload(nextAmount, date, breakdown, category, goal);
 }
 
 /** Full Sadaqah screen payload (auth). Personal tracking only — no payments. */
 export async function getSadaqahToday(userId: string) {
   const date = getTodayDateOnly();
-  const progress = await prisma.dailyProgress.findUnique({
-    where: { userId_date: { userId, date } },
-  });
+  const [progress, goal] = await Promise.all([
+    prisma.dailyProgress.findUnique({
+      where: { userId_date: { userId, date } },
+    }),
+    getUserSadaqahGoal(userId),
+  ]);
   const amount = progress ? Number(progress.sadaqahAmount) : 0;
   const breakdown = parseSadaqahBreakdown(progress?.sadaqahBreakdown);
-  const base = buildSadaqahPayload(amount, date, breakdown);
+  const base = buildSadaqahPayload(amount, date, breakdown, undefined, goal);
 
   return {
     ...base,
@@ -822,7 +875,7 @@ export async function getJourneyProgress(userId: string, days = 7) {
   }
 
   const QURAN_GOAL = 4;
-  const SADAQAH_GOAL = DEFAULT_SADAQAH_GOAL_EGP;
+  const SADAQAH_GOAL = await getUserSadaqahGoal(userId);
   const TOTAL_PRAYERS = 5;
 
   const daily = progress.map((p) => {
