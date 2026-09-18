@@ -6,13 +6,23 @@ import { DefaultTimezone } from '../utils/constants';
 import { sendPushToUser } from './device.service';
 import { createNotification } from './notification.service';
 
-/** Interval between salawat reminders. */
+/** Legacy default interval (hours) — maps to intervalMinutes 180. */
 export const SALAWAT_INTERVAL_HOURS = 3;
-/** Cap per local calendar day. */
-export const SALAWAT_MAX_PER_DAY = 5;
-/** Quiet hours in local time: [22:00, 08:00). */
+export const SALAWAT_ALLOWED_INTERVALS = [30, 60, 120, 180] as const;
+export type SalawatIntervalMinutes = (typeof SALAWAT_ALLOWED_INTERVALS)[number];
+
+/** Safety cap per local calendar day (also bounded by window / interval). */
+export const SALAWAT_MAX_PER_DAY_CAP = 48;
+
+/** Legacy quiet-hour constants (complement of default 08:00–22:00 window). */
 export const SALAWAT_QUIET_START_HOUR = 22;
 export const SALAWAT_QUIET_END_HOUR = 8;
+
+export const SALAWAT_DEFAULT_INTERVAL_MINUTES: SalawatIntervalMinutes = 180;
+export const SALAWAT_DEFAULT_START = '08:00';
+export const SALAWAT_DEFAULT_END = '22:00';
+
+const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const SALAWAT_TITLE_AR = 'الصلاة على النبي ﷺ';
 const SALAWAT_TITLE_EN = 'Pray for the Prophet ﷺ';
@@ -24,6 +34,20 @@ export type LocalClock = {
   minute: number;
   /** Local calendar day key YYYY-MM-DD */
   dayKey: string;
+};
+
+export type SalawatPreferencesDto = {
+  enabled: boolean;
+  intervalMinutes: SalawatIntervalMinutes;
+  startTime: string;
+  endTime: string;
+  /** Kept for existing Flutter clients (intervalMinutes / 60). */
+  intervalHours: number;
+  maxPerDay: number;
+  /** Quiet window start = active end (legacy field). */
+  quietHoursStart: string;
+  /** Quiet window end = active start (legacy field). */
+  quietHoursEnd: string;
 };
 
 export function resolveTimezone(timezone?: string | null): string {
@@ -58,12 +82,69 @@ export function getLocalClock(now: Date, timeZone: string): LocalClock {
   };
 }
 
+export function parseHhmm(value: string): { hour: number; minute: number; total: number } | null {
+  if (!HHMM_RE.test(value)) return null;
+  const [hRaw, mRaw] = value.split(':');
+  const hour = Number(hRaw);
+  const minute = Number(mRaw);
+  return { hour, minute, total: hour * 60 + minute };
+}
+
+export function normalizeIntervalMinutes(value: unknown): SalawatIntervalMinutes {
+  const n = typeof value === 'number' ? value : Number(value);
+  if ((SALAWAT_ALLOWED_INTERVALS as readonly number[]).includes(n)) {
+    return n as SalawatIntervalMinutes;
+  }
+  return SALAWAT_DEFAULT_INTERVAL_MINUTES;
+}
+
+export function normalizeHhmm(value: unknown, fallback: string): string {
+  if (typeof value === 'string' && parseHhmm(value)) return value;
+  return fallback;
+}
+
+/**
+ * Active window in local minutes-from-midnight.
+ * start === end → treat as 24h (always active).
+ * start < end → same-day window.
+ * start > end → overnight window.
+ */
+export function isWithinActiveWindow(
+  minutesFromMidnight: number,
+  startTime: string,
+  endTime: string,
+): boolean {
+  const start = parseHhmm(startTime)?.total;
+  const end = parseHhmm(endTime)?.total;
+  if (start == null || end == null) return false;
+  if (start === end) return true;
+  if (start < end) {
+    return minutesFromMidnight >= start && minutesFromMidnight < end;
+  }
+  return minutesFromMidnight >= start || minutesFromMidnight < end;
+}
+
+export function activeWindowMinutes(startTime: string, endTime: string): number {
+  const start = parseHhmm(startTime)?.total;
+  const end = parseHhmm(endTime)?.total;
+  if (start == null || end == null) return 14 * 60;
+  if (start === end) return 24 * 60;
+  if (start < end) return end - start;
+  return 24 * 60 - start + end;
+}
+
+export function computeMaxPerDay(intervalMinutes: number, startTime: string, endTime: string): number {
+  const window = activeWindowMinutes(startTime, endTime);
+  const raw = Math.floor(window / Math.max(1, intervalMinutes));
+  return Math.min(SALAWAT_MAX_PER_DAY_CAP, Math.max(1, raw));
+}
+
+/** Legacy helper: default window is quiet 22:00–08:00. */
 export function isInQuietHours(
   hour: number,
   quietStart = SALAWAT_QUIET_START_HOUR,
   quietEnd = SALAWAT_QUIET_END_HOUR,
 ): boolean {
-  // 22:00–23:59 and 00:00–07:59
   return hour >= quietStart || hour < quietEnd;
 }
 
@@ -71,42 +152,73 @@ export function localDayKeyForInstant(instant: Date, timeZone: string): string {
   return getLocalClock(instant, timeZone).dayKey;
 }
 
+export function occurrenceKey(dayKey: string, minutesFromMidnight: number, intervalMinutes: number): string {
+  const slot = Math.floor(minutesFromMidnight / Math.max(1, intervalMinutes));
+  return `${dayKey}|${intervalMinutes}|${slot}`;
+}
+
 export type SalawatEligibility = {
   eligible: boolean;
-  reason?:
-    | 'DISABLED'
-    | 'QUIET_HOURS'
-    | 'MAX_PER_DAY'
-    | 'TOO_SOON'
-    | 'OK';
+  reason?: 'DISABLED' | 'OUTSIDE_WINDOW' | 'QUIET_HOURS' | 'MAX_PER_DAY' | 'TOO_SOON' | 'OK';
   sentToday: number;
+  minutesSinceLast: number | null;
   hoursSinceLast: number | null;
+  occurrenceKey: string | null;
 };
 
-/**
- * Pure eligibility check (used by cron + unit tests).
- */
 export function evaluateSalawatEligibility(input: {
   enabled: boolean;
   now: Date;
   timeZone: string;
   recentSentAt: Date[];
+  intervalMinutes?: number;
+  startTime?: string;
+  endTime?: string;
 }): SalawatEligibility {
+  const intervalMinutes = normalizeIntervalMinutes(input.intervalMinutes ?? SALAWAT_DEFAULT_INTERVAL_MINUTES);
+  const startTime = normalizeHhmm(input.startTime, SALAWAT_DEFAULT_START);
+  const endTime = normalizeHhmm(input.endTime, SALAWAT_DEFAULT_END);
+
   if (!input.enabled) {
-    return { eligible: false, reason: 'DISABLED', sentToday: 0, hoursSinceLast: null };
+    return {
+      eligible: false,
+      reason: 'DISABLED',
+      sentToday: 0,
+      minutesSinceLast: null,
+      hoursSinceLast: null,
+      occurrenceKey: null,
+    };
   }
 
   const clock = getLocalClock(input.now, input.timeZone);
-  if (isInQuietHours(clock.hour)) {
-    return { eligible: false, reason: 'QUIET_HOURS', sentToday: 0, hoursSinceLast: null };
+  const minutesFromMidnight = clock.hour * 60 + clock.minute;
+  const key = occurrenceKey(clock.dayKey, minutesFromMidnight, intervalMinutes);
+
+  if (!isWithinActiveWindow(minutesFromMidnight, startTime, endTime)) {
+    return {
+      eligible: false,
+      reason: 'OUTSIDE_WINDOW',
+      sentToday: 0,
+      minutesSinceLast: null,
+      hoursSinceLast: null,
+      occurrenceKey: key,
+    };
   }
 
   const todaySends = input.recentSentAt.filter(
     (at) => localDayKeyForInstant(at, input.timeZone) === clock.dayKey,
   );
   const sentToday = todaySends.length;
-  if (sentToday >= SALAWAT_MAX_PER_DAY) {
-    return { eligible: false, reason: 'MAX_PER_DAY', sentToday, hoursSinceLast: null };
+  const maxPerDay = computeMaxPerDay(intervalMinutes, startTime, endTime);
+  if (sentToday >= maxPerDay) {
+    return {
+      eligible: false,
+      reason: 'MAX_PER_DAY',
+      sentToday,
+      minutesSinceLast: null,
+      hoursSinceLast: null,
+      occurrenceKey: key,
+    };
   }
 
   const lastAt = input.recentSentAt.reduce<Date | null>((latest, at) => {
@@ -114,44 +226,131 @@ export function evaluateSalawatEligibility(input: {
     return latest;
   }, null);
 
-  const hoursSinceLast =
-    lastAt == null ? null : (input.now.getTime() - lastAt.getTime()) / (60 * 60 * 1000);
+  const minutesSinceLast =
+    lastAt == null ? null : (input.now.getTime() - lastAt.getTime()) / 60_000;
+  const hoursSinceLast = minutesSinceLast == null ? null : minutesSinceLast / 60;
 
-  if (hoursSinceLast != null && hoursSinceLast < SALAWAT_INTERVAL_HOURS) {
-    return { eligible: false, reason: 'TOO_SOON', sentToday, hoursSinceLast };
+  if (minutesSinceLast != null && minutesSinceLast < intervalMinutes) {
+    return {
+      eligible: false,
+      reason: 'TOO_SOON',
+      sentToday,
+      minutesSinceLast,
+      hoursSinceLast,
+      occurrenceKey: key,
+    };
   }
 
-  return { eligible: true, reason: 'OK', sentToday, hoursSinceLast };
+  return {
+    eligible: true,
+    reason: 'OK',
+    sentToday,
+    minutesSinceLast,
+    hoursSinceLast,
+    occurrenceKey: key,
+  };
 }
 
-export async function getSalawatPreferences(userId: string) {
+function toDto(row: {
+  salawatReminderEnabled: boolean;
+  salawatIntervalMinutes: number;
+  salawatWindowStart: string;
+  salawatWindowEnd: string;
+}): SalawatPreferencesDto {
+  const intervalMinutes = normalizeIntervalMinutes(row.salawatIntervalMinutes);
+  const startTime = normalizeHhmm(row.salawatWindowStart, SALAWAT_DEFAULT_START);
+  const endTime = normalizeHhmm(row.salawatWindowEnd, SALAWAT_DEFAULT_END);
+  return {
+    enabled: Boolean(row.salawatReminderEnabled),
+    intervalMinutes,
+    startTime,
+    endTime,
+    intervalHours: intervalMinutes / 60,
+    maxPerDay: computeMaxPerDay(intervalMinutes, startTime, endTime),
+    quietHoursStart: endTime,
+    quietHoursEnd: startTime,
+  };
+}
+
+export async function getSalawatPreferences(userId: string): Promise<SalawatPreferencesDto> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { salawatReminderEnabled: true },
+    select: {
+      salawatReminderEnabled: true,
+      salawatIntervalMinutes: true,
+      salawatWindowStart: true,
+      salawatWindowEnd: true,
+    },
   });
   if (!user) {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
-  return {
-    enabled: Boolean(user.salawatReminderEnabled),
-    intervalHours: SALAWAT_INTERVAL_HOURS,
-    maxPerDay: SALAWAT_MAX_PER_DAY,
-    quietHoursStart: `${String(SALAWAT_QUIET_START_HOUR).padStart(2, '0')}:00`,
-    quietHoursEnd: `${String(SALAWAT_QUIET_END_HOUR).padStart(2, '0')}:00`,
-  };
+  return toDto(user);
 }
 
-export async function updateSalawatPreferences(userId: string, enabled: boolean) {
+export async function updateSalawatPreferences(
+  userId: string,
+  patch: {
+    enabled?: boolean;
+    intervalMinutes?: number;
+    startTime?: string;
+    endTime?: string;
+  },
+): Promise<SalawatPreferencesDto> {
+  const data: {
+    salawatReminderEnabled?: boolean;
+    salawatIntervalMinutes?: number;
+    salawatWindowStart?: string;
+    salawatWindowEnd?: string;
+  } = {};
+
+  if (typeof patch.enabled === 'boolean') {
+    data.salawatReminderEnabled = patch.enabled;
+  }
+  if (patch.intervalMinutes != null) {
+    data.salawatIntervalMinutes = normalizeIntervalMinutes(patch.intervalMinutes);
+  }
+  if (patch.startTime != null) {
+    const parsed = parseHhmm(patch.startTime);
+    if (!parsed) {
+      throw new AppError('startTime must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+    }
+    data.salawatWindowStart = patch.startTime;
+  }
+  if (patch.endTime != null) {
+    const parsed = parseHhmm(patch.endTime);
+    if (!parsed) {
+      throw new AppError('endTime must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+    }
+    data.salawatWindowEnd = patch.endTime;
+  }
+
+  if (Object.keys(data).length === 0) {
+    throw new AppError('No preference fields to update', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+
   await prisma.user.update({
     where: { id: userId },
-    data: { salawatReminderEnabled: enabled },
+    data,
   });
   return getSalawatPreferences(userId);
 }
 
+async function claimOccurrence(userId: string, key: string): Promise<boolean> {
+  try {
+    await prisma.salawatSendLog.create({
+      data: { userId, occurrenceKey: key },
+    });
+    return true;
+  } catch (err: any) {
+    if (err?.code === 'P2002') return false;
+    throw err;
+  }
+}
+
 /**
- * Cron slice: send "Pray for the Prophet ﷺ" when eligible.
- * Independent of Azan preferences / location.
+ * Cron slice: FCM + in-app notification when eligible.
+ * Preference-gated, user-local timezone, durable occurrence de-dupe.
  */
 export async function runSalawatReminders(now = new Date()): Promise<{
   usersScanned: number;
@@ -159,88 +358,114 @@ export async function runSalawatReminders(now = new Date()): Promise<{
   pushesSent: number;
   skipped: Record<string, number>;
 }> {
-  const users = await prisma.user.findMany({
-    where: {
-      isActive: true,
-      salawatReminderEnabled: true,
-      deviceTokens: { some: {} },
-    },
-    select: { id: true, timezone: true, salawatReminderEnabled: true },
-    take: 500,
-  });
-
+  let usersScanned = 0;
   let pushesAttempted = 0;
   let pushesSent = 0;
   const skipped: Record<string, number> = {};
-
-  // Look back enough for max/day + interval (2 local days)
   const lookback = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
-  for (const user of users) {
-    try {
-      const timeZone = resolveTimezone(user.timezone);
-      const recentRows = await prisma.notification.findMany({
-        where: {
+  let cursor: string | undefined;
+  for (;;) {
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        salawatReminderEnabled: true,
+        deviceTokens: { some: {} },
+      },
+      select: {
+        id: true,
+        timezone: true,
+        salawatReminderEnabled: true,
+        salawatIntervalMinutes: true,
+        salawatWindowStart: true,
+        salawatWindowEnd: true,
+      },
+      take: 200,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      orderBy: { id: 'asc' },
+    });
+    if (users.length === 0) break;
+    cursor = users[users.length - 1]?.id;
+    usersScanned += users.length;
+
+    for (const user of users) {
+      try {
+        const timeZone = resolveTimezone(user.timezone);
+        const recentRows = await prisma.notification.findMany({
+          where: {
+            userId: user.id,
+            type: 'SALAWAT' as any,
+            createdAt: { gte: lookback },
+          },
+          select: { createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 60,
+        });
+
+        const decision = evaluateSalawatEligibility({
+          enabled: user.salawatReminderEnabled,
+          now,
+          timeZone,
+          recentSentAt: recentRows.map((r) => r.createdAt),
+          intervalMinutes: user.salawatIntervalMinutes,
+          startTime: user.salawatWindowStart,
+          endTime: user.salawatWindowEnd,
+        });
+
+        if (!decision.eligible || !decision.occurrenceKey) {
+          const key = decision.reason ?? 'SKIP';
+          skipped[key] = (skipped[key] ?? 0) + 1;
+          continue;
+        }
+
+        const claimed = await claimOccurrence(user.id, decision.occurrenceKey);
+        if (!claimed) {
+          skipped.DUPLICATE = (skipped.DUPLICATE ?? 0) + 1;
+          continue;
+        }
+
+        pushesAttempted += 1;
+        const result = await sendPushToUser(user.id, {
+          title: SALAWAT_TITLE_EN,
+          body: SALAWAT_BODY_EN,
+          titleAr: SALAWAT_TITLE_AR,
+          bodyAr: SALAWAT_BODY_AR,
+          data: {
+            type: 'SALAWAT',
+            kind: 'salawat_reminder',
+          },
+        });
+        pushesSent += result.sent;
+
+        await createNotification({
           userId: user.id,
+          titleAr: SALAWAT_TITLE_AR,
+          titleEn: SALAWAT_TITLE_EN,
+          bodyAr: SALAWAT_BODY_AR,
+          bodyEn: SALAWAT_BODY_EN,
           type: 'SALAWAT' as any,
-          createdAt: { gte: lookback },
-        },
-        select: { createdAt: true, payload: true },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-      });
-
-      const recentSentAt = recentRows.map((r) => r.createdAt);
-      const decision = evaluateSalawatEligibility({
-        enabled: user.salawatReminderEnabled,
-        now,
-        timeZone,
-        recentSentAt,
-      });
-
-      if (!decision.eligible) {
-        const key = decision.reason ?? 'SKIP';
-        skipped[key] = (skipped[key] ?? 0) + 1;
-        continue;
+          deepLink: '/tasbih',
+          payload: {
+            type: 'SALAWAT',
+            kind: 'salawat_reminder',
+            dayKey: getLocalClock(now, timeZone).dayKey,
+            occurrenceKey: decision.occurrenceKey,
+          },
+        }).catch(() => null);
+      } catch (err) {
+        logger.warn('[Cron] Salawat reminder failed for user', {
+          userId: user.id,
+          message: (err as Error)?.message,
+        });
+        skipped.ERROR = (skipped.ERROR ?? 0) + 1;
       }
-
-      pushesAttempted += 1;
-      const result = await sendPushToUser(user.id, {
-        title: SALAWAT_TITLE_EN,
-        body: SALAWAT_BODY_EN,
-        titleAr: SALAWAT_TITLE_AR,
-        bodyAr: SALAWAT_BODY_AR,
-        data: {
-          type: 'SALAWAT',
-          kind: 'salawat_reminder',
-        },
-      });
-      pushesSent += result.sent;
-
-      await createNotification({
-        userId: user.id,
-        titleAr: SALAWAT_TITLE_AR,
-        titleEn: SALAWAT_TITLE_EN,
-        bodyAr: SALAWAT_BODY_AR,
-        bodyEn: SALAWAT_BODY_EN,
-        type: 'SALAWAT' as any,
-        deepLink: '/tasbih',
-        payload: {
-          type: 'SALAWAT',
-          kind: 'salawat_reminder',
-          dayKey: getLocalClock(now, timeZone).dayKey,
-        },
-      }).catch(() => null);
-    } catch (err) {
-      logger.warn('[Cron] Salawat reminder failed for user', {
-        userId: user.id,
-        message: (err as Error)?.message,
-      });
     }
+
+    if (users.length < 200) break;
   }
 
   return {
-    usersScanned: users.length,
+    usersScanned,
     pushesAttempted,
     pushesSent,
     skipped,

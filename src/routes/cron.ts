@@ -47,7 +47,7 @@ function assertCronAuthorized(req: {
  *     summary: FCM reminders cron — Azan backup + Pray-for-the-Prophet ﷺ
  *     description: |
  *       Same scheduler (~every 10 minutes). Runs Azan prayer-window pushes, then
- *       Salawat reminders (every 3h, max 5/day, quiet hours 22:00–08:00 local, preference-gated).
+ *       Salawat reminders (opt-in; user interval 30/60/120/180 min; active HH:mm window in user timezone).
  *       Auth: Authorization Bearer CRON_SECRET, X-Cron-Secret, or ?secret= (no Vercel bypass).
  */
 cronRouter.post(

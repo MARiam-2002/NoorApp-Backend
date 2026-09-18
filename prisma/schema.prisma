@@ -38,8 +38,14 @@ model User {
   prayerCalculationMethod String                 @default("EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY")
   /// Synced Azan settings across devices (see AZAN_FEATURE.md §6).
   azanPreferences         Json?
-  /// FCM "Pray for the Prophet ﷺ" reminders (default on).
-  salawatReminderEnabled  Boolean                @default(true)
+  /// FCM "Pray for the Prophet ﷺ" reminders (opt-in; default off).
+  salawatReminderEnabled  Boolean                @default(false)
+  /// Allowed values: 30 | 60 | 120 | 180.
+  salawatIntervalMinutes  Int                    @default(180)
+  /// Active local window start (HH:mm).
+  salawatWindowStart      String                 @default("08:00")
+  /// Active local window end (HH:mm). May be overnight vs start.
+  salawatWindowEnd        String                 @default("22:00")
   challengeCompletions    ChallengeCompletion[]
   dailyDhikrCompletions   DailyDhikrCompletion[]
   dailyProgress           DailyProgress[]
@@ -58,8 +64,22 @@ model User {
   adhkarFavorites         AdhkarFavorite[]
   adhkarResumeMarks       AdhkarResumeMark[]
   ayahHistory             UserAyahHistory[]
+  salawatSendLogs         SalawatSendLog[]
 
   @@map("users")
+}
+
+/// Durable Salawat FCM idempotency (one row per user per occurrence slot).
+model SalawatSendLog {
+  id             String   @id @default(uuid())
+  userId         String
+  occurrenceKey  String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, occurrenceKey])
+  @@index([userId, createdAt])
+  @@map("salawat_send_logs")
 }
 
 /// Blocks login/Google for an identity after Play account deletion.

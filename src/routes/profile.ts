@@ -506,12 +506,24 @@ profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandl
  *         application/json:
  *           schema:
  *             type: object
- *             required: [enabled]
  *             properties:
  *               enabled: { type: boolean }
+ *               intervalMinutes: { type: integer, enum: [30, 60, 120, 180] }
+ *               startTime: { type: string, example: '08:00' }
+ *               endTime: { type: string, example: '22:00' }
+ *   put:
+ *     tags: ['Profile']
+ *     summary: Same as PATCH — enable/disable, interval, and active window
+ *     security: [ { bearerAuth: [] } ]
  */
 profileRouter.get('/salawat-preferences', authenticate, getSalawatPreferencesHandler);
 profileRouter.patch(
+  '/salawat-preferences',
+  authenticate,
+  validate(salawatPreferencesPatchSchema),
+  patchSalawatPreferencesHandler,
+);
+profileRouter.put(
   '/salawat-preferences',
   authenticate,
   validate(salawatPreferencesPatchSchema),
