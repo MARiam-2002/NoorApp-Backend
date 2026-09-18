@@ -349,9 +349,9 @@ const googleSignInSchema = z.object({
  *       Hard-deletes the user row. Sessions, FCM device tokens, profile/azan prefs,
  *       journey/challenge/tasbih/Quran progress, notifications, and provider links
  *       cascade away. No request body. Google-only accounts do not need a password.
- *       After success, login / Google / refresh with the deleted identity's old
- *       tokens fail with 401. The same email/Google identity may sign up again as
- *       a **new empty** account (old data is not restored).
+ *       After success, POST /auth/login, POST /auth/google, and POST /auth/refresh
+ *       for that identity return 401. Explicit POST /auth/sign-up with the same
+ *       email creates a new empty account (old data is not restored).
  *     security:
  *       - bearerAuth: []
  *     responses:

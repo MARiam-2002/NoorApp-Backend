@@ -159,6 +159,34 @@ async function createAuthResultForUser(user: {
   };
 }
 
+function identityBlockedError(code: typeof ErrorCodes.UNAUTHORIZED | typeof ErrorCodes.INVALID_CREDENTIALS) {
+  const message =
+    code === ErrorCodes.INVALID_CREDENTIALS
+      ? 'Invalid email or password'
+      : 'Authentication required';
+  return new AppError(message, HttpStatus.UNAUTHORIZED, code);
+}
+
+async function assertIdentityNotDeleted(
+  email: string,
+  googleId?: string | null,
+  code: typeof ErrorCodes.UNAUTHORIZED | typeof ErrorCodes.INVALID_CREDENTIALS = ErrorCodes.UNAUTHORIZED,
+): Promise<void> {
+  const emailLower = email.toLowerCase().trim();
+  const row = await prisma.deletedIdentity.findFirst({
+    where: {
+      OR: [
+        { email: emailLower },
+        ...(googleId ? [{ googleId }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  if (row) {
+    throw identityBlockedError(code);
+  }
+}
+
 export async function signUp(input: {
   username?: string;
   fullName?: string | null;
@@ -182,26 +210,29 @@ export async function signUp(input: {
 
   const passwordHash = await hashPassword(input.password);
 
-  const user = await prisma.user.create({
-    data: {
-      username,
-      fullName: input.fullName ? input.fullName.trim() : null,
-      email: emailLower,
-      password: passwordHash,
-      provider: 'LOCAL',
-      role: UserRole.USER,
-    },
-    select: {
-      id: true,
-      username: true,
-      fullName: true,
-      email: true,
-      role: true,
-      provider: true,
-      providerId: true,
-      googleId: true,
-      createdAt: true,
-    },
+  const user = await prisma.$transaction(async (tx) => {
+    await tx.deletedIdentity.deleteMany({ where: { email: emailLower } });
+    return tx.user.create({
+      data: {
+        username,
+        fullName: input.fullName ? input.fullName.trim() : null,
+        email: emailLower,
+        password: passwordHash,
+        provider: 'LOCAL',
+        role: UserRole.USER,
+      },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        role: true,
+        provider: true,
+        providerId: true,
+        googleId: true,
+        createdAt: true,
+      },
+    });
   });
 
   return createAuthResultForUser(user);
@@ -211,8 +242,11 @@ export async function login(input: {
   email: string;
   password: string;
 }): Promise<AuthResult> {
+  const emailLower = input.email.toLowerCase().trim();
+  await assertIdentityNotDeleted(emailLower, null, ErrorCodes.INVALID_CREDENTIALS);
+
   const user = await prisma.user.findUnique({
-    where: { email: input.email.toLowerCase() },
+    where: { email: emailLower },
     select: {
       id: true,
       username: true,
@@ -340,7 +374,7 @@ export type DeleteAccountResult = {
 export async function deleteAccount(userId: string): Promise<DeleteAccountResult> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, isActive: true },
+    select: { id: true, isActive: true, email: true, googleId: true, providerId: true },
   });
 
   if (!user || !user.isActive) {
@@ -348,9 +382,22 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
   }
 
   const deletedAt = new Date();
+  const googleId = user.googleId || user.providerId || null;
 
   try {
     await prisma.$transaction(async (tx) => {
+      await tx.deletedIdentity.upsert({
+        where: { email: user.email.toLowerCase() },
+        create: {
+          email: user.email.toLowerCase(),
+          googleId,
+          deletedAt,
+        },
+        update: {
+          googleId,
+          deletedAt,
+        },
+      });
       await tx.refreshToken.deleteMany({ where: { userId } });
       await tx.deviceToken.deleteMany({ where: { userId } });
       await tx.passwordResetToken.deleteMany({ where: { userId } });
@@ -591,6 +638,8 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
   }
 
   const emailLower = googlePayload.email.toLowerCase();
+
+  await assertIdentityNotDeleted(emailLower, googlePayload.sub || null);
 
   // Priority lookup order:
   //   1. By googleId (the sub claim from Google) — handles users who changed

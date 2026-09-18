@@ -62,6 +62,18 @@ model User {
   @@map("users")
 }
 
+/// Blocks login/Google for an identity after Play account deletion.
+/// Cleared only when the same email explicitly signs up again (new empty account).
+model DeletedIdentity {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  googleId  String?  @unique
+  deletedAt DateTime @default(now())
+
+  @@index([googleId])
+  @@map("deleted_identities")
+}
+
 model DeviceToken {
   id         String   @id @default(uuid())
   userId     String

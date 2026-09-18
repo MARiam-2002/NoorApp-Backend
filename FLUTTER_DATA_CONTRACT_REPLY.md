@@ -102,7 +102,7 @@ When Firebase env vars are set on Vercel, `fcm.configured` becomes `true` and pu
 | POST | `/auth/refresh` | `{ refreshToken }` |
 | POST | `/auth/logout` | refresh revoke |
 | GET | `/auth/me` | Bearer — current user |
-| DELETE | `/auth/me` | Bearer — hard-delete account (Play). No body. Success `data`: `{ deleted, deletedAt }`. |
+| DELETE | `/auth/me` | Bearer — hard-delete account (Play). No body. Success `data`: `{ deleted, deletedAt }`. After delete, login / Google / refresh for that identity → 401. |
 
 Canonical Production URL for Play builds: `https://noorapp-backend-production.up.railway.app/api/v1`. The Vercel host is retired.
 

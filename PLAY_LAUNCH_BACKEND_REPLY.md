@@ -18,7 +18,7 @@
 
 ## 3) Delete model
 
-**Immediate hard-delete.** No grace period. Prisma cascades remove user-owned rows (refresh/reset tokens, FCM devices, journey/progress, challenges, tasbih, khatmah/Quran progress, notifications, ayah history, adhkar favorites/resume, azan prefs on the user row). Login/refresh with the deleted credentials/tokens return **401**. The same email or Google identity **may sign up again** as a new empty account; previous data is not restored.
+**Immediate hard-delete.** No grace period. User-owned rows cascade away (sessions, FCM devices, journey, challenges, tasbih, khatmah, notifications, ayah history, azan prefs). Email + Google `sub` are stored in `deleted_identities` so **`POST /auth/login` and `POST /auth/google` return 401** for that identity (do not recreate the old account). `POST /auth/refresh` with old tokens returns 401. Explicit `POST /auth/sign-up` with the same email creates a **new empty** account and clears the block.
 
 ## 4) Curl (Production)
 

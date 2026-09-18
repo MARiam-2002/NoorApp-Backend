@@ -114,7 +114,7 @@ Login/signup/Google/refresh return:
 | GET | `/auth/me` | Bearer — current user |
 | DELETE | `/auth/me` | Bearer — **hard-delete account** (Google Play). No body. |
 
-`DELETE /auth/me` success `data`: `{ "deleted": true, "deletedAt": "ISO-8601" }` (HTTP 200). Missing/invalid/expired token, or already-deleted account → `401` (`UNAUTHORIZED` / `INVALID_TOKEN` / `TOKEN_EXPIRED`). After delete, `POST /auth/login` and `POST /auth/refresh` with that identity fail `401`. `POST /auth/google` with the same Google identity creates a **new empty** account (old data is gone, not restored). FCM device rows for the user are cascade-deleted.
+`DELETE /auth/me` success `data`: `{ "deleted": true, "deletedAt": "ISO-8601" }` (HTTP 200). Missing/invalid/expired token, or already-deleted account → `401` (`UNAUTHORIZED` / `INVALID_TOKEN` / `TOKEN_EXPIRED`). After delete, `POST /auth/login`, `POST /auth/google`, and `POST /auth/refresh` for that identity fail `401`. FCM device rows cascade-delete. Explicit `POST /auth/sign-up` with the same email creates a **new empty** account (clears the deletion block); old data is never restored.
 
 ---
 
