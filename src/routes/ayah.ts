@@ -44,6 +44,7 @@ const ayahHistoryQuerySchema = z.object({
 });
 
 export const ayahRouter = Router();
+// Railway deployment verification: 2026-09-17
 
 /**
  * @openapi

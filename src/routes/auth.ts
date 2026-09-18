@@ -342,6 +342,38 @@ const googleSignInSchema = z.object({
  *               message: التوكن غير صالح أو منتهي الصلاحية
  *               details: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
+ *   delete:
+ *     tags: ['Auth']
+ *     summary: Delete the authenticated account and associated user data (Google Play)
+ *     description: |
+ *       Hard-deletes the user row. Sessions, FCM device tokens, profile/azan prefs,
+ *       journey/challenge/tasbih/Quran progress, notifications, and provider links
+ *       cascade away. No request body. Google-only accounts do not need a password.
+ *       After success, login / Google / refresh with the deleted identity's old
+ *       tokens fail with 401. The same email/Google identity may sign up again as
+ *       a **new empty** account (old data is not restored).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deleted
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Account deleted
+ *               data:
+ *                 deleted: true
+ *                 deletedAt: '2026-09-18T12:00:00.000Z'
+ *               meta: {}
+ *               timestamp: '2026-09-18T12:00:00.000Z'
+ *               requestId: 00000000-0000-4000-8000-000000000000
+ *       401:
+ *         description: Missing, invalid, or expired token — or account already gone
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -534,6 +566,13 @@ authRouter.get(
   '/me',
   authenticate,
   authController.getCurrentUser,
+);
+
+authRouter.delete(
+  '/me',
+  authenticate,
+  authSensitiveRateLimiter,
+  authController.deleteAccount,
 );
 
 authRouter.post(

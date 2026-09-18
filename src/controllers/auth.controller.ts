@@ -44,6 +44,22 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, null, 'Logged out successfully', req);
 });
 
+export const deleteAccount = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.sub;
+
+  if (!userId) {
+    throw new AppError(
+      'Authentication required',
+      HttpStatus.UNAUTHORIZED,
+      ErrorCodes.UNAUTHORIZED,
+    );
+  }
+
+  const result = await authService.deleteAccount(userId);
+
+  sendSuccess(res, result, 'Account deleted', req);
+});
+
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
 

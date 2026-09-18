@@ -2,8 +2,9 @@
 
 **Audience:** Flutter team  
 **App:** Noor Flutter (`lib/`)  
-**Production base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-09-04  
+**Production base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`  
+**Retired (do not use for Play builds):** `https://noor-app-backend-one.vercel.app/api/v1`  
+**Updated:** 2026-09-19  
 **Source:** Backend Production-verified reply (2026-09-04)
 
 This document is the **verified** Backend → Flutter contract. Backend required APIs from the four docs are **implemented and Production-verified**. Flutter owns remaining client work (especially Local Azan + FCM client).
@@ -110,6 +111,10 @@ Login/signup/Google/refresh return:
 | POST | `/auth/reset-password` | `{ token, password }` or `{ token, newPassword }` |
 | POST | `/auth/refresh` | `{ refreshToken }` |
 | POST | `/auth/logout` | refresh revoke |
+| GET | `/auth/me` | Bearer — current user |
+| DELETE | `/auth/me` | Bearer — **hard-delete account** (Google Play). No body. |
+
+`DELETE /auth/me` success `data`: `{ "deleted": true, "deletedAt": "ISO-8601" }` (HTTP 200). Missing/invalid/expired token, or already-deleted account → `401` (`UNAUTHORIZED` / `INVALID_TOKEN` / `TOKEN_EXPIRED`). After delete, `POST /auth/login` and `POST /auth/refresh` with that identity fail `401`. `POST /auth/google` with the same Google identity creates a **new empty** account (old data is gone, not restored). FCM device rows for the user are cascade-deleted.
 
 ---
 

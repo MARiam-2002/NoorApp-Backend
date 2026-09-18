@@ -9,6 +9,7 @@
     "postinstall": "prisma generate --no-hints && node scripts/patch-adhan.cjs",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:account-delete": "tsx scripts/smoke-account-delete.ts",
     "test:production-fixes": "tsx scripts/verify-production-fixes.ts",
     "test:phase1-perf": "tsx scripts/verify-phase1-perf.ts",
     "test": "npm run test:production-fixes && npm run test:phase1-perf",

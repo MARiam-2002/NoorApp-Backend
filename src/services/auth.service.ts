@@ -326,6 +326,51 @@ export async function logout(input: { refreshToken: string }): Promise<void> {
   }
 }
 
+export type DeleteAccountResult = {
+  deleted: true;
+  deletedAt: string;
+};
+
+/**
+ * Google Play account-deletion: hard-delete the user row.
+ * Related rows (sessions, FCM tokens, profile prefs, journey, challenges,
+ * tasbih, Quran/khatmah, notifications, ayah history, auth provider links)
+ * are removed via Prisma `onDelete: Cascade`.
+ */
+export async function deleteAccount(userId: string): Promise<DeleteAccountResult> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, isActive: true },
+  });
+
+  if (!user || !user.isActive) {
+    throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
+  }
+
+  const deletedAt = new Date();
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.refreshToken.deleteMany({ where: { userId } });
+      await tx.deviceToken.deleteMany({ where: { userId } });
+      await tx.passwordResetToken.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
+  } catch (err: any) {
+    if (err?.code === 'P2025') {
+      throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
+    }
+    throw err;
+  }
+
+  logger.info('Account hard-deleted', { userId, deletedAt: deletedAt.toISOString() });
+
+  return {
+    deleted: true,
+    deletedAt: deletedAt.toISOString(),
+  };
+}
+
 export async function getCurrentUser(userId: string): Promise<ContractAuthUser> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
