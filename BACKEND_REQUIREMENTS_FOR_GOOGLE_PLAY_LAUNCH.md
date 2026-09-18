@@ -15,7 +15,7 @@ Google Play requires apps that create accounts to offer **account deletion**.
 
 | Priority | Item | Type | Blocks Play? | Backend status (2026-09-19) |
 |----------|------|------|--------------|-----------------------------|
-| **P0** | Account deletion API | New endpoint + data cleanup | **Yes** | Implemented: `DELETE /auth/me` (hard-delete + identity block). Live on Production only after Railway deploy. |
+| **P0** | Account deletion API | New endpoint + data cleanup | **Yes** | **Live on Production** (2026-09-19 smoke PASS). `DELETE /auth/me`. |
 | **P1** | Live cron for `/cron/prayer-reminders` | Ops / scheduler | No | Endpoint live (`401` without secret). Railway Cron `*/10 * * * *` — confirm job enabled in dashboard. |
 | **P1** | Confirm Production base URL | Ops / docs | No | Canonical: `https://noorapp-backend-production.up.railway.app/api/v1`. Vercel retired. |
 | **P2** | Real mailbox check for password-reset SMTP | Ops QA | No | No API change. `email.readyForDelivery` on `/health`. |

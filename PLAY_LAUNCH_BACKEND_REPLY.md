@@ -55,7 +55,7 @@ Automated: `npm run test:account-delete` (or `API_BASE=… npx tsx scripts/smoke
 
 **Endpoint:** live (`POST`/`GET` `/cron/prayer-reminders`, `401` without `CRON_SECRET`).  
 **Scheduler:** Railway Cron only, cadence **`*/10 * * * *`**. GitHub Actions workflow is disabled (emergency dispatch only).  
-**Ops check still required** on the Railway dashboard: confirm the cron job is enabled in Production and that a run no-ops or delivers for a token+prefs test user (`noorapp-d5d7d`). Payload types unchanged: `AZAN`, `TEST`.
+**Verified 2026-09-19:** unauthenticated cron call → **401**. Confirm Railway Cron job is **enabled**. Production `GET /health` currently has **`fcm.configured: false`**, so FCM backup sends will no-op until Firebase `noorapp-d5d7d` credentials are set on Railway. Payload types unchanged: `AZAN`, `TEST`.
 
 Local Azan remains source of truth; FCM is backup when `fcmPrayerBackupEnabled: true`.
 

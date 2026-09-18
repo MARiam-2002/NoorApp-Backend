@@ -116,23 +116,33 @@ Automated: `npm run test:account-delete`
 
 ## P1 / P2 (ops, does not block Flutter delete UI)
 
-| Item | Status |
+| Item | Status (verified 2026-09-19) |
 |------|--------|
-| Canonical Production URL | Railway URL above. Vercel retired. |
-| Prayer-reminder cron | HTTP endpoint ready (`401` without secret). Cadence `*/10 * * * *` on Railway. Confirm dashboard job is **enabled**. Local Azan remains source of truth. |
-| Password-reset SMTP | No new API. `GET /health` → `email.readyForDelivery`. One real inbox round-trip is human QA. |
+| Canonical Production URL | **Railway** (this file). Vercel retired. |
+| Prayer-reminder cron | Endpoint **live**: unauthenticated `POST /cron/prayer-reminders` → **401** `UNAUTHORIZED`. Cadence **`*/10 * * * *`** on Railway Cron. Confirm the dashboard job is **enabled**. |
+| FCM backup sends | Production `GET /health` → **`fcm.configured: false`**. Cron will no-op sends until Railway Firebase env is `noorapp-d5d7d`. Local Azan remains source of truth. |
+| Password-reset SMTP | **`email.readyForDelivery: true`** (`provider: smtp`). One real inbox round-trip is still human QA. No new API. |
 
 ---
 
 ## Verification log (Backend, 2026-09-19)
 
-Filled after running probes in this repo. If Production still returns **404** on `DELETE /auth/me`, the branch is **not deployed yet** — Flutter should wait for Railway deploy before wiring closed testing against this route.
+**P0 is live on Production.** Flutter can implement the in-app delete flow against the Railway URL.
 
 | Check | Result |
 |-------|--------|
-| Typecheck | See terminal run |
-| Cron auth unit tests (`npm run test:production-fixes`) | See terminal run |
-| `GET /health` Production | See terminal run |
-| `DELETE /auth/me` unauthenticated → 401 | See terminal run |
-| `POST /cron/prayer-reminders` no secret → 401 | See terminal run |
-| Full signup→delete smoke | Run after deploy: `LIVE_SMOKE=1 npm run test:play-launch` |
+| DB hard-delete + cascade (Neon) | **PASS** — user row, FCM devices, refresh tokens, notifications gone; identity blocked; login/refresh 401 |
+| `GET /health` Production | **200** `status: ok`, `database: connected`, `email.readyForDelivery: true`, `fcm.configured: false` |
+| `DELETE /auth/me` no token | **401** `UNAUTHORIZED` (route exists) |
+| `POST /cron/prayer-reminders` no secret | **401** `UNAUTHORIZED` |
+| Production smoke `npm run test:account-delete` | **PASS** — signup → FCM register → `DELETE /auth/me` **200** `{ deleted: true, deletedAt }` → `GET /auth/me` 401 → login 401 → refresh 401 → google 401 → second delete 401 |
+| Cron unit auth (`npm run test:production-fixes`) | **PASS** |
+
+Acceptance vs spec:
+
+- [x] Authenticated delete endpoint live on Production  
+- [x] Documented (`DELETE /auth/me`, no body, errors above)  
+- [x] After delete: login 401; Google 401 (does not restore)  
+- [x] After delete: refresh 401  
+- [x] After delete: FCM rows gone (DB check + token registered before HTTP delete)  
+- [x] Smoke + curl shared in this file
