@@ -45,15 +45,17 @@ const adhkarSchema = z.object({
   }
 });
 
+function optionalMoney(min: number, max: number) {
+  return z.preprocess((value) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    return value;
+  }, z.coerce.number().finite().min(min).max(max).optional());
+}
+
 export const sadaqahSchema = z
   .object({
-    amount: z.coerce.number().finite().min(0).max(SADAQAH_GOAL_MAX_EGP).optional(),
-    goal: z.coerce
-      .number()
-      .finite()
-      .min(SADAQAH_GOAL_MIN_EGP)
-      .max(SADAQAH_GOAL_MAX_EGP)
-      .optional(),
+    amount: optionalMoney(0, SADAQAH_GOAL_MAX_EGP),
+    goal: optionalMoney(SADAQAH_GOAL_MIN_EGP, SADAQAH_GOAL_MAX_EGP),
     category: z
       .string()
       .trim()

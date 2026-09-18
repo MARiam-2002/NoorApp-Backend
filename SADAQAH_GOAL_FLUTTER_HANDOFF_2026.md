@@ -200,4 +200,6 @@ Envelope:
 - `GET /journey/sadaqah` extra screen fields (`goalTitleAr`, `categories`, `featured`, `trackingOnly`, …)
 - Nesting of `GET /journey/today` → `data.sadaqah.{ amount, goal, percent, currency, … }`
 
-**Additive only:** request field `goal`. `goal` in responses is the same field name; it is no longer a hardcoded `1000` after the user edits it.
+**Deploy note (2026-09-19):** Neon already has `users.sadaqahGoal`. Railway must be running this branch for `PATCH { "goal" }` without `amount`. Until then, Production still returns `400` (`amount` expected number, received NaN). After deploy, Flutter can wire **حفظ** to `{ "goal": <slider> }` only.
+
+---
