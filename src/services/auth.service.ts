@@ -386,6 +386,11 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
 
   try {
     await prisma.$transaction(async (tx) => {
+      if (googleId) {
+        await tx.deletedIdentity.deleteMany({
+          where: { googleId, email: { not: user.email.toLowerCase() } },
+        });
+      }
       await tx.deletedIdentity.upsert({
         where: { email: user.email.toLowerCase() },
         create: {

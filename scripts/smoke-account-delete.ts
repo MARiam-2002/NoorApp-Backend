@@ -31,6 +31,7 @@ async function request(
     method,
     headers,
     body: opts?.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    signal: AbortSignal.timeout(20000),
   });
   const text = await res.text();
   let json: Envelope = {};
@@ -71,6 +72,16 @@ async function main(): Promise<void> {
     fail('sign-up missing tokens.accessToken / tokens.refreshToken');
   }
 
+  const fcm = await request('POST', '/devices/fcm-token', {
+    token: accessToken,
+    body: { token: `smoke-fcm-${stamp}-abcdefghijklmnop`, platform: 'android' },
+  });
+  if (fcm.status !== 200 && fcm.status !== 201) {
+    console.log(`INFO  FCM register skipped (${fcm.status})`);
+  } else {
+    console.log('PASS  POST /devices/fcm-token before delete');
+  }
+
   const del = await request('DELETE', '/auth/me', { token: accessToken });
   if (del.status !== 200 || del.json.data?.deleted !== true) {
     fail(`DELETE /auth/me expected 200 deleted:true, got ${del.status} ${JSON.stringify(del.json)}`);
@@ -97,6 +108,14 @@ async function main(): Promise<void> {
     fail(`POST /auth/refresh after delete expected 401, got ${refresh.status}`);
   }
   console.log('PASS  POST /auth/refresh after delete → 401');
+
+  const google = await request('POST', '/auth/google', {
+    body: { idToken: 'invalid-after-delete' },
+  });
+  if (google.status !== 401) {
+    fail(`POST /auth/google after delete expected 401, got ${google.status} ${JSON.stringify(google.json)}`);
+  }
+  console.log('PASS  POST /auth/google → 401');
 
   const delAgain = await request('DELETE', '/auth/me', { token: accessToken });
   if (delAgain.status !== 401) {

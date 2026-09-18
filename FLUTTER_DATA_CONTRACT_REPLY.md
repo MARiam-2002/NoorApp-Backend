@@ -3,7 +3,7 @@
 **Audience:** Flutter team  
 **From:** Noor Backend  
 **Production base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`  
-**Updated:** 2026-09-19 — `DELETE /auth/me` (Play account deletion) added  
+**Updated:** 2026-09-19  
 **Language:** English only  
 
 This document is the **verified** Backend → Flutter contract after Production testing. It also lists every Flutter-side deliverable from `BACKEND_REQUIREMENTS.md`, `BACKEND_DATA_CONTRACT.md`, `AZAN_FEATURE.md`, and `APP_ENHANCEMENTS.md`.
@@ -104,7 +104,7 @@ When Firebase env vars are set on Vercel, `fcm.configured` becomes `true` and pu
 | GET | `/auth/me` | Bearer — current user |
 | DELETE | `/auth/me` | Bearer — hard-delete account (Play). No body. Success `data`: `{ deleted, deletedAt }`. After delete, login / Google / refresh for that identity → 401. |
 
-Canonical Production URL for Play builds: `https://noorapp-backend-production.up.railway.app/api/v1`. The Vercel host is retired.
+Canonical Production URL for Play builds: `https://noorapp-backend-production.up.railway.app/api/v1`. The Vercel host is retired. Play account deletion: [FLUTTER_PLAY_LAUNCH_HANDOFF_2026.md](./FLUTTER_PLAY_LAUNCH_HANDOFF_2026.md).
 
 ---
 
