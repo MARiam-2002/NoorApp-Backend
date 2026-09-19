@@ -1,27 +1,12 @@
-# الصلاة على النبي ﷺ — Flutter handoff (complete)
+# الصلاة على النبي ﷺ — Flutter handoff (Production)
 
 **To:** Flutter (`com.noor.app`)  
 **From:** Noor Backend  
 **Date:** 2026-09-19  
-**Status:** Settings API is live. Local notifications are the primary UX. Do **not** implement this from any Dart files in the backend repo.
+**Production verified:** YES — Railway live smoke passed (prefs, catalog count 6, `audioClipId` persist, hosted MP3 `200 audio/mpeg`)
 
-This file is the **only** Backend → Flutter contract for the screen:
-
-- Title: **الصلاة على النبي**
-- Switch: **تفعيل التذكير** — تذكير محلي للصلاة على النبي ﷺ
-- Interval chips: **٣٠ دقيقة** / **ساعة** / **ساعتان** / **٣ ساعات**
-- Window: **من** `08:00` **إلى** `22:00` (overnight allowed, e.g. `22:00` → `08:00`)
-
-Keep those Arabic UI strings. Source code identifiers stay English.
-
----
-
-## 0. Do this first
-
-1. **Delete / ignore any Dart copied from the backend repo.**  
-   There must be **no** Flutter sources under NoorApp-Backend (`flutter_handoff/`, `*.dart`, etc.). Implement models + API calls **inside the Flutter app**, using the existing Dio `ApiService` (Bearer interceptor + refresh). Do not create a second HTTP client.
-2. **Do not hard-code famous reciter Salawat from YouTube / TikTok / Spotify.** Those recordings are not licensed for Noor.
-3. Bind the **existing** settings UI to the endpoints below. Do not rebuild the screen.
+This file is the **only** Backend → Flutter contract.  
+**Do not copy Dart from the backend repo.** There are no Flutter sources in NoorApp-Backend. Implement inside the Flutter app with the existing Dio `ApiService`.
 
 ---
 
@@ -31,52 +16,58 @@ Keep those Arabic UI strings. Source code identifiers stay English.
 https://noorapp-backend-production.up.railway.app/api/v1
 ```
 
-Do not use `https://noor-app-backend-one.vercel.app`.
+Do not use the retired Vercel host.
 
----
-
-## B. Settings API (source of truth)
-
-Auth: `Authorization: Bearer <accessToken>`  
-User id comes from the token only (no IDOR).
-
-| Method | Path | Use |
-|--------|------|-----|
-| `GET` | `/profile/salawat-preferences` | Load switch, interval, window |
-| `PATCH` | `/profile/salawat-preferences` | Save (partial). `{ "enabled": true }` still valid |
-| `PUT` | `/profile/salawat-preferences` | Same handler as PATCH |
-
-Envelope (do not change):
+Envelope (never change):
 
 ```text
 success, message, data, meta, timestamp, requestId
 ```
 
-### Request body (`PATCH` / `PUT`)
+---
 
-At least one field. Extra keys ignored.
+## B. Screen (already matches backend)
 
-| Field | Type | Values |
+| UI | Backend |
+|----|---------|
+| تفعيل التذكير | `enabled` |
+| ٣٠ دقيقة / ساعة / ساعتان / ٣ ساعات | `intervalMinutes` `30` / `60` / `120` / `180` |
+| من 08:00 | `startTime` |
+| إلى 22:00 | `endTime` |
+| النافذة تمتد لليل (٢٢:٠٠ ← ٠٨:٠٠) | overnight allowed |
+| تذكير محلي للصلاة على النبي ﷺ | **local notifications = primary** |
+| اختيار الصوت | `GET /salawat/audio` + `PATCH { "audioClipId": "<id>" }` |
+
+Keep Arabic UI strings. Identifiers in code stay English.
+
+---
+
+## C. Settings API
+
+Auth: `Authorization: Bearer <accessToken>`  
+User id from token only.
+
+| Method | Path |
+|--------|------|
+| `GET` | `/profile/salawat-preferences` |
+| `PATCH` | `/profile/salawat-preferences` |
+| `PUT` | `/profile/salawat-preferences` (same as PATCH) |
+
+### Request (`PATCH` / `PUT`)
+
+At least one field.
+
+| Field | Type | Notes |
 |-------|------|--------|
-| `enabled` | boolean | JSON boolean only |
+| `enabled` | boolean | JSON boolean |
 | `intervalMinutes` | int | **only** `30`, `60`, `120`, `180` |
-| `startTime` | string | `HH:mm` `00:00`–`23:59` |
-| `endTime` | string | `HH:mm` `00:00`–`23:59` |
+| `startTime` | string | `HH:mm` |
+| `endTime` | string | `HH:mm` |
+| `audioClipId` | string | Must be an `id` from `GET /salawat/audio` |
 
-Optional aliases (same meaning): `windowStart` = `startTime`, `windowEnd` = `endTime`. Prefer **`startTime` / `endTime`** in requests.
+Aliases: `windowStart` = `startTime`, `windowEnd` = `endTime`. Prefer `startTime` / `endTime`.
 
-**Overnight is allowed.** Do **not** reject `startTime >= endTime`. Example: `22:00` → `08:00`.
-
-Map UI chips:
-
-| Chip | `intervalMinutes` |
-|------|-------------------|
-| ٣٠ دقيقة | `30` |
-| ساعة | `60` |
-| ساعتان | `120` |
-| ٣ ساعات | `180` (default) |
-
-### Copy-paste requests
+Overnight is allowed (`startTime` > `endTime`).
 
 ```http
 GET /profile/salawat-preferences
@@ -100,8 +91,17 @@ Content-Type: application/json
   "enabled": true,
   "intervalMinutes": 180,
   "startTime": "08:00",
-  "endTime": "22:00"
+  "endTime": "22:00",
+  "audioClipId": "mishary_allahumma_salli"
 }
+```
+
+```http
+PATCH /profile/salawat-preferences
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{ "audioClipId": "maher_ya_nabi_salam" }
 ```
 
 ```http
@@ -112,7 +112,7 @@ Content-Type: application/json
 { "enabled": false }
 ```
 
-### Real success `data` (GET / PATCH / PUT)
+### Success `data` (real shape)
 
 ```json
 {
@@ -128,7 +128,8 @@ Content-Type: application/json
     "intervalHours": 3,
     "maxPerDay": 4,
     "quietHoursStart": "22:00",
-    "quietHoursEnd": "08:00"
+    "quietHoursEnd": "08:00",
+    "audioClipId": "peaceful_reminder_tone"
   },
   "meta": {},
   "timestamp": "2026-09-19T00:00:00.000Z",
@@ -138,134 +139,87 @@ Content-Type: application/json
 
 PATCH/PUT message: `Salawat reminder preferences updated successfully`.
 
-**Must keep (do not rename/remove):**  
-`enabled`, `intervalMinutes`, `startTime`, `endTime`, `intervalHours`, `maxPerDay`, `quietHoursStart`, `quietHoursEnd`.  
-`windowStart` / `windowEnd` are additive aliases of start/end.
+**Must keep:** `enabled`, `intervalMinutes`, `startTime`, `endTime`, `intervalHours`, `maxPerDay`, `quietHoursStart`, `quietHoursEnd`.  
+**Additive:** `windowStart`, `windowEnd`, `audioClipId`.
 
-| Field | Persist | Bind |
-|-------|---------|------|
-| `enabled` | yes | تفعيل التذكير |
-| `intervalMinutes` | yes | الفترة chips |
-| `startTime` | yes | من |
-| `endTime` | yes | إلى |
-| `intervalHours` | no | legacy (`180` → `3`, `30` → `0.5`) |
-| `maxPerDay` | no | display only |
-| `quietHoursStart` | no | legacy = `endTime` |
-| `quietHoursEnd` | no | legacy = `startTime` |
+Defaults: `enabled: false`, `intervalMinutes: 180`, window `08:00`–`22:00`, `audioClipId: "peaceful_reminder_tone"`.
 
-Defaults for a user who never saved: **`enabled: false`**, interval **180**, window **08:00–22:00**.
-
----
-
-## C. Errors
-
-```json
-{
-  "success": false,
-  "message": "string",
-  "code": "UNAUTHORIZED | TOKEN_EXPIRED | INVALID_TOKEN | VALIDATION_ERROR",
-  "timestamp": "ISO-8601",
-  "requestId": "uuid"
-}
-```
+### Errors
 
 | Case | HTTP | `code` |
 |------|------|--------|
 | Missing / bad token | 401 | `UNAUTHORIZED` / `INVALID_TOKEN` |
-| Expired access token | 401 | `TOKEN_EXPIRED` |
-| Empty body, interval not in 30/60/120/180, bad `HH:mm`, `enabled` not boolean | 400 | `VALIDATION_ERROR` |
+| Expired access | 401 | `TOKEN_EXPIRED` |
+| Empty body, bad interval, bad time, unknown `audioClipId` | 400 | `VALIDATION_ERROR` |
 
-- `401` + `TOKEN_EXPIRED` → refresh once, retry.  
-- Other `401` → login.  
-- `400` → show `message`, keep the sheet open.  
-- Network failure → existing snackbar, do not dump stack traces.
+`401` + `TOKEN_EXPIRED` → refresh once. Other `401` → login. `400` → show `message`.
 
 ---
 
-## D. Screen behavior (match the screenshot)
-
-This screenshot is **already supported** by the backend. Map 1:1:
-
-| UI | Backend |
-|----|---------|
-| تفعيل التذكير | `enabled` |
-| ٣٠ دقيقة | `intervalMinutes: 30` |
-| ساعة | `60` |
-| ساعتان | `120` |
-| ٣ ساعات ✓ | `180` (default) |
-| من 08:00 | `startTime` |
-| إلى 22:00 | `endTime` |
-| يمكن أن تمتد النافذة لليل (٢٢:٠٠ ← ٠٨:٠٠) | overnight allowed (`startTime` > `endTime`) |
-| تذكير محلي للصلاة على النبي ﷺ | local notifications are primary |
-
-1. Open screen → `GET /profile/salawat-preferences`.
-2. Switch ← `data.enabled`. Subtitle stays **تذكير محلي للصلاة على النبي ﷺ**.
-3. Highlight the chip for `data.intervalMinutes`.
-4. **من** ← `data.startTime`, **إلى** ← `data.endTime`.
-5. On toggle / chip / time change → debounce, then `PATCH` only the changed fields (or send the full object). One in-flight request.
-6. On **200**, bind UI from **response `data`**, then re-GET if Home also shows this setting.
-7. Disable → `PATCH { "enabled": false }`. Cancel local schedules immediately. Interval/window stay stored.
-
-Timezone for scheduling = **profile** `users.timezone` (IANA, fallback `Africa/Cairo`), same as Azan — not raw device TZ unless you already synced it.
-
----
-
-## E. Who fires the reminder
-
-| Layer | Role |
-|-------|------|
-| **Local notifications** | **Primary.** Schedule in user timezone only if `enabled === true`. |
-| **Backend FCM** | Backup on existing `POST /cron/prayer-reminders` (~10 min). Only if `enabled === true` and a device token exists. |
-
-Production `GET /health` may show `fcm.configured: false`. Prefs still persist. Do not depend on FCM for this screen.
-
-If both local + FCM fire: ignore FCM when a local slot already rang (same as Azan). Backend also de-dupes with `salawat_send_logs` `(userId, occurrenceKey)`.
-
-FCM / inbox (do not rename):
-
-```text
-data.type = SALAWAT
-data.kind = salawat_reminder
-inbox type = SALAWAT
-```
-
-Additive when audio is available: `audioClipId`, `audioUrl` (strings).
-
----
-
-## F. Audio — verified status (important)
-
-Flutter **must** load clips from the API. Do **not** ship famous YouTube Salawat files.
-
-### What is actually playable today
-
-| id | What it is | `available` | Play? |
-|----|------------|-------------|-------|
-| `peaceful_reminder_tone` | CC0 meditation bell (already hosted) | **true** | yes |
-| `calm_chime` | CC0 soft chime (already hosted) | **true** | yes |
-| `salli_ala_muhammad` | Short CC0 vocal “صلِّ على محمد” (Freesound) | **false** | no — MP3 not hosted |
-| `laa_tansi_salli_ala_muhammad` | Short CC0 vocal (Freesound) | **false** | no — MP3 not hosted |
-
-**Famous reciter Salawat is not hosted as MP3** (copyright / no license to mirror Mishary, Maher, etc.). Do **not** download YouTube/Spotify/TikTok into the app bundle.
-
-For a “listen to a famous recitation” action, open these **official listen pages** (browser / YouTube / Spotify). They are **not** `audioUrl` streams for `just_audio`:
-
-| Reciter | Title | Listen link |
-|---------|--------|-------------|
-| مشاري راشد العفاسي | اللهم صل على سيدنا محمد | https://open.spotify.com/track/2NjazH1wRygYOkRdWgzm7O |
-
-The **reminder notification itself** must stay a **short** sound: use `GET /salawat/audio` clips with `available: true` (CC0 tones), or the OS default. A 2-minute nasheed is the wrong asset for a repeating local reminder.
-
-### Catalog API
-
-| Method | Path | Auth |
-|--------|------|------|
-| `GET` | `/salawat/audio` | none (same idea as `/azan/sounds`) |
-| `GET` | `/salawat/media/:file` | none |
+## D. Audio picker (live Production catalog)
 
 ```http
 GET /salawat/audio
 ```
+
+No auth. Same envelope.
+
+**Do not hard-code clip URLs.** Always load this list.
+
+Verified live (2026-09-19) `data.count = 6`.
+
+| id | UI title (AR) | `playback` | How Flutter uses it |
+|----|---------------|------------|---------------------|
+| `mishary_allahumma_salli` | اللهم صل على سيدنا محمد — مشاري | `external` | Open `listenUrl` / `spotifyUrl` |
+| `maher_ya_nabi_salam` | يا نبي سلام عليك — ماهر زين | `external` | Open `listenUrl` (YouTube) or `spotifyUrl` |
+| `maher_salla_alayka_rahman` | صلى عليك الرحمن — ماهر زين | `external` | Open `listenUrl` (YouTube) or `spotifyUrl` |
+| `salli_ala_muhammad` | صلِّ على محمد | `file` | MP3 not hosted yet (`audioUrl` null) — preview via `listenUrl` |
+| `peaceful_reminder_tone` | نغمة تذكير هادئة **(default)** | `file` | Play `audioUrl` in-app / local notification |
+| `calm_chime` | رنين هادئ | `file` | Play `audioUrl` |
+
+### Real Production clip examples
+
+Hosted notification MP3 (play with the existing audio player):
+
+```text
+https://noorapp-backend-production.up.railway.app/api/v1/salawat/media/meditation_bell.mp3
+https://noorapp-backend-production.up.railway.app/api/v1/salawat/media/soft_chime.mp3
+```
+
+Famous listen links (stored in backend; **not** app MP3s — copyright):
+
+```text
+https://open.spotify.com/track/2NjazH1wRygYOkRdWgzm7O
+https://www.youtube.com/watch?v=Vqfy4ScRXFQ
+https://www.youtube.com/watch?v=-Nly_L_f4Ng
+https://open.spotify.com/track/0KcEMREqmRmjJQoDSNUWnT
+https://open.spotify.com/track/2JVRBAOAXAcNM21EyziBLj
+```
+
+Clip fields:
+
+| Field | Meaning |
+|-------|---------|
+| `id` | Save this as `audioClipId` |
+| `title` / `titleAr` | Picker labels |
+| `creator` / `creatorAr` | Reciter / source |
+| `audioUrl` / `url` / `previewUrl` | In-app MP3 when not null |
+| `listenUrl` | Open externally (YouTube/Spotify/Freesound) |
+| `youtubeUrl` / `spotifyUrl` | Optional extras |
+| `playback` | `file` = MP3, `external` = open link |
+| `selectable` | Show in picker if true |
+| `available` | Listed and usable (link and/or file) |
+| `isDefault` | Default selection |
+| `license` | `CC0-1.0` or `all_rights_reserved` |
+
+### Picker rules
+
+1. `GET /salawat/audio` → show every `selectable` clip.
+2. User taps a clip → `PATCH { "audioClipId": "<id>" }`.
+3. Highlight the clip whose `id` equals prefs `audioClipId`.
+4. **Preview:** if `audioUrl != null`, play it. Else open `listenUrl` (url_launcher / YouTube / Spotify).
+5. **Local reminder sound:** only use `audioUrl` when `playback == "file"` and `audioUrl != null`. If the user picked a famous `external` clip, use default hosted tone `peaceful_reminder_tone` (or `calm_chime`) for the notification itself. Do **not** download YouTube/Spotify into the app.
+6. Empty / malformed `clips` → empty picker, keep default tone, do not crash.
 
 ```json
 {
@@ -273,94 +227,88 @@ GET /salawat/audio
   "message": "Salawat audio catalog retrieved successfully",
   "data": {
     "defaultId": "peaceful_reminder_tone",
-    "count": 4,
-    "availableCount": 2,
-    "clips": [
-      {
-        "id": "peaceful_reminder_tone",
-        "title": "Peaceful reminder tone",
-        "titleAr": "نغمة تذكير هادئة",
-        "url": "https://HOST/api/v1/salawat/media/meditation_bell.mp3",
-        "audioUrl": "https://HOST/api/v1/salawat/media/meditation_bell.mp3",
-        "previewUrl": "https://HOST/api/v1/salawat/media/meditation_bell.mp3",
-        "source": "https://freesound.org/people/kevp888/sounds/140128/",
-        "license": "CC0-1.0",
-        "creator": "kevp888",
-        "attribution": "…",
-        "durationSeconds": 4,
-        "available": true,
-        "isDefault": true
-      }
-    ],
+    "count": 6,
+    "selectableCount": 6,
+    "availableCount": 6,
+    "fileCount": 2,
+    "clips": [],
     "sourcePolicy": {}
-  },
-  "meta": {},
-  "timestamp": "2026-09-19T00:00:00.000Z",
-  "requestId": "uuid"
+  }
 }
 ```
 
-Rules:
-
-- Play only `available === true` **and** `url` / `audioUrl` non-null.
-- Empty playable list → notification **without** custom sound. Do not crash.
-- Malformed `clips` → treat as empty list.
-- Cache `audioUrl` after first download (same pattern as Azan).
-- This screen does **not** need an audio picker unless product adds one later. For local notifications, use `defaultId` if it is available, else first playable clip.
-
-Licenses (CC0): Freesound `788917`, `788912`, `140128`, `750607`. See backend `assets/ATTRIBUTION.md`.
+`GET /salawat/media/:file` streams hosted MP3 (`Content-Type: audio/mpeg`, Range supported).
 
 ---
 
-## G. Flutter implementation notes (in the Flutter repo)
+## E. Local reminder vs FCM
 
-Reuse existing Dio + `fromJson` style (Adhkar / Azan). Suggested method names on the **existing** ApiService:
+| Layer | Role |
+|-------|------|
+| Local notifications | **Primary.** Schedule in **profile timezone** (`users.timezone`, fallback `Africa/Cairo`) only if `enabled === true`. |
+| Backend FCM | Backup on `/cron/prayer-reminders`. Production `GET /health` may show `fcm.configured: false`. |
 
-- `getPrayerUponProphetSettings()` → `GET /profile/salawat-preferences` → parse `response.data['data']`
+FCM / inbox (do not rename):
+
+```text
+type = SALAWAT
+kind = salawat_reminder
+```
+
+Additive when a hosted file exists: `audioClipId`, `audioUrl`.
+
+If local + FCM both fire, ignore FCM for a slot that already rang (same as Azan).
+
+---
+
+## F. Flutter wiring
+
+Reuse existing Dio + `fromJson` on `response.data['data']`.
+
+Suggested methods on the **existing** client:
+
+- `getPrayerUponProphetSettings()` → `GET /profile/salawat-preferences`
 - `updatePrayerUponProphetSettings(...)` → `PATCH /profile/salawat-preferences`
 - `getPrayerUponProphetAudio()` → `GET /salawat/audio`
 
-Parse `startTime`/`endTime`. You may also read `windowStart`/`windowEnd` if present. Always **write** `startTime`/`endTime`.
+Flow:
 
-Suggested save payloads:
-
-```json
-{ "enabled": true }
-{ "intervalMinutes": 30 }
-{ "startTime": "08:00", "endTime": "22:00" }
-```
-
-Loading / saving flags: follow existing settings screens (Azan prefs). Disable the switch while a PATCH is in flight.
+1. Open screen → GET prefs + GET audio (parallel).
+2. Bind switch, chips, times, selected `audioClipId`.
+3. Debounce saves. One in-flight PATCH.
+4. On 200, apply returned `data`.
+5. Disable → `PATCH { "enabled": false }` and cancel local schedules.
 
 ---
 
-## H. Backward compatibility (must not break)
+## G. Backward compatibility
 
-- Envelope unchanged.
-- `{ "enabled": true|false }` still works.
-- Field names above stay.
-- Azan, prayer times, Quran, Sadaqah, Journey: untouched.
-- Cron path unchanged: `/cron/prayer-reminders` (Flutter does not call this).
+Unchanged: envelope, `{ "enabled": true|false }`, field names above, Azan / Quran / Sadaqah / Journey.
+
+`audioClipId` and the audio catalog are **additive**.
 
 ---
 
-## I. Checklist for Flutter
+## H. Checklist
 
 - [ ] No Dart taken from the backend repo
 - [ ] GET prefs on open; default off
-- [ ] Switch / 30 / 60 / 120 / 180 / 08:00–22:00 wired
-- [ ] Overnight window allowed
-- [ ] PATCH then update UI from `data`
-- [ ] 401 refresh vs login
-- [ ] 400 shows `message`
-- [ ] Local schedule is primary; FCM is backup only
-- [ ] Audio from `GET /salawat/audio` only; skip `available: false`
-- [ ] Arabic UI strings unchanged
+- [ ] 30 / 60 / 120 / 180 + 08:00–22:00 + overnight
+- [ ] Sound picker from `GET /salawat/audio`
+- [ ] Save `audioClipId`; famous clips open `listenUrl`
+- [ ] Notification uses hosted MP3 only
+- [ ] 401 refresh vs login; 400 shows `message`
 
 ---
 
-## J. Backend (for awareness only)
+## I. Production verification (backend, 2026-09-19)
 
-Prefs live on the **user** row (`salawatReminderEnabled`, `salawatIntervalMinutes`, `salawatWindowStart`, `salawatWindowEnd`). Default off. Cron uses `User.timezone`, skips disabled users, de-dupes with `salawat_send_logs`.
-
-Flutter does not need to call cron or write those columns.
+```text
+PASS  GET/PUT/PATCH /profile/salawat-preferences unauthenticated → 401
+PASS  GET /salawat/audio count=6 (famous links + tones)
+PASS  GET default enabled=false
+PASS  PUT enable + interval 60
+PASS  PATCH disable
+PASS  PATCH audioClipId=mishary_allahumma_salli persists
+PASS  GET /salawat/media/meditation_bell.mp3 → 200 audio/mpeg
+```
