@@ -495,10 +495,11 @@ profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandl
  *   get:
  *     tags: ['Profile']
  *     summary: Get Pray-for-the-Prophet ﷺ reminder preferences
+ *     description: Includes enabled, interval, window, and selected `audioClipId`. Sound list is GET /salawat/audio.
  *     security: [ { bearerAuth: [] } ]
  *   patch:
  *     tags: ['Profile']
- *     summary: Enable/disable Pray-for-the-Prophet ﷺ FCM reminders
+ *     summary: Enable/disable Pray-for-the-Prophet ﷺ reminders (interval, window, sound)
  *     security: [ { bearerAuth: [] } ]
  *     requestBody:
  *       required: true
@@ -511,10 +512,26 @@ profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandl
  *               intervalMinutes: { type: integer, enum: [30, 60, 120, 180] }
  *               startTime: { type: string, example: '08:00' }
  *               endTime: { type: string, example: '22:00' }
+ *               audioClipId:
+ *                 type: string
+ *                 description: Catalog id from GET /salawat/audio
+ *                 example: mishary_allahumma_salli
  *   put:
  *     tags: ['Profile']
- *     summary: Same as PATCH — enable/disable, interval, and active window
+ *     summary: Same as PATCH — enable/disable, interval, window, and audioClipId
  *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               enabled: { type: boolean }
+ *               intervalMinutes: { type: integer, enum: [30, 60, 120, 180] }
+ *               startTime: { type: string, example: '08:00' }
+ *               endTime: { type: string, example: '22:00' }
+ *               audioClipId: { type: string, example: mishary_allahumma_salli }
  */
 profileRouter.get('/salawat-preferences', authenticate, getSalawatPreferencesHandler);
 profileRouter.patch(
