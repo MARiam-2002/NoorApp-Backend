@@ -37,3 +37,22 @@ Served via `/api/v1/azan/media/{file}`. Mu’adhin performance rights remain wit
 | `notification/hand_bell.mp3` | freesound.org/s/339809/ | CC BY 4.0 | Soft Hand Bell |
 
 Quran recitation audio is separate (`/quran/audio`) and was not modified.
+
+## Salawat / Prayer Upon the Prophet ﷺ (CC0)
+
+Vocal clips (optional files under `salawat/`):
+
+| id | Source | License |
+|----|--------|---------|
+| `salli_ala_muhammad` | https://freesound.org/people/ibrahim_baig/sounds/788917/ | CC0 1.0 |
+| `laa_tansi_salli_ala_muhammad` | https://freesound.org/people/ibrahim_baig/sounds/788912/ | CC0 1.0 |
+
+Hosted peaceful reminder tones already in this repo:
+
+| id | File | Source | License |
+|----|------|--------|---------|
+| `peaceful_reminder_tone` | `notification/meditation_bell.mp3` | freesound.org/s/140128/ | CC0 |
+| `calm_chime` | `notification/soft_chime.mp3` | freesound.org/s/750607/ | CC0 |
+
+Served via `GET /api/v1/salawat/audio` and `GET /api/v1/salawat/media/{file}`.
+

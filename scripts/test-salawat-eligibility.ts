@@ -192,6 +192,8 @@ assert.equal(salawatPreferencesPatchSchema.safeParse({ intervalMinutes: 180 }).s
 assert.equal(salawatPreferencesPatchSchema.safeParse({ intervalMinutes: 15 }).success, false);
 assert.equal(salawatPreferencesPatchSchema.safeParse({ intervalMinutes: 7 }).success, false);
 assert.equal(salawatPreferencesPatchSchema.safeParse({ startTime: '08:00', endTime: '22:00' }).success, true);
+assert.equal(salawatPreferencesPatchSchema.safeParse({ windowStart: '08:00', windowEnd: '22:00' }).success, true);
+assert.equal(salawatPreferencesPatchSchema.safeParse({ startTime: '22:00', endTime: '08:00' }).success, true);
 assert.equal(salawatPreferencesPatchSchema.safeParse({ startTime: '25:00' }).success, false);
 assert.equal(salawatPreferencesPatchSchema.safeParse({ endTime: '9:00' }).success, false);
 assert.equal(salawatPreferencesPatchSchema.safeParse({}).success, false);

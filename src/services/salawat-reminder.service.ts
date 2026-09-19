@@ -5,6 +5,7 @@ import { ErrorCodes, HttpStatus } from '../config';
 import { DefaultTimezone } from '../utils/constants';
 import { sendPushToUser } from './device.service';
 import { createNotification } from './notification.service';
+import { pickSalawatAudioClip } from './salawat-audio.service';
 
 /** Legacy default interval (hours) — maps to intervalMinutes 180. */
 export const SALAWAT_INTERVAL_HOURS = 3;
@@ -41,6 +42,10 @@ export type SalawatPreferencesDto = {
   intervalMinutes: SalawatIntervalMinutes;
   startTime: string;
   endTime: string;
+  /** Additive alias of startTime (screenshot / some Flutter drafts). */
+  windowStart: string;
+  /** Additive alias of endTime. */
+  windowEnd: string;
   /** Kept for existing Flutter clients (intervalMinutes / 60). */
   intervalHours: number;
   maxPerDay: number;
@@ -265,6 +270,8 @@ function toDto(row: {
     intervalMinutes,
     startTime,
     endTime,
+    windowStart: startTime,
+    windowEnd: endTime,
     intervalHours: intervalMinutes / 60,
     maxPerDay: computeMaxPerDay(intervalMinutes, startTime, endTime),
     quietHoursStart: endTime,
@@ -295,6 +302,8 @@ export async function updateSalawatPreferences(
     intervalMinutes?: number;
     startTime?: string;
     endTime?: string;
+    windowStart?: string;
+    windowEnd?: string;
   },
 ): Promise<SalawatPreferencesDto> {
   const data: {
@@ -310,19 +319,21 @@ export async function updateSalawatPreferences(
   if (patch.intervalMinutes != null) {
     data.salawatIntervalMinutes = normalizeIntervalMinutes(patch.intervalMinutes);
   }
-  if (patch.startTime != null) {
-    const parsed = parseHhmm(patch.startTime);
+  const startTime = patch.startTime ?? patch.windowStart;
+  const endTime = patch.endTime ?? patch.windowEnd;
+  if (startTime != null) {
+    const parsed = parseHhmm(startTime);
     if (!parsed) {
       throw new AppError('startTime must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
     }
-    data.salawatWindowStart = patch.startTime;
+    data.salawatWindowStart = startTime;
   }
-  if (patch.endTime != null) {
-    const parsed = parseHhmm(patch.endTime);
+  if (endTime != null) {
+    const parsed = parseHhmm(endTime);
     if (!parsed) {
       throw new AppError('endTime must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
     }
-    data.salawatWindowEnd = patch.endTime;
+    data.salawatWindowEnd = endTime;
   }
 
   if (Object.keys(data).length === 0) {
@@ -424,16 +435,23 @@ export async function runSalawatReminders(now = new Date()): Promise<{
           continue;
         }
 
+        const clip = pickSalawatAudioClip(decision.occurrenceKey);
+        const fcmData: Record<string, string> = {
+          type: 'SALAWAT',
+          kind: 'salawat_reminder',
+        };
+        if (clip?.audioUrl) {
+          fcmData.audioClipId = clip.id;
+          fcmData.audioUrl = clip.audioUrl;
+        }
+
         pushesAttempted += 1;
         const result = await sendPushToUser(user.id, {
           title: SALAWAT_TITLE_EN,
           body: SALAWAT_BODY_EN,
           titleAr: SALAWAT_TITLE_AR,
           bodyAr: SALAWAT_BODY_AR,
-          data: {
-            type: 'SALAWAT',
-            kind: 'salawat_reminder',
-          },
+          data: fcmData,
         });
         pushesSent += result.sent;
 
@@ -450,6 +468,9 @@ export async function runSalawatReminders(now = new Date()): Promise<{
             kind: 'salawat_reminder',
             dayKey: getLocalClock(now, timeZone).dayKey,
             occurrenceKey: decision.occurrenceKey,
+            ...(clip?.audioUrl
+              ? { audioClipId: clip.id, audioUrl: clip.audioUrl }
+              : {}),
           },
         }).catch(() => null);
       } catch (err) {

@@ -14,7 +14,7 @@
     "test:play-launch": "tsx scripts/verify-play-launch-prod.ts",
     "test:production-fixes": "tsx scripts/verify-production-fixes.ts",
     "test:phase1-perf": "tsx scripts/verify-phase1-perf.ts",
-    "test:salawat": "tsx scripts/test-salawat-eligibility.ts",
+    "test:salawat": "tsx scripts/test-salawat-eligibility.ts && tsx scripts/test-salawat-audio.ts",
     "test:salawat-db": "tsx scripts/test-salawat-db.ts",
     "test:salawat-http": "tsx scripts/test-salawat-http.ts",
     "test:sadaqah-goal": "tsx scripts/test-sadaqah-goal.ts",
