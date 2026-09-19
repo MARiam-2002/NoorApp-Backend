@@ -5,7 +5,8 @@ import { ErrorCodes, HttpStatus } from '../config';
 import { DefaultTimezone } from '../utils/constants';
 import { sendPushToUser } from './device.service';
 import { createNotification } from './notification.service';
-import { pickSalawatAudioClip } from './salawat-audio.service';
+import { resolveReminderAudioClip } from './salawat-audio.service';
+import { resolveSalawatAudioClipId } from '../shared/constants/salawat-audio';
 
 /** Legacy default interval (hours) — maps to intervalMinutes 180. */
 export const SALAWAT_INTERVAL_HOURS = 3;
@@ -53,6 +54,8 @@ export type SalawatPreferencesDto = {
   quietHoursStart: string;
   /** Quiet window end = active start (legacy field). */
   quietHoursEnd: string;
+  /** Selected catalog clip (picker). Additive. */
+  audioClipId: string;
 };
 
 export function resolveTimezone(timezone?: string | null): string {
@@ -261,6 +264,7 @@ function toDto(row: {
   salawatIntervalMinutes: number;
   salawatWindowStart: string;
   salawatWindowEnd: string;
+  salawatAudioClipId?: string | null;
 }): SalawatPreferencesDto {
   const intervalMinutes = normalizeIntervalMinutes(row.salawatIntervalMinutes);
   const startTime = normalizeHhmm(row.salawatWindowStart, SALAWAT_DEFAULT_START);
@@ -276,6 +280,7 @@ function toDto(row: {
     maxPerDay: computeMaxPerDay(intervalMinutes, startTime, endTime),
     quietHoursStart: endTime,
     quietHoursEnd: startTime,
+    audioClipId: resolveSalawatAudioClipId(row.salawatAudioClipId),
   };
 }
 
@@ -287,6 +292,7 @@ export async function getSalawatPreferences(userId: string): Promise<SalawatPref
       salawatIntervalMinutes: true,
       salawatWindowStart: true,
       salawatWindowEnd: true,
+      salawatAudioClipId: true,
     },
   });
   if (!user) {
@@ -304,6 +310,7 @@ export async function updateSalawatPreferences(
     endTime?: string;
     windowStart?: string;
     windowEnd?: string;
+    audioClipId?: string;
   },
 ): Promise<SalawatPreferencesDto> {
   const data: {
@@ -311,6 +318,7 @@ export async function updateSalawatPreferences(
     salawatIntervalMinutes?: number;
     salawatWindowStart?: string;
     salawatWindowEnd?: string;
+    salawatAudioClipId?: string;
   } = {};
 
   if (typeof patch.enabled === 'boolean') {
@@ -334,6 +342,9 @@ export async function updateSalawatPreferences(
       throw new AppError('endTime must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
     }
     data.salawatWindowEnd = endTime;
+  }
+  if (patch.audioClipId != null) {
+    data.salawatAudioClipId = resolveSalawatAudioClipId(patch.audioClipId);
   }
 
   if (Object.keys(data).length === 0) {
@@ -390,6 +401,7 @@ export async function runSalawatReminders(now = new Date()): Promise<{
         salawatIntervalMinutes: true,
         salawatWindowStart: true,
         salawatWindowEnd: true,
+        salawatAudioClipId: true,
       },
       take: 200,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -435,7 +447,7 @@ export async function runSalawatReminders(now = new Date()): Promise<{
           continue;
         }
 
-        const clip = pickSalawatAudioClip(decision.occurrenceKey);
+        const clip = resolveReminderAudioClip(user.salawatAudioClipId);
         const fcmData: Record<string, string> = {
           type: 'SALAWAT',
           kind: 'salawat_reminder',

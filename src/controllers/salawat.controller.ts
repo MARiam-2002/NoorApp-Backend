@@ -14,6 +14,7 @@ import {
   getSalawatAudioCatalog,
   resolveSalawatMediaFile,
 } from '../services/salawat-audio.service';
+import { isKnownSalawatAudioId } from '../shared/constants/salawat-audio';
 
 const hhmmSchema = z
   .string()
@@ -34,6 +35,15 @@ export const salawatPreferencesPatchSchema = z
     endTime: hhmmSchema.optional(),
     windowStart: hhmmSchema.optional(),
     windowEnd: hhmmSchema.optional(),
+    audioClipId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .refine((id) => isKnownSalawatAudioId(id), {
+        message: 'audioClipId must be a catalog id from GET /salawat/audio',
+      })
+      .optional(),
   })
   .refine(
     (body) =>
@@ -42,8 +52,9 @@ export const salawatPreferencesPatchSchema = z
       body.startTime !== undefined ||
       body.endTime !== undefined ||
       body.windowStart !== undefined ||
-      body.windowEnd !== undefined,
-    { message: 'At least one of enabled, intervalMinutes, startTime, endTime is required' },
+      body.windowEnd !== undefined ||
+      body.audioClipId !== undefined,
+    { message: 'At least one of enabled, intervalMinutes, startTime, endTime, audioClipId is required' },
   );
 
 export const getSalawatPreferencesHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -66,6 +77,7 @@ export const patchSalawatPreferencesHandler = asyncHandler(async (req: Request, 
     intervalMinutes: body.intervalMinutes,
     startTime: body.startTime ?? body.windowStart,
     endTime: body.endTime ?? body.windowEnd,
+    audioClipId: body.audioClipId,
   });
   sendSuccess(res, data, 'Salawat reminder preferences updated successfully', req);
 });

@@ -67,6 +67,17 @@ async function main() {
   if (patch401.status !== 401) fail(`PATCH unauth expected 401 got ${patch401.status}`);
   console.log('PASS  PATCH /profile/salawat-preferences unauthenticated → 401');
 
+  const catalog = await request('GET', '/salawat/audio');
+  if (catalog.status === 404) {
+    console.log('INFO  GET /salawat/audio → 404 (catalog not on this host yet)');
+  } else if (catalog.status !== 200) {
+    fail(`GET /salawat/audio ${catalog.status} ${JSON.stringify(catalog.json)}`);
+  } else {
+    const clips = (catalog.json.data as { clips?: unknown[] })?.clips;
+    if (!Array.isArray(clips) || clips.length < 1) fail('audio catalog empty');
+    console.log(`PASS  GET /salawat/audio count=${clips.length}`);
+  }
+
   if (process.env.LIVE_SMOKE !== '1') {
     console.log('INFO  set LIVE_SMOKE=1 to create a throwaway user and exercise GET/PUT/PATCH');
     return;
@@ -158,7 +169,19 @@ async function main() {
   if (patch.status !== 200 || patch.json.data?.enabled !== false) {
     fail(`PATCH disable ${JSON.stringify(patch.json)}`);
   }
-  console.log('PASS  PATCH disable (legacy Flutter body)');
+    console.log('PASS  PATCH disable (legacy Flutter body)');
+
+  const clipPick = await request('PATCH', '/profile/salawat-preferences', {
+    token,
+    body: { audioClipId: 'mishary_allahumma_salli' },
+  });
+  if (clipPick.status === 400 || clipPick.status === 404) {
+    console.log(`INFO  PATCH audioClipId → ${clipPick.status} (not deployed or column missing)`);
+  } else if (clipPick.status !== 200 || clipPick.json.data?.audioClipId !== 'mishary_allahumma_salli') {
+    fail(`audioClipId ${clipPick.status} ${JSON.stringify(clipPick.json)}`);
+  } else {
+    console.log('PASS  PATCH audioClipId=mishary_allahumma_salli persists');
+  }
 
   await request('DELETE', '/auth/me', { token });
   console.log('PASS  throwaway user deleted');

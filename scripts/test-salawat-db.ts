@@ -102,6 +102,11 @@ async function main() {
     const reread = await getSalawatPreferences(userId);
     reread.startTime === '09:00' ? pass('preferences survive reread') : fail('reread');
 
+    const sound = await updateSalawatPreferences(userId, { audioClipId: 'maher_ya_nabi_salam' });
+    sound.audioClipId === 'maher_ya_nabi_salam'
+      ? pass('audioClipId famous listen-link persisted')
+      : fail('audioClipId', sound.audioClipId);
+
     (await getSalawatPreferences(other.user.id)).startTime === '08:00'
       ? pass('cannot see other user window via own id')
       : fail('isolation');

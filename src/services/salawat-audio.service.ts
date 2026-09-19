@@ -7,21 +7,29 @@ import {
   DEFAULT_SALAWAT_AUDIO_ID,
   SALAWAT_AUDIO_CLIPS,
   SALAWAT_AUDIO_SOURCE_POLICY,
+  resolveSalawatAudioClipId,
   type SalawatAudioClipDef,
+  type SalawatPlayback,
 } from '../shared/constants/salawat-audio';
 
 export type SalawatAudioClipDto = {
   id: string;
   title: string;
   titleAr: string;
+  creator: string;
+  creatorAr: string;
   url: string | null;
   audioUrl: string | null;
   previewUrl: string | null;
+  listenUrl: string | null;
+  youtubeUrl: string | null;
+  spotifyUrl: string | null;
   source: string;
   license: string;
-  creator: string;
   attribution: string;
   durationSeconds: number;
+  playback: SalawatPlayback;
+  selectable: boolean;
   available: boolean;
   isDefault?: boolean;
 };
@@ -48,22 +56,28 @@ function clipFileExists(clip: SalawatAudioClipDef): boolean {
 }
 
 function toDto(clip: SalawatAudioClipDef, req?: Request): SalawatAudioClipDto {
-  const available = clipFileExists(clip);
-  const url =
-    available && clip.mediaFile ? salawatMediaAbsoluteUrl(clip.mediaFile, req) : null;
+  const fileReady = clipFileExists(clip);
+  const fileUrl =
+    fileReady && clip.mediaFile ? salawatMediaAbsoluteUrl(clip.mediaFile, req) : null;
   return {
     id: clip.id,
     title: clip.title,
     titleAr: clip.titleAr,
-    url,
-    audioUrl: url,
-    previewUrl: url,
+    creator: clip.creator,
+    creatorAr: clip.creatorAr,
+    url: fileUrl,
+    audioUrl: fileUrl,
+    previewUrl: fileUrl,
+    listenUrl: clip.listenUrl,
+    youtubeUrl: clip.youtubeUrl,
+    spotifyUrl: clip.spotifyUrl,
     source: clip.source,
     license: clip.license,
-    creator: clip.creator,
     attribution: clip.attribution,
     durationSeconds: clip.durationSeconds,
-    available,
+    playback: clip.playback,
+    selectable: clip.selectable,
+    available: fileReady || Boolean(clip.listenUrl),
     isDefault: clip.isDefault,
   };
 }
@@ -73,27 +87,39 @@ export function listSalawatAudioClips(req?: Request): SalawatAudioClipDto[] {
 }
 
 export function listAvailableSalawatAudioClips(req?: Request): SalawatAudioClipDto[] {
-  return listSalawatAudioClips(req).filter((clip) => clip.available);
+  return listSalawatAudioClips(req).filter((clip) => clip.audioUrl);
+}
+
+export function getSalawatAudioClipById(id: string, req?: Request): SalawatAudioClipDto {
+  const resolved = resolveSalawatAudioClipId(id);
+  const def = SALAWAT_AUDIO_CLIPS.find((clip) => clip.id === resolved) ?? SALAWAT_AUDIO_CLIPS[0]!;
+  return toDto(def, req);
 }
 
 export function getSalawatAudioCatalog(req?: Request) {
   const clips = listSalawatAudioClips(req);
-  const available = clips.filter((clip) => clip.available);
-  const defaultClip =
-    available.find((clip) => clip.id === DEFAULT_SALAWAT_AUDIO_ID) ?? available[0] ?? null;
+  const fileClips = clips.filter((clip) => Boolean(clip.audioUrl));
   return {
-    defaultId: defaultClip?.id ?? null,
+    defaultId: DEFAULT_SALAWAT_AUDIO_ID,
     count: clips.length,
-    availableCount: available.length,
+    selectableCount: clips.filter((clip) => clip.selectable).length,
+    availableCount: clips.filter((clip) => clip.available).length,
+    fileCount: fileClips.length,
     clips,
     sourcePolicy: SALAWAT_AUDIO_SOURCE_POLICY,
   };
 }
 
-/**
- * Rotate among playable clips using the durable occurrence key so the same
- * slot always maps to the same file (cron-safe).
- */
+/** Hosted MP3 for local/FCM reminder — never a YouTube/Spotify URL. */
+export function resolveReminderAudioClip(
+  selectedId: string | null | undefined,
+  req?: Request,
+): SalawatAudioClipDto | null {
+  const selected = getSalawatAudioClipById(selectedId ?? DEFAULT_SALAWAT_AUDIO_ID, req);
+  if (selected.audioUrl) return selected;
+  return listAvailableSalawatAudioClips(req)[0] ?? null;
+}
+
 export function pickSalawatAudioClip(
   occurrenceKey: string,
   req?: Request,
