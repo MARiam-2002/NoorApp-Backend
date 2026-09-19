@@ -1,8 +1,8 @@
 /**
- * Prayer Upon the Prophet ﷺ audio catalog — NOTIFICATION TONES ONLY.
+ * Prayer Upon the Prophet ﷺ audio catalog.
  *
- * Short reminder sounds for FCM push notifications.
- * All clips are CC0 licensed and hosted in assets/notification/.
+ * Voice recordings saying "Salli ala Muhammad" for reminders.
+ * All clips are CC0 licensed from Freesound.org.
  */
 
 export type SalawatPlayback = 'file' | 'external';
@@ -30,6 +30,27 @@ export type SalawatAudioClipDef = {
 
 export const SALAWAT_AUDIO_CLIPS: SalawatAudioClipDef[] = [
   {
+    id: 'salli_ala_muhammad_voice',
+    title: 'Salli ala Muhammad (voice)',
+    titleAr: 'صلِّ على محمد (صوت)',
+    creator: 'ibrahim_baig',
+    creatorAr: 'ibrahim_baig',
+    source: 'https://freesound.org/people/ibrahim_baig/sounds/788917/',
+    license: 'CC0-1.0',
+    attribution:
+      'Sale\'ala\'Muhammad by ibrahim_baig (Freesound), CC0 1.0 — https://freesound.org/people/ibrahim_baig/sounds/788917/',
+    durationSeconds: 2,
+    playback: 'file',
+    listenUrl: 'https://freesound.org/people/ibrahim_baig/sounds/788917/',
+    youtubeUrl: null,
+    spotifyUrl: null,
+    mediaFile: 'salli_ala_muhammad.mp3',
+    relativePath: 'salawat/salli_ala_muhammad.mp3',
+    format: 'mp3',
+    selectable: true,
+    isDefault: true,
+  },
+  {
     id: 'peaceful_reminder_tone',
     title: 'Peaceful reminder tone',
     titleAr: 'نغمة تذكير هادئة',
@@ -48,7 +69,6 @@ export const SALAWAT_AUDIO_CLIPS: SalawatAudioClipDef[] = [
     relativePath: 'notification/meditation_bell.mp3',
     format: 'mp3',
     selectable: true,
-    isDefault: true,
   },
   {
     id: 'calm_chime',
@@ -72,7 +92,7 @@ export const SALAWAT_AUDIO_CLIPS: SalawatAudioClipDef[] = [
   },
 ];
 
-export const DEFAULT_SALAWAT_AUDIO_ID = 'peaceful_reminder_tone';
+export const DEFAULT_SALAWAT_AUDIO_ID = 'salli_ala_muhammad_voice';
 
 export function isKnownSalawatAudioId(id: string): boolean {
   return SALAWAT_AUDIO_CLIPS.some((clip) => clip.id === id);
@@ -86,8 +106,9 @@ export function resolveSalawatAudioClipId(raw?: string | null): string {
 
 export const SALAWAT_AUDIO_SOURCE_POLICY = {
   note:
-    'Short CC0 notification tones for prayer-upon-the-prophet reminders. All files are self-hosted and playable in-app.',
+    'Voice recording saying "Salli ala Muhammad" plus short notification tones. All CC0 licensed from Freesound.org.',
   sources: [
+    'https://freesound.org/people/ibrahim_baig/sounds/788917/',
     'https://freesound.org/people/kevp888/sounds/140128/',
     'https://freesound.org/people/deadrobotmusic/sounds/750607/',
   ],
