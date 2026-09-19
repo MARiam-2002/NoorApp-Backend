@@ -239,13 +239,15 @@ function walkRouteDirs(dir: string, ext: string, results: string[]): void {
 function resolveSwaggerFiles(): string[] {
   const root = process.cwd();
   const results: string[] = [];
-  const useDist = process.env.NODE_ENV === 'production' || !fs.existsSync(path.join(root, 'src', 'routes'));
+  // ALWAYS prefer src/*.ts for OpenAPI JSDoc (comments are lost in .js compilation)
+  const useSrc = fs.existsSync(path.join(root, 'src', 'routes'));
 
   try {
-    if (useDist && fs.existsSync(path.join(root, 'dist', 'routes'))) {
-      walkRouteDirs(path.join(root, 'dist', 'routes'), '.js', results);
-    } else if (fs.existsSync(path.join(root, 'src', 'routes'))) {
+    if (useSrc) {
       walkRouteDirs(path.join(root, 'src', 'routes'), '.ts', results);
+    } else if (fs.existsSync(path.join(root, 'dist', 'routes'))) {
+      // Fallback to dist/*.js only if src/ is unavailable (should not happen in Railway)
+      walkRouteDirs(path.join(root, 'dist', 'routes'), '.js', results);
     }
 
     if (results.length > 0) {
@@ -271,14 +273,14 @@ function buildSwaggerSpec() {
       description:
         env.SWAGGER_DESCRIPTION === 'Noor REST API'
           ? [
-              '**رفيقك اليومي في رحلتك الإيمانية**',
-              '',
-              'REST API لتطبيق نور: القرآن الكريم · مواقيت الصلاة · القبلة · التسبيح · الختمة · الرحلة اليومية.',
-              '',
-              'Authenticate with **Authorize** → paste the JWT access token (without the `Bearer` prefix).',
-              '',
-              `Base URL: \`${apiBasePath}\``,
-            ].join('\n')
+            '**رفيقك اليومي في رحلتك الإيمانية**',
+            '',
+            'REST API لتطبيق نور: القرآن الكريم · مواقيت الصلاة · القبلة · التسبيح · الختمة · الرحلة اليومية.',
+            '',
+            'Authenticate with **Authorize** → paste the JWT access token (without the `Bearer` prefix).',
+            '',
+            `Base URL: \`${apiBasePath}\``,
+          ].join('\n')
           : env.SWAGGER_DESCRIPTION,
       contact: { name: 'Noor Support', email: 'support@noor.app' },
     },
