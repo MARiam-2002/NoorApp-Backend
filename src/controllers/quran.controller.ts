@@ -34,6 +34,9 @@ import {
   getAyahAudio,
   getAyahTafsir,
   getAyahTranslation,
+  listSajdahVersesCatalog,
+  getUserSajdahProgress,
+  toggleSajdahVerseCompletion,
 } from '../services/quran.service';
 
 export const listSurahsHandler = asyncHandler(async (_req: Request, res: Response) => {
@@ -301,4 +304,63 @@ export const getAyahTranslationHandler = asyncHandler(async (req: Request, res: 
   const source = q.source ?? q.translationId ?? q.id;
   const data = await getAyahTranslation(Number(q.surahId), Number(q.ayahNumber), source);
   sendSuccess(res, data, 'Quran translation retrieved successfully', req);
+});
+
+// ===== Ayat as-Sajdah (آيات السجود) — 3 new additive handlers =====
+
+type Scope = 'muataqidah' | 'full';
+const normalizeScope = (raw: unknown): Scope => {
+  const s = typeof raw === 'string' ? raw.trim().toLowerCase() : 'full';
+  return s === 'muataqidah' ? 'muataqidah' : 'full';
+};
+
+export const listSajdahVersesCatalogHandler = asyncHandler(async (req: Request, res: Response) => {
+  const scope = normalizeScope(req.query.scope);
+  const data = await listSajdahVersesCatalog(scope);
+  sendSuccess(
+    res,
+    data,
+    scope === 'muataqidah'
+      ? 'Catalog of the 10 confirmed Ijma\' Sajdah verses retrieved successfully'
+      : 'Catalog of all 15 Sajdah verses (madhhab-inclusive) retrieved successfully',
+    req,
+  );
+});
+
+export const getSajdahUserProgressHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const scope = normalizeScope(req.query.scope);
+  const data = await getUserSajdahProgress(userId, scope);
+  sendSuccess(
+    res,
+    data,
+    scope === 'muataqidah'
+      ? 'User progress for the 10 Mu\'taqidah Sajdah verses retrieved successfully'
+      : 'User Sajdah verses progress (all 15) retrieved successfully',
+    req,
+  );
+});
+
+export const toggleSajdahVerseHandler = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user!.sub;
+  const { surahId, ayahNumber } = req.params as { surahId: string; ayahNumber: string };
+  const body = (req.body ?? {}) as { completed?: boolean; scope?: unknown };
+  const scope = normalizeScope(body.scope ?? req.query.scope);
+  const nextCompleted =
+    typeof body.completed === 'boolean' ? body.completed : undefined;
+  const data = await toggleSajdahVerseCompletion(
+    userId,
+    Number(surahId),
+    Number(ayahNumber),
+    nextCompleted,
+    scope,
+  );
+  sendSuccess(
+    res,
+    data,
+    data.toggledVerse.completed
+      ? 'Sajdah verse marked as performed successfully (20 points awarded for first completion)'
+      : 'Sajdah verse un-marked successfully',
+    req,
+  );
 });

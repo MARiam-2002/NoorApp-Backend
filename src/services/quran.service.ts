@@ -30,6 +30,11 @@ import {
   QURAN_STATIC_CATALOG_VERSION,
   QURAN_STATIC_DOWNLOAD_PATH,
 } from '../shared/constants/static-catalog';
+import {
+  SAJDAH_VERSES_CATALOG,
+  SAJDAH_VERSE_COUNT_FULL,
+  SAJDAH_VERSE_COUNT_MUATAQIDAH,
+} from '../shared/constants/sajdah-verses';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -1774,6 +1779,231 @@ export async function getAyahTranslation(
     surahId,
     ayahNumber,
     provider: 'unavailable',
+  };
+}
+
+// ============================================================
+// NEW: Ayat as-Sajdah (آيات السجود) — catalog + user progress + toggle
+// ============================================================
+
+export type SajdahVerseRow = {
+  surahId: number;
+  ayahNumber: number;
+  referenceAr: string;
+  referenceEn: string;
+  textAr: string;
+  textEn: string;
+  /** Badge shown on the right side chip: "تم السجود" (earned true) or "لم يتم السجود" (earned false). */
+  badgeLabelAr: string;
+  badgeLabelEn: string;
+  /**
+   * True = this verse is among the 10 Ijma' (Mu'taqidah) sujoods —
+   * only these 10 appear in the "سجل السجود" tab; all 15 appear in "قائمة الآيات".
+   */
+  isIn10Muataqidah: boolean;
+  noteAr?: string;
+  noteEn?: string;
+  sortOrder: number;
+  /** Present only when the user is authenticated (my-progress endpoint); omitted from public catalog. */
+  completed?: boolean;
+  completedAt?: string | null;
+  /** Canonical {surahId, ayahNumber} → unique key used as UI row id. */
+  verseKey: string;
+};
+
+export type SajdahProgressSummary = {
+  /** How many of the 10 Ijma' verses the user has completed — matches "إجمالي السجدات المؤداة / 10 سجدات". */
+  muataqidahCompleted: number;
+  muataqidahTotal: number;
+  muataqidahPercent: number;
+  /** How many of the 15 total verses the user has completed — matches "إجمالي السجدات في القرآن / 15 سجدة". */
+  fullCompleted: number;
+  fullTotal: number;
+  fullPercent: number;
+  /** Timestamp of the most recent Sajdah the user recorded (null if none). */
+  lastCompletedAt: string | null;
+};
+
+function mapCatalogToRows(
+  includeMuataqidahOnly: boolean,
+  completionsByKey: Map<string, { completed: boolean; completedAt: Date | null }>,
+): SajdahVerseRow[] {
+  const list = includeMuataqidahOnly
+    ? SAJDAH_VERSES_CATALOG.filter((v) => v.isIn10Muataqidah)
+    : SAJDAH_VERSES_CATALOG;
+  return list
+    .map((v) => {
+      const key = `${v.surahId}:${v.ayahNumber}`;
+      const comp = completionsByKey.get(key);
+      const completed = comp?.completed ?? false;
+      return {
+        surahId: v.surahId,
+        ayahNumber: v.ayahNumber,
+        referenceAr: v.referenceAr,
+        referenceEn: v.referenceEn,
+        textAr: v.textAr,
+        textEn: v.textEn,
+        badgeLabelAr: completed ? 'تم السجود' : 'لم يتم السجود',
+        badgeLabelEn: completed ? 'Sujood performed' : 'Sujood not yet performed',
+        isIn10Muataqidah: v.isIn10Muataqidah,
+        noteAr: v.noteAr,
+        noteEn: v.noteEn,
+        sortOrder: v.sortOrder,
+        completed,
+        completedAt: comp?.completedAt ? comp.completedAt.toISOString() : null,
+        verseKey: key,
+      } satisfies SajdahVerseRow;
+    })
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/**
+ * Public (no auth) catalog endpoint list — Flutter shows these to unauthenticated users too,
+ * but all `completed`/progress fields are hidden until login (client-side rule).
+ *
+ * Query param `?scope=muataqidah` returns ONLY the 10 Ijma' sujoods (matches سجل السجود tab shape);
+ * default (or scope=full) returns all 15 (matches قائمة الآيات tab shape).
+ */
+export async function listSajdahVersesCatalog(scope: 'muataqidah' | 'full' = 'full') {
+  const rows = mapCatalogToRows(scope === 'muataqidah', new Map()).map(({ completed, completedAt, ...rest }) => rest);
+  return {
+    count: rows.length,
+    scope,
+    totalExpected: scope === 'muataqidah' ? SAJDAH_VERSE_COUNT_MUATAQIDAH : SAJDAH_VERSE_COUNT_FULL,
+    rows,
+  };
+}
+
+/**
+ * Protected (auth required) — full list of verses + user-specific completion flags for each row,
+ * plus summary progress header numbers shown at top of both tabs (10 سجدات / 15 سجدة counters).
+ */
+export async function getUserSajdahProgress(
+  userId: string,
+  scope: 'muataqidah' | 'full' = 'full',
+): Promise<{
+  summary: SajdahProgressSummary;
+  rows: SajdahVerseRow[];
+}> {
+  const allCompleted = await prisma.quranSajdahCompletion.findMany({
+    where: { userId },
+  });
+  const byKey = new Map<string, { completed: boolean; completedAt: Date | null }>();
+  for (const c of allCompleted) {
+    byKey.set(`${c.surahId}:${c.ayahNumber}`, {
+      completed: c.completed,
+      completedAt: c.completedAt ?? null,
+    });
+  }
+  const rows = mapCatalogToRows(scope === 'muataqidah', byKey);
+  const fullCompleted = SAJDAH_VERSES_CATALOG.reduce(
+    (acc, v) => acc + (byKey.get(`${v.surahId}:${v.ayahNumber}`)?.completed ? 1 : 0),
+    0,
+  );
+  const muataqidahCompleted = SAJDAH_VERSES_CATALOG.reduce(
+    (acc, v) =>
+      v.isIn10Muataqidah && byKey.get(`${v.surahId}:${v.ayahNumber}`)?.completed ? acc + 1 : acc,
+    0,
+  );
+  const lastCompletedAt =
+    allCompleted
+      .filter((c) => c.completed && c.completedAt)
+      .sort((a, b) => (b.completedAt?.getTime() ?? 0) - (a.completedAt?.getTime() ?? 0))[0]
+      ?.completedAt ?? null;
+  const percentOf = (done: number, total: number) =>
+    total === 0 ? 0 : Math.min(100, Math.max(0, Math.round((done / total) * 100)));
+  return {
+    summary: {
+      muataqidahCompleted,
+      muataqidahTotal: SAJDAH_VERSE_COUNT_MUATAQIDAH,
+      muataqidahPercent: percentOf(muataqidahCompleted, SAJDAH_VERSE_COUNT_MUATAQIDAH),
+      fullCompleted,
+      fullTotal: SAJDAH_VERSE_COUNT_FULL,
+      fullPercent: percentOf(fullCompleted, SAJDAH_VERSE_COUNT_FULL),
+      lastCompletedAt: lastCompletedAt ? lastCompletedAt.toISOString() : null,
+    },
+    rows,
+  };
+}
+
+/**
+ * Protected (auth required) — toggles (flips) the "performed sujood" status for a single verse.
+ * Returns the full updated user progress so Flutter can re-render the list + counters in one shot
+ * (no second API call needed after toggle).
+ *
+ * If optional `completed: true|false` is sent in the body, it is SET instead of toggled;
+ * default (undefined body) = toggle behavior (matches circular checkbox tap on each row).
+ */
+export async function toggleSajdahVerseCompletion(
+  userId: string,
+  surahId: number,
+  ayahNumber: number,
+  nextCompleted?: boolean,
+  scope: 'muataqidah' | 'full' = 'full',
+) {
+  const catalogEntry = SAJDAH_VERSES_CATALOG.find(
+    (v) => v.surahId === surahId && v.ayahNumber === ayahNumber,
+  );
+  if (!catalogEntry) {
+    throw new AppError(
+      'This ayah is not in the canonical list of Ayat as-Sujood',
+      HttpStatus.BAD_REQUEST,
+      ErrorCodes.VALIDATION_ERROR,
+    );
+  }
+
+  const existing = await prisma.quranSajdahCompletion.findUnique({
+    where: {
+      userId_surahId_ayahNumber: { userId, surahId, ayahNumber },
+    },
+  });
+  const finalCompleted =
+    typeof nextCompleted === 'boolean' ? nextCompleted : !(existing?.completed ?? false);
+
+  const upserted = await prisma.quranSajdahCompletion.upsert({
+    where: {
+      userId_surahId_ayahNumber: { userId, surahId, ayahNumber },
+    },
+    create: {
+      userId,
+      surahId,
+      ayahNumber,
+      completed: finalCompleted,
+      completedAt: finalCompleted ? new Date() : null,
+    },
+    update: {
+      completed: finalCompleted,
+      completedAt: finalCompleted
+        ? existing?.completedAt ?? new Date() // preserve first completion timestamp for "first time" stats
+        : null,
+    },
+  });
+
+  // Optional gamification: reward points once per verse on first completion (if user has User.points field).
+  if (finalCompleted && (!existing || !existing.completed)) {
+    const POINTS_PER_SAJDAH = 20;
+    await prisma.user
+      .update({
+        where: { id: userId },
+        data: { points: { increment: POINTS_PER_SAJDAH } },
+      })
+      .catch(() => {
+        // ignore points errors — they are a bonus reward, never block the core feature.
+      });
+  }
+
+  const refreshed = await getUserSajdahProgress(userId, scope);
+  return {
+    toggledVerse: {
+      verseKey: `${surahId}:${ayahNumber}`,
+      surahId,
+      ayahNumber,
+      completed: upserted.completed,
+      completedAt: upserted.completedAt ? upserted.completedAt.toISOString() : null,
+      pointsAwarded: finalCompleted && (!existing || !existing.completed) ? 20 : 0,
+    },
+    summary: refreshed.summary,
+    rows: refreshed.rows,
   };
 }
 

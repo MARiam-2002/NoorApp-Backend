@@ -61,6 +61,7 @@ model User {
   quranBookmarks          QuranBookmark[]
   quranLastRead           QuranLastRead?
   quranReadingHistory     QuranReadingHistory[]
+  quranSajdahCompletions  QuranSajdahCompletion[]
   refreshTokens           RefreshToken[]
   tasbihLogs              TasbihLog[]
   tasbihResetHistory      TasbihResetHistory[]
@@ -260,6 +261,29 @@ model QuranReadingHistory {
 
   @@index([userId, readAt])
   @@map("quran_reading_history")
+}
+
+/// Per-user completion of "Ayat as-Sujood" (آيات السجود).
+/// There are a canonical fixed set of 15 Sajdah verses across madhhabs;
+/// 10 of them are the widely-accepted "Mu'taqidah" (معتقدة عند أهل السنة).
+/// Composite PK: (userId, surahId, ayahNumber) → one row max per user per verse.
+model QuranSajdahCompletion {
+  id          String   @id @default(uuid())
+  userId      String
+  surahId     Int
+  ayahNumber  Int
+  /// True = user confirmed "I performed Sujood at-Tilawah when I reached this verse."
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  /// Which version/recording/reading session triggered this (optional, for analytics).
+  sessionId   String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, surahId, ayahNumber])
+  @@index([userId])
+  @@map("quran_sajdah_completions")
 }
 
 model VerseOfTheDay {

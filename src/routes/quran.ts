@@ -33,6 +33,9 @@ import {
   getAyahAudioHandler,
   getAyahTafsirHandler,
   getAyahTranslationHandler,
+  listSajdahVersesCatalogHandler,
+  getSajdahUserProgressHandler,
+  toggleSajdahVerseHandler,
 } from '../controllers/quran.controller';
 
 const surahIdParamSchema = z.object({
@@ -123,6 +126,99 @@ const getAyahTranslationQuerySchema = z.object({
 });
 
 export const quranRouter = Router();
+
+// ===== Ayat as-Sajdah (آيات السجود) — 3 new additive-only routes =====
+
+/**
+ * @openapi
+ * /quran/sajdah-verses:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: قائمة ثابتة لآيات السجود (10 معتقدة أو 15 شاملة)
+ *     description: |
+ *       Public (غير محمي) — يُستخدم لعرض قائمة آيات السجود في شاشة "سجل السجود" (scope=muataqidah = 10 آية)
+ *       أو شاشة "قائمة الآيات" (scope=full = 15 آية شاملة لاختلاف المذاهب).
+ *       لا يحمل حالة المستخدم — استخدم /quran/sajdah-verses/my-progress للحالة الشخصية + الشارات (تم/لم يتم السجود).
+ *     parameters:
+ *       - in: query
+ *         name: scope
+ *         schema: { type: string, enum: [full, muataqidah], default: full }
+ *         description: muataqidah = 10 آيات فقط (المعتقدة عند أهل السنة) — full = 15 آية شاملة.
+ *     responses:
+ *       200:
+ *         description: ✅ قائمة آيات السجود مع نص كل آية بالعربي والإنجليزي.
+ */
+quranRouter.get('/sajdah-verses', listSajdahVersesCatalogHandler);
+
+/**
+ * @openapi
+ * /quran/sajdah-verses/my-progress:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: تقدم المستخدم في أداء آيات السجود (مع الشارات ✓/○ لكل آية + العداد العلوي)
+ *     description: |
+ *       محمي (Bearer Auth) — يرجع ملخص التقدم العلوي (كم سجدة اكتملت من 10 / كم من 15)
+ *       مع كل صف من الآيات ودرجته "تم السجود / لم يتم السجود" لليستخدمها شريط التبديل (Tabs) في Flutter.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: query
+ *         name: scope
+ *         schema: { type: string, enum: [full, muataqidah], default: full }
+ *     responses:
+ *       200: { description: ✅ ملخص وصفوف التقدم لكل آية }
+ *       401: { description: ❌ غير مصرح به (missing token) }
+ */
+quranRouter.get('/sajdah-verses/my-progress', authenticate, getSajdahUserProgressHandler);
+
+/**
+ * @openapi
+ * /quran/sajdah-verses/{surahId}/{ayahNumber}:
+ *   patch:
+ *     tags: ['Quran']
+ *     summary: تبديل حالة "تم/لم يتم السجود" لآية سجود واحدة (toggle أو set مباشر)
+ *     description: |
+ *       محمي (Bearer Auth) — عند الضغط على الدائرة المربعة/الشاشة في كل صف، يُرسل هذا الطلب.
+ *       إذا وجد body.completed = true/false يُستخدم كقيمة نهائية؛ وإلا يعمل Toggle على القيمة الحالية.
+ *       يرجع كل الـ summary + الصفوف المحدثة فورًا، فلا تحتاج Flutter لاستدعاء ثاني بعد العملية.
+ *       عند أول تسجيل "تم السجود" لآية معينة، يحصل المستخدم على 20 نقطة إضافية في User.points.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: path
+ *         name: surahId
+ *         schema: { type: integer, example: 7 }
+ *         required: true
+ *         description: رقم السورة (مثلاً 7 للأعراف)
+ *       - in: path
+ *         name: ayahNumber
+ *         schema: { type: integer, example: 206 }
+ *         required: true
+ *         description: رقم الآية داخل السورة (مثلاً 206)
+ *       - in: query
+ *         name: scope
+ *         schema: { type: string, enum: [full, muataqidah], default: full }
+ *         description: أي scope تريد إرجاع البيانات المحدثة به (متطابق للـ tabs المعروضة)
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               completed: { type: boolean, nullable: true, description: "True = تم السجود, False = لم يتم, omit = toggle." }
+ *     responses:
+ *       200: { description: ✅ تم التبديل بنجاح + بيانات محدثة فورًا (summary + rows). }
+ *       400: { description: ❌ الآية المطلوبة ليست من آيات السجود في القائمة الكانونية. }
+ */
+const sajdahPathParamSchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
+  ayahNumber: z.coerce.number().int().min(1),
+});
+quranRouter.patch(
+  '/sajdah-verses/:surahId/:ayahNumber',
+  authenticate,
+  validate(sajdahPathParamSchema, 'params'),
+  toggleSajdahVerseHandler,
+);
 
 /**
  * @openapi
