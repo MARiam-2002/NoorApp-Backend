@@ -5,12 +5,50 @@ import {
   listNotificationSoundsHandler,
   streamAzanMediaHandler,
 } from '../controllers/azan-audio.controller';
+import {
+  listCalculationMethodsHandler,
+  listMadhabsHandler,
+} from '../controllers/azan.controller';
 
 /**
  * Public Azan / prayer-notification audio catalogs + self-hosted media.
  * Separate from Quran audio (`/quran/audio`, Quran Foundation).
  */
 export const azanRouter = Router();
+
+/**
+ * @openapi
+ * /azan/calculation-methods:
+ *   get:
+ *     tags: ['Azan Audio']
+ *     summary: Calculation method dropdown catalog (6 methods, EN/AR)
+ *     description: |
+ *       Public catalog for building the "Calculation Method" dropdown picker in Azan Settings.
+ *       Returns 6 canonical methods (EGYPT, MWL, MAKKAH, KARACHI, ISNA, TEHRAN) sorted by recommended order,
+ *       with EN/AR labels, region hints, and EGYPT marked as default=true.
+ *       Use the short `id` field as the canonical key when saving preferences and in query params.
+ *       Both short ids and legacy long ids (e.g. EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY) are accepted.
+ *     responses:
+ *       200:
+ *         description: Calculation methods catalog
+ */
+azanRouter.get('/calculation-methods', listCalculationMethodsHandler);
+
+/**
+ * @openapi
+ * /azan/madhabs:
+ *   get:
+ *     tags: ['Azan Audio']
+ *     summary: Asr Madhab dropdown catalog (SHAFI default, HANAFI)
+ *     description: |
+ *       Public catalog for building the "Asr Madhab" (مذهب العصر) dropdown picker in Azan Settings.
+ *       Returns SHAFI (earlier Asr, default=true) and HANAFI (later Asr).
+ *       Use the uppercase `id` field (SHAFI / HANAFI) as the canonical key.
+ *     responses:
+ *       200:
+ *         description: Asr Madhabs catalog
+ */
+azanRouter.get('/madhabs', listMadhabsHandler);
 
 /**
  * @openapi
