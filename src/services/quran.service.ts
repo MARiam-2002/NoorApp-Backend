@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
@@ -377,8 +378,7 @@ export async function createBookmark(userId: string, surahId: number, ayahNumber
   }
 
   // Use a raw INSERT so we never reference the page column when it doesn't exist.
-  const { v4: uuidv4 } = await import('crypto').then((m) => ({ v4: () => m.randomUUID() }));
-  const id = uuidv4();
+  const id = randomUUID();
 
   if (pageColumnExists) {
     await prisma.$executeRawUnsafe(
@@ -665,6 +665,16 @@ export async function importLocalData(
     lastRead: false,
   };
 
+  // Detect whether the page column exists once, outside the bookmark loop —
+  // avoids running the same information_schema probe N times per imported bookmark.
+  const pageColCheck = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name   = 'quran_bookmarks'
+       AND column_name  = 'page'`,
+  ).catch(() => [] as Array<{ column_name: string }>);
+  const hasPageCol = Array.isArray(pageColCheck) && pageColCheck.length > 0;
+
   // Import bookmarks (merge, skip duplicates)
   if (data.bookmarks && Array.isArray(data.bookmarks)) {
     for (const bm of data.bookmarks) {
@@ -674,22 +684,15 @@ export async function importLocalData(
         // Check if already exists (same surah + ayah/page combo)
         const where: any = { userId, surahId: bm.surahId };
         if (bm.ayahNumber != null) where.ayahNumber = bm.ayahNumber;
-        if (bm.page != null) where.page = bm.page;
+        if (hasPageCol && bm.page != null) where.page = bm.page;
 
         const existing = await prisma.quranBookmark.findFirst({ where });
 
         if (!existing) {
           // Use raw insert to handle optional page column
-          const id = crypto.randomUUID();
-          const pageColExists = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(
-            `SELECT column_name FROM information_schema.columns
-             WHERE table_schema = 'public'
-               AND table_name   = 'quran_bookmarks'
-               AND column_name  = 'page'`,
-          ).catch(() => [] as Array<{ column_name: string }>);
-          const hasPage = Array.isArray(pageColExists) && pageColExists.length > 0;
+          const id = randomUUID();
 
-          if (hasPage && bm.page != null) {
+          if (hasPageCol && bm.page != null) {
             await prisma.$executeRawUnsafe(
               `INSERT INTO "quran_bookmarks" ("id","userId","surahId","ayahNumber","page","note","createdAt")
                VALUES ($1,$2,$3,$4,$5,$6,NOW())`,

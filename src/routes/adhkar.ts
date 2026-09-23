@@ -291,7 +291,7 @@ adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
  *           application/json:
  *             example:
  *               success: false
- *               message: Dhikr category not found for key: XYZ
+ *               message: "Dhikr category not found for key: XYZ"
  *               code: NOT_FOUND
  *               timestamp: '2026-08-27T03:15:00.000Z'
  */

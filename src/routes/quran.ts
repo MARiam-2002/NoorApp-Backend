@@ -967,7 +967,7 @@ quranRouter.get('/translations', listTranslationsHandler);
  *         required: false
  *         schema:
  *           type: string
- *         description: معرف القارئ (مثل Mishary_Alafasy). افتراضي: أول قارئ في القائمة.
+ *         description: "معرف القارئ (مثل Mishary_Alafasy). افتراضي: أول قارئ في القائمة."
  *     responses:
  *       200:
  *         description: ✅ تم إنشاء رابط الصوت بنجاح
@@ -1013,7 +1013,7 @@ quranRouter.get('/audio', validate(getAyahAudioQuerySchema, 'query'), getAyahAud
  *         required: false
  *         schema:
  *           type: string
- *         description: معرف مصدر التفسير (مثل Ibn_Kathir). افتراضي: أول مصدر في القائمة.
+ *         description: "معرف مصدر التفسير (مثل Ibn_Kathir). افتراضي: أول مصدر في القائمة."
  *     responses:
  *       200:
  *         description: ✅ تم استرجاع التفسير بنجاح
@@ -1059,7 +1059,7 @@ quranRouter.get('/tafsir', validate(getAyahTafsirQuerySchema, 'query'), getAyahT
  *         required: false
  *         schema:
  *           type: string
- *         description: معرف مصدر الترجمة (مثل Sahih_International). افتراضي: أول مصدر في القائمة.
+ *         description: "معرف مصدر الترجمة (مثل Sahih_International). افتراضي: أول مصدر في القائمة."
  *     responses:
  *       200:
  *         description: ✅ تم استرجاع الترجمة بنجاح
