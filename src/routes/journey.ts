@@ -10,6 +10,9 @@ import {
   getJourneyProgress,
   getJourneyToday,
   getJourneyBadges,
+  getJourneyDashboard,
+  getWeeklyCategorySummary,
+  getMonthlyCalendarHeatmap,
   getSadaqah,
   incrementQuranPages,
   patchAdhkar,
@@ -85,6 +88,92 @@ const prayerSchema = z.object({
 });
 
 export const journeyRouter = Router();
+
+/**
+ * @openapi
+ * /journey/dashboard:
+ *   get:
+ *     tags: ['Journey']
+ *     summary: 🎯 رحلتي (Journey) Dashboard — ONE-SHOT call for the full 4-card screen
+ *     description: |
+ *       Single authenticated call that aggregates ALL data for the "رحلتي" (My Journey) screen — matching
+ *       the 4 UI cards exactly: (1) Level/Current rank + 5 medals (first 3 gold = earned, 2 silver = locked),
+ *       (2) Good-deeds streak 9/10 checkmark row, (3) Weekly summary 4-colored progress bars (Prayer 95%,
+ *       Quran 90%, Sadaqah 75%, Dhikr 85%), and (4) Monthly calendar heatmap grid (September 2025 week view
+ *       with Sunday→Saturday headers). ALSO includes todayTiles (prayers/quran/adhkar/sadaqah mini tiles),
+ *       badges, points, streakDays, overallPercent and dailyChallenge — so Flutter NEVER has to make 7 API calls
+ *       to render this screen. All existing legacy endpoints (/journey/today, /progress, /badges) remain
+ *       100% backward compatible — untouched fields, same old contracts for existing integrations.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: query
+ *         name: weekDays
+ *         schema: { type: integer, default: 7, minimum: 1, maximum: 365, example: 7 }
+ *         description: Number of days back to calculate the weekly-summary 4 progress-bar percentages from.
+ *       - in: query
+ *         name: month
+ *         schema: { type: integer, minimum: 1, maximum: 12, example: 9 }
+ *         description: 1-indexed month for the heatmap calendar (defaults to current month).
+ *       - in: query
+ *         name: year
+ *         schema: { type: integer, example: 2025 }
+ *         description: 4-digit year for the heatmap calendar (defaults to current year).
+ *     responses:
+ *       200:
+ *         description: ✅ Full Journey Dashboard — all 4 cards ready to render.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+journeyRouter.get('/dashboard', authenticate, getJourneyDashboard);
+
+/**
+ * @openapi
+ * /journey/weekly-summary:
+ *   get:
+ *     tags: ['Journey']
+ *     summary: Weekly summary card — 4-category % progress bars (Prayer / Quran / Sadaqah / Dhikr)
+ *     description: Standalone lazy-reload for the "ملخص الاسبوع" card (same shape as dashboard weeklySummaryCard).
+ *                  Useful when Flutter wants to only refresh the weekly card without dashboard payload.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema: { type: integer, default: 7, minimum: 1, maximum: 365, example: 7 }
+ *         description: How many trailing days to compute the 4 percentages from.
+ *     responses:
+ *       200:
+ *         description: ✅ Weekly category percentages
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+journeyRouter.get('/weekly-summary', authenticate, getWeeklyCategorySummary);
+
+/**
+ * @openapi
+ * /journey/monthly-heatmap:
+ *   get:
+ *     tags: ['Journey']
+ *     summary: Monthly calendar heatmap (per-day status/percent + Arabic digits)
+ *     description: Standalone swipeable prev/next calendar widget data (same shape as dashboard monthlyCalendarCard).
+ *                  Each cell has day + dayAr (Eastern Arabic ١…٣١), weekdayIndex, status (done/partial/missed/future),
+ *                  overallPercent (for color opacity), prayersCompleted/quranPages/adhkarCompleted/sadaqahAmount + isToday flag.
+ *     security: [ { bearerAuth: [] } ]
+ *     parameters:
+ *       - in: query
+ *         name: month
+ *         schema: { type: integer, minimum: 1, maximum: 12, example: 9 }
+ *         description: 1-indexed month to render (defaults to current month)
+ *       - in: query
+ *         name: year
+ *         schema: { type: integer, example: 2025 }
+ *         description: 4-digit calendar year (defaults to current year)
+ *     responses:
+ *       200:
+ *         description: ✅ Monthly heatmap cells
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+journeyRouter.get('/monthly-heatmap', authenticate, getMonthlyCalendarHeatmap);
 
 /**
  * @openapi

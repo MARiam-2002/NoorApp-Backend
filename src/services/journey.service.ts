@@ -1120,3 +1120,350 @@ export async function getMonthlyStats(userId: string) {
     },
   };
 }
+
+/**
+ * Weekly category percentages for the "ملخص الاسبوع" card in Journey screen (4 colored progress bars):
+ * الصلاة (Prayers), القرآن (Quran), الصدقة (Sadaqah), الذكار (Adhkar).
+ * Each returns 0–100 percent (integer) + canonical key + EN/AR labels — exact contract for Flutter to paint colored bars:
+ *   الصلاة 95% green, القرآن 90% indigo, الصدقة 75% indigo, الذكار 85% brown
+ * All shapes same order as the screenshot.
+ */
+export async function getWeeklyCategorySummary(userId: string, days = 7) {
+  const today = getTodayDateOnly();
+  const startDate = new Date(today);
+  startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
+
+  const QURAN_PAGES_GOAL_PER_DAY = 4;
+  const PRAYERS_PER_DAY = 5;
+  const SADAQAH_GOAL = await getUserSadaqahGoal(userId);
+
+  const [progressRows, prayerCompletions] = await Promise.all([
+    prisma.dailyProgress.findMany({
+      where: { userId, date: { gte: startDate, lte: today } },
+    }),
+    prisma.prayerCompletion.findMany({
+      where: { userId, date: { gte: startDate, lte: today } },
+    }),
+  ]);
+
+  // --- Prayers % ---
+  const maxPossiblePrayers = days * PRAYERS_PER_DAY;
+  const prayerPercent =
+    maxPossiblePrayers > 0
+      ? Math.round(Math.min(1, prayerCompletions.length / maxPossiblePrayers) * 100)
+      : 0;
+
+  // --- Quran pages % ---
+  const totalQuranPages = progressRows.reduce((s, r) => s + r.quranPagesRead, 0);
+  const maxPossiblePages = days * QURAN_PAGES_GOAL_PER_DAY;
+  const quranPercent =
+    maxPossiblePages > 0 ? Math.round(Math.min(1, totalQuranPages / maxPossiblePages) * 100) : 0;
+
+  // --- Sadaqah % (days with any sadaqah recorded — or aggregate amount/goal average per day)
+  let sadaqahPercent: number;
+  const sadaqahDailyAvg = days > 0 ? progressRows.filter((r) => Number(r.sadaqahAmount) > 0).length / days : 0;
+  // Prefer the amount-based ratio when it produces a meaningful number; otherwise fallback to the daily-participation percent.
+  const totalAmount = progressRows.reduce((s, r) => s + Number(r.sadaqahAmount), 0);
+  const amountBased = SADAQAH_GOAL > 0 ? Math.min(1, totalAmount / (days * SADAQAH_GOAL)) : 0;
+  sadaqahPercent = Math.round(
+    Math.max(sadaqahDailyAvg, amountBased) * 100,
+  );
+  if (!Number.isFinite(sadaqahPercent)) sadaqahPercent = 0;
+
+  // --- Adhkar % (morning + evening both per-day halves) ---
+  let adhkarHalves = 0;
+  const maxAdhkarHalves = days * 2;
+  for (const row of progressRows) {
+    if (row.morningAdhkarCompleted ?? row.adhkarCompleted) adhkarHalves += 1;
+    if (row.eveningAdhkarCompleted ?? row.adhkarCompleted) adhkarHalves += 1;
+  }
+  const adhkarPercent =
+    maxAdhkarHalves > 0 ? Math.round((adhkarHalves / maxAdhkarHalves) * 100) : 0;
+
+  return {
+    period: {
+      from: startDate.toISOString().slice(0, 10),
+      to: today.toISOString().slice(0, 10),
+      days,
+    },
+    // Order MUST match Journey card screenshot top-to-bottom:
+    categories: [
+      {
+        key: 'PRAYER',
+        keyAr: 'الصلاة',
+        keyEn: 'Prayers',
+        percent: prayerPercent,
+        color: 'emerald', // green in screenshot
+        descriptionAr: 'إتمام الصلوات الخمس خلال الأسبوع',
+        descriptionEn: 'Completion of 5 daily prayers throughout the week',
+      },
+      {
+        key: 'QURAN',
+        keyAr: 'القرآن',
+        keyEn: 'Quran',
+        percent: quranPercent,
+        color: 'indigo',
+        descriptionAr: 'قراءة صفحات القرآن الكريم',
+        descriptionEn: 'Daily Holy Quran pages read',
+      },
+      {
+        key: 'SADAQAH',
+        keyAr: 'الصدقة',
+        keyEn: 'Sadaqah',
+        percent: sadaqahPercent,
+        color: 'indigo',
+        descriptionAr: 'الصدقات المالية والمعنوية المسجلة',
+        descriptionEn: 'Recorded monetary + non-monetary sadaqah',
+      },
+      {
+        key: 'ADHKAR',
+        keyAr: 'الذكار',
+        keyEn: 'Dhikr',
+        percent: adhkarPercent,
+        color: 'amber', // brownish-yellow matching the 85% amber bar
+        descriptionAr: 'أذكار الصباح والمساء اليومية',
+        descriptionEn: 'Daily morning & evening remembrances',
+      },
+    ],
+  };
+}
+
+type HeatmapDayStatus = 'done' | 'partial' | 'missed' | 'future';
+
+/**
+ * Monthly calendar heatmap rows — matches شاشة "سبتمبر 2025" with weekday header + 6 rows of cells.
+ * Each day returns day number, Arabic/Eastern Arabic digits, status (done/partial/missed/future) and
+ * optional overallPercent of that day so Flutter can paint by opacity/colors.
+ */
+export async function getMonthlyCalendarHeatmap(
+  userId: string,
+  monthParam?: number,
+  yearParam?: number,
+) {
+  const today = getTodayDateOnly();
+  const month = (monthParam ?? today.getUTCMonth() + 1); // 1..12
+  const year = yearParam ?? today.getUTCFullYear();
+
+  const monthStart = new Date(Date.UTC(year, month - 1, 1));
+  const monthEnd = new Date(Date.UTC(year, month, 0));
+  const todayStr = today.toISOString().slice(0, 10);
+  const daysInMonth = monthEnd.getUTCDate();
+
+  const QURAN_GOAL = 4;
+  const PRAYERS_PER_DAY = 5;
+  const SADAQAH_GOAL = await getUserSadaqahGoal(userId);
+
+  const [progressRows, prayerRows] = await Promise.all([
+    prisma.dailyProgress.findMany({
+      where: { userId, date: { gte: monthStart, lte: monthEnd } },
+    }),
+    prisma.prayerCompletion.findMany({
+      where: { userId, date: { gte: monthStart, lte: monthEnd } },
+    }),
+  ]);
+  const prayersByDate = new Map<string, number>();
+  for (const p of prayerRows) {
+    const k = p.date.toISOString().slice(0, 10);
+    prayersByDate.set(k, (prayersByDate.get(k) ?? 0) + 1);
+  }
+  const progressByDate = new Map(
+    progressRows.map((r) => [r.date.toISOString().slice(0, 10), r]),
+  );
+
+  // Weekday header — 0 = Sunday (اليوم)… 6 = Saturday) — but Flutter expects Arabic order (Sat-Thu visible in screenshot:
+  const weekdayHeaders = [
+    { keyEn: 'Sun', keyAr: 'اليوم', en: 'Sun', ar: 'يوم' },
+    { keyEn: 'Mon', keyAr: 'الاثنين', en: 'Mon', ar: 'اث' },
+    { keyEn: 'Tue', keyAr: 'الثلاثاء', en: 'Tue', ar: 'ثلا' },
+    { keyEn: 'Wed', keyAr: 'الأربعاء', en: 'Wed', ar: 'اربع' },
+    { keyEn: 'Thu', keyAr: 'الخميس', en: 'Thu', ar: 'خمي' },
+    { keyEn: 'Fri', keyAr: 'الجمعة', en: 'Fri', ar: 'جمع' },
+    { keyEn: 'Sat', keyAr: 'السبت', en: 'Sat', ar: 'سبت' },
+  ];
+
+  // Egyptian/Arabic month names for header (September = سبتمبر
+  const MONTH_NAMES_AR = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+  ];
+  const MONTH_NAMES_EN = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  const cells: Array<{
+    date: string; // YYYY-MM-DD
+    day: number; // 1..daysInMonth
+    dayAr: string; // Eastern Arabic digits: ١ ٢ …
+    weekdayIndex: number; // 0..6 for placing in calendar grid
+    status: HeatmapDayStatus;
+    overallPercent: number; // 0..100
+    prayersCompleted: number; // 0..5
+    quranPages: number;
+    adhkarCompleted: boolean;
+    sadaqahAmount: number;
+    isToday: boolean;
+  }> = [];
+
+  for (let d = 1; d <= daysInMonth; d += 1) {
+    const dt = new Date(Date.UTC(year, month - 1, d));
+    const dateStr = dt.toISOString().slice(0, 10);
+    const weekdayIndex = dt.getUTCDay();
+    const isToday = dateStr === todayStr;
+    const isFuture = dt.getTime() > today.getTime();
+    const row = progressByDate.get(dateStr);
+    const prayersDone = prayersByDate.get(dateStr) ?? 0;
+
+    let overallPercent = 0;
+    let sadaqahAmount = 0;
+    let adhkarCompleted = false;
+    let quranPages = 0;
+    if (row) {
+      quranPages = row.quranPagesRead ?? 0;
+      sadaqahAmount = Number(row.sadaqahAmount) || 0;
+      const morning = (row.morningAdhkarCompleted ?? row.adhkarCompleted) === true;
+      const evening = (row.eveningAdhkarCompleted ?? row.adhkarCompleted) === true;
+      adhkarCompleted = morning && evening;
+      const q = QURAN_GOAL > 0 ? Math.min(1, quranPages / QURAN_GOAL) : 0;
+      const p = prayersDone / PRAYERS_PER_DAY;
+      const a = ((morning ? 1 : 0) + (evening ? 1 : 0)) / 2;
+      const s = SADAQAH_GOAL > 0 ? Math.min(1, sadaqahAmount / SADAQAH_GOAL) : 0;
+      overallPercent = Math.round(((q + p + a + s) / 4) * 100);
+    }
+
+    let status: HeatmapDayStatus;
+    if (isFuture) status = 'future';
+    else if (overallPercent >= 80) status = 'done';
+    else if (overallPercent > 0) status = 'partial';
+    else status = 'missed';
+
+    cells.push({
+      date: dateStr,
+      day: d,
+      dayAr: toEasternArabicDigits(String(d)),
+      weekdayIndex,
+      status,
+      overallPercent: Math.min(100, Math.max(0, overallPercent)),
+      prayersCompleted: Math.min(PRAYERS_PER_DAY, prayersDone),
+      quranPages,
+      adhkarCompleted,
+      sadaqahAmount,
+      isToday,
+    });
+  }
+
+  return {
+    month: {
+      number: month,
+      year,
+      nameAr: MONTH_NAMES_AR[month - 1] ?? String(month),
+      nameEn: MONTH_NAMES_EN[month - 1] ?? String(month),
+    },
+    weekdayHeaders,
+    // Return cells in day 1..daysInMonth order, starting index=day1 (sorted chronologically.
+    // WeekdayIndex on first cell tells Flutter where to offset the first day box of the month in the grid.
+    cells,
+    daysInMonth,
+    todayDate: todayStr,
+  };
+}
+
+function toEasternArabicDigits(input: string): string {
+  return input.replace(/[0-9]/g, (d) => String.fromCharCode(0x0660 + Number(d)));
+}
+
+/**
+ * Master ONE-SHOT aggregate endpoint for the "رحلتي" (Journey) main screen.
+ * Aggregates all 4 cards matching the screenshot exactly:
+ *   1. المستوي الحالي (Level card with medals/badge row)
+ *   2. سلسلة الحسنات (Streak 9-checkmark row)
+ *   3. ملخص الاسبوع (4 category % bars الصلاة/القرآن/الصدقة/الذكار)
+ *   4. الكالندر الشهري (September 2025 heatmap grid)
+ * Plus top-level meta (streakDays, points, badges, overall percent etc for quick access without GET /journey/today).
+ * Always returns all 4 cards nested in a single envelope response. Preserves the legacy /journey/today & every single
+ * existing fields as separate existing endpoints unchanged.
+ */
+export async function getJourneyDashboard(
+  userId: string,
+  options: { weekDays?: number; month?: number; year?: number } = {},
+) {
+  const weekDays = Number.isFinite(options.weekDays) && (options.weekDays as number) > 0
+    ? (options.weekDays as number)
+    : 7;
+  const [today, weekly, heatmap] = await Promise.all([
+    getTodayJourney(userId),
+    getWeeklyCategorySummary(userId, weekDays),
+    getMonthlyCalendarHeatmap(userId, options.month, options.year),
+  ]);
+
+  return {
+    // Backward-compat top-level metadata aliases (already present in /today response):
+    date: today.date,
+    points: today.points,
+    streakDays: today.streakDays,
+    overallPercent: today.overallPercent,
+    badges: today.badges,
+
+    // ===== Card 1 — المستوي الحالي =====
+    levelCard: {
+      level: today.level,
+      rankTitleAr: today.rankTitleAr,      // e.g. "عبد شاكر" for level 6
+      rankTitleEn: today.rankTitleEn,      // "Grateful servant"
+      levelProgressPercent: today.levelProgressPercent,
+      pointsInLevel: today.pointsInLevel,
+      pointsToNextLevel: today.pointsToNextLevel,
+      nextLevel: today.nextLevel,
+      nextRankTitleAr: today.nextRankTitleAr,
+      nextRankTitleEn: today.nextRankTitleEn,
+      isMaxLevel: today.isMaxLevel,
+      // 5-slot medal row matching Journey mock:
+      medals: today.badges.slice(0, 5).map((b, i) => ({
+        id: b.id,
+        key: b.key,
+        titleAr: b.titleAr,
+        titleEn: b.titleEn,
+        // gold/silver distinction for display (bronze)
+        type: b.earned ? 'gold' : 'silver',
+        earned: Boolean(b.earned),
+        // position: i, // 0..4 (left→right as in screenshot: firstSteps, streak3, streak7, prayersAll, streak14)
+      })),
+    },
+
+    // ===== Card 2 — سلسلة الحسنات =====
+    streakCard: {
+      days: today.streak.days,
+      labelAr: today.streak.labelAr,
+      labelEn: today.streak.labelEn,
+      unitAr: today.streak.unitAr,
+      unitEn: today.streak.unitEn,
+      // 10 checkmark boxes, exactly like the UI (filled vs hollow:
+      displayDays: today.streak.displayDays,
+      displayDaysCount: today.streak.displayDaysCount,
+      recentDays: today.streak.recentDays,
+    },
+
+    // ===== Card 3 — ملخص الاسبوع — 4 colored progress bars =====
+    weeklySummaryCard: {
+      period: weekly.period,
+      categories: weekly.categories,
+    },
+
+    // ===== Card 4 — الكالندر الشهري heatmap =====
+    monthlyCalendarCard: {
+      month: heatmap.month,
+      weekdayHeaders: heatmap.weekdayHeaders,
+      cells: heatmap.cells,
+      daysInMonth: heatmap.daysInMonth,
+      todayDate: heatmap.todayDate,
+    },
+
+    // ===== Bonus — today's per-category mini tiles (same data as the /journey/today, useful for bottom mini-badges on top):
+    todayTiles: {
+      quran: today.quran,
+      prayers: today.prayers,
+      adhkar: today.adhkar,
+      sadaqah: today.sadaqah,
+    },
+    dailyChallenge: today.dailyChallenge ?? null,
+  };
+}
