@@ -5,6 +5,14 @@ type FcmPayload = {
   title: string;
   body: string;
   data?: Record<string, string>;
+  /**
+   * Android notification channel sound resource name (without extension) or file path.
+   * APNs: name of the sound file in the app bundle / Library/Sounds.
+   * Pass 'default' for OS default. Pass null/undefined for silent notification.
+   */
+  nativeSound?: string | null;
+  /** Android notification channel ID override. Defaults to 'azan' for Azan-type pushes. */
+  androidChannelId?: string;
 };
 
 type SendResult = {
@@ -90,6 +98,26 @@ export async function sendFcmToTokens(
     };
   }
 
+  const nativeSound =
+    payload.nativeSound === undefined || payload.nativeSound === null
+      ? 'default'
+      : String(payload.nativeSound);
+  const soundExplicitlyDisabled = payload.nativeSound === null;
+
+  const androidNotif: any = {
+    channelId: payload.androidChannelId || 'azan',
+  };
+  if (!soundExplicitlyDisabled) {
+    androidNotif.sound = nativeSound;
+  }
+
+  const aps: any = {
+    contentAvailable: true,
+  };
+  if (!soundExplicitlyDisabled) {
+    aps.sound = nativeSound;
+  }
+
   const response = await msg.sendEachForMulticast({
     tokens: unique,
     notification: {
@@ -101,17 +129,11 @@ export async function sendFcmToTokens(
     ),
     android: {
       priority: 'high',
-      notification: {
-        channelId: 'azan',
-        sound: 'default',
-      },
+      notification: androidNotif,
     },
     apns: {
       payload: {
-        aps: {
-          sound: 'default',
-          contentAvailable: true,
-        },
+        aps,
       },
     },
   });

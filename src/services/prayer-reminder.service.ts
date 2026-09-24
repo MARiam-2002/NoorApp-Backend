@@ -10,6 +10,11 @@ import {
   runSalawatReminders,
 } from './salawat-reminder.service';
 import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
+import {
+  getAzanSoundById,
+  getNotificationSoundById,
+} from '../shared/constants/azan-sounds';
+import { mediaAbsoluteUrl } from './azan-audio.service';
 
 type ScheduleRow = { name: string; time: string };
 
@@ -39,6 +44,9 @@ export function minutesUntilPrayer(
 
 /**
  * Azan FCM backup only — unchanged rules (prefs + prayer window).
+ * Now injects full audio metadata (IDs, URLs, names, muezzin) into the
+ * FCM data payload so Flutter can display + play the user-selected Azan /
+ * notification sound in parallel with the native notification.
  */
 export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
   usersScanned: number;
@@ -62,7 +70,18 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
       const prefs = await getAzanPreferences(user.id);
       if (!prefs.azanEnabled || prefs.fcmPrayerBackupEnabled === false) continue;
 
-      // Prefer Azan prefs / profile location; fall back to Cairo for users without GPS yet.
+      const azanSoundRaw = getAzanSoundById(prefs.azanSoundId ?? prefs.voiceId);
+      const notifSoundRaw = getNotificationSoundById(prefs.notificationSoundId);
+      const azanSoundUrl = azanSoundRaw.mediaFile
+        ? mediaAbsoluteUrl(azanSoundRaw.mediaFile)
+        : '';
+      const notifSoundUrl = notifSoundRaw.mediaFile
+        ? mediaAbsoluteUrl(notifSoundRaw.mediaFile)
+        : '';
+
+      const soundEnabled = prefs.soundEnabled !== false;
+      const vibrationEnabled = prefs.vibrationEnabled !== false;
+
       const lat = prefs.lastLat ?? user.latitude ?? DEFAULT_PRAYER_LOCATION.latitude;
       const lng = prefs.lastLng ?? user.longitude ?? DEFAULT_PRAYER_LOCATION.longitude;
       const profileTz = user.timezone ?? DEFAULT_PRAYER_LOCATION.timezone;
@@ -80,7 +99,6 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           : 'profile',
       );
       const rows = (schedule.schedule ?? []) as ScheduleRow[];
-      // Use the timezone that produced schedule HH:mm values (may be inferred from coords).
       const evaluationTz = resolveTimezone(
         schedule.timezone || profileTz || DEFAULT_PRAYER_LOCATION.timezone,
       );
@@ -105,7 +123,6 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
         const isPre = hitPre && !hitNow;
         const kind = isPre ? 'pre_reminder' : 'prayer_time';
 
-        // Idempotency: skip if we already created an AZAN notification for this prayer+kind recently.
         const since = new Date(Date.now() - Math.max(windowMinutes, 10) * 60_000);
         const recent = await prisma.notification.findMany({
           where: {
@@ -131,22 +148,87 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           ? `تذكير: تبقى حوالي ${pre} دقيقة على ${row.name} (${row.time})`
           : `حان موعد صلاة ${row.name} (${row.time})`;
 
+        const baseData: Record<string, string> = {
+          type: 'AZAN',
+          prayer: row.name,
+          time: row.time,
+          kind,
+          soundEnabled: soundEnabled ? 'true' : 'false',
+          vibrationEnabled: vibrationEnabled ? 'true' : 'false',
+          locale: 'ar',
+        };
+
+        let nativeSound: string | null = 'default';
+        if (!soundEnabled) {
+          nativeSound = null;
+        }
+
+        if (isPre) {
+          Object.assign(baseData, {
+            preReminderMinutes: String(pre ?? 0),
+            audioScope: 'pre_reminder',
+            notificationSoundId: notifSoundRaw.id,
+            notificationSoundNameEn: notifSoundRaw.nameEn || '',
+            notificationSoundNameAr: notifSoundRaw.nameAr || '',
+            notificationSoundUrl: notifSoundUrl,
+            notificationSoundMediaFile: notifSoundRaw.mediaFile || '',
+            notificationSoundFormat: notifSoundRaw.format || 'none',
+            notificationSoundDurationSeconds:
+              notifSoundRaw.durationSeconds != null
+                ? String(notifSoundRaw.durationSeconds)
+                : '',
+            notificationSoundMood:
+              (notifSoundRaw as any).mood != null ? String((notifSoundRaw as any).mood) : '',
+          });
+          if (soundEnabled && notifSoundRaw.id !== 'silent') {
+            nativeSound = notifSoundRaw.mediaFile
+              ? notifSoundRaw.mediaFile.replace(/\.mp3$/i, '')
+              : 'default';
+          } else if (!soundEnabled || notifSoundRaw.id === 'silent') {
+            nativeSound = null;
+          }
+        } else {
+          Object.assign(baseData, {
+            audioScope: 'prayer_time_azan',
+            azanSoundId: azanSoundRaw.id,
+            azanSoundNameEn: azanSoundRaw.nameEn || '',
+            azanSoundNameAr: azanSoundRaw.nameAr || '',
+            azanSoundUrl: azanSoundUrl,
+            azanSoundPreviewUrl: azanSoundUrl,
+            azanSoundMediaFile: azanSoundRaw.mediaFile || '',
+            azanSoundFormat: azanSoundRaw.format || 'mp3',
+            azanSoundDurationSeconds:
+              azanSoundRaw.durationSeconds != null
+                ? String(azanSoundRaw.durationSeconds)
+                : '',
+            azanSoundMuezzin: azanSoundRaw.muezzin || '',
+            azanSoundMuezzinEn: azanSoundRaw.muezzinEn || '',
+            azanSoundMuezzinAr: azanSoundRaw.muezzinAr || '',
+            azanSoundCategory: String(azanSoundRaw.category || ''),
+            azanSoundIsFamousVoice: azanSoundRaw.isFamousVoice ? 'true' : 'false',
+            azanSoundProvider: String(azanSoundRaw.provider || ''),
+          });
+          if (soundEnabled) {
+            nativeSound = azanSoundRaw.mediaFile
+              ? azanSoundRaw.mediaFile.replace(/\.mp3$/i, '')
+              : 'default';
+          } else {
+            nativeSound = null;
+          }
+        }
+
         pushesAttempted += 1;
         const result = await sendPushToUser(user.id, {
           title: titleEn,
           body: bodyEn,
           titleAr,
           bodyAr,
-          data: {
-            type: 'AZAN',
-            prayer: row.name,
-            time: row.time,
-            kind,
-          },
+          data: baseData,
+          nativeSound,
+          androidChannelId: isPre ? 'azan-reminder' : 'azan',
         });
         pushesSent += result.sent;
 
-        // Best-effort in-app notification
         await createNotification({
           userId: user.id,
           titleAr,
@@ -155,7 +237,16 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           bodyEn,
           type: 'AZAN' as any,
           deepLink: '/prayer-times',
-          payload: { prayer: row.name, time: row.time, kind },
+          payload: {
+            prayer: row.name,
+            time: row.time,
+            kind,
+            audioScope: baseData.audioScope,
+            azanSoundId: baseData.azanSoundId,
+            azanSoundUrl: baseData.azanSoundUrl,
+            notificationSoundId: baseData.notificationSoundId,
+            notificationSoundUrl: baseData.notificationSoundUrl,
+          },
         }).catch(() => null);
       }
     } catch (err) {

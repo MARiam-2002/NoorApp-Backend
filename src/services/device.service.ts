@@ -73,6 +73,10 @@ export async function sendPushToUser(
     titleAr?: string;
     bodyAr?: string;
     data?: Record<string, string>;
+    /** Passed through to FCM for Android/APNS native sound selection. */
+    nativeSound?: string | null;
+    /** Android notification channel ID override. */
+    androidChannelId?: string;
   },
 ) {
   const tokens = await prisma.deviceToken.findMany({
@@ -93,6 +97,8 @@ export async function sendPushToUser(
         titleAr: payload.titleAr ?? '',
         bodyAr: payload.bodyAr ?? '',
       },
+      nativeSound: payload.nativeSound,
+      androidChannelId: payload.androidChannelId,
     },
   );
 
