@@ -5,13 +5,12 @@ import { ErrorCodes, HttpStatus } from '../config';
 import { sendPushToUser } from './device.service';
 import { createNotification } from './notification.service';
 import {
-  getLocalClock,
   parseHhmm,
   normalizeHhmm,
   resolveTimezone,
 } from './salawat-reminder.service';
 import { evaluateMulkEligibility } from './mulk-reminder.service';
-import { getTodayDateOnly } from '../utils/date';
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 
 export const TOTAL_QURAN_PAGES = 604;
 export const TOTAL_JUZ = 30;
@@ -73,7 +72,7 @@ async function ensureKhatmahRow(userId: string) {
 }
 
 async function getPagesReadToday(userId: string): Promise<number> {
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const row = await prisma.dailyProgress.findUnique({
     where: { userId_date: { userId, date } },
     select: { quranPagesRead: true },

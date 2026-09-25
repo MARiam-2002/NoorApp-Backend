@@ -5,7 +5,7 @@ import { ErrorCodes, HttpStatus } from '../config';
 import { ensureSurahCatalog, FALLBACK_KHATMAH } from '../lib/quran-catalog';
 import { resolveSurahNameAr, resolveSurahNameEn, withResolvedSurahNames } from '../lib/surah-names';
 import { parsePaginationQuery, buildPaginationMeta } from '../utils/pagination';
-import { getTodayDateOnly } from '../utils/date';
+import { getUserLocalCalendarDay, dateOnlyFromDayKey } from '../shared/utils/user-local-date';
 import { logger } from '../lib/logger';
 import { withPerfTiming } from '../lib/perf';
 import {
@@ -1158,6 +1158,7 @@ export async function listAyahsByPage(pageNumber: number) {
 }
 
 async function getReadingStreakDays(userId: string): Promise<number> {
+  const { dayKey: todayKey } = await getUserLocalCalendarDay(userId);
   const rows = await prisma.dailyProgress.findMany({
     where: { userId, quranPagesRead: { gt: 0 } },
     select: { date: true },
@@ -1165,19 +1166,24 @@ async function getReadingStreakDays(userId: string): Promise<number> {
     take: 365,
   });
   if (rows.length === 0) return 0;
-  const uniqueDates = new Set(rows.map((r) => startOfDay(r.date).toDateString()));
+  const uniqueDates = new Set(
+    rows.map((r) => r.date.toISOString().slice(0, 10)),
+  );
   let streak = 0;
-  const cursor = startOfDay(new Date());
-  while (uniqueDates.has(cursor.toDateString())) {
+  let cursor = todayKey;
+  while (uniqueDates.has(cursor)) {
     streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+    const d = dateOnlyFromDayKey(cursor);
+    d.setUTCDate(d.getUTCDate() - 1);
+    cursor = d.toISOString().slice(0, 10);
   }
   return streak;
 }
 
 async function getPagesReadToday(userId: string): Promise<number> {
+  const { date } = await getUserLocalCalendarDay(userId);
   const row = await prisma.dailyProgress.findUnique({
-    where: { userId_date: { userId, date: getTodayDateOnly() } },
+    where: { userId_date: { userId, date } },
     select: { quranPagesRead: true },
   });
   return row?.quranPagesRead ?? 0;

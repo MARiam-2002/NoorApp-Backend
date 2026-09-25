@@ -3,7 +3,8 @@ import type { ChallengeType } from '@prisma/client';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
-import { getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { getDayOfYear } from '../utils/date';
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import {
   FALLBACK_CHALLENGE,
@@ -125,19 +126,20 @@ const PRAYER_META: Record<ValidPrayerKey, {
   },
 };
 
-async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
+async function getOrCreateToday(userId: string, date?: Date) {
+  const resolved = date ?? (await getUserLocalCalendarDay(userId)).date;
   return prisma.dailyProgress.upsert({
-    where: { userId_date: { userId, date } },
-    create: { userId, date },
+    where: { userId_date: { userId, date: resolved } },
+    create: { userId, date: resolved },
     update: {},
   });
 }
 
 export async function getTodayJourney(userId: string) {
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   // Align DailyProgress adhkar flags with Azkar item completions (same source of truth).
   await syncJourneyAdhkarFromDhikr(userId, date).catch(() => undefined);
-  const progress = await getOrCreateToday(userId);
+  const progress = await getOrCreateToday(userId, date);
 
   let prayersCompletedRows: Array<{ prayer: any }> = [];
   let prayersCompleted = 0;
@@ -489,7 +491,7 @@ export async function togglePrayer(
     );
   }
 
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const meta = PRAYER_META[prayerKey];
 
   if (completed) {
@@ -585,7 +587,7 @@ export async function updateQuranPages(userId: string, pages: number) {
     );
   }
 
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const progress = await prisma.dailyProgress.upsert({
     where: { userId_date: { userId, date } },
     create: { userId, date, quranPagesRead: pages },
@@ -604,7 +606,7 @@ export async function incrementQuranPages(userId: string, pages: number) {
     );
   }
 
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const current = await getOrCreateToday(userId, date);
 
   const progress = await prisma.dailyProgress.update({
@@ -624,7 +626,7 @@ export async function updateAdhkar(
     categoryKey?: string;
   },
 ) {
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const existing = await prisma.dailyProgress.findUnique({
     where: { userId_date: { userId, date } },
   });
@@ -761,7 +763,7 @@ export async function updateSadaqah(userId: string, input: UpdateSadaqahInput | 
     });
   }
 
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const existing = await prisma.dailyProgress.findUnique({
     where: { userId_date: { userId, date } },
   });
@@ -823,7 +825,7 @@ export async function updateSadaqah(userId: string, input: UpdateSadaqahInput | 
 
 /** Full Sadaqah screen payload (auth). Personal tracking only — no payments. */
 export async function getSadaqahToday(userId: string) {
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const [progress, goal] = await Promise.all([
     prisma.dailyProgress.findUnique({
       where: { userId_date: { userId, date } },
@@ -848,7 +850,7 @@ export async function getSadaqahToday(userId: string) {
 }
 
 export async function getJourneyProgress(userId: string, days = 7) {
-  const today = getTodayDateOnly();
+  const { date: today } = await getUserLocalCalendarDay(userId);
   const startDate = new Date(today);
   startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
 
@@ -1031,7 +1033,7 @@ export async function getJourneyOverview(userId: string) {
 }
 
 export async function getWeeklyStats(userId: string) {
-  const today = getTodayDateOnly();
+  const { date: today } = await getUserLocalCalendarDay(userId);
   const sevenDaysAgo = new Date(today);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -1082,7 +1084,7 @@ export async function getWeeklyStats(userId: string) {
 }
 
 export async function getMonthlyStats(userId: string) {
-  const today = getTodayDateOnly();
+  const { date: today } = await getUserLocalCalendarDay(userId);
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
@@ -1129,7 +1131,7 @@ export async function getMonthlyStats(userId: string) {
  * All shapes same order as the screenshot.
  */
 export async function getWeeklyCategorySummary(userId: string, days = 7) {
-  const today = getTodayDateOnly();
+  const { date: today } = await getUserLocalCalendarDay(userId);
   const startDate = new Date(today);
   startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
 
@@ -1240,7 +1242,7 @@ export async function getMonthlyCalendarHeatmap(
   monthParam?: number,
   yearParam?: number,
 ) {
-  const today = getTodayDateOnly();
+  const { date: today } = await getUserLocalCalendarDay(userId);
   const month = (monthParam ?? today.getUTCMonth() + 1); // 1..12
   const year = yearParam ?? today.getUTCFullYear();
 

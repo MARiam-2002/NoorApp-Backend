@@ -10,7 +10,7 @@ import {
   type PrayerLocationSource,
 } from '../shared/constants/default-location';
 import { DefaultTimezone, PrayerNameEnum, PrayerOrder } from '../utils/constants';
-import { getTodayDateOnly } from '../utils/date';
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { parsePrayerKey, prayerEnumToTitle } from '../shared/utils/prayer-names';
 import {
   addCalendarDaysUtcNoon,
@@ -391,9 +391,10 @@ export function calculateDailyPrayerSchedule(
   };
 }
 
-async function findCompletedPrayers(userId: string, date = getTodayDateOnly()): Promise<PrayerName[]> {
+async function findCompletedPrayers(userId: string, date?: Date): Promise<PrayerName[]> {
+  const resolved = date ?? (await getUserLocalCalendarDay(userId)).date;
   const records = await prisma.prayerCompletion.findMany({
-    where: { userId, date },
+    where: { userId, date: resolved },
     select: { prayer: true },
   });
   return records.map((record) => record.prayer);
@@ -402,11 +403,12 @@ async function findCompletedPrayers(userId: string, date = getTodayDateOnly()): 
 async function togglePrayer(
   userId: string,
   prayer: PrayerName,
-  date = getTodayDateOnly(),
+  date?: Date,
 ): Promise<boolean> {
+  const resolved = date ?? (await getUserLocalCalendarDay(userId)).date;
   const existing = await prisma.prayerCompletion.findUnique({
     where: {
-      userId_date_prayer: { userId, date, prayer },
+      userId_date_prayer: { userId, date: resolved, prayer },
     },
   });
 
@@ -418,7 +420,7 @@ async function togglePrayer(
   }
 
   await prisma.prayerCompletion.create({
-    data: { userId, date, prayer },
+    data: { userId, date: resolved, prayer },
   });
   return true;
 }

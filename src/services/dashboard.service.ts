@@ -4,7 +4,8 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { calculateDailyPrayerSchedule } from './prayer.service';
 import type { DailyPrayerSchedule } from './prayer.service';
-import { formatArabicDateInfo, getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { formatArabicDateInfo, getDayOfYear } from '../utils/date';
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import {
   DEFAULT_LATITUDE,
@@ -164,10 +165,11 @@ export type DashboardData = {
 
 async function findCompletedPrayers(
   userId: string,
-  date: Date = getTodayDateOnly(),
+  date?: Date,
 ): Promise<PrayerName[]> {
+  const resolved = date ?? (await getUserLocalCalendarDay(userId)).date;
   const records = await prisma.prayerCompletion.findMany({
-    where: { userId, date },
+    where: { userId, date: resolved },
     select: { prayer: true },
   });
 

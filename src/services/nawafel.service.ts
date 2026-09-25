@@ -2,10 +2,7 @@ import type { NawafelKey } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
-import {
-  getLocalClock,
-  resolveTimezone,
-} from './salawat-reminder.service';
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import {
   NAWAFEL_CATALOG,
   NAWAFEL_SLOT_COUNT,
@@ -43,25 +40,15 @@ export type NawafelTodayDto = {
   captionEn: string;
 };
 
-function dateOnlyFromDayKey(dayKey: string): Date {
-  const parts = dayKey.split('-').map(Number);
-  const y = parts[0] ?? 1970;
-  const m = parts[1] ?? 1;
-  const d = parts[2] ?? 1;
-  return new Date(Date.UTC(y, m - 1, d));
-}
-
 async function resolveUserDay(userId: string): Promise<{ dayKey: string; date: Date; timezone: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { timezone: true },
+    select: { id: true },
   });
   if (!user) {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
-  const timezone = resolveTimezone(user.timezone);
-  const dayKey = getLocalClock(new Date(), timezone).dayKey;
-  return { dayKey, date: dateOnlyFromDayKey(dayKey), timezone };
+  return getUserLocalCalendarDay(userId);
 }
 
 function buildTodayDto(

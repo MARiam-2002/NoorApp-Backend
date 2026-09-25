@@ -2,7 +2,8 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { logger } from '../lib/logger';
-import { getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { getDayOfYear } from '../utils/date';
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import {
   FALLBACK_VERSE,
   FALLBACK_VERSE_FULL_SURAH,
@@ -157,15 +158,16 @@ export async function getDailyChallengeTemplateWithFallback(dayOfYear = getDayOf
   };
 }
 
-export async function getOrCreateTodayJourney(userId: string, date = getTodayDateOnly()) {
+export async function getOrCreateTodayJourney(userId: string, date?: Date) {
+  const resolved = date ?? (await getUserLocalCalendarDay(userId)).date;
   return prisma.dailyProgress.upsert({
-    where: { userId_date: { userId, date } },
-    create: { userId, date },
+    where: { userId_date: { userId, date: resolved } },
+    create: { userId, date: resolved },
     update: {},
   });
 }
 
-export async function getTodayJourneyWithFallback(userId: string, date = getTodayDateOnly()) {
+export async function getTodayJourneyWithFallback(userId: string, date?: Date) {
   try {
     return await getOrCreateTodayJourney(userId, date);
   } catch {
