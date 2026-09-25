@@ -62,6 +62,7 @@ model User {
   quranLastRead           QuranLastRead?
   quranReadingHistory     QuranReadingHistory[]
   quranSajdahCompletions  QuranSajdahCompletion[]
+  stanceAnswers           StanceAnswer[]
   refreshTokens           RefreshToken[]
   tasbihLogs              TasbihLog[]
   tasbihResetHistory      TasbihResetHistory[]
@@ -347,6 +348,22 @@ model ChallengeCompletion {
   @@unique([userId, dayOfYear])
   @@index([userId, dayOfYear])
   @@map("challenge_completions")
+}
+
+/// User answers for "موقفك إيه؟" ethical stance situations (catalog is code-side).
+model StanceAnswer {
+  id                 String   @id @default(uuid())
+  userId             String
+  situationId        String
+  selectedOptionKey  String
+  isCorrect          Boolean
+  pointsAwarded      Int      @default(0)
+  answeredAt         DateTime @default(now())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, situationId])
+  @@index([userId, answeredAt])
+  @@map("stance_answers")
 }
 
 model TasbihLog {
