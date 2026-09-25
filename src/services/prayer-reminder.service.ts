@@ -11,6 +11,7 @@ import {
   runSalawatReminders,
 } from './salawat-reminder.service';
 import { runMulkReminders } from './mulk-reminder.service';
+import { runDuhaReminders, runQiyamReminders } from './extra-prayer-reminder.service';
 import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
 import {
   AZAN_MEDIA_FILES,
@@ -697,7 +698,7 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
 
 /**
  * Existing cron entrypoint (every ~10 minutes).
- * Runs Azan backup + Salawat + Surah Al-Mulk reminders in the same job — no separate scheduler.
+ * Azan + Salawat + Mulk + Duha + Qiyam in one job — no separate scheduler.
  */
 export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
   usersScanned: number;
@@ -716,18 +717,45 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
     pushesSent: number;
     skipped: Record<string, number>;
   };
+  duha: {
+    usersScanned: number;
+    pushesAttempted: number;
+    pushesSent: number;
+    skipped: Record<string, number>;
+  };
+  qiyam: {
+    usersScanned: number;
+    pushesAttempted: number;
+    pushesSent: number;
+    skipped: Record<string, number>;
+  };
 }> {
   const azan = await runAzanBackupReminders(windowMinutes);
   const salawat = await runSalawatReminders();
   const mulk = await runMulkReminders();
+  const duha = await runDuhaReminders();
+  const qiyam = await runQiyamReminders();
 
   const summary = {
-    usersScanned: azan.usersScanned + salawat.usersScanned + mulk.usersScanned,
-    pushesAttempted: azan.pushesAttempted + salawat.pushesAttempted + mulk.pushesAttempted,
-    pushesSent: azan.pushesSent + salawat.pushesSent + mulk.pushesSent,
+    usersScanned:
+      azan.usersScanned +
+      salawat.usersScanned +
+      mulk.usersScanned +
+      duha.usersScanned +
+      qiyam.usersScanned,
+    pushesAttempted:
+      azan.pushesAttempted +
+      salawat.pushesAttempted +
+      mulk.pushesAttempted +
+      duha.pushesAttempted +
+      qiyam.pushesAttempted,
+    pushesSent:
+      azan.pushesSent + salawat.pushesSent + mulk.pushesSent + duha.pushesSent + qiyam.pushesSent,
     azan,
     salawat,
     mulk,
+    duha,
+    qiyam,
   };
 
   logPushCronSummary({
@@ -748,6 +776,18 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
       pushesAttempted: mulk.pushesAttempted,
       pushesSent: mulk.pushesSent,
       skipped: mulk.skipped,
+    },
+    duha: {
+      usersScanned: duha.usersScanned,
+      pushesAttempted: duha.pushesAttempted,
+      pushesSent: duha.pushesSent,
+      skipped: duha.skipped,
+    },
+    qiyam: {
+      usersScanned: qiyam.usersScanned,
+      pushesAttempted: qiyam.pushesAttempted,
+      pushesSent: qiyam.pushesSent,
+      skipped: qiyam.skipped,
     },
   });
 

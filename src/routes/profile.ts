@@ -19,6 +19,13 @@ import {
   patchMulkPreferencesHandler,
   mulkPreferencesPatchSchema,
 } from '../controllers/mulk.controller';
+import {
+  getDuhaPreferencesHandler,
+  patchDuhaPreferencesHandler,
+  getQiyamPreferencesHandler,
+  patchQiyamPreferencesHandler,
+  extraPrayerPreferencesPatchSchema,
+} from '../controllers/extra-prayer.controller';
 
 const updateReadingPreferencesSchema = z.object({
   quranFontSize: z.coerce.number().int().min(12).max(60).optional(),
@@ -590,4 +597,56 @@ profileRouter.put(
   authenticate,
   validate(mulkPreferencesPatchSchema),
   patchMulkPreferencesHandler,
+);
+
+/**
+ * @openapi
+ * /profile/duha-preferences:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: Get Duha prayer reminder preferences (custom voice)
+ *     security: [ { bearerAuth: [] } ]
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: Enable/disable Duha reminder and set local time
+ *     security: [ { bearerAuth: [] } ]
+ */
+profileRouter.get('/duha-preferences', authenticate, getDuhaPreferencesHandler);
+profileRouter.patch(
+  '/duha-preferences',
+  authenticate,
+  validate(extraPrayerPreferencesPatchSchema),
+  patchDuhaPreferencesHandler,
+);
+profileRouter.put(
+  '/duha-preferences',
+  authenticate,
+  validate(extraPrayerPreferencesPatchSchema),
+  patchDuhaPreferencesHandler,
+);
+
+/**
+ * @openapi
+ * /profile/qiyam-preferences:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: Get Qiyam (night prayer) reminder preferences (custom voice)
+ *     security: [ { bearerAuth: [] } ]
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: Enable/disable Qiyam reminder and set local time
+ *     security: [ { bearerAuth: [] } ]
+ */
+profileRouter.get('/qiyam-preferences', authenticate, getQiyamPreferencesHandler);
+profileRouter.patch(
+  '/qiyam-preferences',
+  authenticate,
+  validate(extraPrayerPreferencesPatchSchema),
+  patchQiyamPreferencesHandler,
+);
+profileRouter.put(
+  '/qiyam-preferences',
+  authenticate,
+  validate(extraPrayerPreferencesPatchSchema),
+  patchQiyamPreferencesHandler,
 );

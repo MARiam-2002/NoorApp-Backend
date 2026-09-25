@@ -21,6 +21,7 @@
     "smoke:mulk": "tsx scripts/smoke-mulk-production.ts",
     "test:nawafel": "tsx scripts/test-nawafel-catalog.ts",
     "smoke:nawafel": "tsx scripts/smoke-nawafel-production.ts",
+    "smoke:duha-qiyam": "tsx scripts/smoke-duha-qiyam-production.ts",
     "test:sadaqah-goal": "tsx scripts/test-sadaqah-goal.ts",
     "test:sadaqah-goal-http": "tsx scripts/test-sadaqah-goal-http.ts",
     "test:cleanup-no-fcm": "tsx scripts/test-cleanup-users-without-fcm.ts",

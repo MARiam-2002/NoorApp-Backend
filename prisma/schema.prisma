@@ -52,6 +52,14 @@ model User {
   mulkReminderEnabled     Boolean                @default(false)
   /// Local HH:mm for Surah Al-Mulk reminder (default 20:00).
   mulkReminderTime        String                 @default("20:00")
+  /// FCM Duha reminder (opt-in). Flutter-local primary; backend backup.
+  duhaReminderEnabled     Boolean                @default(false)
+  /// Local HH:mm for Duha (default 09:30).
+  duhaReminderTime        String                 @default("09:30")
+  /// FCM Qiyam reminder (opt-in).
+  qiyamReminderEnabled    Boolean                @default(false)
+  /// Local HH:mm for Qiyam (default 02:30).
+  qiyamReminderTime       String                 @default("02:30")
   /// Personal daily Sadaqah target (EGP). Progress is DailyProgress.sadaqahAmount.
   sadaqahGoal             Decimal                @default(1000) @db.Decimal(10, 2)
   challengeCompletions    ChallengeCompletion[]
@@ -78,6 +86,8 @@ model User {
   salawatSendLogs         SalawatSendLog[]
   azanReminderSendLogs    AzanReminderSendLog[]
   mulkSendLogs            MulkSendLog[]
+  duhaSendLogs            DuhaSendLog[]
+  qiyamSendLogs           QiyamSendLog[]
 
   @@map("users")
 }
@@ -106,6 +116,32 @@ model MulkSendLog {
   @@unique([userId, occurrenceKey])
   @@index([userId, createdAt])
   @@map("mulk_send_logs")
+}
+
+/// Durable Duha FCM idempotency.
+model DuhaSendLog {
+  id             String   @id @default(uuid())
+  userId         String
+  occurrenceKey  String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, occurrenceKey])
+  @@index([userId, createdAt])
+  @@map("duha_send_logs")
+}
+
+/// Durable Qiyam FCM idempotency.
+model QiyamSendLog {
+  id             String   @id @default(uuid())
+  userId         String
+  occurrenceKey  String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, occurrenceKey])
+  @@index([userId, createdAt])
+  @@map("qiyam_send_logs")
 }
 
 /// Durable Azan / Near-Prayer FCM idempotency (one row per user per logical reminder).
@@ -666,6 +702,8 @@ enum NotificationType {
   GENERAL
   SALAWAT
   MULK
+  DUHA
+  QIYAM
 }
 
 /// Classic daily rawatib (12 rak‘ahs) — one checklist row per slot.

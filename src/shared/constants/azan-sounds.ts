@@ -764,27 +764,51 @@ export const PRAYER_EVENT_SOUND_OPTIONS: NotificationSoundOption[] = (
     ['duha', null, 'DUHA'],
     ['qiyam', null, 'QIYAM'],
   ] as const
-).map(([p, prayer, event]) => ({
-  id: `sc_event_${p}`,
-  nameEn: `${p} event voice`,
-  nameAr: `صوت حدث ${p}`,
-  descriptionEn: `Short Arabic clip for ${p} local prayer events.`,
-  descriptionAr: `مقطع عربي قصير لحدث ${p}.`,
-  audioUrl: '',
-  previewUrl: '',
-  mediaFile: `sc_event_${p}.mp3`,
-  format: 'mp3' as const,
-  provider: 'soundcloud_reference' as const,
-  source: 'assets/prayer-events',
-  mood: 'prayer_event_voice' as const,
-  matchesPrayer: prayer,
-  matchesEvent: event,
-  durationSeconds: null,
-  license: eventLicense,
-  streamingAllowed: true,
-  selfHostingAllowed: true,
-  commercialUseAllowed: true,
-}));
+).map(([p, prayer, event]) => {
+  const nameAr =
+    p === 'duha'
+      ? 'صلاة الضحى'
+      : p === 'qiyam'
+        ? 'قيام الليل'
+        : p === 'jumuah'
+          ? 'صلاة الجمعة'
+          : `صوت حدث ${p}`;
+  const nameEn =
+    p === 'duha'
+      ? 'Duha prayer'
+      : p === 'qiyam'
+        ? 'Qiyam (night prayer)'
+        : p === 'jumuah'
+          ? 'Jumuah'
+          : `${p} event voice`;
+  return {
+    id: `sc_event_${p}`,
+    nameEn,
+    nameAr,
+    descriptionEn:
+      p === 'duha' || p === 'qiyam'
+        ? `Default custom voice for ${p} reminder notifications.`
+        : `Short Arabic clip for ${p} local prayer events.`,
+    descriptionAr:
+      p === 'duha' || p === 'qiyam'
+        ? `الصوت الافتراضي لتذكير ${nameAr}.`
+        : `مقطع عربي قصير لحدث ${p}.`,
+    audioUrl: '',
+    previewUrl: '',
+    mediaFile: `sc_event_${p}.mp3`,
+    format: 'mp3' as const,
+    provider: 'soundcloud_reference' as const,
+    source: 'assets/prayer-events',
+    mood: 'prayer_event_voice' as const,
+    matchesPrayer: prayer,
+    matchesEvent: event,
+    durationSeconds: null,
+    license: eventLicense,
+    streamingAllowed: true,
+    selfHostingAllowed: true,
+    commercialUseAllowed: true,
+  };
+});
 
 /**
  * Full resolver catalog: notification folder + near-prayer + prayer-events.
