@@ -350,16 +350,41 @@ model ChallengeCompletion {
   @@map("challenge_completions")
 }
 
-/// User answers for "موقفك إيه؟" ethical stance situations (catalog is code-side).
+/// Catalog row for "موقفك إيه؟" (seeded; expandable without Flutter changes).
+model StanceSituation {
+  id                String         @id
+  sortOrder         Int            @unique
+  situationAr       String
+  situationEn       String?
+  optionAAr         String
+  optionBAr         String
+  optionCAr         String
+  correctOptionKey  String
+  rulingAr          String
+  rulingEn          String?
+  /// Citations (Qur'an / Hadith / consensus note) — required for production trust.
+  sourceAr          String
+  rewardPoints      Int            @default(15)
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  answers           StanceAnswer[]
+
+  @@index([isActive, sortOrder])
+  @@map("stance_situations")
+}
+
+/// User answers for "موقفك إيه؟".
 model StanceAnswer {
-  id                 String   @id @default(uuid())
+  id                 String          @id @default(uuid())
   userId             String
   situationId        String
   selectedOptionKey  String
   isCorrect          Boolean
-  pointsAwarded      Int      @default(0)
-  answeredAt         DateTime @default(now())
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pointsAwarded      Int             @default(0)
+  answeredAt         DateTime        @default(now())
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  situation          StanceSituation @relation(fields: [situationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, situationId])
   @@index([userId, answeredAt])

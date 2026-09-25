@@ -3,30 +3,38 @@ import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { getDayOfYear } from '../utils/date';
 import {
-  getNextStance,
-  getPrevStance,
-  getStanceById,
-  getStanceForDayOfYear,
-  STANCE_SITUATION_COUNT,
-  STANCE_SITUATIONS,
+  STANCE_SEED_ROWS,
+  stanceSeedId,
   type StanceOptionKey,
-  type StanceSituation,
 } from '../shared/constants/stance-situations';
+
+type DbSituation = {
+  id: string;
+  sortOrder: number;
+  situationAr: string;
+  situationEn: string | null;
+  optionAAr: string;
+  optionBAr: string;
+  optionCAr: string;
+  correctOptionKey: string;
+  rulingAr: string;
+  rulingEn: string | null;
+  sourceAr: string;
+  rewardPoints: number;
+};
 
 export type StancePublicOption = {
   key: StanceOptionKey;
   textAr: string;
-  textEn?: string;
 };
 
-/** Payload before the user answers — never includes correct key / ruling. */
 export type StanceCardPublic = {
   id: string;
   sortOrder: number;
   catalogSize: number;
   labelAr: string;
   situationAr: string;
-  situationEn?: string;
+  situationEn?: string | null;
   options: StancePublicOption[];
   nextId: string;
   prevId: string;
@@ -35,40 +43,94 @@ export type StanceCardPublic = {
   selectedOptionKey: StanceOptionKey | null;
 };
 
-/** After answer — includes الشرعي card. */
 export type StanceReveal = {
   correctOptionKey: StanceOptionKey;
   isCorrect: boolean;
   rulingAr: string;
-  rulingEn?: string;
-  sourceAr?: string;
+  rulingEn?: string | null;
+  sourceAr: string;
   pointsAwarded: number;
   selectedOptionKey: StanceOptionKey;
 };
 
+async function loadActiveSituations(): Promise<DbSituation[]> {
+  const rows = await prisma.stanceSituation.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+  });
+  if (rows.length > 0) return rows;
+
+  // Fallback before seed runs — still sourced catalog.
+  return STANCE_SEED_ROWS.map((r) => ({
+    id: stanceSeedId(r.sortOrder),
+    sortOrder: r.sortOrder,
+    situationAr: r.situationAr,
+    situationEn: null,
+    optionAAr: r.optionAAr,
+    optionBAr: r.optionBAr,
+    optionCAr: r.optionCAr,
+    correctOptionKey: r.correctOptionKey,
+    rulingAr: r.rulingAr,
+    rulingEn: null,
+    sourceAr: r.sourceAr,
+    rewardPoints: r.rewardPoints ?? 15,
+  }));
+}
+
+function indexOfId(all: DbSituation[], id: string): number {
+  return all.findIndex((x) => x.id === id);
+}
+
+function neighborIds(all: DbSituation[], id: string): { nextId: string; prevId: string } {
+  if (all.length === 0) return { nextId: id, prevId: id };
+  const i = indexOfId(all, id);
+  const idx = i < 0 ? 0 : i;
+  const next = all[(idx + 1) % all.length]!;
+  const prev = all[(idx - 1 + all.length) % all.length]!;
+  return { nextId: next.id, prevId: prev.id };
+}
+
 function toPublicCard(
-  situation: StanceSituation,
+  situation: DbSituation,
+  all: DbSituation[],
   answered?: { selectedOptionKey: string } | null,
+  labelAr = 'موقف اليوم',
 ): StanceCardPublic {
-  const next = getNextStance(situation.id);
-  const prev = getPrevStance(situation.id);
+  const { nextId, prevId } = neighborIds(all, situation.id);
   return {
     id: situation.id,
     sortOrder: situation.sortOrder,
-    catalogSize: STANCE_SITUATION_COUNT,
-    labelAr: 'موقف اليوم',
+    catalogSize: all.length,
+    labelAr,
     situationAr: situation.situationAr,
     situationEn: situation.situationEn,
-    options: situation.options.map((o) => ({
-      key: o.key,
-      textAr: o.textAr,
-      textEn: o.textEn,
-    })),
-    nextId: next.id,
-    prevId: prev.id,
+    options: [
+      { key: 'A', textAr: situation.optionAAr },
+      { key: 'B', textAr: situation.optionBAr },
+      { key: 'C', textAr: situation.optionCAr },
+    ],
+    nextId,
+    prevId,
     rewardPoints: situation.rewardPoints,
     alreadyAnswered: Boolean(answered),
     selectedOptionKey: (answered?.selectedOptionKey as StanceOptionKey) ?? null,
+  };
+}
+
+function toReveal(
+  situation: DbSituation,
+  selectedOptionKey: StanceOptionKey,
+  isCorrect: boolean,
+  pointsAwarded: number,
+): StanceReveal {
+  return {
+    correctOptionKey: situation.correctOptionKey as StanceOptionKey,
+    isCorrect,
+    rulingAr: situation.rulingAr,
+    rulingEn: situation.rulingEn,
+    sourceAr: situation.sourceAr,
+    pointsAwarded,
+    selectedOptionKey,
   };
 }
 
@@ -79,74 +141,123 @@ async function findAnswer(userId: string | undefined, situationId: string) {
   });
 }
 
-export async function getTodayStance(userId?: string, dayOfYear = getDayOfYear()) {
-  const situation = getStanceForDayOfYear(dayOfYear);
+async function buildPayload(
+  situation: DbSituation,
+  all: DbSituation[],
+  userId: string | undefined,
+  opts: { isToday: boolean; dayOfYear: number | null; labelAr: string },
+) {
   const answered = await findAnswer(userId, situation.id);
-  const card = toPublicCard(situation, answered);
+  const card = toPublicCard(situation, all, answered, opts.labelAr);
+  // Prefer unanswered queue for nextId when logged in
+  if (userId) {
+    const nextUnanswered = await resolveNextUnanswered(userId, all, situation.id);
+    card.nextId = nextUnanswered.id;
+  }
   let reveal: StanceReveal | null = null;
   if (answered) {
-    reveal = {
-      correctOptionKey: situation.correctOptionKey,
-      isCorrect: answered.isCorrect,
-      rulingAr: situation.rulingAr,
-      rulingEn: situation.rulingEn,
-      sourceAr: situation.sourceAr,
-      pointsAwarded: answered.pointsAwarded,
-      selectedOptionKey: answered.selectedOptionKey as StanceOptionKey,
-    };
+    reveal = toReveal(
+      situation,
+      answered.selectedOptionKey as StanceOptionKey,
+      answered.isCorrect,
+      answered.pointsAwarded,
+    );
   }
   return {
-    dayOfYear,
-    isToday: true,
+    dayOfYear: opts.dayOfYear,
+    isToday: opts.isToday,
     situation: card,
     reveal,
-    /** Green card title for Flutter. */
     rulingTitleAr: 'الرأي الشرعي والأصح',
     nextCtaAr: 'الموقف التالي',
+    contentPolicyAr:
+      'محتوى تعليمي بمراجع من القرآن والسنة؛ ليس بديلاً عن فتوى شخصية لحالتك.',
   };
+}
+
+/**
+ * Consecutive "الموقف التالي": prefer unanswered after current, then any unanswered,
+ * then wrap sequential (guest = sequential only).
+ */
+async function resolveNextUnanswered(
+  userId: string,
+  all: DbSituation[],
+  afterId: string,
+): Promise<DbSituation> {
+  const answered = await prisma.stanceAnswer.findMany({
+    where: { userId },
+    select: { situationId: true },
+  });
+  const done = new Set(answered.map((a) => a.situationId));
+  const start = indexOfId(all, afterId);
+  const startIdx = start < 0 ? 0 : start;
+
+  for (let step = 1; step <= all.length; step += 1) {
+    const cand = all[(startIdx + step) % all.length]!;
+    if (!done.has(cand.id)) return cand;
+  }
+  // All answered → sequential next
+  return all[(startIdx + 1) % all.length]!;
+}
+
+export async function getTodayStance(userId?: string, dayOfYear = getDayOfYear()) {
+  const all = await loadActiveSituations();
+  if (all.length === 0) {
+    throw new AppError('Stance catalog is empty', HttpStatus.SERVICE_UNAVAILABLE, ErrorCodes.INTERNAL_SERVER_ERROR);
+  }
+  const idx = (Math.max(1, Math.floor(dayOfYear)) - 1) % all.length;
+  const situation = all[idx]!;
+  return buildPayload(situation, all, userId, {
+    isToday: true,
+    dayOfYear,
+    labelAr: 'موقف اليوم',
+  });
 }
 
 export async function getStanceByIdForUser(situationId: string, userId?: string) {
-  const situation = getStanceById(situationId);
+  const all = await loadActiveSituations();
+  const situation = all.find((x) => x.id === situationId);
   if (!situation) {
     throw new AppError('Stance situation not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
-  const answered = await findAnswer(userId, situation.id);
-  const card = toPublicCard(situation, answered);
-  let reveal: StanceReveal | null = null;
-  if (answered) {
-    reveal = {
-      correctOptionKey: situation.correctOptionKey,
-      isCorrect: answered.isCorrect,
-      rulingAr: situation.rulingAr,
-      rulingEn: situation.rulingEn,
-      sourceAr: situation.sourceAr,
-      pointsAwarded: answered.pointsAwarded,
-      selectedOptionKey: answered.selectedOptionKey as StanceOptionKey,
-    };
-  }
-  return {
-    dayOfYear: null,
+  return buildPayload(situation, all, userId, {
     isToday: false,
-    situation: card,
-    reveal,
-    rulingTitleAr: 'الرأي الشرعي والأصح',
-    nextCtaAr: 'الموقف التالي',
-  };
+    dayOfYear: null,
+    labelAr: 'الموقف',
+  });
 }
 
 export async function getNextStanceForUser(afterId: string, userId?: string) {
-  const next = getNextStance(afterId);
-  return getStanceByIdForUser(next.id, userId);
+  const all = await loadActiveSituations();
+  if (all.length === 0) {
+    throw new AppError('Stance catalog is empty', HttpStatus.SERVICE_UNAVAILABLE, ErrorCodes.INTERNAL_SERVER_ERROR);
+  }
+  if (!afterId?.trim()) {
+    return getTodayStance(userId);
+  }
+  const next = userId
+    ? await resolveNextUnanswered(userId, all, afterId)
+    : (() => {
+        const i = indexOfId(all, afterId);
+        const idx = i < 0 ? 0 : i;
+        return all[(idx + 1) % all.length]!;
+      })();
+  return buildPayload(next, all, userId, {
+    isToday: false,
+    dayOfYear: null,
+    labelAr: 'الموقف',
+  });
 }
 
 export async function listStanceCatalogLite() {
+  const all = await loadActiveSituations();
   return {
-    count: STANCE_SITUATION_COUNT,
-    items: STANCE_SITUATIONS.map((s) => ({
+    count: all.length,
+    items: all.map((s) => ({
       id: s.id,
       sortOrder: s.sortOrder,
       situationAr: s.situationAr,
+      sourceAr: s.sourceAr,
     })),
   };
 }
@@ -156,7 +267,8 @@ export async function answerStance(input: {
   situationId: string;
   selectedOptionKey: string;
 }) {
-  const situation = getStanceById(input.situationId);
+  const all = await loadActiveSituations();
+  const situation = all.find((x) => x.id === input.situationId);
   if (!situation) {
     throw new AppError('Stance situation not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
@@ -183,22 +295,33 @@ export async function answerStance(input: {
     if (existing) {
       alreadyAnswered = true;
       pointsAwarded = existing.pointsAwarded;
+      const card = toPublicCard(situation, all, existing, 'الموقف');
+      card.nextId = (await resolveNextUnanswered(input.userId, all, situation.id)).id;
       return {
         alreadyAnswered: true,
-        situation: toPublicCard(situation, existing),
-        reveal: {
-          correctOptionKey: situation.correctOptionKey,
-          isCorrect: existing.isCorrect,
-          rulingAr: situation.rulingAr,
-          rulingEn: situation.rulingEn,
-          sourceAr: situation.sourceAr,
-          pointsAwarded: existing.pointsAwarded,
-          selectedOptionKey: existing.selectedOptionKey as StanceOptionKey,
-        } satisfies StanceReveal,
-        nextId: getNextStance(situation.id).id,
+        situation: card,
+        reveal: toReveal(
+          situation,
+          existing.selectedOptionKey as StanceOptionKey,
+          existing.isCorrect,
+          existing.pointsAwarded,
+        ),
+        nextId: card.nextId,
         rulingTitleAr: 'الرأي الشرعي والأصح',
         nextCtaAr: 'الموقف التالي',
+        contentPolicyAr:
+          'محتوى تعليمي بمراجع من القرآن والسنة؛ ليس بديلاً عن فتوى شخصية لحالتك.',
       };
+    }
+
+    // Only persist when catalog row exists in DB (after seed).
+    const dbRow = await prisma.stanceSituation.findUnique({ where: { id: situation.id } });
+    if (!dbRow) {
+      throw new AppError(
+        'Stance catalog not seeded yet — run seed-stances',
+        HttpStatus.SERVICE_UNAVAILABLE,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+      );
     }
 
     pointsAwarded = situation.rewardPoints;
@@ -219,20 +342,24 @@ export async function answerStance(input: {
     ]);
   }
 
+  const card = toPublicCard(
+    situation,
+    all,
+    input.userId ? { selectedOptionKey } : null,
+    'الموقف',
+  );
+  if (input.userId) {
+    card.nextId = (await resolveNextUnanswered(input.userId, all, situation.id)).id;
+  }
+
   return {
     alreadyAnswered,
-    situation: toPublicCard(situation, input.userId ? { selectedOptionKey } : null),
-    reveal: {
-      correctOptionKey: situation.correctOptionKey,
-      isCorrect,
-      rulingAr: situation.rulingAr,
-      rulingEn: situation.rulingEn,
-      sourceAr: situation.sourceAr,
-      pointsAwarded,
-      selectedOptionKey,
-    } satisfies StanceReveal,
-    nextId: getNextStance(situation.id).id,
+    situation: card,
+    reveal: toReveal(situation, selectedOptionKey, isCorrect, pointsAwarded),
+    nextId: card.nextId,
     rulingTitleAr: 'الرأي الشرعي والأصح',
     nextCtaAr: 'الموقف التالي',
+    contentPolicyAr:
+      'محتوى تعليمي بمراجع من القرآن والسنة؛ ليس بديلاً عن فتوى شخصية لحالتك.',
   };
 }
