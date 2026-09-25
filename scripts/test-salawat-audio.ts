@@ -70,6 +70,10 @@ assert.equal(
   salawatPreferencesPatchSchema.safeParse({ audioClipId: 'salli_ala_muhammad_voice' }).success,
   true,
 );
+assert.equal(
+  salawatPreferencesPatchSchema.safeParse({ audioClipId: 'peaceful_reminder_tone' }).success,
+  true,
+);
 assert.equal(salawatPreferencesPatchSchema.safeParse({ audioClipId: 'not-a-clip' }).success, false);
 
 console.log('salawat audio catalog: OK');

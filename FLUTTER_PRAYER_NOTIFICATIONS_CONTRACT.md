@@ -1,140 +1,182 @@
-# FLUTTER_PRAYER_NOTIFICATIONS_CONTRACT.md
+# Noor Prayer Notifications — Flutter Contract (2026)
 
-**Canonical Flutter contract for Prayer / Azan / Near-Prayer / Special events / Salawat (2026).**  
-**Supersedes:** `FLUTTER_NEAR_PRAYER_NOTIFICATION_HANDOFF.md`, overlapping sections of `FLUTTER_BACKEND_INTEGRATION_GUIDE.md` / `BACKEND_CHANGELOG_FOR_FLUTTER.md` for notification behaviour.
+**Send this file only to the Flutter developer.**  
+It is the **single canonical** backend↔Flutter contract for Azan, Near-Prayer, prayer-event clips, and Salawat.
 
-Do **not** guess whether a sound is Azan, Near-Prayer, Salawat, or a generic chime. Always branch on:
+**Supersedes (do not use for new work):**  
+`FLUTTER_NEAR_PRAYER_NOTIFICATION_HANDOFF.md`, notification sections in `FLUTTER_BACKEND_INTEGRATION_GUIDE.md`, `BACKEND_CHANGELOG_FOR_FLUTTER.md`, older Salawat handoffs.
 
-- `eventType`
-- `soundType`
-- `soundId` / catalog ids
+**Production API base**
+
+```text
+https://noorapp-backend-production.up.railway.app/api/v1
+```
+
+**Production status (backend verified):**
+
+| Check | Status |
+|-------|--------|
+| `GET /health` → `fcm.configured` | `true` |
+| Azan / near-prayer / notification / salawat media | Live |
+| Prefs + catalogs | Live |
+| Cron without secret | `401` |
 
 ---
 
-## 1. Overview
+## Golden rule
 
-| Layer | Responsibility |
-|-------|----------------|
-| **Flutter (primary)** | Exact local scheduling of PRE_PRAYER + PRAYER_AZAN (+ optional DUHA / QIYAM / JUMUAH UI events) using user timezone + prayer times |
-| **Backend (backup)** | FCM backup via `POST /cron/prayer-reminders` (~every 10 min window) — **not** second-perfect Azan |
-| **Backend (prefs)** | Authoritative storage of `preReminderMinutes` / `reminderMinutes`, `azanSoundId`, `notificationSoundId`, per-prayer flags, Salawat prefs |
+Never guess the sound from prayer name alone.
 
-Architecture: **LOCAL primary, FCM backup**. Deduplicate with `dedupeKey`.
+Always branch on:
+
+| Field | Meaning |
+|-------|---------|
+| `eventType` | What happened (`PRE_PRAYER`, `PRAYER_AZAN`, `JUMUAH`, `DUHA`, `QIYAM`, `SALAWAT`) |
+| `soundType` | Which audio family (`NEAR_PRAYER`, `AZAN`, `GENERIC_NOTIFICATION`, `SALAWAT`) |
+| `soundId` | Catalog id to resolve |
+| `dedupeKey` | One user-visible notification per logical event |
+
+---
+
+## 1. Architecture
+
+| Layer | Role |
+|-------|------|
+| **Flutter (primary)** | Exact local scheduling for PRE + AZAN (+ optional DUHA/QIYAM). Must be timing-accurate. |
+| **Backend FCM (backup)** | `POST /cron/prayer-reminders` every ~10 minutes. Tolerant window — **not** second-perfect. |
+| **Backend prefs** | Source of truth for `reminderMinutes`, `azanSoundId`, `notificationSoundId`, per-prayer toggles, Salawat prefs. |
+
+**LOCAL is primary. FCM is backup.** Deduplicate with `dedupeKey`.
 
 ---
 
 ## 2. Event types
 
-| `eventType` | When | `eventKey` examples |
-|-------------|------|---------------------|
-| `PRE_PRAYER` | `actualPrayerTime - reminderMinutes` | `FAJR` … `ISHA` (Friday Dhuhr PRE still `DHUHR` + Arabic الجمعة) |
-| `PRAYER_AZAN` | Exact prayer time | `FAJR` … `ISHA` |
-| `JUMUAH` | Friday Dhuhr **exact** time (FCM backup) | `JUMUAH` |
+| `eventType` | When | `eventKey` |
+|-------------|------|------------|
+| `PRE_PRAYER` | `prayerTime - reminderMinutes` | `FAJR`…`ISHA` (Friday Dhuhr PRE still `DHUHR`, Arabic name الجمعة) |
+| `PRAYER_AZAN` | Exact prayer time | `FAJR`…`ISHA` |
+| `JUMUAH` | Friday Dhuhr exact (FCM backup) | `JUMUAH` |
 | `DUHA` | Flutter-local only (no backend cron timing) | `DUHA` |
 | `QIYAM` | Flutter-local only | `QIYAM` |
-| `SALAWAT` | Interval + window prefs | `SALAWAT` |
+| `SALAWAT` | Interval inside active window | `SALAWAT` |
 
-Internal FCM `kind` (legacy): `pre_reminder` | `prayer_time`. Prefer `eventType` for new code.  
-Legacy alias in data: `legacyEventType` = `PRE_PRAYER_REMINDER` | `PRAYER_AZAN`.
+Legacy FCM fields (keep reading, prefer new ones):
 
----
-
-## 3. Prayer timing
-
-- Use **user timezone** (IANA, e.g. `Africa/Cairo`) + calculation method / madhab from prefs.
-- Never use server timezone or fixed `UTC+2`.
-- Store/display local `HH:mm`; convert to ISO/UTC only when needed for transport.
+- `kind`: `pre_reminder` | `prayer_time`
+- `legacyEventType`: `PRE_PRAYER_REMINDER` | `PRAYER_AZAN`
 
 ---
 
-## 4. `reminderMinutes`
+## 3. Timing & timezone
+
+- Use the **user IANA timezone** (e.g. `Africa/Cairo`) + calculation method + madhab from prefs.
+- Never use device-server offset hacks like fixed `UTC+2`.
+- Local schedule uses `HH:mm` in that timezone.
+
+---
+
+## 4. `reminderMinutes` (authoritative)
 
 | Field | Role |
 |-------|------|
-| `preReminderMinutes` | Canonical in DB / Zod |
-| `reminderMinutes` | Flutter alias (GET + PATCH) |
+| `reminderMinutes` | Flutter-facing alias (PATCH/GET) |
+| `preReminderMinutes` | Canonical stored field |
 | `prePrayerReminderMinutes` | Extra alias |
 
 - **Default:** `15`
-- **Bounds:** `0`–`120` (API validation)
-- **Authoritative** for PRE schedule: `scheduledAtLocal = prayerTime - reminderMinutes`
+- **Allowed:** `0`–`120`
+- **PRE local time:** `prayerTime - reminderMinutes`
 
-Examples (`Fajr = 05:00`):
+Example — Fajr `05:00`:
 
-| reminderMinutes | PRE local |
-|-----------------|-----------|
+| reminderMinutes | PRE |
+|-----------------|-----|
 | 15 | 04:45 |
 | 10 | 04:50 |
 | 5 | 04:55 |
 
----
-
-## 5. PRE_PRAYER behaviour
-
-- **Time:** prayer − `reminderMinutes`
-- **Title AR:** `اقترب موعد صلاة {name}`
-- **Names:** الفجر / الظهر / العصر / المغرب / العشاء / **الجمعة** (Friday Dhuhr)
-- **Sound:** Near-Prayer auto via `notificationSoundId: "sc_near_auto"` → `sc_near_{prayer}.mp3`  
-  OR explicit pick from `GET /azan/notification-sounds` (generic chimes under `assets/notification/`)
-- **`soundType`:** `NEAR_PRAYER` or `GENERIC_NOTIFICATION`
-- **Never** use full Azan MP3 here
+Changing prefs must reschedule all PRE notifications.
 
 ---
 
-## 6. PRAYER_AZAN behaviour
+## 5. PRE_PRAYER (approaching)
 
-- **Time:** exact `actualPrayerTime`
-- **Title AR:** `حان الآن موعد أذان {name}`
-- **Sound:** user `azanSoundId` (canonical) / `voiceId` (legacy alias)
-- **`soundType`:** `AZAN`
-- **Never** replace with `sc_near_*`
+- **Title (AR):** `اقترب موعد صلاة {name}`
+- **Names:** الفجر / الظهر / العصر / المغرب / العشاء / الجمعة (Friday Dhuhr)
+- **soundType:** `NEAR_PRAYER` when using near clips, else `GENERIC_NOTIFICATION`
+- **Recommended prefs:** `notificationSoundId: "sc_near_auto"`  
+  Backend maps to `sc_near_fajr|dhuhr|asr|maghrib|isha|jumuah` (Friday Dhuhr → `sc_near_jumuah`)
+- User may instead pick a tone from `GET /azan/notification-sounds`
+- **Never** play full Azan audio for PRE
 
-Full Azan audio is for **app playback** (`azanSoundUrl`), not as a long OS notification sound.
+---
+
+## 6. PRAYER_AZAN (exact time)
+
+- **Title (AR):** `حان الآن موعد أذان {name}`
+- **soundType:** `AZAN`
+- **soundId / azanSoundId:** user selection from `GET /azan/sounds`
+- Canonical field: `azanSoundId` (`voiceId` is legacy alias only)
+- Show notification, then **play full Adhan in-app** via `azanSoundUrl` / cached file
+- **Never** use `sc_near_*` as Azan
+- Full Adhan is **not** an OS notification sound (too long)
 
 ---
 
 ## 7. JUMUAH
 
-- Friday detection uses **user timezone** weekday.
-- PRE Friday Dhuhr: text uses الجمعة; `eventType=PRE_PRAYER`, near sound `sc_near_jumuah.mp3` (spelling **jumuah**, not jummah).
-- Exact Friday Dhuhr FCM: `eventType=JUMUAH`, `eventKey=JUMUAH`.
-- Do not invent a sixth daily prayer row.
+- Detect Friday in **user timezone**
+- PRE Friday Dhuhr: Arabic uses الجمعة + near file `sc_near_jumuah.mp3` (**spelling: jumuah**, not jummah)
+- Exact Friday: FCM may send `eventType=JUMUAH`
+- Do not invent a sixth daily prayer row in the five-prayer list
 
 ---
 
-## 8. DUHA
+## 8. DUHA / QIYAM
 
-- Asset: `assets/prayer-events/sc_event_duha.mp3` → id `sc_event_duha`
-- **Backend does not cron-fire DUHA** (no authoritative timing source).
-- Flutter may schedule locally if product defines timing.
-- Suggested title: `حان الآن موعد صلاة الضحى`
-- `eventType=DUHA`, `soundType` via prayer-event clip / product choice
+Backend ships short clips only (no cron schedule):
 
----
+| Event | File | Id |
+|-------|------|-----|
+| DUHA | `assets/prayer-events/sc_event_duha.mp3` | `sc_event_duha` |
+| QIYAM | `assets/prayer-events/sc_event_qiyam.mp3` | `sc_event_qiyam` |
 
-## 9. QIYAM
+Suggested titles:
 
-- Asset: `assets/prayer-events/sc_event_qiyam.mp3` → id `sc_event_qiyam`
-- **Backend does not cron-fire QIYAM.**
-- Suggested title: `حان الآن موعد صلاة قيام الليل`
-- `eventType=QIYAM`
+- DUHA: `حان الآن موعد صلاة الضحى`
+- QIYAM: `حان الآن موعد صلاة قيام الليل`
 
----
-
-## 10. SALAWAT
-
-- One shared voice: id `salli_ala_muhammad_voice`
-- File: `assets/salawat/salli_ala_muhammad.mp3`
-- Title AR: `صلِّ على محمد ﷺ`
-- Prefs: `GET/PATCH /profile/salawat-preferences` (`enabled`, `intervalMinutes` 30|60|120|180, window, `audioClipId`)
-- Catalog: `GET /salawat/audio`
-- `eventType=SALAWAT`, `soundType=SALAWAT`, channel `salawat`
-
-Legacy id `peaceful_reminder_tone` resolves to `salli_ala_muhammad_voice`.
+Flutter owns timing if the product enables these events.
 
 ---
 
-## 11. Exact Arabic notification texts
+## 9. SALAWAT (“صلِّ على محمد”)
+
+Matches the Salawat settings screen:
+
+| UI | API |
+|----|-----|
+| Enable reminder | `enabled` |
+| 30m / 1h / 2h / 3h | `intervalMinutes`: `30` \| `60` \| `120` \| `180` (default **180**) |
+| Window From/To | `windowStart` / `windowEnd` (also `startTime` / `endTime`) default **08:00–22:00** (overnight allowed) |
+| Sound “صلِّ على محمد” / Noor | `audioClipId: "salli_ala_muhammad_voice"` |
+
+| Sound contract | Value |
+|----------------|-------|
+| Catalog id | `salli_ala_muhammad_voice` |
+| Media file | `salli_ala_muhammad.mp3` |
+| `nativeSound` (channel / bundled basename) | `salli_ala_muhammad` |
+| Stream | `GET /salawat/media/salli_ala_muhammad.mp3` |
+| `eventType` / `soundType` | `SALAWAT` |
+| Android channel | `salawat` |
+| Title (AR) | `صلِّ على محمد ﷺ` |
+
+Legacy id `peaceful_reminder_tone` remaps to `salli_ala_muhammad_voice`.
+
+---
+
+## 10. Exact Arabic titles (copy these)
 
 | Event | titleAr |
 |-------|---------|
@@ -144,61 +186,63 @@ Legacy id `peaceful_reminder_tone` resolves to `salli_ala_muhammad_voice`.
 | PRE Maghrib | اقترب موعد صلاة المغرب |
 | PRE Isha | اقترب موعد صلاة العشاء |
 | PRE Friday Dhuhr | اقترب موعد صلاة الجمعة |
-| AZAN Fajr | حان الآن موعد أذان الفجر |
-| AZAN (other) | حان الآن موعد أذان {الاسم} |
+| AZAN | حان الآن موعد أذان {name} |
 | Friday exact | حان الآن موعد أذان الجمعة |
 | Salawat | صلِّ على محمد ﷺ |
 
-Backend also sends `titleEn` / `bodyEn` / `bodyAr` in data.
+Also use `titleEn` / `bodyAr` / `bodyEn` from FCM `data` when present.
 
 ---
 
-## 12. Sound IDs
+## 11. Sound catalogs
 
-| Type | IDs |
-|------|-----|
-| Azan | `mishary_alafasy`, `mishary_alafasy_2`, … (see `GET /azan/sounds`) |
-| Near-Prayer | `sc_near_auto`, `sc_near_fajr`, `sc_near_dhuhr`, `sc_near_asr`, `sc_near_maghrib`, `sc_near_isha`, `sc_near_jumuah` |
-| Generic notification | `soft_chime`, `notify_beep`, `digital_blip`, `ui_alert`, `sparkle_tone`, `message_pop`, `gui_notify`, `game_notify`, `notify_punchy`, `dingaling`, `meditation_bell`, `singing_bowl`, `xylophone_chime`, `bell_chime`, `hand_bell`, `silent` |
-| Prayer-events | `sc_event_fajr` … `sc_event_qiyam` |
-| Salawat | `salli_ala_muhammad_voice` |
+| Type | How to load | Notes |
+|------|-------------|-------|
+| Full Azan | `GET /azan/sounds` | Long muezzin MP3s |
+| Generic reminder tones | `GET /azan/notification-sounds` | **Only** `assets/notification` (+ `silent`) |
+| Near-Prayer Arabic | set `notificationSoundId=sc_near_auto` or `sc_near_*` | Not listed in notification-sounds API |
+| Prayer-event shorts | `sc_event_*` via `/azan/media` | Flutter-local events |
+| Salawat | `GET /salawat/audio` | One voice only |
+
+Media:
+
+```text
+GET /azan/media/{file}
+GET /salawat/media/{file}
+```
+
+Near-prayer filenames (exact):
+
+```text
+sc_near_fajr.mp3
+sc_near_dhuhr.mp3
+sc_near_asr.mp3
+sc_near_maghrib.mp3
+sc_near_isha.mp3
+sc_near_jumuah.mp3
+```
 
 ---
 
-## 13. Exact asset filenames
-
-| Folder | Files |
-|--------|--------|
-| `assets/near-prayer/` | `sc_near_fajr.mp3` … `sc_near_jumuah.mp3` (**jumuah**) |
-| `assets/azan/` | muezzin full Adhans |
-| `assets/notification/` | 15 generic MP3s (picker only) |
-| `assets/prayer-events/` | `sc_event_*.mp3` including duha/qiyam/jumuah |
-| `assets/salawat/` | `salli_ala_muhammad.mp3` |
-
-Media URLs: `GET /api/v1/azan/media/{file}` or `/api/v1/salawat/media/{file}`.
-
----
-
-## 14. API endpoints
+## 12. API endpoints
 
 | Method | Path | Auth |
 |--------|------|------|
-| GET | `/api/v1/azan/sounds` | Public |
-| GET | `/api/v1/azan/notification-sounds` | Public (**notification folder only**) |
-| GET | `/api/v1/azan/media/:file` | Public |
-| GET/PATCH | `/api/v1/profile/azan-preferences` | Bearer |
-| GET | `/api/v1/salawat/audio` | Public |
-| GET | `/api/v1/salawat/media/:file` | Public |
-| GET/PATCH | `/api/v1/profile/salawat-preferences` | Bearer |
-| POST | `/api/v1/devices/register` (or existing FCM register) | Bearer |
-| POST/GET | `/api/v1/cron/prayer-reminders` | `CRON_SECRET` |
-| GET | `/api/v1/health` | Public |
-
-Base production: `https://noorapp-backend-production.up.railway.app`
+| GET | `/azan/sounds` | Public |
+| GET | `/azan/notification-sounds` | Public |
+| GET | `/azan/media/:file` | Public |
+| GET/PATCH | `/profile/azan-preferences` | Bearer |
+| GET | `/salawat/audio` | Public |
+| GET | `/salawat/media/:file` | Public |
+| GET/PATCH | `/profile/salawat-preferences` | Bearer |
+| POST | existing FCM device register route | Bearer |
+| GET | `/health` | Public |
 
 ---
 
-## 15. Request examples
+## 13. Request examples
+
+### Azan prefs
 
 ```http
 PATCH /api/v1/profile/azan-preferences
@@ -206,17 +250,30 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "reminderMinutes": 10,
+  "reminderMinutes": 15,
   "azanSoundId": "mishary_alafasy",
   "notificationSoundId": "sc_near_auto",
   "preReminderEnabled": true,
   "fcmPrayerBackupEnabled": true,
-  "prayers": { "fajr": true, "dhuhr": true, "asr": true, "maghrib": true, "isha": true }
+  "soundEnabled": true,
+  "vibrationEnabled": true,
+  "prayers": {
+    "fajr": true,
+    "dhuhr": true,
+    "asr": true,
+    "maghrib": true,
+    "isha": true
+  }
 }
 ```
 
+### Salawat prefs (matches settings UI)
+
 ```http
 PATCH /api/v1/profile/salawat-preferences
+Authorization: Bearer <token>
+Content-Type: application/json
+
 {
   "enabled": true,
   "intervalMinutes": 180,
@@ -228,250 +285,249 @@ PATCH /api/v1/profile/salawat-preferences
 
 ---
 
-## 16. Response examples
+## 14. Response examples
+
+### Azan prefs (shape)
 
 ```json
 {
   "azanSoundId": "mishary_alafasy",
   "voiceId": "mishary_alafasy",
-  "reminderMinutes": 10,
-  "preReminderMinutes": 10,
+  "reminderMinutes": 15,
+  "preReminderMinutes": 15,
   "notificationSoundId": "sc_near_auto",
-  "azanSound": { "id": "mishary_alafasy", "nameAr": "...", "audioUrl": "https://.../azan/media/mishary_alafasy.mp3" },
-  "notificationSound": { "id": "sc_near_auto", "mediaFile": null },
-  "fcmPrayerBackupEnabled": true
+  "fcmPrayerBackupEnabled": true,
+  "azanSound": {
+    "id": "mishary_alafasy",
+    "nameAr": "...",
+    "audioUrl": "https://.../azan/media/mishary_alafasy.mp3"
+  }
 }
 ```
 
-`GET /azan/notification-sounds` returns **only** `assets/notification` tones (+ `silent`). Near-prayer ids are **not** listed there; set `sc_near_auto` / `sc_near_*` directly on prefs.
-
----
-
-## 17. User-selected Azan flow
-
-1. `GET /azan/sounds` → show list + preview `audioUrl`
-2. User picks id → `PATCH` `{ "azanSoundId": "<id>" }`
-3. At `PRAYER_AZAN`: play cached/streamed `azanSoundUrl` in-app; show notification with `soundType=AZAN`
-
----
-
-## 18. Android FCM payload
-
-Top-level `notification` + `data` (all data values are **strings**).
+### Salawat prefs (shape)
 
 ```json
 {
-  "notification": { "title": "<titleAr>", "body": "<bodyAr>" },
-  "android": { "notification": { "channelId": "near_prayer" | "azan" | "salawat", "sound": "<bundled basename>" } },
+  "enabled": true,
+  "intervalMinutes": 180,
+  "windowStart": "08:00",
+  "windowEnd": "22:00",
+  "audioClipId": "salli_ala_muhammad_voice",
+  "audioClipTitleAr": "صلِّ على محمد",
+  "audioClipCreatorAr": "نور",
+  "mediaFile": "salli_ala_muhammad.mp3",
+  "nativeSound": "salli_ala_muhammad",
+  "audioUrl": "https://.../salawat/media/salli_ala_muhammad.mp3"
+}
+```
+
+Client submits **ids only**, never arbitrary `audioUrl` values for the backend to trust.
+
+---
+
+## 15. FCM payload contract
+
+All `data` values are **strings**.
+
+### PRE example
+
+```json
+{
+  "notification": { "title": "اقترب موعد صلاة الفجر", "body": "..." },
+  "android": { "notification": { "channelId": "near_prayer", "sound": "sc_near_fajr" } },
   "data": {
     "eventType": "PRE_PRAYER",
     "eventKey": "FAJR",
     "prayerKey": "FAJR",
     "soundType": "NEAR_PRAYER",
     "soundId": "sc_near_fajr",
-    "dedupeKey": "2026-09-25|<userId>|PRE_PRAYER|FAJR",
+    "notificationSoundMediaFile": "sc_near_fajr.mp3",
+    "reminderMinutes": "15",
     "scheduledAtLocal": "04:45",
     "timezone": "Africa/Cairo",
-    "reminderMinutes": "15",
-    "notificationSoundMediaFile": "sc_near_fajr.mp3",
-    "azanSoundId": "...",
-    "azanSoundUrl": "...",
-    "source": "FCM_BACKUP"
+    "dedupeKey": "2026-09-25|<userId>|PRE_PRAYER|FAJR",
+    "source": "FCM_BACKUP",
+    "androidChannelId": "near_prayer"
   }
 }
 ```
 
-Do **not** expect a remote URL to play as the OS notification sound.
+### AZAN example
+
+```json
+{
+  "data": {
+    "eventType": "PRAYER_AZAN",
+    "eventKey": "FAJR",
+    "soundType": "AZAN",
+    "soundId": "mishary_alafasy",
+    "azanSoundId": "mishary_alafasy",
+    "azanSoundUrl": "https://.../azan/media/mishary_alafasy.mp3",
+    "dedupeKey": "2026-09-25|<userId>|PRAYER_AZAN|FAJR",
+    "androidChannelId": "azan"
+  }
+}
+```
+
+### SALAWAT example
+
+```json
+{
+  "data": {
+    "eventType": "SALAWAT",
+    "eventKey": "SALAWAT",
+    "soundType": "SALAWAT",
+    "soundId": "salli_ala_muhammad_voice",
+    "mediaFile": "salli_ala_muhammad.mp3",
+    "nativeSound": "salli_ala_muhammad",
+    "dedupeKey": "2026-09-25|<userId>|SALAWAT|SALAWAT|<occurrenceKey>",
+    "androidChannelId": "salawat"
+  }
+}
+```
+
+**Important:** A remote URL will **not** play as the OS notification sound. Bundle short sounds; stream/cache long Azan for in-app playback.
 
 ---
 
-## 19. iOS / APNs payload
+## 16. Android channels (required)
 
-- `aps.alert` / top-level notification title+body
-- `aps.sound` = **bundled** filename (e.g. `sc_near_fajr.caf` / `.mp3` as configured in Xcode)
-- Custom fields **outside** `aps` (in FCM `data`)
-- Long Azan → app playback, not `aps.sound`
+Create **separate** channels (Android 8+ locks sound per channel):
 
----
-
-## 20. Android channels
-
-Create **separate** channels (sound is fixed per channel on Android 8+):
-
-| channel_id | Use |
-|------------|-----|
-| `near_prayer` | PRE_PRAYER (near or short tone) |
+| `channel_id` | Use |
+|--------------|-----|
+| `near_prayer` | PRE_PRAYER |
 | `azan` | PRAYER_AZAN / JUMUAH tray (short default; full Adhan via player) |
-| `salawat` | SALAWAT |
+| `salawat` | SALAWAT → bundled `salli_ala_muhammad` |
 
-Do not put conflicting sounds in one immutable channel.
-
-Legacy FCM used `azan-reminder`; new backups send `near_prayer`. Support both during migration.
+Also accept legacy FCM channel id `azan-reminder` during migration.
 
 ---
 
-## 21. iOS bundled sound requirements
+## 17. iOS requirements
 
-- Bundle short PRE / Salawat sounds in the app
-- Filenames must match `nativeSound` / media basename contract
-- Full Adhan files are for streaming/cache playback, not notification sound limits
-
----
-
-## 22. Local notification architecture
-
-Flutter owns exact times:
-
-1. Fetch prayer schedule for user location/method/madhab/timezone
-2. For each enabled prayer: schedule PRE at −`reminderMinutes`, AZAN at exact time
-3. Attach `eventType`, `eventKey`, `soundType`, `soundId`, `dedupeKey`
-4. Stable notification IDs per day/event
+- Bundle short PRE / Salawat sounds; `aps.sound` = bundled filename matching `nativeSound`
+- Custom fields live in FCM `data`, **outside** `aps`
+- Full Adhan → app audio session / player, not `aps.sound`
 
 ---
 
-## 23. FCM backup architecture
+## 18. Local scheduling (Flutter must do)
 
-- Cron tolerates ±~10–12 minutes around target
-- Respects `fcmPrayerBackupEnabled`, `azanEnabled`, per-prayer flags, sound/vibration
-- Idempotent via `AzanReminderSendLog` / `SalawatSendLog`
-- **Production blocker today:** `/health` → `fcm.configured: false` until Firebase credentials are set on Railway
+1. Load prefs + prayer times for user location / method / madhab / timezone  
+2. For each enabled prayer:
+   - schedule `PRE_PRAYER` at `time - reminderMinutes`
+   - schedule `PRAYER_AZAN` at exact time  
+3. Attach `eventType`, `eventKey`, `soundType`, `soundId`, `dedupeKey`  
+4. Use stable notification IDs per day/event  
+5. On prefs change → cancel + reschedule  
+6. Register FCM token with backend for backup delivery  
 
 ---
 
-## 24. Deduplication contract
+## 19. Deduplication
 
 ```text
 dedupeKey = YYYY-MM-DD|userId|eventType|eventKey
 ```
 
-Examples:
+Salawat adds occurrence slot:
 
-- `2026-09-25|USER|PRE_PRAYER|FAJR`
-- `2026-09-25|USER|PRAYER_AZAN|FAJR`
-- `2026-09-25|USER|JUMUAH|JUMUAH`
-- `2026-09-25|USER|SALAWAT|SALAWAT` (+ occurrence slot for interval)
+```text
+YYYY-MM-DD|userId|SALAWAT|SALAWAT|<occurrenceKey>
+```
 
-If local already shown → ignore FCM with same `dedupeKey`.  
-If FCM first → mark key consumed so local skip.
+Rules:
 
-Server occurrence key (durable): `{date}|{PRAYER}|pre_reminder|pre{N}` / `{date}|{PRAYER}|prayer_time`.
-
----
-
-## 25. Timezone contract
-
-- Prefer profile/schedule IANA timezone
-- All minute-until / Friday checks use that zone
-- DST-safe via IANA, not fixed offsets
+- If local already shown → ignore FCM with same `dedupeKey`
+- If FCM arrived first → skip local when it fires
+- Concurrent → only one tray notification
 
 ---
 
-## 26–28. Foreground / background / terminated
+## 20. App states
 
-| State | Expectation |
-|-------|-------------|
-| Foreground | Prefer in-app UI; may suppress tray duplicate; still mark `dedupeKey` |
-| Background | OS shows notification; Flutter handler routes by `eventType` |
-| Terminated | OS tray + cold-start from payload data |
+| State | Behaviour |
+|-------|-----------|
+| Foreground | Prefer in-app UI; still consume `dedupeKey` |
+| Background | OS notification; route by `eventType` |
+| Terminated | Cold start from payload `data` |
 
----
-
-## 29. Notification permission
-
-- Request notification permission before scheduling
-- Missing permission ≠ delete account
-- Missing FCM token ≠ delete account
+Request notification permission before scheduling. Missing permission / missing FCM token must **not** delete the account.
 
 ---
 
-## 30. Exact-alarm / local scheduling
+## 21. Offline
 
-- Use exact alarms / precise scheduling APIs where required (Android)
-- Battery optimizations can cancel local alarms → FCM backup is the safety net when enabled
-
----
-
-## 31. Offline behaviour
-
-- Local schedules continue offline if already set
-- Prefs/catalog sync when online
-- Cache Azan / near clips from `/azan/media`
+- Keep already-scheduled local notifications  
+- Sync prefs/catalog when online  
+- Cache Azan + near clips from media URLs  
 
 ---
 
-## 32. Sound fallback
+## 22. Backend guarantees (done)
 
-- Missing near file → fallback chain (e.g. jumuah→dhuhr→soft_chime)
-- Unknown `azanSoundId` → default muezzin
-- Unknown Salawat id → `salli_ala_muhammad_voice`
-- Never invent phantom filenames
-
----
-
-## 33. Error handling
-
-| Case | Backend |
-|------|---------|
-| Unknown azanSoundId | Coerced to default or 400 on strict validate |
-| Invalid reminderMinutes | 400 |
-| Cron without secret | 401 |
-| Invalid FCM token | Cleaned; no user delete |
-| Arbitrary client `audioUrl` | **Rejected** — client sends ids only |
+- `reminderMinutes` authoritative (default 15)
+- PRE vs AZAN copy + timing separation
+- Near-Prayer vs Azan vs Salawat sound separation
+- Canonical `eventType` + `soundType` + `dedupeKey` on FCM
+- Notification-sounds API = notification folder only
+- Salawat single default voice `salli_ala_muhammad`
+- FCM Admin configured in production (`fcm.configured: true`)
+- Cron protected by secret
+- Media files served for azan / near-prayer / prayer-events / notification / salawat
 
 ---
 
-## 34. QA test matrix
+## 23. Flutter checklist (your work)
 
-- [ ] Fajr 05:00 + 15 → PRE 04:45 text اقترب… الفجر + near sound
-- [ ] Change to 10 → PRE 04:50
-- [ ] Change to 5 → PRE 04:55
-- [ ] Exact AZAN 05:00 + user Azan id
-- [ ] PRE sound ≠ Azan sound
-- [ ] Friday PRE + JUMUAH exact
-- [ ] Salawat one shared MP3
-- [ ] Local + FCM same dedupeKey → one tray
-- [ ] Timezone Africa/Cairo DST edge
-- [ ] Channel near_prayer vs azan vs salawat
+Implement all of these for a perfect 2026 release:
 
----
-
-## 35. Production checklist
-
-- [ ] Firebase credentials on Railway → `fcm.configured: true`
-- [ ] Deploy assets (near-prayer, azan, notification, prayer-events, salawat)
-- [ ] Apply Prisma migrations (`azan_reminder_send_logs`, salawat default clip)
-- [ ] Cron with `CRON_SECRET`
-- [ ] Flutter channels + bundled short sounds
-- [ ] Dedup implementation
+- [ ] Exact local PRE + AZAN scheduling using user timezone  
+- [ ] Reschedule when `reminderMinutes` / prayer toggles / method / madhab change  
+- [ ] Android channels: `near_prayer`, `azan`, `salawat`  
+- [ ] Bundle short sounds (`sc_near_*`, `salli_ala_muhammad`, optional generic tones)  
+- [ ] Azan picker from `/azan/sounds`; play full Adhan in-app at exact time  
+- [ ] Reminder tone picker from `/azan/notification-sounds` **or** `sc_near_auto` for Arabic near voice  
+- [ ] Salawat settings UI ↔ `/profile/salawat-preferences` + play/preview default voice  
+- [ ] FCM handlers branch on `eventType` / `soundType`  
+- [ ] Dedup local ↔ FCM via `dedupeKey`  
+- [ ] Optional local DUHA / QIYAM if product requires  
+- [ ] Never POST arbitrary audio URLs as the sound source of truth  
 
 ---
 
-## 36. Backend guarantees
+## 24. Flutter QA matrix
 
-- `reminderMinutes` authoritative (default 15, not hard-coded at fire time)
-- PRE vs AZAN classification + idempotency logs
-- Near vs Azan sound separation on FCM backup
-- Canonical `eventType` + `soundType` in data
-- Notification-sounds API = `assets/notification` only
-- Salawat single catalog voice
-- Cron auth required
-- No account deletion from transient FCM failure
-
----
-
-## 37. Flutter responsibilities
-
-- Exact local scheduling
-- Android channels + iOS bundles
-- Dedup with `dedupeKey`
-- Play full Azan via audio API (not OS notification sound)
-- Offer Azan picker from `/azan/sounds`
-- Offer generic reminder tones from `/azan/notification-sounds`
-- Set `notificationSoundId: sc_near_auto` for Arabic near-prayer voices
-- Schedule DUHA/QIYAM locally if product requires
-- Handle FCM when `fcm.configured` becomes true
-- Never send arbitrary audio URLs to the backend
+- [ ] Fajr 05:00 + 15 → PRE 04:45, title `اقترب موعد صلاة الفجر`, near sound  
+- [ ] Change to 10 → PRE 04:50; to 5 → PRE 04:55  
+- [ ] Exact AZAN at 05:00 with selected `azanSoundId` (full audio playback)  
+- [ ] PRE sound ≠ Azan sound  
+- [ ] Friday PRE uses الجمعة + `sc_near_jumuah`  
+- [ ] Salawat fires only inside window; sound = `salli_ala_muhammad`  
+- [ ] Local + FCM same `dedupeKey` → one notification  
+- [ ] Channels correct on Android 8+  
+- [ ] Offline: already scheduled locals still fire  
 
 ---
 
-*End of canonical contract.*
+## 25. Do / Don’t
+
+**Do**
+
+- Trust backend prefs after PATCH  
+- Branch on `eventType` + `soundType`  
+- Use catalog ids  
+
+**Don’t**
+
+- Hard-code PRE offset to 15 forever  
+- Use near-prayer clip as Azan  
+- Use Azan MP3 as OS notification sound  
+- Mix all events into one Android channel  
+- Invent filenames (`jummah`, missing files, etc.)  
+
+---
+
+*End of contract — one file is enough.*
