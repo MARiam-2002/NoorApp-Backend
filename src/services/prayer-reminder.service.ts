@@ -14,7 +14,7 @@ import {
   AZAN_MEDIA_FILES,
   getAzanSoundById,
   getNotificationSoundById,
-  NOTIFICATION_SOUND_OPTIONS,
+  REMINDER_SOUND_OPTIONS,
 } from '../shared/constants/azan-sounds';
 import { PrayerLabelsAr, PrayerNameEnum } from '../shared/enums/prayer-name.enum';
 import { parsePrayerKey } from '../shared/utils/prayer-names';
@@ -173,7 +173,7 @@ export function resolvePreReminderSoundFor(
   _preReminderMinutes: number,
   evaluationTimezone: string,
   nowUtc: Date,
-): { sound: typeof NOTIFICATION_SOUND_OPTIONS[number]; autoMatched: boolean } {
+): { sound: (typeof REMINDER_SOUND_OPTIONS)[number]; autoMatched: boolean } {
   const sentinel = 'sc_near_auto';
   const userPicked = String(selectedNotificationSoundId ?? '').trim().toLowerCase();
   if (userPicked !== sentinel) {
@@ -202,7 +202,7 @@ export function resolvePreReminderSoundFor(
     target = 'sc_near_' + prayer.toLowerCase();
   }
 
-  let hit = NOTIFICATION_SOUND_OPTIONS.find((o) => o.id === target);
+  let hit = REMINDER_SOUND_OPTIONS.find((o) => o.id === target);
   if (hit) {
     const mediaOk = isMediaFileAvailableOnDisk(hit.mediaFile);
     if (!mediaOk) {
@@ -213,7 +213,7 @@ export function resolvePreReminderSoundFor(
         fallback: fb.id,
         reason: fb.reason,
       });
-      const fbHit = NOTIFICATION_SOUND_OPTIONS.find((o) => o.id === fb.id);
+      const fbHit = REMINDER_SOUND_OPTIONS.find((o) => o.id === fb.id);
       if (fbHit) hit = fbHit;
     }
   }

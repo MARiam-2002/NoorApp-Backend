@@ -41,7 +41,8 @@ export const listNotificationSoundsHandler = asyncHandler(async (req: Request, r
     sounds,
     sourcePolicy: {
       provider: 'freesound_selfhosted',
-      note: 'Calm spiritual reminder tones (CC0 / CC BY), self-hosted. Generic game/UI beeps removed from the live catalog.',
+      folder: 'assets/notification',
+      note: 'GET /azan/notification-sounds lists ONLY tones from assets/notification/*.mp3 (+ silent). Near-prayer (assets/near-prayer) and prayer-event (assets/prayer-events) clips are separate catalogs.',
     },
   };
   sendSuccess(res, data, 'Notification sounds retrieved successfully', req);

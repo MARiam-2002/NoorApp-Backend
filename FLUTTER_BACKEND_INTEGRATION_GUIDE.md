@@ -151,17 +151,17 @@ GET /api/v1/azan/media/{file}
 | `assets/azan/` | Full Adhan (2–5+ min) — **cache for exact Azan** |
 | `assets/near-prayer/` | Short “approaching” voices (`sc_near_*`) — FCM/local **pre** |
 | `assets/prayer-events/` | Short event voices (`sc_event_*`) — FRIDAY / DUHA / QIYAM + optional local event UI |
-| `assets/notification/` | Generic chimes |
+| `assets/notification/` | Generic chimes — **only** these appear in `GET /azan/notification-sounds` |
 
 ### Near-prayer (pre) files
 
-`sc_near_fajr.mp3` … `sc_near_jumuah.mp3` (**spelling: jumuah**)
+`sc_near_fajr.mp3` … `sc_near_jumuah.mp3` (**spelling: jumuah**)  
+Internal resolver catalog (`NEAR_PRAYER_SOUND_OPTIONS`); not mixed into the notification-sounds list.
 
 ### Prayer-event files (new pack)
 
 `sc_event_fajr|dhuhr|asr|maghrib|isha|jumuah|duha|qiyam.mp3`  
-Listed in `GET /azan/notification-sounds` with `mood: prayer_event_voice` / `matchesEvent`.
-
+Internal catalog (`PRAYER_EVENT_SOUND_OPTIONS`); stream via `/azan/media`. Not listed in `GET /azan/notification-sounds`.
 ---
 
 ## 10. Prayer reminder fields & copy
