@@ -18,9 +18,8 @@ export const salawatRouter = Router();
  *     summary: List Pray-for-the-Prophet ﷺ sound catalog (picker)
  *     description: |
  *       Public catalog. No auth.
- *       Famous recitations have `playback: external` and `listenUrl` (YouTube/Spotify).
- *       Short reminder tones have `audioUrl` on `/salawat/media/{file}`.
- *       Save the chosen `id` with PATCH /profile/salawat-preferences `{ "audioClipId": "<id>" }`.
+ *       One shared voice: `salli_ala_muhammad_voice` → `assets/salawat/salli_ala_muhammad.mp3`.
+ *       Preview via `audioUrl`. Save id with PATCH /profile/salawat-preferences.
  *     responses:
  *       200:
  *         description: Catalog with clips[], defaultId, counts
@@ -33,14 +32,14 @@ salawatRouter.get('/audio', listSalawatAudioHandler);
  *   get:
  *     tags: ['Salawat Audio']
  *     summary: Stream a hosted Salawat / reminder MP3
- *     description: Self-hosted CC0 tones only. Famous recitations are listen links, not files here.
+ *     description: Hosted Salawat voice MP3 (`salli_ala_muhammad.mp3`).
  *     parameters:
  *       - in: path
  *         name: file
  *         required: true
  *         schema:
  *           type: string
- *           example: meditation_bell.mp3
+ *           example: salli_ala_muhammad.mp3
  *     responses:
  *       200:
  *         description: Audio bytes (audio/mpeg)

@@ -515,7 +515,7 @@ profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandl
  *               audioClipId:
  *                 type: string
  *                 description: Catalog id from GET /salawat/audio
- *                 example: mishary_allahumma_salli
+ *                 example: salli_ala_muhammad_voice
  *   put:
  *     tags: ['Profile']
  *     summary: Same as PATCH — enable/disable, interval, window, and audioClipId
@@ -531,7 +531,7 @@ profileRouter.patch('/azan-preferences', authenticate, patchAzanPreferencesHandl
  *               intervalMinutes: { type: integer, enum: [30, 60, 120, 180] }
  *               startTime: { type: string, example: '08:00' }
  *               endTime: { type: string, example: '22:00' }
- *               audioClipId: { type: string, example: mishary_allahumma_salli }
+ *               audioClipId: { type: string, example: salli_ala_muhammad_voice }
  */
 profileRouter.get('/salawat-preferences', authenticate, getSalawatPreferencesHandler);
 profileRouter.patch(

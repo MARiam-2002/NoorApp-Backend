@@ -14,7 +14,7 @@ import {
   getSalawatAudioCatalog,
   resolveSalawatMediaFile,
 } from '../services/salawat-audio.service';
-import { isKnownSalawatAudioId } from '../shared/constants/salawat-audio';
+import { isAcceptableSalawatAudioInput, resolveSalawatAudioClipId } from '../shared/constants/salawat-audio';
 
 const hhmmSchema = z
   .string()
@@ -40,9 +40,10 @@ export const salawatPreferencesPatchSchema = z
       .trim()
       .min(1)
       .max(64)
-      .refine((id) => isKnownSalawatAudioId(id), {
+      .refine((id) => isAcceptableSalawatAudioInput(id), {
         message: 'audioClipId must be a catalog id from GET /salawat/audio',
       })
+      .transform((id) => resolveSalawatAudioClipId(id))
       .optional(),
   })
   .refine(

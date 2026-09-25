@@ -102,10 +102,19 @@ async function main() {
     const reread = await getSalawatPreferences(userId);
     reread.startTime === '09:00' ? pass('preferences survive reread') : fail('reread');
 
-    const sound = await updateSalawatPreferences(userId, { audioClipId: 'maher_ya_nabi_salam' });
-    sound.audioClipId === 'maher_ya_nabi_salam'
-      ? pass('audioClipId famous listen-link persisted')
+    const sound = await updateSalawatPreferences(userId, {
+      audioClipId: 'salli_ala_muhammad_voice',
+    });
+    sound.audioClipId === 'salli_ala_muhammad_voice'
+      ? pass('audioClipId salli_ala_muhammad_voice persisted')
       : fail('audioClipId', sound.audioClipId);
+
+    const legacy = await updateSalawatPreferences(userId, {
+      audioClipId: 'peaceful_reminder_tone',
+    });
+    legacy.audioClipId === 'salli_ala_muhammad_voice'
+      ? pass('legacy peaceful_reminder_tone remaps to default voice')
+      : fail('legacy remap', legacy.audioClipId);
 
     (await getSalawatPreferences(other.user.id)).startTime === '08:00'
       ? pass('cannot see other user window via own id')

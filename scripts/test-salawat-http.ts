@@ -173,14 +173,25 @@ async function main() {
 
   const clipPick = await request('PATCH', '/profile/salawat-preferences', {
     token,
-    body: { audioClipId: 'mishary_allahumma_salli' },
+    body: { audioClipId: 'salli_ala_muhammad_voice' },
   });
-  if (clipPick.status === 400 || clipPick.status === 404) {
-    console.log(`INFO  PATCH audioClipId → ${clipPick.status} (not deployed or column missing)`);
-  } else if (clipPick.status !== 200 || clipPick.json.data?.audioClipId !== 'mishary_allahumma_salli') {
+  if (clipPick.status !== 200 || clipPick.json.data?.audioClipId !== 'salli_ala_muhammad_voice') {
     fail(`audioClipId ${clipPick.status} ${JSON.stringify(clipPick.json)}`);
   } else {
-    console.log('PASS  PATCH audioClipId=mishary_allahumma_salli persists');
+    console.log('PASS  PATCH audioClipId=salli_ala_muhammad_voice');
+  }
+
+  const legacyPick = await request('PATCH', '/profile/salawat-preferences', {
+    token,
+    body: { audioClipId: 'peaceful_reminder_tone' },
+  });
+  if (
+    legacyPick.status !== 200 ||
+    legacyPick.json.data?.audioClipId !== 'salli_ala_muhammad_voice'
+  ) {
+    fail(`legacy audioClipId ${legacyPick.status} ${JSON.stringify(legacyPick.json)}`);
+  } else {
+    console.log('PASS  PATCH peaceful peaceful_reminder_tone → salli_ala_muhammad_voice');
   }
 
   await request('DELETE', '/auth/me', { token });

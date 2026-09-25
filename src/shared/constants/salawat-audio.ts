@@ -53,22 +53,34 @@ export const SALAWAT_AUDIO_CLIPS: SalawatAudioClipDef[] = [
 
 export const DEFAULT_SALAWAT_AUDIO_ID = 'salli_ala_muhammad_voice';
 
+/** Bundled / channel sound basename (no extension) — Flutter + FCM nativeSound. */
+export const DEFAULT_SALAWAT_NATIVE_SOUND = 'salli_ala_muhammad';
+
+/** Hosted media filename under assets/salawat/. */
+export const DEFAULT_SALAWAT_MEDIA_FILE = 'salli_ala_muhammad.mp3';
+
+const LEGACY_SALAWAT_AUDIO_IDS = new Set([
+  'peaceful_reminder_tone',
+  'salli_ala_muhammad',
+  'salawat',
+  'SALAWAT_SOUND',
+  'salawat_sound',
+]);
+
 export function isKnownSalawatAudioId(id: string): boolean {
   return SALAWAT_AUDIO_CLIPS.some((clip) => clip.id === id);
+}
+
+/** True if PATCH may accept this id (catalog or legacy alias). */
+export function isAcceptableSalawatAudioInput(id: string): boolean {
+  const key = id.trim();
+  return isKnownSalawatAudioId(key) || LEGACY_SALAWAT_AUDIO_IDS.has(key);
 }
 
 export function resolveSalawatAudioClipId(raw?: string | null): string {
   const id = raw?.trim() || '';
   if (isKnownSalawatAudioId(id)) return id;
-  // Legacy defaults / removed ids → canonical single Salawat voice.
-  if (
-    id === 'peaceful_reminder_tone' ||
-    id === 'salli_ala_muhammad' ||
-    id === 'salawat' ||
-    id === 'SALAWAT_SOUND'
-  ) {
-    return DEFAULT_SALAWAT_AUDIO_ID;
-  }
+  if (LEGACY_SALAWAT_AUDIO_IDS.has(id)) return DEFAULT_SALAWAT_AUDIO_ID;
   return DEFAULT_SALAWAT_AUDIO_ID;
 }
 
