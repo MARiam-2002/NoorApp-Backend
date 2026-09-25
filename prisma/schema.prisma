@@ -60,6 +60,10 @@ model User {
   qiyamReminderEnabled    Boolean                @default(false)
   /// Local HH:mm for Qiyam (default 02:30).
   qiyamReminderTime       String                 @default("02:30")
+  /// Opt-in: remind if today's khatmah ward pages were not read.
+  khatmahReminderEnabled  Boolean                @default(false)
+  /// Local HH:mm evening reminder (default 21:00).
+  khatmahReminderTime     String                 @default("21:00")
   /// Personal daily Sadaqah target (EGP). Progress is DailyProgress.sadaqahAmount.
   sadaqahGoal             Decimal                @default(1000) @db.Decimal(10, 2)
   challengeCompletions    ChallengeCompletion[]
@@ -88,6 +92,7 @@ model User {
   mulkSendLogs            MulkSendLog[]
   duhaSendLogs            DuhaSendLog[]
   qiyamSendLogs           QiyamSendLog[]
+  khatmahSendLogs         KhatmahSendLog[]
 
   @@map("users")
 }
@@ -142,6 +147,19 @@ model QiyamSendLog {
   @@unique([userId, occurrenceKey])
   @@index([userId, createdAt])
   @@map("qiyam_send_logs")
+}
+
+/// Durable khatmah ward-missed FCM idempotency (one per user per local day).
+model KhatmahSendLog {
+  id             String   @id @default(uuid())
+  userId         String
+  occurrenceKey  String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, occurrenceKey])
+  @@index([userId, createdAt])
+  @@map("khatmah_send_logs")
 }
 
 /// Durable Azan / Near-Prayer FCM idempotency (one row per user per logical reminder).
@@ -293,15 +311,25 @@ model Ayah {
 }
 
 model Khatmah {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  currentSurahId Int      @default(2)
-  currentPage    Int      @default(1)
-  totalPagesRead Int      @default(0)
-  startedAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  currentSurah   Surah    @relation(fields: [currentSurahId], references: [id])
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  currentSurahId    Int       @default(2)
+  currentPage       Int       @default(1)
+  totalPagesRead    Int       @default(0)
+  startedAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  /// Active plan mode: DURATION_DAYS | JUZ_PER_MONTH | null = free-form (legacy).
+  planMode          String?
+  planDurationDays  Int?
+  planJuzPerMonth   Int?
+  planStartedAt     DateTime?
+  planTargetEndAt   DateTime?
+  /// Snapshot of totalPagesRead when the plan started (one full 604-page cycle).
+  planPagesAtStart  Int?
+  /// Soft daily ward target (recomputed on read when behind).
+  dailyWardPages    Int?
+  currentSurah      Surah     @relation(fields: [currentSurahId], references: [id])
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("khatmah")
 }
@@ -704,6 +732,7 @@ enum NotificationType {
   MULK
   DUHA
   QIYAM
+  KHATMAH
 }
 
 /// Classic daily rawatib (12 rak‘ahs) — one checklist row per slot.

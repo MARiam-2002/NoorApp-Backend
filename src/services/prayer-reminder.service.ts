@@ -12,6 +12,7 @@ import {
 } from './salawat-reminder.service';
 import { runMulkReminders } from './mulk-reminder.service';
 import { runDuhaReminders, runQiyamReminders } from './extra-prayer-reminder.service';
+import { runKhatmahReminders } from './khatmah-plan.service';
 import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
 import {
   AZAN_MEDIA_FILES,
@@ -729,12 +730,19 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
     pushesSent: number;
     skipped: Record<string, number>;
   };
+  khatmah: {
+    usersScanned: number;
+    pushesAttempted: number;
+    pushesSent: number;
+    skipped: Record<string, number>;
+  };
 }> {
   const azan = await runAzanBackupReminders(windowMinutes);
   const salawat = await runSalawatReminders();
   const mulk = await runMulkReminders();
   const duha = await runDuhaReminders();
   const qiyam = await runQiyamReminders();
+  const khatmah = await runKhatmahReminders();
 
   const summary = {
     usersScanned:
@@ -742,20 +750,28 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
       salawat.usersScanned +
       mulk.usersScanned +
       duha.usersScanned +
-      qiyam.usersScanned,
+      qiyam.usersScanned +
+      khatmah.usersScanned,
     pushesAttempted:
       azan.pushesAttempted +
       salawat.pushesAttempted +
       mulk.pushesAttempted +
       duha.pushesAttempted +
-      qiyam.pushesAttempted,
+      qiyam.pushesAttempted +
+      khatmah.pushesAttempted,
     pushesSent:
-      azan.pushesSent + salawat.pushesSent + mulk.pushesSent + duha.pushesSent + qiyam.pushesSent,
+      azan.pushesSent +
+      salawat.pushesSent +
+      mulk.pushesSent +
+      duha.pushesSent +
+      qiyam.pushesSent +
+      khatmah.pushesSent,
     azan,
     salawat,
     mulk,
     duha,
     qiyam,
+    khatmah,
   };
 
   logPushCronSummary({
@@ -788,6 +804,12 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
       pushesAttempted: qiyam.pushesAttempted,
       pushesSent: qiyam.pushesSent,
       skipped: qiyam.skipped,
+    },
+    khatmah: {
+      usersScanned: khatmah.usersScanned,
+      pushesAttempted: khatmah.pushesAttempted,
+      pushesSent: khatmah.pushesSent,
+      skipped: khatmah.skipped,
     },
   });
 

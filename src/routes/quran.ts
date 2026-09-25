@@ -37,6 +37,12 @@ import {
   getSajdahUserProgressHandler,
   toggleSajdahVerseHandler,
 } from '../controllers/quran.controller';
+import {
+  getKhatmahPlanHandler,
+  startKhatmahPlanHandler,
+  clearKhatmahPlanHandler,
+  startKhatmahPlanSchema,
+} from '../controllers/khatmah-plan.controller';
 
 const surahIdParamSchema = z.object({
   surahId: z.coerce.number().int().min(1).max(114),
@@ -586,6 +592,31 @@ quranRouter.get(
  *       200: { description: ✅ بيانات الختمة مع الإحصائيات }
  */
 quranRouter.get('/khatmah/stats', authenticate, getKhatmahStatsHandler);
+
+/**
+ * @openapi
+ * /quran/khatmah/plan:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: Get active flexible khatmah plan + today's ward
+ *     security: [ { bearerAuth: [] } ]
+ *   post:
+ *     tags: ['Quran']
+ *     summary: Start a new khatmah plan (durationDays XOR juzPerMonth)
+ *     security: [ { bearerAuth: [] } ]
+ *   delete:
+ *     tags: ['Quran']
+ *     summary: Clear active plan (return to free-form)
+ *     security: [ { bearerAuth: [] } ]
+ */
+quranRouter.get('/khatmah/plan', authenticate, getKhatmahPlanHandler);
+quranRouter.post(
+  '/khatmah/plan',
+  authenticate,
+  validate(startKhatmahPlanSchema),
+  startKhatmahPlanHandler,
+);
+quranRouter.delete('/khatmah/plan', authenticate, clearKhatmahPlanHandler);
 
 // ============================================================
 //  Round 2 NEW ENDPOINTS: Reset Khatmah, Quran Search, Random Ayah

@@ -36,6 +36,7 @@ import {
   SAJDAH_VERSE_COUNT_FULL,
   SAJDAH_VERSE_COUNT_MUATAQIDAH,
 } from '../shared/constants/sajdah-verses';
+import { getKhatmahPlan } from './khatmah-plan.service';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -1184,28 +1185,35 @@ async function getPagesReadToday(userId: string): Promise<number> {
 
 export async function getKhatmahWithStats(userId: string) {
   const base = await getKhatmah(userId);
-  const [streakDays, pagesReadToday] = await Promise.all([
+  const [streakDays, pagesReadToday, plan] = await Promise.all([
     getReadingStreakDays(userId),
     getPagesReadToday(userId),
+    getKhatmahPlan(userId).catch(() => null),
   ]);
   const completedKhatmahCount = Math.floor((base.totalPagesRead ?? 0) / TOTAL_QURAN_PAGES);
   const totalPagesRead = base.totalPagesRead;
+  const wardTarget =
+    plan?.active && plan.todayWard?.pagesTarget != null
+      ? plan.todayWard.pagesTarget
+      : DAILY_QURAN_PAGES_TARGET;
   return {
     ...base,
     streakDays,
     completedKhatmahCount,
     totalPagesRead,
     dailyGoal: {
-      pagesTarget: DAILY_QURAN_PAGES_TARGET,
+      pagesTarget: wardTarget,
       pagesReadToday,
-      completed: pagesReadToday >= DAILY_QURAN_PAGES_TARGET,
-      remainingToday: Math.max(0, DAILY_QURAN_PAGES_TARGET - pagesReadToday),
+      completed: pagesReadToday >= wardTarget,
+      remainingToday: Math.max(0, wardTarget - pagesReadToday),
     },
     stats: {
       streakDays,
       completedKhatmahCount,
       totalPagesRead,
     },
+    /** Additive — flexible plan + today ward (older Flutter may ignore). */
+    plan,
   };
 }
 

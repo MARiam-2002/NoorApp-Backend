@@ -26,6 +26,11 @@ import {
   patchQiyamPreferencesHandler,
   extraPrayerPreferencesPatchSchema,
 } from '../controllers/extra-prayer.controller';
+import {
+  getKhatmahReminderHandler,
+  patchKhatmahReminderHandler,
+  khatmahReminderPatchSchema,
+} from '../controllers/khatmah-plan.controller';
 
 const updateReadingPreferencesSchema = z.object({
   quranFontSize: z.coerce.number().int().min(12).max(60).optional(),
@@ -649,4 +654,30 @@ profileRouter.put(
   authenticate,
   validate(extraPrayerPreferencesPatchSchema),
   patchQiyamPreferencesHandler,
+);
+
+/**
+ * @openapi
+ * /profile/khatmah-reminder-preferences:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: Khatmah daily-ward miss reminder (opt-in)
+ *     security: [ { bearerAuth: [] } ]
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: Enable/disable khatmah ward reminder + local time
+ *     security: [ { bearerAuth: [] } ]
+ */
+profileRouter.get('/khatmah-reminder-preferences', authenticate, getKhatmahReminderHandler);
+profileRouter.patch(
+  '/khatmah-reminder-preferences',
+  authenticate,
+  validate(khatmahReminderPatchSchema),
+  patchKhatmahReminderHandler,
+);
+profileRouter.put(
+  '/khatmah-reminder-preferences',
+  authenticate,
+  validate(khatmahReminderPatchSchema),
+  patchKhatmahReminderHandler,
 );
