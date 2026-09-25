@@ -16,11 +16,118 @@ import {
   getNotificationSoundById,
   NOTIFICATION_SOUND_OPTIONS,
 } from '../shared/constants/azan-sounds';
+import { PrayerLabelsAr, PrayerNameEnum } from '../shared/enums/prayer-name.enum';
+import { parsePrayerKey } from '../shared/utils/prayer-names';
 import { mediaAbsoluteUrl } from './azan-audio.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
-type ScheduleRow = { name: string; time: string };
+type ScheduleRow = {
+  name: string;
+  time: string;
+  key?: string;
+  nameAr?: string;
+  /** Local calendar date YYYY-MM-DD from getPrayerSchedule when present. */
+  date?: string;
+};
+
+/**
+ * Canonical Arabic near-prayer / prayer-time notification titles.
+ * Flutter local scheduling should use the same copy rules.
+ * Friday Dhuhr pre-reminder uses الجمعة.
+ */
+export function formatPreReminderMinutesPhraseAr(minutes: number): string {
+  const n = Math.max(0, Math.floor(Number(minutes) || 0));
+  if (n === 1) return 'دقيقة';
+  return `${n} دقيقة`;
+}
+
+export function buildAzanNotificationCopy(input: {
+  prayerNameOrKey: string;
+  time: string;
+  isPre: boolean;
+  preReminderMinutes: number;
+  evaluationTimezone: string;
+  nowUtc?: Date;
+}): {
+  titleEn: string;
+  titleAr: string;
+  bodyEn: string;
+  bodyAr: string;
+  prayerKey: PrayerNameEnum | string;
+  prayerTitle: string;
+  nameAr: string;
+  isFridayJumuahPre: boolean;
+  /** Additive Flutter event type (does not replace `kind`). */
+  eventType: 'PRE_PRAYER_REMINDER' | 'PRAYER_AZAN';
+} {
+  const now = input.nowUtc ?? new Date();
+  const prayerKey =
+    parsePrayerKey(input.prayerNameOrKey) ??
+    String(input.prayerNameOrKey || '').toUpperCase();
+  const prayerTitle =
+    prayerKey === PrayerNameEnum.FAJR
+      ? 'Fajr'
+      : prayerKey === PrayerNameEnum.DHUHR
+        ? 'Dhuhr'
+        : prayerKey === PrayerNameEnum.ASR
+          ? 'Asr'
+          : prayerKey === PrayerNameEnum.MAGHRIB
+            ? 'Maghrib'
+            : prayerKey === PrayerNameEnum.ISHA
+              ? 'Isha'
+              : String(input.prayerNameOrKey);
+
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    timeZone: resolveTimezone(input.evaluationTimezone),
+  })
+    .format(now)
+    .toLowerCase();
+  const isFriday = weekday === 'fri';
+  const isFridayJumuahPre =
+    input.isPre && isFriday && prayerKey === PrayerNameEnum.DHUHR;
+
+  const nameAr = isFridayJumuahPre
+    ? 'الجمعة'
+    : (PrayerLabelsAr as Record<string, string>)[prayerKey] ??
+      String(input.prayerNameOrKey);
+
+  const pre = Math.max(0, Math.floor(Number(input.preReminderMinutes) || 0));
+  const prePhraseAr = formatPreReminderMinutesPhraseAr(pre);
+
+  const titleEn = input.isPre
+    ? pre === 1
+      ? `${prayerTitle} in 1 minute`
+      : `${prayerTitle} in ${pre} minutes`
+    : `Azan time for ${prayerTitle}`;
+  // Product copy (Flutter settings screen contract):
+  // PRE: بعد دقيقة يحين موعد صلاة العصر | بعد 15 دقيقة يحين موعد صلاة العصر
+  // AZAN: حان الآن موعد أذان العصر
+  const titleAr = input.isPre
+    ? pre === 1
+      ? `بعد دقيقة يحين موعد صلاة ${nameAr}`
+      : `بعد ${pre} دقيقة يحين موعد صلاة ${nameAr}`
+    : `حان الآن موعد أذان ${nameAr}`;
+  const bodyEn = input.isPre
+    ? `Reminder: ${prayerTitle} in about ${pre} minutes (${input.time})`
+    : `It's time for the ${prayerTitle} Azan (${input.time})`;
+  const bodyAr = input.isPre
+    ? `تذكير: بعد ${prePhraseAr} يحين موعد صلاة ${nameAr} (${input.time})`
+    : `حان الآن موعد أذان ${nameAr} (${input.time})`;
+
+  return {
+    titleEn,
+    titleAr,
+    bodyEn,
+    bodyAr,
+    prayerKey,
+    prayerTitle,
+    nameAr,
+    isFridayJumuahPre,
+    eventType: input.isPre ? 'PRE_PRAYER_REMINDER' : 'PRAYER_AZAN',
+  };
+}
 
 const ASSETS_ROOT = path.resolve(__dirname, '..', '..', 'assets');
 
@@ -115,6 +222,72 @@ export function resolvePreReminderSoundFor(
 }
 
 /**
+ * Classify whether the cron should fire a Near-Prayer (pre) or prayer-time push.
+ *
+ * `preReminderMinutes` is authoritative: target fire when minutes-until ≈ pre.
+ * Cron window only provides tolerance — it does NOT replace the user's minutes.
+ *
+ * When both windows overlap (e.g. pre=5, window=12), pick the closer target so
+ * Near-Prayer is not swallowed by prayer_time.
+ */
+export function classifyAzanReminderHit(input: {
+  minutesUntil: number;
+  preReminderMinutes: number;
+  preReminderEnabled: boolean;
+  windowMinutes: number;
+}): 'none' | 'pre_reminder' | 'prayer_time' {
+  const mins = input.minutesUntil;
+  const window = Math.max(1, input.windowMinutes);
+  if (!Number.isFinite(mins) || mins < 0) return 'none';
+
+  const preEnabled = Boolean(input.preReminderEnabled);
+  const pre = preEnabled ? Math.max(0, Math.floor(Number(input.preReminderMinutes) || 0)) : 0;
+
+  const inNowWindow = mins <= window;
+  // Pre target is exactly `pre` minutes before prayer. Accept within ±window.
+  const inPreWindow =
+    preEnabled && pre > 0 && Math.abs(mins - pre) <= window;
+
+  if (inPreWindow && inNowWindow) {
+    return Math.abs(mins - pre) <= mins ? 'pre_reminder' : 'prayer_time';
+  }
+  if (inPreWindow) return 'pre_reminder';
+  if (inNowWindow) return 'prayer_time';
+  return 'none';
+}
+
+/** Deterministic logical identity for one Azan/Near-Prayer send. */
+export function buildAzanReminderOccurrenceKey(input: {
+  date: string;
+  prayerKey: string;
+  kind: 'pre_reminder' | 'prayer_time';
+  /** Included for pre_reminder so changing minutes creates a new logical reminder. */
+  preReminderMinutes?: number;
+}): string {
+  const prayer = String(input.prayerKey).toUpperCase();
+  if (input.kind === 'pre_reminder') {
+    const pre = Math.max(0, Math.floor(Number(input.preReminderMinutes) || 0));
+    return `${input.date}|${prayer}|pre_reminder|pre${pre}`;
+  }
+  return `${input.date}|${prayer}|prayer_time`;
+}
+
+export async function claimAzanReminderOccurrence(
+  userId: string,
+  occurrenceKey: string,
+): Promise<boolean> {
+  try {
+    await prisma.azanReminderSendLog.create({
+      data: { userId, occurrenceKey },
+    });
+    return true;
+  } catch (err: any) {
+    if (err?.code === 'P2002') return false;
+    throw err;
+  }
+}
+
+/**
  * Minutes from "now" (in the given IANA timezone) until a local HH:mm prayer time
  * on the same local calendar day. Positive = upcoming; negative = already passed.
  * Uses Intl (same pattern as Salawat) — not the Railway/server process timezone.
@@ -136,6 +309,23 @@ export function minutesUntilPrayer(
   const nowMinutes = clock.hour * 60 + clock.minute;
   const targetMinutes = h * 60 + m;
   return targetMinutes - nowMinutes;
+}
+
+/**
+ * Local notification clock time (HH:mm) for a near-prayer reminder.
+ * Example: prayer 05:00, pre=15 → "04:45".
+ */
+export function computeNearPrayerLocalHhmm(prayerHhmm: string, preReminderMinutes: number): string {
+  const [hRaw, mRaw] = String(prayerHhmm).split(':');
+  const h = Number(hRaw);
+  const m = Number(mRaw);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return prayerHhmm;
+  const pre = Math.max(0, Math.floor(Number(preReminderMinutes) || 0));
+  let total = h * 60 + m - pre;
+  if (total < 0) total += 24 * 60;
+  const hh = Math.floor(total / 60) % 24;
+  const mm = total % 60;
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
 /**
@@ -198,60 +388,109 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
       const evaluationTz = resolveTimezone(
         schedule.timezone || profileTz || DEFAULT_PRAYER_LOCATION.timezone,
       );
+      const scheduleDate =
+        typeof (schedule as any).date === 'string'
+          ? String((schedule as any).date)
+          : getLocalClock(new Date(), evaluationTz).dayKey;
 
       for (const row of rows) {
-        const key = row.name.toLowerCase();
+        const prayerEnum =
+          parsePrayerKey(row.key ?? row.name) ??
+          String(row.key ?? row.name).toUpperCase();
+        const prefKey = String(prayerEnum).toLowerCase();
         const enabled =
-          (prefs.prayers as any)?.[key] === true ||
-          (prefs.prayers as any)?.[key] === undefined;
+          (prefs.prayers as any)?.[prefKey] === true ||
+          (prefs.prayers as any)?.[prefKey] === undefined;
         if (!enabled) continue;
 
         const mins = minutesUntilPrayer(row.time, evaluationTz);
         const pre = prefs.preReminderEnabled ? prefs.preReminderMinutes : 0;
-        const hitNow = mins >= 0 && mins <= windowMinutes;
-        const hitPre =
-          prefs.preReminderEnabled &&
-          mins >= pre &&
-          mins <= pre + windowMinutes;
-
-        if (!hitNow && !hitPre) continue;
-
-        const isPre = hitPre && !hitNow;
-        const kind = isPre ? 'pre_reminder' : 'prayer_time';
-
-        const since = new Date(Date.now() - Math.max(windowMinutes, 10) * 60_000);
-        const recent = await prisma.notification.findMany({
-          where: {
-            userId: user.id,
-            type: 'AZAN' as any,
-            createdAt: { gte: since },
-          },
-          select: { payload: true },
-          take: 40,
-        }).catch(() => []);
-        const already = recent.some((n) => {
-          const p = (n.payload ?? {}) as Record<string, unknown>;
-          return p.prayer === row.name && p.kind === kind;
+        const hitKind = classifyAzanReminderHit({
+          minutesUntil: mins,
+          preReminderMinutes: prefs.preReminderMinutes,
+          preReminderEnabled: prefs.preReminderEnabled,
+          windowMinutes,
         });
-        if (already) continue;
+        if (hitKind === 'none') continue;
 
-        const titleEn = isPre ? `${row.name} soon` : `Time for ${row.name}`;
-        const titleAr = isPre ? `اقترب موعد ${row.name}` : `حان موعد صلاة ${row.name}`;
-        const bodyEn = isPre
-          ? `Reminder: ${row.name} in about ${pre} minutes (${row.time})`
-          : `It's time for ${row.name} (${row.time})`;
-        const bodyAr = isPre
-          ? `تذكير: تبقى حوالي ${pre} دقيقة على ${row.name} (${row.time})`
-          : `حان موعد صلاة ${row.name} (${row.time})`;
+        const isPre = hitKind === 'pre_reminder';
+        const kind = hitKind;
+        const occurrenceKey = buildAzanReminderOccurrenceKey({
+          date: scheduleDate,
+          prayerKey: String(prayerEnum),
+          kind,
+          preReminderMinutes: isPre ? pre : undefined,
+        });
+
+        // Durable claim BEFORE FCM — protects overlapping/retried cron runs.
+        let claimed = false;
+        try {
+          claimed = await claimAzanReminderOccurrence(user.id, occurrenceKey);
+        } catch (claimErr) {
+          logger.warn('[Cron] Azan reminder claim failed; falling back to notification scan', {
+            userId: user.id,
+            occurrenceKey,
+            message: (claimErr as Error)?.message,
+          });
+          // Fallback if migration not yet applied: soft dedup via recent notifications.
+          const since = new Date(Date.now() - Math.max(windowMinutes, pre, 30) * 60_000);
+          const recent = await prisma.notification.findMany({
+            where: {
+              userId: user.id,
+              type: 'AZAN' as any,
+              createdAt: { gte: since },
+            },
+            select: { payload: true },
+            take: 40,
+          }).catch(() => []);
+          const already = recent.some((n) => {
+            const p = (n.payload ?? {}) as Record<string, unknown>;
+            if (p.idempotencyKey && String(p.idempotencyKey) === occurrenceKey) return true;
+            if (p.kind !== kind) return false;
+            const prevKey =
+              parsePrayerKey(String(p.key ?? p.prayer ?? '')) ??
+              String(p.prayer ?? '').toUpperCase();
+            if (prevKey !== prayerEnum) return false;
+            if (isPre && p.preReminderMinutes != null && Number(p.preReminderMinutes) !== pre) {
+              return false;
+            }
+            if (p.date && scheduleDate && String(p.date) !== scheduleDate) return false;
+            return true;
+          });
+          if (already) continue;
+          claimed = true;
+        }
+        if (!claimed) continue;
+
+        const copy = buildAzanNotificationCopy({
+          prayerNameOrKey: String(prayerEnum),
+          time: row.time,
+          isPre,
+          preReminderMinutes: pre,
+          evaluationTimezone: evaluationTz,
+        });
+        const { titleEn, titleAr, bodyEn, bodyAr, prayerTitle, eventType } = copy;
+        const nearPrayerLocalTime = isPre
+          ? computeNearPrayerLocalHhmm(row.time, pre)
+          : row.time;
 
         const baseData: Record<string, string> = {
           type: 'AZAN',
-          prayer: row.name,
+          /** Title Case — backward compatible with existing Flutter maps. */
+          prayer: prayerTitle,
+          /** Canonical enum — prefer this for new client logic. */
+          key: String(prayerEnum),
+          date: scheduleDate,
           time: row.time,
           kind,
+          /** Additive event taxonomy for Flutter local + FCM (does not replace kind). */
+          eventType,
+          idempotencyKey: occurrenceKey,
+          occurrenceKey,
           soundEnabled: soundEnabled ? 'true' : 'false',
           vibrationEnabled: vibrationEnabled ? 'true' : 'false',
           locale: 'ar',
+          deepLink: '/prayer-times',
         };
 
         let nativeSound: string | null = 'default';
@@ -261,7 +500,7 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
 
         if (isPre) {
           const resolved = resolvePreReminderSoundFor(
-            row.name,
+            String(prayerEnum),
             prefs.notificationSoundId,
             prefs.preReminderMinutes,
             evaluationTz,
@@ -271,7 +510,7 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           if ((effectiveNotifSound as any).isAutoSentinel === true) {
             logger.warn(
               '[Cron] Pre-reminder resolver unexpectedly returned sentinel; falling back to soft_chime.',
-              { userId: user.id, prayer: row.name, chosenId: prefs.notificationSoundId },
+              { userId: user.id, prayer: prayerEnum, chosenId: prefs.notificationSoundId },
             );
             effectiveNotifSound = getNotificationSoundById('soft_chime');
           }
@@ -282,6 +521,9 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
 
           Object.assign(baseData, {
             preReminderMinutes: String(pre ?? 0),
+            /** Alias for Flutter UIs that label the field reminderMinutes. */
+            reminderMinutes: String(pre ?? 0),
+            nearPrayerLocalTime,
             audioScope: 'pre_reminder',
             autoMatched: resolved.autoMatched ? 'true' : 'false',
             matchedPrayerKey: String(matchesPrayerKey),
@@ -365,14 +607,21 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           type: 'AZAN' as any,
           deepLink: '/prayer-times',
           payload: {
-            prayer: row.name,
+            prayer: prayerTitle,
+            key: String(prayerEnum),
+            date: scheduleDate,
             time: row.time,
             kind,
+            idempotencyKey: occurrenceKey,
+            occurrenceKey,
+            preReminderMinutes: isPre ? pre : undefined,
+            nearPrayerLocalTime: isPre ? nearPrayerLocalTime : undefined,
             audioScope: baseData.audioScope,
             azanSoundId: baseData.azanSoundId,
             azanSoundUrl: baseData.azanSoundUrl,
             notificationSoundId: baseData.notificationSoundId,
             notificationSoundUrl: baseData.notificationSoundUrl,
+            notificationSoundMediaFile: baseData.notificationSoundMediaFile,
           },
         }).catch(() => null);
       }

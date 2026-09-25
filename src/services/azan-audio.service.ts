@@ -16,7 +16,7 @@ import {
   type NotificationSoundOption,
 } from '../shared/constants/azan-sounds';
 
-const PRODUCTION_PUBLIC_ORIGIN = 'https://noor-app-backend-one.vercel.app';
+const PRODUCTION_PUBLIC_ORIGIN = 'https://noorapp-backend-production.up.railway.app';
 
 function assetsRoot(): string {
   const candidates = [

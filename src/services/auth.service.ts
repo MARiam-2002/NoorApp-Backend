@@ -366,19 +366,18 @@ export type DeleteAccountResult = {
 };
 
 /**
- * Google Play account-deletion: hard-delete the user row.
- * Related rows (sessions, FCM tokens, profile prefs, journey, challenges,
- * tasbih, Quran/khatmah, notifications, ayah history, auth provider links)
- * are removed via Prisma `onDelete: Cascade`.
+ * Core hard-delete used by Play `DELETE /auth/me` and maintenance cleanup.
+ * Cascades user-owned rows via Prisma FKs; also explicitly clears sessions/FCM/reset tokens
+ * and records DeletedIdentity so login/Google cannot restore the account.
  */
-export async function deleteAccount(userId: string): Promise<DeleteAccountResult> {
+export async function hardDeleteUserAccount(userId: string): Promise<DeleteAccountResult> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, isActive: true, email: true, googleId: true, providerId: true },
+    select: { id: true, email: true, googleId: true, providerId: true },
   });
 
-  if (!user || !user.isActive) {
-    throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
+  if (!user) {
+    throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
 
   const deletedAt = new Date();
@@ -410,7 +409,7 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
     });
   } catch (err: any) {
     if (err?.code === 'P2025') {
-      throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
+      throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
     }
     throw err;
   }
@@ -421,6 +420,25 @@ export async function deleteAccount(userId: string): Promise<DeleteAccountResult
     deleted: true,
     deletedAt: deletedAt.toISOString(),
   };
+}
+
+/**
+ * Google Play account-deletion: hard-delete the authenticated user row.
+ * Related rows (sessions, FCM tokens, profile prefs, journey, challenges,
+ * tasbih, Quran/khatmah, notifications, ayah history, auth provider links)
+ * are removed via Prisma `onDelete: Cascade`.
+ */
+export async function deleteAccount(userId: string): Promise<DeleteAccountResult> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, isActive: true },
+  });
+
+  if (!user || !user.isActive) {
+    throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
+  }
+
+  return hardDeleteUserAccount(userId);
 }
 
 export async function getCurrentUser(userId: string): Promise<ContractAuthUser> {

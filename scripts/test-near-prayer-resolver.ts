@@ -1,12 +1,15 @@
 /**
- * Near-prayer voice resolver unit checks (no HTTP / DB).
+ * Near-prayer voice resolver + Arabic copy unit checks (no HTTP / DB).
  * Run: npx tsx scripts/test-near-prayer-resolver.ts
  */
 import assert from 'node:assert/strict';
-import { resolvePreReminderSoundFor } from '../src/services/prayer-reminder.service';
-import { AZAN_MEDIA_FILES } from '../src/shared/constants/azan-sounds';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  buildAzanNotificationCopy,
+  resolvePreReminderSoundFor,
+} from '../src/services/prayer-reminder.service';
+import { AZAN_MEDIA_FILES } from '../src/shared/constants/azan-sounds';
 
 const tz = 'Africa/Cairo';
 const friday = new Date('2026-09-25T09:00:00.000Z'); // Friday
@@ -33,6 +36,37 @@ for (const prayer of ['ASR', 'MAGHRIB', 'ISHA'] as const) {
   assert.equal(r.sound.id, `sc_near_${prayer.toLowerCase()}`);
 }
 
+const expectedTitles: Record<string, string> = {
+  FAJR: 'بعد 15 دقيقة يحين موعد صلاة الفجر',
+  DHUHR: 'بعد 15 دقيقة يحين موعد صلاة الظهر',
+  ASR: 'بعد 15 دقيقة يحين موعد صلاة العصر',
+  MAGHRIB: 'بعد 15 دقيقة يحين موعد صلاة المغرب',
+  ISHA: 'بعد 15 دقيقة يحين موعد صلاة العشاء',
+};
+
+for (const [key, title] of Object.entries(expectedTitles)) {
+  const copy = buildAzanNotificationCopy({
+    prayerNameOrKey: key,
+    time: '12:00',
+    isPre: true,
+    preReminderMinutes: 15,
+    evaluationTimezone: tz,
+    nowUtc: thursday,
+  });
+  assert.equal(copy.titleAr, title, `titleAr for ${key}`);
+}
+
+const fridayCopy = buildAzanNotificationCopy({
+  prayerNameOrKey: 'DHUHR',
+  time: '12:05',
+  isPre: true,
+  preReminderMinutes: 15,
+  evaluationTimezone: tz,
+  nowUtc: friday,
+});
+assert.equal(fridayCopy.titleAr, 'بعد 15 دقيقة يحين موعد صلاة الجمعة');
+assert.equal(fridayCopy.isFridayJumuahPre, true);
+
 const assets = path.join(process.cwd(), 'assets');
 const required = [
   'near-prayer/sc_near_fajr.mp3',
@@ -41,16 +75,21 @@ const required = [
   'near-prayer/sc_near_maghrib.mp3',
   'near-prayer/sc_near_isha.mp3',
   'near-prayer/sc_near_jumuah.mp3',
+  'prayer-events/sc_event_fajr.mp3',
+  'prayer-events/sc_event_duha.mp3',
+  'prayer-events/sc_event_qiyam.mp3',
+  'prayer-events/sc_event_jumuah.mp3',
 ];
 for (const rel of required) {
   assert.ok(fs.existsSync(path.join(assets, rel)), `missing ${rel}`);
 }
+assert.ok(!fs.existsSync(path.join(assets, 'near-prayer/sc_near_jummah.mp3')), 'jummah typo must not exist');
 
 assert.ok(AZAN_MEDIA_FILES['sc_near_jumuah.mp3']?.relativePath.startsWith('near-prayer/'));
+assert.ok(AZAN_MEDIA_FILES['sc_event_qiyam.mp3']?.relativePath.startsWith('prayer-events/'));
 assert.equal((AZAN_MEDIA_FILES as any)['sc_fajr_alarm.mp3'], undefined);
 assert.equal((AZAN_MEDIA_FILES as any)['sc_near_qiyam.mp3'], undefined);
 
-// No near-prayer files under notification/ or azan/
 const notifDir = path.join(assets, 'notification');
 if (fs.existsSync(notifDir)) {
   for (const f of fs.readdirSync(notifDir)) {
@@ -64,4 +103,4 @@ if (fs.existsSync(azanDir)) {
   }
 }
 
-console.log('near-prayer resolver: OK');
+console.log('near-prayer resolver + Arabic copy: OK');

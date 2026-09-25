@@ -16,6 +16,9 @@ import {
 } from '../shared/constants/azan-sounds';
 import { mediaAbsoluteUrl } from './azan-audio.service';
 
+/** Canonical default for دقائق التذكير — must stay consistent across schema, API, cron. */
+export const DEFAULT_PRE_REMINDER_MINUTES = 15;
+
 const prayerTogglesSchema = z.object({
   fajr: z.boolean(),
   dhuhr: z.boolean(),
@@ -46,7 +49,16 @@ export const azanPreferencesSchema = z.object({
     .max(64)
     .default(DEFAULT_PRAYER_LOCATION.calculationMethod),
   madhab: z.enum(['SHAFI', 'HANAFI', 'shafi', 'hanafi']).default('SHAFI'),
-  preReminderMinutes: z.coerce.number().int().min(0).max(120).default(15),
+  /**
+   * Minutes before prayer for Near-Prayer reminder (دقائق التذكير).
+   * Flutter alias on PATCH: `reminderMinutes` (mapped in normalizePrefs).
+   */
+  preReminderMinutes: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(120)
+    .default(DEFAULT_PRE_REMINDER_MINUTES),
   preReminderEnabled: z.boolean().default(true),
   prayers: prayerTogglesSchema.default({
     fajr: true,
@@ -70,6 +82,12 @@ export type AzanPreferencesResponse = AzanPreferences & {
   azanSoundId: string;
   azanSound: AzanSoundOption;
   notificationSound: NotificationSoundOption;
+  /** Alias of preReminderMinutes for Flutter (دقائق التذكير). */
+  reminderMinutes: number;
+  /** Alias of preReminderEnabled (تذكير قبل الصلاة). */
+  prePrayerReminderEnabled: boolean;
+  /** Alias of preReminderMinutes. */
+  prePrayerReminderMinutes: number;
 };
 
 export function defaultAzanPreferences(): AzanPreferences {
@@ -80,6 +98,24 @@ function normalizePrefs(raw: unknown): AzanPreferences {
   const base = defaultAzanPreferences();
   if (!raw || typeof raw !== 'object') return base;
   const incoming = { ...(raw as Record<string, unknown>) };
+
+  // Flutter aliases for settings UI field names.
+  if (
+    incoming.preReminderMinutes == null &&
+    (incoming.reminderMinutes != null || incoming.prePrayerReminderMinutes != null) &&
+    (incoming.reminderMinutes !== '' || incoming.prePrayerReminderMinutes !== '')
+  ) {
+    incoming.preReminderMinutes =
+      incoming.preReminderMinutes ??
+      incoming.prePrayerReminderMinutes ??
+      incoming.reminderMinutes;
+  }
+  if (incoming.preReminderEnabled == null && incoming.prePrayerReminderEnabled != null) {
+    incoming.preReminderEnabled = incoming.prePrayerReminderEnabled;
+  }
+  delete incoming.reminderMinutes;
+  delete incoming.prePrayerReminderMinutes;
+  delete incoming.prePrayerReminderEnabled;
 
   // Prefer explicit azanSoundId when patching; keep voiceId in sync.
   if (typeof incoming.azanSoundId === 'string' && incoming.azanSoundId.trim()) {
@@ -136,6 +172,9 @@ function enrichPrefs(prefs: AzanPreferences): AzanPreferencesResponse {
     voiceId: azanSound.id,
     azanSoundId: azanSound.id,
     notificationSoundId: notificationSound.id,
+    reminderMinutes: prefs.preReminderMinutes,
+    prePrayerReminderMinutes: prefs.preReminderMinutes,
+    prePrayerReminderEnabled: prefs.preReminderEnabled,
     azanSound,
     notificationSound,
   };
@@ -228,10 +267,16 @@ export async function updateAzanPreferences(
     locationSource: _s,
     azanSound: _a,
     notificationSound: _n,
+    reminderMinutes: _r,
+    prePrayerReminderMinutes: _rp,
+    prePrayerReminderEnabled: _re,
     ...persistable
   } = next as AzanPreferences & {
     azanSound?: unknown;
     notificationSound?: unknown;
+    reminderMinutes?: number;
+    prePrayerReminderMinutes?: number;
+    prePrayerReminderEnabled?: boolean;
   };
 
   const explicitLocation =

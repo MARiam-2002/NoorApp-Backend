@@ -70,6 +70,7 @@ model User {
   adhkarResumeMarks       AdhkarResumeMark[]
   ayahHistory             UserAyahHistory[]
   salawatSendLogs         SalawatSendLog[]
+  azanReminderSendLogs    AzanReminderSendLog[]
 
   @@map("users")
 }
@@ -85,6 +86,20 @@ model SalawatSendLog {
   @@unique([userId, occurrenceKey])
   @@index([userId, createdAt])
   @@map("salawat_send_logs")
+}
+
+/// Durable Azan / Near-Prayer FCM idempotency (one row per user per logical reminder).
+/// occurrenceKey includes date + prayer + kind + preReminderMinutes for pre_reminder.
+model AzanReminderSendLog {
+  id             String   @id @default(uuid())
+  userId         String
+  occurrenceKey  String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, occurrenceKey])
+  @@index([userId, createdAt])
+  @@map("azan_reminder_send_logs")
 }
 
 /// Blocks login/Google for an identity after Play account deletion.

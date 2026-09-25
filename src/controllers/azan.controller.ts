@@ -12,6 +12,7 @@ import {
   getAzanPreferences,
   updateAzanPreferences,
   azanPreferencesSchema,
+  DEFAULT_PRE_REMINDER_MINUTES,
   type AzanPreferences,
 } from '../services/azan.service';
 import { getAudioDefaults } from '../services/azan-audio.service';
@@ -77,8 +78,11 @@ export const getAzanPreferencesHandler = asyncHandler(async (req: Request, res: 
         notificationSound: defaults.notificationSound,
         calculationMethod: 'EGYPT',
         madhab: 'SHAFI',
-        preReminderMinutes: 15,
+        preReminderMinutes: DEFAULT_PRE_REMINDER_MINUTES,
+        reminderMinutes: DEFAULT_PRE_REMINDER_MINUTES,
+        prePrayerReminderMinutes: DEFAULT_PRE_REMINDER_MINUTES,
         preReminderEnabled: true,
+        prePrayerReminderEnabled: true,
         prayers: { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true },
         isGuestDefaults: true,
       },
@@ -100,8 +104,18 @@ export const patchAzanPreferencesHandler = asyncHandler(async (req: Request, res
       ErrorCodes.UNAUTHORIZED,
     );
   }
-  const body = (req.body ?? {}) as Record<string, unknown>;
-  // Accept either voiceId or azanSoundId for selecting Azan audio.
+  const body = { ...((req.body ?? {}) as Record<string, unknown>) };
+  // Accept Flutter aliases before zod parse.
+  if (body.preReminderMinutes == null) {
+    if (body.prePrayerReminderMinutes != null) {
+      body.preReminderMinutes = body.prePrayerReminderMinutes;
+    } else if (body.reminderMinutes != null) {
+      body.preReminderMinutes = body.reminderMinutes;
+    }
+  }
+  if (body.preReminderEnabled == null && body.prePrayerReminderEnabled != null) {
+    body.preReminderEnabled = body.prePrayerReminderEnabled;
+  }
   const parsed = azanPreferencesSchema.partial().parse(body);
   if (typeof body.azanSoundId === 'string' && body.azanSoundId.trim()) {
     (parsed as any).azanSoundId = body.azanSoundId;
