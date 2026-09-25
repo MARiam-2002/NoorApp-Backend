@@ -34,6 +34,7 @@ import {
   getDailyChallengeTemplate,
 } from './daily-content.service';
 import { syncJourneyAdhkarFromDhikr } from './adhkar.service';
+import { getNawafelDashboardTile } from './nawafel.service';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -127,6 +128,18 @@ export type DashboardData = {
       currency?: string;
       currencyLabelAr?: string;
       currencyLabelEn?: string;
+    };
+    /** Additive — daily sunnah rawatib (12 rak‘ahs). Older Flutter may ignore. */
+    nawafel?: {
+      completed: number;
+      total: number;
+      progress: number;
+      completedSlots?: number;
+      totalSlots?: number;
+      labelAr: string;
+      labelEn: string;
+      captionAr: string;
+      captionEn: string;
     };
   };
   khatmah: {
@@ -298,6 +311,17 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
           currencyLabelAr: SADAQAH_CURRENCY_LABEL_AR,
           currencyLabelEn: SADAQAH_CURRENCY_LABEL_EN,
         },
+        nawafel: {
+          completed: 0,
+          total: 12,
+          progress: 0,
+          completedSlots: 0,
+          totalSlots: 5,
+          labelAr: 'الرواتب',
+          labelEn: 'Rawatib',
+          captionAr: '0 من 12 ركعة اليوم',
+          captionEn: '0 of 12 rak‘ahs today',
+        },
       },
       khatmah: {
         surahId: 2,
@@ -354,6 +378,7 @@ async function buildDashboardPayload(
     hadith,
     challengeTemplate,
     challengeCompletion,
+    nawafelTile,
   ] = await Promise.all([
     findCompletedPrayers(userId).catch(() => [] as PrayerName[]),
     getTodayJourneyWithFallback(userId),
@@ -362,6 +387,17 @@ async function buildDashboardPayload(
     getHadithOfTheDayLite(dayOfYear).catch(() => getCuratedHadithForDay(dayOfYear)),
     getDailyChallengeTemplate(dayOfYear).catch(() => null),
     getChallengeCompletion(userId, dayOfYear).catch(() => null),
+    getNawafelDashboardTile(userId).catch(() => ({
+      completed: 0,
+      total: 12,
+      progress: 0,
+      completedSlots: 0,
+      totalSlots: 5,
+      labelAr: 'الرواتب',
+      labelEn: 'Rawatib',
+      captionAr: '0 من 12 ركعة اليوم',
+      captionEn: '0 of 12 rak‘ahs today',
+    })),
   ]);
 
   const surah = khatmah?.currentSurahId
@@ -607,6 +643,7 @@ async function buildDashboardPayload(
         currencyLabelAr: SADAQAH_CURRENCY_LABEL_AR,
         currencyLabelEn: SADAQAH_CURRENCY_LABEL_EN,
       },
+      nawafel: nawafelTile,
     },
     khatmah: {
       surahId: surah?.id ?? 2,

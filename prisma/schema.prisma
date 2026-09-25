@@ -62,6 +62,7 @@ model User {
   notifications           Notification[]
   passwordResetTokens     PasswordResetToken[]
   prayerCompletions       PrayerCompletion[]
+  nawafelCompletions      NawafelCompletion[]
   quranBookmarks          QuranBookmark[]
   quranLastRead           QuranLastRead?
   quranReadingHistory     QuranReadingHistory[]
@@ -208,6 +209,20 @@ model PrayerCompletion {
   @@unique([userId, date, prayer])
   @@index([userId, date])
   @@map("prayer_completions")
+}
+
+/// Daily confirmed sunnah rawatib slots (12 rak‘ahs across 5 keys). No FCM in v1.
+model NawafelCompletion {
+  id          String     @id @default(uuid())
+  userId      String
+  date        DateTime   @db.Date
+  key         NawafelKey
+  completedAt DateTime   @default(now())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, key])
+  @@index([userId, date])
+  @@map("nawafel_completions")
 }
 
 model Surah {
@@ -651,4 +666,13 @@ enum NotificationType {
   GENERAL
   SALAWAT
   MULK
+}
+
+/// Classic daily rawatib (12 rak‘ahs) — one checklist row per slot.
+enum NawafelKey {
+  FAJR_BEFORE_2
+  DHUHR_BEFORE_4
+  DHUHR_AFTER_2
+  MAGHRIB_AFTER_2
+  ISHA_AFTER_2
 }

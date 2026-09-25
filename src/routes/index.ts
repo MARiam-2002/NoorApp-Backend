@@ -20,6 +20,7 @@ import { azanRouter } from './azan';
 import { salawatRouter } from './salawat';
 import { ayahRouter } from './ayah';
 import { stancesRouter } from './stances';
+import { nawafelRouter } from './nawafel';
 
 export const v1Router = Router();
 
@@ -43,3 +44,4 @@ v1Router.use('/devices', devicesRouter);
 v1Router.use('/cron', cronRouter);
 v1Router.use('/ayah', ayahRouter);
 v1Router.use('/stances', stancesRouter);
+v1Router.use('/nawafel', nawafelRouter);
