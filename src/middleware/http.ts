@@ -9,6 +9,7 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Express, Request, Response } from 'express';
 import { appConfig, env, ErrorCodes, HttpStatus } from '../config';
 import { morganStream } from '../lib/logger';
+import { nextCheckForBlame, resolveApiBlame } from '../lib/api-diagnostics';
 import { buildError } from '../shared/utils/response';
 
 /**
@@ -97,8 +98,13 @@ export const httpLogger = morgan(appConfig.isProduction ? 'combined' : 'dev', {
 });
 
 function buildRateLimitMessage(message: string) {
-  return (_req: Request, _res: Response): unknown =>
-    buildError(message, ErrorCodes.RATE_LIMIT_EXCEEDED, _req);
+  return (_req: Request, _res: Response): unknown => {
+    const blame = resolveApiBlame(HttpStatus.TOO_MANY_REQUESTS, ErrorCodes.RATE_LIMIT_EXCEEDED);
+    return buildError(message, ErrorCodes.RATE_LIMIT_EXCEEDED, _req, undefined, undefined, {
+      blame,
+      nextCheck: nextCheckForBlame(blame),
+    });
+  };
 }
 
 export const apiRateLimiter = rateLimit({

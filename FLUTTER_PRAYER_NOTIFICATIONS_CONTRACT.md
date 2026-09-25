@@ -553,6 +553,39 @@ Backend design is Play-friendly (FCM backup, channels, in-app full Adhan, opt-in
 - [ ] Full Adhan plays in media session, tray uses short channel sound only  
 - [ ] Data safety form matches actual FCM / prefs collection  
 
+## 27. Diagnostics — Backend vs Flutter (whole app)
+
+### Push (Azan / Salawat)
+Railway: `[Push] delivery`, `[Push] cron_summary` — see `blame` (e.g. `BACKEND_OK_FLUTTER_MUST_PLAY`).
+
+### Every API request
+Railway: `[API] request` / `[API] error` with:
+
+| Field | Use |
+|-------|-----|
+| `blame` | `OK` \| `FLUTTER_CLIENT` \| `FLUTTER_AUTH` \| `FLUTTER_RATE_LIMIT` \| `NOT_FOUND` \| `BACKEND` … |
+| `requestId` | Correlate with Flutter bug reports |
+| `userId` + `userEmail` | **Which account** broke (from JWT / DB) |
+| `route` / `statusCode` / `durationMs` | What failed and how slow |
+
+**Flutter must:**
+1. Log `response.requestId` and header `X-Request-ID` on every error  
+2. Read optional error fields `blame` + `nextCheck` and show/log them in debug builds  
+3. When reporting a bug, send `requestId` so Backend can find the exact Railway line  
+
+Error envelope (additive):
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "code": "VALIDATION_ERROR",
+  "blame": "FLUTTER_CLIENT",
+  "nextCheck": "Check request body/query against contract; log requestId from response.",
+  "requestId": "…"
+}
+```
+
 ---
 
 *End of contract — one file is enough.*

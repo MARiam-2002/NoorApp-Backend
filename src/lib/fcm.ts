@@ -20,6 +20,8 @@ type SendResult = {
   failureCount: number;
   invalidTokens: string[];
   configured: boolean;
+  /** Sample FCM error codes (no tokens) for Railway diagnosis. */
+  errorCodes?: string[];
 };
 
 let messaging: any = null;
@@ -139,9 +141,11 @@ export async function sendFcmToTokens(
   });
 
   const invalidTokens: string[] = [];
+  const errorCodes: string[] = [];
   response.responses.forEach((r: any, idx: number) => {
     if (r.success) return;
-    const code = r.error?.code || '';
+    const code = String(r.error?.code || 'unknown');
+    if (errorCodes.length < 5 && !errorCodes.includes(code)) errorCodes.push(code);
     if (
       code.includes('registration-token-not-registered') ||
       code.includes('invalid-registration-token') ||
@@ -156,6 +160,7 @@ export async function sendFcmToTokens(
     failureCount: response.failureCount ?? 0,
     invalidTokens,
     configured: true,
+    errorCodes,
   };
 }
 

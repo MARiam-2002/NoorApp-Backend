@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { getAzanPreferences } from './azan.service';
 import { sendPushToUser } from './device.service';
+import { logPushCronSummary } from '../lib/push-diagnostics';
 import { getPrayerSchedule } from './prayer.service';
 import { createNotification } from './notification.service';
 import {
@@ -712,11 +713,28 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
   const azan = await runAzanBackupReminders(windowMinutes);
   const salawat = await runSalawatReminders();
 
-  return {
+  const summary = {
     usersScanned: azan.usersScanned + salawat.usersScanned,
     pushesAttempted: azan.pushesAttempted + salawat.pushesAttempted,
     pushesSent: azan.pushesSent + salawat.pushesSent,
     azan,
     salawat,
   };
+
+  logPushCronSummary({
+    job: 'prayer_reminders',
+    windowMinutes,
+    usersScanned: summary.usersScanned,
+    pushesAttempted: summary.pushesAttempted,
+    pushesSent: summary.pushesSent,
+    azan,
+    salawat: {
+      usersScanned: salawat.usersScanned,
+      pushesAttempted: salawat.pushesAttempted,
+      pushesSent: salawat.pushesSent,
+      skipped: salawat.skipped,
+    },
+  });
+
+  return summary;
 }

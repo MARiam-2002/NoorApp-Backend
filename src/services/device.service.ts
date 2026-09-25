@@ -3,6 +3,7 @@ import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { sendFcmToTokens, isFcmConfigured } from '../lib/fcm';
 import { logger } from '../lib/logger';
+import { logPushDelivery } from '../lib/push-diagnostics';
 
 export type RegisterDeviceInput = {
   token: string;
@@ -35,6 +36,19 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
       locale: input.locale?.slice(0, 32),
       lastSeenAt: new Date(),
     },
+  });
+
+  logger.info('[Push] device_token_registered', {
+    event: 'device_token_registered',
+    blame: 'FLUTTER_OK_TOKEN_SYNCED',
+    userId,
+    userEmail: (
+      await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }).catch(() => null)
+    )?.email,
+    platform,
+    appVersion: input.appVersion?.slice(0, 64),
+    locale: input.locale?.slice(0, 32),
+    tokenFingerprint: `${token.slice(0, 8)}…`,
   });
 
   return {
@@ -79,12 +93,36 @@ export async function sendPushToUser(
     androidChannelId?: string;
   },
 ) {
-  const tokens = await prisma.deviceToken.findMany({
-    where: { userId },
-    select: { token: true },
-  });
+  const [tokens, userRow] = await Promise.all([
+    prisma.deviceToken.findMany({
+      where: { userId },
+      select: { token: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    }),
+  ]);
+  const userEmail = userRow?.email ?? undefined;
+  const dataForLog = {
+    ...(payload.data ?? {}),
+    titleAr: payload.titleAr ?? '',
+    bodyAr: payload.bodyAr ?? '',
+  };
+
   if (tokens.length === 0) {
-    return { sent: 0, failed: 0, reason: 'NO_DEVICE_TOKENS' as const };
+    const out = { sent: 0, failed: 0, reason: 'NO_DEVICE_TOKENS' as const };
+    logPushDelivery({
+      userId,
+      userEmail,
+      ...out,
+      fcmConfigured: isFcmConfigured(),
+      tokenCount: 0,
+      androidChannelId: payload.androidChannelId,
+      nativeSound: payload.nativeSound,
+      data: dataForLog,
+    });
+    return out;
   }
 
   const result = await sendFcmToTokens(
@@ -92,11 +130,7 @@ export async function sendPushToUser(
     {
       title: payload.title,
       body: payload.body,
-      data: {
-        ...(payload.data ?? {}),
-        titleAr: payload.titleAr ?? '',
-        bodyAr: payload.bodyAr ?? '',
-      },
+      data: dataForLog,
       nativeSound: payload.nativeSound,
       androidChannelId: payload.androidChannelId,
     },
@@ -111,9 +145,23 @@ export async function sendPushToUser(
     });
   }
 
-  return {
+  const out = {
     sent: result.successCount,
     failed: result.failureCount,
-    fcmConfigured: isFcmConfigured(),
+    fcmConfigured: result.configured,
+    invalidTokenCount: result.invalidTokens.length,
   };
+
+  logPushDelivery({
+    userId,
+    userEmail,
+    ...out,
+    tokenCount: tokens.length,
+    androidChannelId: payload.androidChannelId,
+    nativeSound: payload.nativeSound,
+    data: dataForLog,
+    fcmErrorCodes: result.errorCodes,
+  });
+
+  return out;
 }

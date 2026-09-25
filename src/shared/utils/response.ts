@@ -10,6 +10,7 @@ import type {
   PaginatedResponse,
   PaginationMeta,
 } from '../types/api-response';
+import { nextCheckForBlame, resolveApiBlame } from '../../lib/api-diagnostics';
 
 function getRequestId(req?: Request): string {
   if (req && (req as any).requestId) return (req as any).requestId;
@@ -38,11 +39,14 @@ export function buildError(
   req?: Request,
   errors?: ApiErrorItem[],
   details?: unknown,
+  extra?: { blame?: string; nextCheck?: string },
 ): ApiErrorResponse {
   return {
     success: false,
     message,
     code,
+    ...(extra?.blame && { blame: extra.blame }),
+    ...(extra?.nextCheck && { nextCheck: extra.nextCheck }),
     ...(errors && errors.length > 0 && { errors }),
     ...(details !== undefined && { details }),
     timestamp: new Date().toISOString(),
@@ -103,7 +107,14 @@ export function sendError(
   errors?: ApiErrorItem[],
   details?: unknown,
 ): Response {
-  return res.status(statusCode).json(buildError(message, code, req, errors, details));
+  const blame = resolveApiBlame(statusCode, code);
+  const nextCheck = nextCheckForBlame(blame);
+  return res.status(statusCode).json(
+    buildError(message, code, req, errors, details, {
+      blame,
+      ...(nextCheck ? { nextCheck } : {}),
+    }),
+  );
 }
 
 export function sendPaginated<T>(

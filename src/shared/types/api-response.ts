@@ -20,6 +20,9 @@ export type ApiErrorResponse = ApiBase & {
   success: false;
   message: string;
   code: string;
+  /** Who to check first: Flutter client/auth vs Backend (2026 diagnostics). */
+  blame?: string;
+  nextCheck?: string;
   errors?: ApiErrorItem[];
   details?: unknown;
 };

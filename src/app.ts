@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { appConfig, env } from './config';
-import { errorHandler, notFoundHandler, requestIdMiddleware } from './middleware/common';
+import { errorHandler, notFoundHandler, requestIdMiddleware, requestDiagnosticsMiddleware } from './middleware/common';
 import { connectDatabase } from './lib/prisma';
 import { httpLogger, applySecurityMiddlewares, apiRateLimiter } from './middleware/http';
 import { setupSwagger } from './lib/swagger';
@@ -139,6 +139,7 @@ export function createApp(): express.Application {
   });
 
   app.use(requestIdMiddleware);
+  app.use(requestDiagnosticsMiddleware);
   applySecurityMiddlewares(app);
 
   app.use(httpLogger);
