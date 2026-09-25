@@ -14,7 +14,7 @@ Every endpoint returns:
 {
   "success": true,
   "message": "...",
-  "data": {  },
+  "data": {},
   "meta": { "page": 1, "perPage": 20, "total": 0, "unreadCount": 0 },
   "timestamp": "2026-09-24T00:00:00.000Z",
   "requestId": "uuid"
@@ -25,23 +25,46 @@ Access `response.data` only. **Never** rely on root-level fields outside this en
 
 ---
 
+## 1.5 Asset Folder Layout 2026 (Exact Mirror for Flutter)
+
+Noor backend organises self-hosted MP3s under four folders inside `assets/`.
+Flutter should mirror this exact layout into two places:
+
+1. `flutter/assets/…` (declared in `pubspec.yaml` → used by `just_audio` with `AudioSource.asset(...)`)
+2. `android/app/src/main/res/raw/` (lowercase, no dashes → used by Android native notification sound)
+
+| Folder                 | What lives here                                                                                                                                                                                                                              | # files (Sep 2026)                                                                                                              | Playback policy                                                                                                                                                | Flutter mirror path                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `assets/azan/`         | **Full, long Azan recordings** (2–5 min each). Famous voices: Mishary Alafasy (3 variants), Ali Mulla, Yasser Al-Dosari, Nasser Al-Qatami, Abdul Basit, Minshawi, Rifaat.                                                                    | 9                                                                                                                               | Played on `kind == 'prayer_time'` via `azanSoundUrl` OR bundled `azan/<id>.mp3`.                                                                               | `flutter/assets/azan/…` + `android/…/res/raw/azan_…`         |
+| `assets/notification/` | **Generic short tones** (≤ 5s, bells/chimes, no speech). Used by users who prefer a non-verbal reminder.                                                                                                                                     | 6 tones + `silent` (no file)                                                                                                    | Played on `kind == 'pre_reminder'` when user selected any tone EXCEPT the new "Auto Arabic voice" option.                                                      | `flutter/assets/notification/…` + `res/raw/soft_chime` etc.  |
+| `assets/near-prayer/`  | Arabic short-voice announcements ("اقتربت صلاة الفجر" / … / الجمعة). **Only** these six files — never under `azan/` or `notification/`. | 6 on disk (fajr, dhuhr, asr, maghrib, isha, **jumuah**) | `kind == 'pre_reminder'` when `notificationSoundId == 'sc_near_auto'` (backend resolves per prayer; Friday Dhuhr → jumuah). | `flutter/assets/near-prayer/…` + `res/raw/sc_near_*` |
+| `assets/salawat/`      | Short Salawat audio (unrelated to Azan — used by the Dhikr / Salawat reminder feature).                                                                                                                                                      | 1                                                                                                                               | Ignore for Azan integration.                                                                                                                                   | (Optional)                                                   |
+
+**How to mirror correctly in Dart:**
+
+- Always use the FCM `notificationSoundMediaFile` / `azanSoundMediaFile` field **verbatim** to build the relative key. The backend sends exactly the filename you need (e.g. `sc_near_fajr.mp3`).
+- Strip `.mp3` to build the Android `R.raw.xxx` resource name.
+- If a `near-prayer/` file is missing locally (see §5.3), fall back to `notification/soft_chime.mp3`. Do NOT crash.
+
+---
+
 ## 2. Endpoint Quick Reference (100% Mapping)
 
-| # | Method | Path | Auth | Purpose (Flutter usage) |
-|---|---|---|---|---|
-| 1 | `GET` | `/azan/sounds` | Public | List **14 Azan voices** (9 self-hosted famous + 5 SoundCloud premium refs). Use `id` field to store in user prefs. Play via `audioUrl` (Range/206 supported on self-hosted). |
-| 2 | `GET` | `/azan/notification-sounds` | Public | List 7 short pre-reminder tones. Play via `audioUrl`. |
-| 3 | `GET` | `/azan/audio-defaults` | Public | Default Azan + notification sound resolved objects (guest fallback). |
-| 4 | `GET` | `/azan/media/:file` | Public | **Stream self-hosted MP3** (Azan or notification). Supports HTTP `Range` requests for seek/preview (206 Partial Content). Pass the `mediaFile` field from the catalog. |
-| 5 | `GET` | `/azan/calculation-methods` | Public | 6 calculation methods for Settings dropdown. |
-| 6 | `GET` | `/azan/madhabs` | Public | 2 Madhabs (SHAFI / HANAFI) for Settings dropdown. |
-| 7 | `GET` | `/profile/azan-preferences` | Optional | Get synced Azan prefs for current user (includes resolved `azanSound` + `notificationSound` objects with absolute URLs). |
-| 8 | `PATCH` | `/profile/azan-preferences` | Required | Save user selections: `azanSoundId`, `notificationSoundId`, `calculationMethod`, `madhab`, `preReminderMinutes`, `preReminderEnabled`, `prayers:{fajr,dhuhr,asr,maghrib,isha}`, `soundEnabled`, `vibrationEnabled`, `lastLat/lastLng`. |
-| 9 | `GET` | `/prayers/today` | Optional | Today's 5 prayer times + `nextPrayer` countdown. |
-| 10 | `POST` | `/devices/fcm-token` | Required | Register FCM token for this device. **Must call after login + after token refresh.** |
-| 11 | `POST` | `/devices/test-push` | Required | Dev/QA: send a test push to THIS device immediately. |
-| 12 | `GET` | `/notifications/` | Required | In-app notification center (includes `AZAN`-type rows with `payload.audioUrl`). |
-| 13 | `POST` | `/cron/prayer-reminders` | Secret | Railway cron (every 10 min). **Flutter never calls this.** |
+| #   | Method  | Path                        | Auth     | Purpose (Flutter usage)                                                                                                                                                                                                                |
+| --- | ------- | --------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `GET`   | `/azan/sounds`              | Public   | List **14 Azan voices** (9 self-hosted famous + 5 SoundCloud premium refs). Use `id` field to store in user prefs. Play via `audioUrl` (Range/206 supported on self-hosted).                                                           |
+| 2   | `GET`   | `/azan/notification-sounds` | Public   | List 7 short pre-reminder tones. Play via `audioUrl`.                                                                                                                                                                                  |
+| 3   | `GET`   | `/azan/audio-defaults`      | Public   | Default Azan + notification sound resolved objects (guest fallback).                                                                                                                                                                   |
+| 4   | `GET`   | `/azan/media/:file`         | Public   | **Stream self-hosted MP3** (Azan or notification). Supports HTTP `Range` requests for seek/preview (206 Partial Content). Pass the `mediaFile` field from the catalog.                                                                 |
+| 5   | `GET`   | `/azan/calculation-methods` | Public   | 6 calculation methods for Settings dropdown.                                                                                                                                                                                           |
+| 6   | `GET`   | `/azan/madhabs`             | Public   | 2 Madhabs (SHAFI / HANAFI) for Settings dropdown.                                                                                                                                                                                      |
+| 7   | `GET`   | `/profile/azan-preferences` | Optional | Get synced Azan prefs for current user (includes resolved `azanSound` + `notificationSound` objects with absolute URLs).                                                                                                               |
+| 8   | `PATCH` | `/profile/azan-preferences` | Required | Save user selections: `azanSoundId`, `notificationSoundId`, `calculationMethod`, `madhab`, `preReminderMinutes`, `preReminderEnabled`, `prayers:{fajr,dhuhr,asr,maghrib,isha}`, `soundEnabled`, `vibrationEnabled`, `lastLat/lastLng`. |
+| 9   | `GET`   | `/prayers/today`            | Optional | Today's 5 prayer times + `nextPrayer` countdown.                                                                                                                                                                                       |
+| 10  | `POST`  | `/devices/fcm-token`        | Required | Register FCM token for this device. **Must call after login + after token refresh.**                                                                                                                                                   |
+| 11  | `POST`  | `/devices/test-push`        | Required | Dev/QA: send a test push to THIS device immediately.                                                                                                                                                                                   |
+| 12  | `GET`   | `/notifications/`           | Required | In-app notification center (includes `AZAN`-type rows with `payload.audioUrl`).                                                                                                                                                        |
+| 13  | `POST`  | `/cron/prayer-reminders`    | Secret   | Railway cron (every 10 min). **Flutter never calls this.**                                                                                                                                                                             |
 
 ---
 
@@ -51,7 +74,7 @@ When the Railway cron fires (`/cron/prayer-reminders`), FCM delivers a push to y
 
 Two distinct kinds of pushes are sent — **distinguish by `data.kind`**:
 
-### 3.1 `kind = "prayer_time"`  (Actual Azan — full Adhan MP3)
+### 3.1 `kind = "prayer_time"` (Actual Azan — full Adhan MP3)
 
 This fires **at the exact prayer time** (within the 10-min cron window).
 It carries **the user's selected full Azan sound metadata**.
@@ -96,7 +119,7 @@ It carries **the user's selected full Azan sound metadata**.
 }
 ```
 
-### 3.2 `kind = "pre_reminder"`  (Short tone — N minutes before prayer)
+### 3.2 `kind = "pre_reminder"` (Short tone — N minutes before prayer)
 
 This fires **exactly `preReminderMinutes` before the prayer** (default 15 min).
 It carries **the user's selected short notification-tone metadata**.
@@ -123,14 +146,18 @@ It carries **the user's selected short notification-tone metadata**.
   "locale":                   "ar",
 
   // ——— NOTIFICATION TONE AUDIO OBJECT (8 fields) ———
-  "notificationSoundId":              "soft_chime", // | meditation_bell | singing_bowl | xylophone_chime | bell_chime | hand_bell | silent
+  "notificationSoundId":              "soft_chime", // | sc_near_fajr | sc_near_dhuhr | sc_near_asr | sc_near_maghrib | sc_near_isha | sc_near_jumuah | sc_fajr_alarm | sc_near_qiyam | silent | ...
   "notificationSoundNameEn":          "Very Soft Notification",
   "notificationSoundNameAr":          "تنبيه ناعم جدًا",
   "notificationSoundUrl":             "https://noorapp-backend-production.up.railway.app/api/v1/azan/media/soft_chime.mp3",
   "notificationSoundMediaFile":       "soft_chime.mp3",
   "notificationSoundFormat":          "mp3",
   "notificationSoundDurationSeconds": "",
-  "notificationSoundMood":            "calm",       // calm | gentle | soft_bell | silent
+  "notificationSoundMood":            "calm",       // calm | gentle | soft_bell | silent | prayer_specific_voice
+
+  // ——— ADDITIVE 2026 FIELDS (always present, non-breaking — old code can ignore)
+  "autoMatched":                      "true",       // "true" if backend picked the per-prayer voice automatically because user chose `sc_near_auto`; "false" otherwise
+  "matchedPrayerKey":                 "FAJR",       // FAJR | DHUHR | ASR | MAGHRIB | ISHA | JUMUAH | FAJR_ALARM | QIYAM | "" — which prayer the auto-matched clip is for
   "titleAr":                          "اقترب موعد الفجر",
   "bodyAr":                           "تذكير: تبقى حوالي ١٥ دقيقة على الفجر (٠٤:٣٢)"
 }
@@ -144,10 +171,10 @@ It carries **the user's selected short notification-tone metadata**.
 
 ```yaml
 dependencies:
-  firebase_messaging: ^15.0.0          # FCM delivery
+  firebase_messaging: ^15.0.0 # FCM delivery
   flutter_local_notifications: ^17.0.0 # Head-ups notification on Android
-  just_audio: ^0.9.30                  # Streaming + local asset playback (Range/206 supported)
-  vibration: ^2.0.0                    # Haptic feedback
+  just_audio: ^0.9.30 # Streaming + local asset playback (Range/206 supported)
+  vibration: ^2.0.0 # Haptic feedback
 ```
 
 ### 4.2 Step-by-Step Execution (At the moment FCM arrives)
@@ -190,13 +217,17 @@ Future<void> _playCorrectAudio({required String kind, required Map<String,String
   String? url;
   bool isSoundcloudRef = false;
   String silentId = '';
+  String? mediaFile;        // NEW 2026 — exact relative filename: "sc_near_fajr.mp3" | "soft_chime.mp3" | …
+  String? matchedPrayerKey; // NEW 2026 — "FAJR"|"DHUHR"|…|"" — for logging / analytics
 
   if (kind == 'prayer_time') {
     url             = data['azanSoundUrl'];
     isSoundcloudRef = data['azanSoundProvider'] == 'soundcloud_reference';
   } else {
-    url      = data['notificationSoundUrl'];
-    silentId = data['notificationSoundId'] ?? '';
+    url             = data['notificationSoundUrl'];
+    silentId        = data['notificationSoundId'] ?? '';
+    mediaFile       = data['notificationSoundMediaFile'];
+    matchedPrayerKey = data['matchedPrayerKey'];
   }
 
   // Case A: User selected "Silent" for notifications — skip entirely.
@@ -204,7 +235,7 @@ Future<void> _playCorrectAudio({required String kind, required Map<String,String
 
   // Case B: No URL resolved — fall back to local bundled default MP3.
   if (url == null || url.isEmpty) {
-    return _playLocalAssetFallback(kind);
+    return _playLocalAssetFallback(kind, mediaFile: mediaFile);
   }
 
   // Case C: Self-hosted (azanSoundProvider ends with "_selfhosted" or host is ours).
@@ -214,21 +245,73 @@ Future<void> _playCorrectAudio({required String kind, required Map<String,String
       final player = AudioPlayer();
       await player.setAudioSource(AudioSource.uri(Uri.parse(url)));
       await player.play();
-      // Dispose after finish (or let lifecycle handle it for full Azan).
       player.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed) player.dispose();
       });
       return;
     } catch (e) {
       // Fallback to local bundled asset on ANY network error.
-      return _playLocalAssetFallback(kind);
+      return _playLocalAssetFallback(kind, mediaFile: mediaFile);
     }
   }
 
   // Case D: SoundCloud reference (sc_noor_azan_1..5).
   //         Resolve through your SoundCloud SDK OR use the bundled fallback.
   //         Recommended: ship MP3s locally as assets under assets/azan/sc_noor_azan_N.mp3
-  return _playLocalAssetFallback(kind, soundcloudIndex: _extractScIndex(data));
+  return _playLocalAssetFallback(kind, soundcloudIndex: _extractScIndex(data), mediaFile: mediaFile);
+}
+
+/// NEW 2026 — plays the bundled asset, with smart subfolder detection:
+///   - If mediaFile looks like "sc_near_*.mp3" or "sc_fajr_alarm.mp3" → folder = "near-prayer"
+///   - If mediaFile looks like a generic tone (soft_chime/bell/…)       → folder = "notification"
+///   - If mediaFile looks like a full Azan (mishary/ali_mulla/sc_noor_azan) → folder = "azan"
+/// Falls back 100% safely to "notification/soft_chime.mp3" if the exact file is not bundled.
+Future<void> _playLocalAssetFallback(
+  String kind, {
+  int? soundcloudIndex,
+  String? mediaFile,
+}) async {
+  String assetPath;
+  if (mediaFile != null && mediaFile.isNotEmpty) {
+    final f = mediaFile.toLowerCase();
+    final String folder;
+    if (f.startsWith('sc_near_') || f == 'sc_fajr_alarm.mp3') {
+      folder = 'near-prayer';
+    } else if (kind == 'prayer_time' || f.startsWith('sc_noor_azan_')) {
+      folder = 'azan';
+    } else {
+      folder = 'notification';
+    }
+    assetPath = 'assets/$folder/$mediaFile';
+  } else if (kind == 'prayer_time' && soundcloudIndex != null) {
+    assetPath = 'assets/azan/sc_noor_azan_$soundcloudIndex.mp3';
+  } else {
+    assetPath = kind == 'prayer_time'
+        ? 'assets/azan/mishary_alafasy.mp3'
+        : 'assets/notification/soft_chime.mp3';
+  }
+
+  try {
+    final player = AudioPlayer();
+    await player.setAudioSource(AudioSource.asset(assetPath));
+    await player.play();
+    player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) player.dispose();
+    });
+  } catch (e) {
+    // ——— 2026 missing-file fallback (CRITICAL — never crash on missing near-prayer MP3) ———
+    // If the specific file (e.g. near-prayer/sc_near_jumuah.mp3) is not bundled yet,
+    // gracefully degrade to the always-present soft_chime tone.
+    final safeFallback = kind == 'prayer_time'
+        ? 'assets/azan/mishary_alafasy.mp3'
+        : 'assets/notification/soft_chime.mp3';
+    final player = AudioPlayer();
+    await player.setAudioSource(AudioSource.asset(safeFallback));
+    await player.play();
+    player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) player.dispose();
+    });
+  }
 }
 
 void _showLocalNotification({required int id, required String title, required String body}) {
@@ -253,50 +336,85 @@ void _showLocalNotification({required int id, required String title, required St
 
 Use `GET /azan/sounds` → `data.sounds[]`. Every row has:
 
-| Field | Type | Meaning |
-|---|---|---|
-| `id` | string | **Store this.** The canonical ID to send back in `PATCH /profile/azan-preferences`. |
-| `nameEn` / `nameAr` | string | Display name for Settings list (pick by locale). |
-| `muezzinEn` / `muezzinAr` | string | Muezzin's name (subtitle). |
-| `audioUrl` | string | Absolute streaming URL. Self-hosted: points to `/azan/media/:file` (HTTP 206). |
-| `mediaFile` | string | The `:file` path segment you can pass directly to `/azan/media/:file`. |
-| `provider` | string | `"aladhan_selfhosted"` \| `"assabile_selfhosted"` \| `"soundcloud_reference"`. |
-| `available` | boolean | `true` for every entry in this list. |
-| `isDefault` | boolean | Only `mishary_alafasy` has this true. |
+| Field                     | Type    | Meaning                                                                             |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| `id`                      | string  | **Store this.** The canonical ID to send back in `PATCH /profile/azan-preferences`. |
+| `nameEn` / `nameAr`       | string  | Display name for Settings list (pick by locale).                                    |
+| `muezzinEn` / `muezzinAr` | string  | Muezzin's name (subtitle).                                                          |
+| `audioUrl`                | string  | Absolute streaming URL. Self-hosted: points to `/azan/media/:file` (HTTP 206).      |
+| `mediaFile`               | string  | The `:file` path segment you can pass directly to `/azan/media/:file`.              |
+| `provider`                | string  | `"aladhan_selfhosted"` \| `"assabile_selfhosted"` \| `"soundcloud_reference"`.      |
+| `available`               | boolean | `true` for every entry in this list.                                                |
+| `isDefault`               | boolean | Only `mishary_alafasy` has this true.                                               |
 
 ### 5.1 IDs Table — 9 Self-Hosted (Reliable, No SDK Needed) + 5 SoundCloud Refs
 
-| # | `id` | Muezzin / Label | Provider | Ship locally? |
-|---|---|---|---|---|
-| 1 | `mishary_alafasy` | Mishary Alafasy (DEFAULT) | aladhan_selfhosted | **Yes** — bundle as `azan/mishary_alafasy.mp3` fallback |
-| 2 | `mishary_alafasy_2` | Mishary Alafasy (var 2) | aladhan_selfhosted | Yes optional |
-| 3 | `mishary_alafasy_3` | Mishary Alafasy (var 3) | aladhan_selfhosted | Yes optional |
-| 4 | `ali_mulla` | Ali Ahmed Mulla (Makkah Haram) | assabile_selfhosted | Yes — most requested |
-| 5 | `yasser_al_dosari` | Yasser Al-Dosari | assabile_selfhosted | Yes |
-| 6 | `nasser_al_qatami` | Nasser Al-Qatami (Riyadh) | assabile_selfhosted | Yes |
-| 7 | `abdul_basit` | Abdul Basit (Egypt Fajr) | assabile_selfhosted | Yes — classic |
-| 8 | `mohamed_minshawi` | El-Minshawi (Egypt) | assabile_selfhosted | Yes |
-| 9 | `mohamed_rifaat` | Mohamed Rifaat (Cairo) | assabile_selfhosted | Yes |
-| 10 | `sc_noor_azan_1` | Noor Premium Azan — Track 1 | soundcloud_reference | **Bundle manually** (extract from playlist link below) |
-| 11 | `sc_noor_azan_2` | Noor Premium Azan — Track 2 | soundcloud_reference | Bundle manually |
-| 12 | `sc_noor_azan_3` | Noor Premium Azan — Track 3 | soundcloud_reference | Bundle manually |
-| 13 | `sc_noor_azan_4` | Noor Premium Azan — Track 4 | soundcloud_reference | Bundle manually |
-| 14 | `sc_noor_azan_5` | Noor Premium Azan — Track 5 | soundcloud_reference | Bundle manually |
+| #   | `id`                | Muezzin / Label                | Provider             | Ship locally?                                           |
+| --- | ------------------- | ------------------------------ | -------------------- | ------------------------------------------------------- |
+| 1   | `mishary_alafasy`   | Mishary Alafasy (DEFAULT)      | aladhan_selfhosted   | **Yes** — bundle as `azan/mishary_alafasy.mp3` fallback |
+| 2   | `mishary_alafasy_2` | Mishary Alafasy (var 2)        | aladhan_selfhosted   | Yes optional                                            |
+| 3   | `mishary_alafasy_3` | Mishary Alafasy (var 3)        | aladhan_selfhosted   | Yes optional                                            |
+| 4   | `ali_mulla`         | Ali Ahmed Mulla (Makkah Haram) | assabile_selfhosted  | Yes — most requested                                    |
+| 5   | `yasser_al_dosari`  | Yasser Al-Dosari               | assabile_selfhosted  | Yes                                                     |
+| 6   | `nasser_al_qatami`  | Nasser Al-Qatami (Riyadh)      | assabile_selfhosted  | Yes                                                     |
+| 7   | `abdul_basit`       | Abdul Basit (Egypt Fajr)       | assabile_selfhosted  | Yes — classic                                           |
+| 8   | `mohamed_minshawi`  | El-Minshawi (Egypt)            | assabile_selfhosted  | Yes                                                     |
+| 9   | `mohamed_rifaat`    | Mohamed Rifaat (Cairo)         | assabile_selfhosted  | Yes                                                     |
+| 10  | `sc_noor_azan_1`    | Noor Premium Azan — Track 1    | soundcloud_reference | **Bundle manually** (extract from playlist link below)  |
+| 11  | `sc_noor_azan_2`    | Noor Premium Azan — Track 2    | soundcloud_reference | Bundle manually                                         |
+| 12  | `sc_noor_azan_3`    | Noor Premium Azan — Track 3    | soundcloud_reference | Bundle manually                                         |
+| 13  | `sc_noor_azan_4`    | Noor Premium Azan — Track 4    | soundcloud_reference | Bundle manually                                         |
+| 14  | `sc_noor_azan_5`    | Noor Premium Azan — Track 5    | soundcloud_reference | Bundle manually                                         |
 
 > **SoundCloud Playlist source for sc_noor_azan_1..5**: https://on.soundcloud.com/6uPo6iLHvhLfD211Hu
 > Open the link → download the 5 MP3s locally → place under `assets/azan/` with matching filenames → register in `pubspec.yaml` → Flutter's fallback in Section 4 Case D will pick them up automatically.
 
 ### 5.2 Notification Tones (7 IDs — `GET /azan/notification-sounds`)
 
-| `id` | Mood | Notes |
-|---|---|---|
-| `soft_chime` (DEFAULT) | calm | Ship as `notification/soft_chime.mp3` |
-| `meditation_bell` | gentle | |
-| `singing_bowl` | gentle | |
-| `xylophone_chime` | gentle | |
-| `bell_chime` | soft_bell | CC-BY attribution required in Settings "About" |
-| `hand_bell` | soft_bell | CC-BY attribution required |
-| `silent` | silent | Do NOT ship a file. Flutter must return immediately when `id == 'silent'`. |
+| `id`                   | Mood      | Notes                                                                      |
+| ---------------------- | --------- | -------------------------------------------------------------------------- |
+| `soft_chime` (DEFAULT) | calm      | Ship as `notification/soft_chime.mp3`                                      |
+| `meditation_bell`      | gentle    |                                                                            |
+| `singing_bowl`         | gentle    |                                                                            |
+| `xylophone_chime`      | gentle    |                                                                            |
+| `bell_chime`           | soft_bell | CC-BY attribution required in Settings "About"                             |
+| `hand_bell`            | soft_bell | CC-BY attribution required                                                 |
+| `silent`               | silent    | Do NOT ship a file. Flutter must return immediately when `id == 'silent'`. |
+
+### 5.3 NEW 2026 — Near-Prayer Voice Clips (8 IDs — Prayer-Specific Arabic Short Voice)
+
+**Playlist URL**: https://on.soundcloud.com/6uPo6iLHvhLfD211Hu (the near-prayer 8-clip sub-playlist — download each MP3 individually and place under `assets/near-prayer/` as shown below).
+
+These IDs are exposed in `GET /azan/notification-sounds` but have `mood == 'prayer_specific_voice'` so you can group them in a separate "Arabic Voice (2026)" section in the Flutter Settings UI.
+
+> **Recommended sentinel ID**: `sc_near_auto` — show a single toggle in Settings labelled **"Auto Arabic voice per prayer"**; store `notificationSoundId = 'sc_near_auto'` in the user prefs. The **backend resolver** picks the exact matching clip for the upcoming prayer (Friday Jumuah override, Fajr-alarm for long pre-reminder, etc.) and returns its `notificationSoundId + notificationSoundMediaFile` inside FCM. No client-side branching is needed.
+
+| #   | `id`              | Status (Sep 2026)   | Media file (exact name in `AZAN_MEDIA_FILES`) | Exact folder / relative path             | Fallback if clip is missing or not bundled                                                                                    |
+| --- | ----------------- | ------------------- | --------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `sc_near_auto`    | ✅ Always available | (none — sentinel, resolved by backend)        | N/A                                      | N/A                                                                                                                           |
+| 2   | `sc_near_fajr`    | ✅ ON DISK          | `sc_near_fajr.mp3`                            | `assets/near-prayer/sc_near_fajr.mp3`    | `notification/soft_chime.mp3`                                                                                                 |
+| 3   | `sc_near_dhuhr`   | ✅ ON DISK          | `sc_near_dhuhr.mp3`                           | `assets/near-prayer/sc_near_dhuhr.mp3`   | `notification/soft_chime.mp3`                                                                                                 |
+| 4   | `sc_near_asr`     | ✅ ON DISK          | `sc_near_asr.mp3`                             | `assets/near-prayer/sc_near_asr.mp3`     | `notification/soft_chime.mp3`                                                                                                 |
+| 5   | `sc_near_maghrib` | ✅ ON DISK          | `sc_near_maghrib.mp3`                         | `assets/near-prayer/sc_near_maghrib.mp3` | `notification/soft_chime.mp3`                                                                                                 |
+| 6   | `sc_near_isha`    | ✅ ON DISK          | `sc_near_isha.mp3`                            | `assets/near-prayer/sc_near_isha.mp3`    | `notification/soft_chime.mp3`                                                                                                 |
+| 7   | `sc_near_jumuah`  | ❌ MISSING on disk  | `sc_near_jumuah.mp3`                          | `assets/near-prayer/sc_near_jumuah.mp3`  | **Backend**: falls back to `sc_near_dhuhr` → then `soft_chime`. **Flutter**: if asset missing → `notification/soft_chime.mp3` |
+| 8   | `sc_fajr_alarm`   | ❌ MISSING on disk  | `sc_fajr_alarm.mp3`                           | `assets/near-prayer/sc_fajr_alarm.mp3`   | **Backend**: falls back to `sc_near_fajr` → then `soft_chime`. **Flutter**: if asset missing → `notification/soft_chime.mp3`  |
+| 9   | `sc_near_qiyam`   | ❌ MISSING on disk  | `sc_near_qiyam.mp3`                           | `assets/near-prayer/sc_near_qiyam.mp3`   | **Backend**: falls back to `sc_near_isha` → then `soft_chime`. **Flutter**: if asset missing → `notification/soft_chime.mp3`  |
+
+**Android `res/raw` naming convention for these clips** (the name you drop in `res/raw/` is the `nativeSound` value the backend sends as filename-without-`.mp3`):
+
+| File inside `assets/near-prayer/`    | Android res/raw (copy here exactly) | Backend `nativeSound` value in FCM                           |
+| ------------------------------------ | ----------------------------------- | ------------------------------------------------------------ |
+| `sc_near_fajr.mp3`                   | `sc_near_fajr.mp3`                  | `sc_near_fajr`                                               |
+| `sc_near_dhuhr.mp3`                  | `sc_near_dhuhr.mp3`                 | `sc_near_dhuhr`                                              |
+| `sc_near_asr.mp3`                    | `sc_near_asr.mp3`                   | `sc_near_asr`                                                |
+| `sc_near_maghrib.mp3`                | `sc_near_maghrib.mp3`               | `sc_near_maghrib`                                            |
+| `sc_near_isha.mp3`                   | `sc_near_isha.mp3`                  | `sc_near_isha`                                               |
+| `sc_near_jumuah.mp3` (when provided) | `sc_near_jumuah.mp3`                | `sc_near_jumuah` → fallback to `sc_near_dhuhr` until on disk |
+| `sc_fajr_alarm.mp3` (when provided)  | `sc_fajr_alarm.mp3`                 | `sc_fajr_alarm` → fallback to `sc_near_fajr` until on disk   |
+| `sc_near_qiyam.mp3` (when provided)  | `sc_near_qiyam.mp3`                 | `sc_near_qiyam` → fallback to `sc_near_isha` until on disk   |
+
+> **Flutter Dev Note**: If you try to create `RawResourceAndroidNotificationSound('sc_near_jumuah')` before the MP3 is bundled → Android crashes. Always fall back to `RawResourceAndroidNotificationSound('soft_chime')` for any of the 3 currently-missing IDs if the local raw is absent.
 
 ---
 
@@ -316,12 +434,14 @@ Use `GET /azan/sounds` → `data.sounds[]`. Every row has:
 
 Create these channels ONCE at app launch (inside `main()` before `runApp`):
 
-| Channel ID | Name | Importance | Sound | Use for |
-|---|---|---|---|---|
-| `"azan"` | "Azan (Call to Prayer)" | **MAX** + `fullScreenIntent` | Android resource: `res/raw/mishary_alafasy.mp3` → `R.raw.mishary_alafasy` | `kind == 'prayer_time'` |
-| `"azan-reminder"` | "Prayer Reminder" | HIGH | `res/raw/soft_chime.mp3` → `R.raw.soft_chime` | `kind == 'pre_reminder'` |
+| Channel ID        | Name                    | Importance                   | Sound                                                                     | Use for                  |
+| ----------------- | ----------------------- | ---------------------------- | ------------------------------------------------------------------------- | ------------------------ |
+| `"azan"`          | "Azan (Call to Prayer)" | **MAX** + `fullScreenIntent` | Android resource: `res/raw/mishary_alafasy.mp3` → `R.raw.mishary_alafasy` | `kind == 'prayer_time'`  |
+| `"azan-reminder"` | "Prayer Reminder"       | HIGH                         | `res/raw/soft_chime.mp3` → `R.raw.soft_chime`                             | `kind == 'pre_reminder'` |
 
-> **Pro tip for 2026 high-end**: Place all 14 Azan MP3s + 6 tones in `android/app/src/main/res/raw/` so `nativeSound` resolved from FCM (`mishary_alafasy` → `R.raw.mishary_alafasy`) can be set on the channel **per-notification** via `flutter_local_notifications`'s `AndroidNotificationDetails(sound: RawResourceAndroidNotificationSound('mishary_alafasy'))`. This ensures **Android plays the audio natively even when the Flutter engine is cold** (Fajr scenario). Flutter audio then acts as a **guarantee layer** — if native sound is muted by DND, just_audio will still play through the media stream.
+> **Pro tip for 2026 high-end**: Place all 9 self-hosted Azan MP3s + 6 generic tones + 5 on-disk `near-prayer/` clips **all together** in `android/app/src/main/res/raw/` so `nativeSound` resolved from FCM (`mishary_alafasy` → `R.raw.mishary_alafasy`, `sc_near_fajr` → `R.raw.sc_near_fajr`) can be set on the notification **per-notification** via `flutter_local_notifications`'s `AndroidNotificationDetails(sound: RawResourceAndroidNotificationSound(name))`. This ensures **Android plays the audio natively even when the Flutter engine is cold** (Fajr scenario). Flutter audio via `just_audio` then acts as a **guarantee layer** — if native sound is muted by DND, just_audio still plays through the media stream.
+>
+> **For the 3 currently-missing near-prayer clips** (Jumuah / Fajr-alarm / Qiyam): _do not create an empty_ file in `res/raw/` — either skip them until the MP3 is provided, or copy `soft_chime.mp3` as a temporary filler. The backend already falls back to the matching alternative (`sc_near_dhuhr` for Jumuah etc.), so FCM `nativeSound` should resolve cleanly.
 
 ### 6.3 iOS Native Setup
 
@@ -391,6 +511,7 @@ After a push is delivered, the backend also writes a `Notification` DB row. Flut
 ```
 
 **Flutter behavior when user taps the row**:
+
 - Navigate to `deepLink` → `/prayer-times`
 - If `payload.azanSoundUrl` is present → give the user a ▶️ "Play Adhan Again" button that streams the URL via `just_audio`.
 
@@ -398,18 +519,18 @@ After a push is delivered, the backend also writes a `Notification` DB row. Flut
 
 ## 9. Testing / QA Checklist (Must Pass 100%)
 
-| # | Test Case | Expected Result |
-|---|---|---|
-| 1 | Register FCM token → call `/devices/test-push` | Notification arrives instantly, `type=SYSTEM` |
-| 2 | Set `azanSoundId=ali_mulla`, `preReminderMinutes=15` | Cron fires 15 min before + at prayer time; correct audio URLs in data |
-| 3 | Set `soundEnabled=false`, `vibrationEnabled=true` | No MP3 plays; device DOES vibrate |
-| 4 | Set `notificationSoundId=silent`, pre-reminder fires | No audio; vibration only if enabled |
-| 5 | Fajr time on Android 13+ | Full-screen intent launches; Azan plays via native channel + Flutter just_audio (double guarantee) |
-| 6 | Stream `/azan/media/ali_mulla.mp3` with `Range: bytes=0-` | HTTP 206 Partial Content, audio starts in < 200 ms |
-| 7 | Select `sc_noor_azan_4` → wait for prayer trigger | `azanSoundProvider=soundcloud_reference` in data; Flutter plays bundled asset `azan/sc_noor_azan_4.mp3` |
-| 8 | Toggle `prayers.sunrise = false` in prefs (if UI allows) | No push for Sunrise; backend skips Sunrise in cron per legacy rules |
-| 9 | Offline during Fajr → back online after 20 min | In-app Notification Center still shows the row (cron wrote it) |
-| 10 | Arabic digits in UI (`٠٤:٣٢`) | Parse correctly; backend always sends "04:32" in `time` field, Flutter formats to Arabic if `locale=='ar'` |
+| #   | Test Case                                                 | Expected Result                                                                                            |
+| --- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | Register FCM token → call `/devices/test-push`            | Notification arrives instantly, `type=SYSTEM`                                                              |
+| 2   | Set `azanSoundId=ali_mulla`, `preReminderMinutes=15`      | Cron fires 15 min before + at prayer time; correct audio URLs in data                                      |
+| 3   | Set `soundEnabled=false`, `vibrationEnabled=true`         | No MP3 plays; device DOES vibrate                                                                          |
+| 4   | Set `notificationSoundId=silent`, pre-reminder fires      | No audio; vibration only if enabled                                                                        |
+| 5   | Fajr time on Android 13+                                  | Full-screen intent launches; Azan plays via native channel + Flutter just_audio (double guarantee)         |
+| 6   | Stream `/azan/media/ali_mulla.mp3` with `Range: bytes=0-` | HTTP 206 Partial Content, audio starts in < 200 ms                                                         |
+| 7   | Select `sc_noor_azan_4` → wait for prayer trigger         | `azanSoundProvider=soundcloud_reference` in data; Flutter plays bundled asset `azan/sc_noor_azan_4.mp3`    |
+| 8   | Toggle `prayers.sunrise = false` in prefs (if UI allows)  | No push for Sunrise; backend skips Sunrise in cron per legacy rules                                        |
+| 9   | Offline during Fajr → back online after 20 min            | In-app Notification Center still shows the row (cron wrote it)                                             |
+| 10  | Arabic digits in UI (`٠٤:٣٢`)                             | Parse correctly; backend always sends "04:32" in `time` field, Flutter formats to Arabic if `locale=='ar'` |
 
 ---
 
@@ -418,11 +539,11 @@ After a push is delivered, the backend also writes a `Notification` DB row. Flut
 - **Playlist URL**: https://on.soundcloud.com/6uPo6iLHvhLfD211Hu
 - Short link resolves to a 5-track playlist. Use any SoundCloud downloader / browser DevTools to extract raw MP3s.
 - Recommended filenames for bundling:
-  - `assets/azan/sc_noor_azan_1.mp3`  (Track 1)
-  - `assets/azan/sc_noor_azan_2.mp3`  (Track 2)
-  - `assets/azan/sc_noor_azan_3.mp3`  (Track 3)
-  - `assets/azan/sc_noor_azan_4.mp3`  (Track 4)
-  - `assets/azan/sc_noor_azan_5.mp3`  (Track 5)
+  - `assets/azan/sc_noor_azan_1.mp3` (Track 1)
+  - `assets/azan/sc_noor_azan_2.mp3` (Track 2)
+  - `assets/azan/sc_noor_azan_3.mp3` (Track 3)
+  - `assets/azan/sc_noor_azan_4.mp3` (Track 4)
+  - `assets/azan/sc_noor_azan_5.mp3` (Track 5)
 - Register these in `pubspec.yaml` under `flutter: assets:`.
 - **Critical**: If user's network is offline, **always** fall back to the self-hosted 9 (`mishary_alafasy`) — these are already mirrored on Railway CDN and available offline if bundled.
 
@@ -430,9 +551,10 @@ After a push is delivered, the backend also writes a `Notification` DB row. Flut
 
 ## 11. Version History
 
-| Version | Date | Changes |
-|---|---|---|
-| v2026.1 | 2026-09-24 | Initial release: FCM audio-metadata injection (16 fields for Azan, 8 fields for pre-reminder), 5 SoundCloud refs added to catalog, nativeSound passthrough, full Flutter flow, double-guarantee playback (native channel + just_audio). |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v2026.2 | 2026-09-24 | **Non-breaking update.** (1) New Section 1.5: 4-folder Asset Layout 2026 (azan / notification / near-prayer / salawat). (2) New Section 5.3: 8 Near-Prayer Arabic voice clips (`sc_near_*`, `sc_fajr_alarm`, `sc_near_qiyam`) with exact folder paths, on-disk status (✅ 5 / ❌ 3 missing), and documented per-id fallback. (3) `kind == 'pre_reminder'` FCM now always includes 2 new **additive-only** string fields: `autoMatched` ("true"/"false") + `matchedPrayerKey` ("FAJR"\|"DHUHR"\|...). (4) Backend resolver `resolvePreReminderSoundFor` does a deterministic disk check before returning clips; missing Jumuah / Fajr-alarm / Qiyam fall back safely to their logical neighbour with a `logger.warn` (no crash). (5) Section 4 Dart playback code updated with a new `_playLocalAssetFallback` that auto-picks the correct folder using `notificationSoundMediaFile`, plus a try/catch around asset loading to silently degrade to `soft_chime` when a near-prayer MP3 is not yet bundled. (6) Android §6.2 Pro Tip now tells Flutter devs to drop only currently-shipped files in `res/raw/` (9 Azan + 6 tones + 5 on-disk near-prayer) with explicit advice to not empty-fill the 3 missing. |
+| v2026.1 | 2026-09-24 | Initial release: FCM audio-metadata injection (16 fields for Azan, 8 fields for pre-reminder), 5 SoundCloud refs added to catalog, nativeSound passthrough, full Flutter flow, double-guarantee playback (native channel + just_audio).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ---
 

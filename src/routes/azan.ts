@@ -69,7 +69,9 @@ azanRouter.get('/sounds', listAzanSoundsHandler);
  *   get:
  *     tags: ['Azan Audio']
  *     summary: List prayer notification / pre-reminder sound options
- *     description: Short tones for reminders — not full Azan, not Quran audio.
+ *     description: |
+ *       Generic tones (soft_chime, …) plus near-prayer Arabic clips (sc_near_fajr … sc_near_jumuah).
+ *       Files stream from GET /azan/media/{file}. Sentinel id `sc_near_auto` lets the backend pick the clip per prayer.
  *     responses:
  *       200:
  *         description: Notification sound list

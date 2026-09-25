@@ -11,12 +11,108 @@ import {
 } from './salawat-reminder.service';
 import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
 import {
+  AZAN_MEDIA_FILES,
   getAzanSoundById,
   getNotificationSoundById,
+  NOTIFICATION_SOUND_OPTIONS,
 } from '../shared/constants/azan-sounds';
 import { mediaAbsoluteUrl } from './azan-audio.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 type ScheduleRow = { name: string; time: string };
+
+const ASSETS_ROOT = path.resolve(__dirname, '..', '..', 'assets');
+
+function isMediaFileAvailableOnDisk(mediaFile: string | null | undefined): boolean {
+  if (!mediaFile) return false;
+  const entry = (AZAN_MEDIA_FILES as any)[mediaFile];
+  if (!entry?.relativePath) return false;
+  const full = path.join(ASSETS_ROOT, entry.relativePath);
+  try {
+    return fs.existsSync(full);
+  } catch {
+    return false;
+  }
+}
+
+function fallbackForMissingClip(
+  requestedId: string,
+): { id: string; reason: string } {
+  switch (requestedId) {
+    case 'sc_near_jumuah':
+      if (isMediaFileAvailableOnDisk('sc_near_dhuhr.mp3')) return { id: 'sc_near_dhuhr', reason: 'jumuah->dhuhr' };
+      return { id: 'soft_chime', reason: 'jumuah->soft_chime' };
+    case 'sc_fajr_alarm':
+      if (isMediaFileAvailableOnDisk('sc_near_fajr.mp3')) return { id: 'sc_near_fajr', reason: 'fajr_alarm->near_fajr' };
+      return { id: 'soft_chime', reason: 'fajr_alarm->soft_chime' };
+    case 'sc_near_qiyam':
+      if (isMediaFileAvailableOnDisk('sc_near_isha.mp3')) return { id: 'sc_near_isha', reason: 'qiyam->isha' };
+      return { id: 'soft_chime', reason: 'qiyam->soft_chime' };
+    default:
+      return { id: 'soft_chime', reason: `${requestedId}->soft_chime` };
+  }
+}
+
+/**
+ * Resolve pre-reminder notification sound.
+ * Sentinel `sc_near_auto` → prayer-specific clip under assets/near-prayer/
+ * (Fajr / Dhuhr|Jumuah Friday / Asr / Maghrib / Isha). Missing files fall back
+ * safely. Explicit user picks stay unchanged (soft_chime, etc.).
+ */
+export function resolvePreReminderSoundFor(
+  prayerName: string,
+  selectedNotificationSoundId: string,
+  _preReminderMinutes: number,
+  evaluationTimezone: string,
+  nowUtc: Date,
+): { sound: typeof NOTIFICATION_SOUND_OPTIONS[number]; autoMatched: boolean } {
+  const sentinel = 'sc_near_auto';
+  const userPicked = String(selectedNotificationSoundId ?? '').trim().toLowerCase();
+  if (userPicked !== sentinel) {
+    return { sound: getNotificationSoundById(userPicked), autoMatched: false };
+  }
+
+  const prayer = String(prayerName || '').toUpperCase();
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    timeZone: resolveTimezone(evaluationTimezone),
+  }).format(nowUtc).toLowerCase();
+  const isFriday = weekday === 'fri';
+
+  let target = 'sc_near_fajr';
+  if (prayer === 'FAJR') {
+    target = 'sc_near_fajr';
+  } else if (prayer === 'DHUHR') {
+    target = isFriday ? 'sc_near_jumuah' : 'sc_near_dhuhr';
+  } else if (prayer === 'ASR') {
+    target = 'sc_near_asr';
+  } else if (prayer === 'MAGHRIB') {
+    target = 'sc_near_maghrib';
+  } else if (prayer === 'ISHA') {
+    target = 'sc_near_isha';
+  } else {
+    target = 'sc_near_' + prayer.toLowerCase();
+  }
+
+  let hit = NOTIFICATION_SOUND_OPTIONS.find((o) => o.id === target);
+  if (hit) {
+    const mediaOk = isMediaFileAvailableOnDisk(hit.mediaFile);
+    if (!mediaOk) {
+      const fb = fallbackForMissingClip(hit.id);
+      logger.warn('[Cron] Pre-reminder clip missing on disk; falling back.', {
+        requested: hit.id,
+        mediaFile: hit.mediaFile,
+        fallback: fb.id,
+        reason: fb.reason,
+      });
+      const fbHit = NOTIFICATION_SOUND_OPTIONS.find((o) => o.id === fb.id);
+      if (fbHit) hit = fbHit;
+    }
+  }
+  if (hit) return { sound: hit, autoMatched: true };
+  return { sound: getNotificationSoundById('soft_chime'), autoMatched: true };
+}
 
 /**
  * Minutes from "now" (in the given IANA timezone) until a local HH:mm prayer time
@@ -71,12 +167,12 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
       if (!prefs.azanEnabled || prefs.fcmPrayerBackupEnabled === false) continue;
 
       const azanSoundRaw = getAzanSoundById(prefs.azanSoundId ?? prefs.voiceId);
-      const notifSoundRaw = getNotificationSoundById(prefs.notificationSoundId);
+      const staticNotifSoundRaw = getNotificationSoundById(prefs.notificationSoundId);
       const azanSoundUrl = azanSoundRaw.mediaFile
         ? mediaAbsoluteUrl(azanSoundRaw.mediaFile)
         : '';
-      const notifSoundUrl = notifSoundRaw.mediaFile
-        ? mediaAbsoluteUrl(notifSoundRaw.mediaFile)
+      const staticNotifSoundUrl = staticNotifSoundRaw.mediaFile
+        ? mediaAbsoluteUrl(staticNotifSoundRaw.mediaFile)
         : '';
 
       const soundEnabled = prefs.soundEnabled !== false;
@@ -164,27 +260,51 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
         }
 
         if (isPre) {
+          const resolved = resolvePreReminderSoundFor(
+            row.name,
+            prefs.notificationSoundId,
+            prefs.preReminderMinutes,
+            evaluationTz,
+            new Date(),
+          );
+          let effectiveNotifSound = resolved.sound;
+          if ((effectiveNotifSound as any).isAutoSentinel === true) {
+            logger.warn(
+              '[Cron] Pre-reminder resolver unexpectedly returned sentinel; falling back to soft_chime.',
+              { userId: user.id, prayer: row.name, chosenId: prefs.notificationSoundId },
+            );
+            effectiveNotifSound = getNotificationSoundById('soft_chime');
+          }
+          const effectiveNotifSoundUrl = effectiveNotifSound.mediaFile
+            ? mediaAbsoluteUrl(effectiveNotifSound.mediaFile)
+            : staticNotifSoundUrl;
+          const matchesPrayerKey = (effectiveNotifSound as any).matchesPrayer ?? '';
+
           Object.assign(baseData, {
             preReminderMinutes: String(pre ?? 0),
             audioScope: 'pre_reminder',
-            notificationSoundId: notifSoundRaw.id,
-            notificationSoundNameEn: notifSoundRaw.nameEn || '',
-            notificationSoundNameAr: notifSoundRaw.nameAr || '',
-            notificationSoundUrl: notifSoundUrl,
-            notificationSoundMediaFile: notifSoundRaw.mediaFile || '',
-            notificationSoundFormat: notifSoundRaw.format || 'none',
+            autoMatched: resolved.autoMatched ? 'true' : 'false',
+            matchedPrayerKey: String(matchesPrayerKey),
+            notificationSoundId: effectiveNotifSound.id,
+            notificationSoundNameEn: effectiveNotifSound.nameEn || '',
+            notificationSoundNameAr: effectiveNotifSound.nameAr || '',
+            notificationSoundUrl: effectiveNotifSoundUrl,
+            notificationSoundMediaFile: effectiveNotifSound.mediaFile || '',
+            notificationSoundFormat: effectiveNotifSound.format || 'none',
             notificationSoundDurationSeconds:
-              notifSoundRaw.durationSeconds != null
-                ? String(notifSoundRaw.durationSeconds)
+              effectiveNotifSound.durationSeconds != null
+                ? String(effectiveNotifSound.durationSeconds)
                 : '',
             notificationSoundMood:
-              (notifSoundRaw as any).mood != null ? String((notifSoundRaw as any).mood) : '',
+              (effectiveNotifSound as any).mood != null
+                ? String((effectiveNotifSound as any).mood)
+                : '',
           });
-          if (soundEnabled && notifSoundRaw.id !== 'silent') {
-            nativeSound = notifSoundRaw.mediaFile
-              ? notifSoundRaw.mediaFile.replace(/\.mp3$/i, '')
+          if (soundEnabled && effectiveNotifSound.id !== 'silent') {
+            nativeSound = effectiveNotifSound.mediaFile
+              ? effectiveNotifSound.mediaFile.replace(/\.mp3$/i, '')
               : 'default';
-          } else if (!soundEnabled || notifSoundRaw.id === 'silent') {
+          } else if (!soundEnabled || effectiveNotifSound.id === 'silent') {
             nativeSound = null;
           }
         } else {
@@ -216,6 +336,13 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
             nativeSound = null;
           }
         }
+
+        Object.assign(baseData, {
+          titleAr,
+          bodyAr,
+          titleEn,
+          bodyEn,
+        });
 
         pushesAttempted += 1;
         const result = await sendPushToUser(user.id, {
