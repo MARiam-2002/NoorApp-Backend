@@ -267,15 +267,4 @@ curl -sS "$BASE/stances/next?afterId=$ID" | jq '.success,.data.situation.id'
 
 ---
 
-## 8. Ops note (Backend)
-
-```bash
-npx prisma migrate deploy
-npx tsx src/scripts/seed-stances.ts
-```
-
-Additive migrations: `stance_answers`, `stance_situations`.
-
----
-
 *End of contract — send this file only for the What's Your Stance / موقفك إيه؟ feature.*
