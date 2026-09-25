@@ -28,6 +28,8 @@ function mapNotificationTypeToContract(prismaType: string): string {
       return 'AZAN';
     case 'SALAWAT':
       return 'SALAWAT';
+    case 'MULK':
+      return 'MULK';
     case 'CHALLENGE':
     case 'CHALLENGE_REWARD':
       return 'CHALLENGE';

@@ -141,6 +141,12 @@ export function logPushCronSummary(input: {
     pushesSent: number;
     skipped?: Record<string, number>;
   };
+  mulk?: {
+    usersScanned: number;
+    pushesAttempted: number;
+    pushesSent: number;
+    skipped?: Record<string, number>;
+  };
 }): void {
   logger.info('[Push] cron_summary', {
     event: 'push_cron_summary',

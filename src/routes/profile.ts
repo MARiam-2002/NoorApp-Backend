@@ -14,6 +14,11 @@ import {
   patchSalawatPreferencesHandler,
   salawatPreferencesPatchSchema,
 } from '../controllers/salawat.controller';
+import {
+  getMulkPreferencesHandler,
+  patchMulkPreferencesHandler,
+  mulkPreferencesPatchSchema,
+} from '../controllers/mulk.controller';
 
 const updateReadingPreferencesSchema = z.object({
   quranFontSize: z.coerce.number().int().min(12).max(60).optional(),
@@ -545,4 +550,44 @@ profileRouter.put(
   authenticate,
   validate(salawatPreferencesPatchSchema),
   patchSalawatPreferencesHandler,
+);
+
+/**
+ * @openapi
+ * /profile/mulk-preferences:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: Get Surah Al-Mulk bedtime reminder preferences
+ *     description: Opt-in daily reminder at local `time` (default 20:00).
+ *     security: [ { bearerAuth: [] } ]
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: Enable/disable Surah Al-Mulk bedtime reminder and set local time
+ *     security: [ { bearerAuth: [] } ]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               enabled: { type: boolean }
+ *               time: { type: string, example: '20:00', description: 'Local HH:mm' }
+ *   put:
+ *     tags: ['Profile']
+ *     summary: Same as PATCH — Surah Al-Mulk bedtime reminder preferences
+ *     security: [ { bearerAuth: [] } ]
+ */
+profileRouter.get('/mulk-preferences', authenticate, getMulkPreferencesHandler);
+profileRouter.patch(
+  '/mulk-preferences',
+  authenticate,
+  validate(mulkPreferencesPatchSchema),
+  patchMulkPreferencesHandler,
+);
+profileRouter.put(
+  '/mulk-preferences',
+  authenticate,
+  validate(mulkPreferencesPatchSchema),
+  patchMulkPreferencesHandler,
 );

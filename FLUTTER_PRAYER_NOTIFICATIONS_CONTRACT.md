@@ -1,7 +1,7 @@
 # Noor Prayer Notifications — Flutter Contract (2026)
 
 **Send this file only to the Flutter developer.**  
-It is the **single canonical** backend↔Flutter contract for Azan, Near-Prayer, prayer-event clips, and Salawat.
+It is the **single canonical** backend↔Flutter contract for Azan, Near-Prayer, prayer-event clips, Salawat, and Surah Al-Mulk bedtime reminders.
 
 **Supersedes (do not use for new work):**  
 `FLUTTER_NEAR_PRAYER_NOTIFICATION_HANDOFF.md`, notification sections in `FLUTTER_BACKEND_INTEGRATION_GUIDE.md`, `BACKEND_CHANGELOG_FOR_FLUTTER.md`, older Salawat handoffs.
@@ -31,8 +31,8 @@ Always branch on:
 
 | Field | Meaning |
 |-------|---------|
-| `eventType` | What happened (`PRE_PRAYER`, `PRAYER_AZAN`, `JUMUAH`, `DUHA`, `QIYAM`, `SALAWAT`) |
-| `soundType` | Which audio family (`NEAR_PRAYER`, `AZAN`, `GENERIC_NOTIFICATION`, `SALAWAT`) |
+| `eventType` | What happened (`PRE_PRAYER`, `PRAYER_AZAN`, `JUMUAH`, `DUHA`, `QIYAM`, `SALAWAT`, `MULK`) |
+| `soundType` | Which audio family (`NEAR_PRAYER`, `AZAN`, `GENERIC_NOTIFICATION`, `SALAWAT`, `MULK`) |
 | `soundId` | Catalog id to resolve |
 | `dedupeKey` | One user-visible notification per logical event |
 
@@ -44,7 +44,7 @@ Always branch on:
 |-------|------|
 | **Flutter (primary)** | Exact local scheduling for PRE + AZAN (+ optional DUHA/QIYAM). Must be timing-accurate. |
 | **Backend FCM (backup)** | `POST /cron/prayer-reminders` every ~10 minutes. Tolerant window — **not** second-perfect. |
-| **Backend prefs** | Source of truth for `reminderMinutes`, `azanSoundId`, `notificationSoundId`, per-prayer toggles, Salawat prefs. |
+| **Backend prefs** | Source of truth for `reminderMinutes`, `azanSoundId`, `notificationSoundId`, per-prayer toggles, Salawat prefs, Mulk prefs. |
 
 **LOCAL is primary. FCM is backup.** Deduplicate with `dedupeKey`.
 
@@ -60,6 +60,7 @@ Always branch on:
 | `DUHA` | Flutter-local only (no backend cron timing) | `DUHA` |
 | `QIYAM` | Flutter-local only | `QIYAM` |
 | `SALAWAT` | Interval inside active window | `SALAWAT` |
+| `MULK` | Daily at local `mulkReminderTime` (default **20:00**) | `MULK` |
 
 Legacy FCM fields (keep reading, prefer new ones):
 
@@ -176,6 +177,34 @@ Legacy id `peaceful_reminder_tone` remaps to `salli_ala_muhammad_voice`.
 
 ---
 
+## 9b. MULK — Surah Al-Mulk bedtime reminder
+
+Daily reminder to read Surah Al-Mulk before sleep. Uses each user’s **IANA timezone** (e.g. Cairo 20:00 ≠ New York 20:00).
+
+| UI | API |
+|----|-----|
+| Enable reminder | `enabled` (default **false** — opt-in) |
+| Time | `time` local `HH:mm` (default **`20:00`**) |
+
+| Contract | Value |
+|----------|-------|
+| Prefs | `GET/PATCH/PUT /profile/mulk-preferences` |
+| `eventType` / `soundType` / `eventKey` | `MULK` |
+| Android channel | `mulk` |
+| `surahId` | `67` |
+| `deepLink` | `/quran/surah/67` |
+| Title AR | `سورة الملك` |
+| Body AR | `لا تنس قراءة سورة الملك` |
+| Title EN | `Surah Al-Mulk` |
+| Body EN | `Don't forget to read Surah Al-Mulk` |
+| Cron | Same job as Azan/Salawat (`/cron/prayer-reminders`), ±12 min local window |
+| De-dupe | One FCM per user per local day+time via `dedupeKey` |
+
+**Flutter (primary):** schedule exact local alarm at `time`.  
+**Backend FCM (backup):** fires when local clock is within ±12 minutes of `time`.
+
+---
+
 ## 10. Exact Arabic titles (copy these)
 
 | Event | titleAr |
@@ -189,6 +218,7 @@ Legacy id `peaceful_reminder_tone` remaps to `salli_ala_muhammad_voice`.
 | AZAN | حان الآن موعد أذان {name} |
 | Friday exact | حان الآن موعد أذان الجمعة |
 | Salawat | صلِّ على محمد ﷺ |
+| Mulk | سورة الملك (body: لا تنس قراءة سورة الملك) |
 
 Also use `titleEn` / `bodyAr` / `bodyEn` from FCM `data` when present.
 
@@ -235,6 +265,7 @@ sc_near_jumuah.mp3
 | GET | `/salawat/audio` | Public |
 | GET | `/salawat/media/:file` | Public |
 | GET/PATCH | `/profile/salawat-preferences` | Bearer |
+| GET/PATCH | `/profile/mulk-preferences` | Bearer |
 | POST | existing FCM device register route | Bearer |
 | GET | `/health` | Public |
 
@@ -283,6 +314,19 @@ Content-Type: application/json
 }
 ```
 
+### Mulk prefs (bedtime Surah Al-Mulk)
+
+```http
+PATCH /api/v1/profile/mulk-preferences
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "enabled": true,
+  "time": "20:00"
+}
+```
+
 ---
 
 ## 14. Response examples
@@ -319,6 +363,21 @@ Content-Type: application/json
   "mediaFile": "salli_ala_muhammad.mp3",
   "nativeSound": "salli_ala_muhammad",
   "audioUrl": "https://.../salawat/media/salli_ala_muhammad.mp3"
+}
+```
+
+### Mulk prefs (shape)
+
+```json
+{
+  "enabled": true,
+  "time": "20:00",
+  "surahId": 67,
+  "deepLink": "/quran/surah/67",
+  "titleAr": "سورة الملك",
+  "bodyAr": "لا تنس قراءة سورة الملك",
+  "titleEn": "Surah Al-Mulk",
+  "bodyEn": "Don't forget to read Surah Al-Mulk"
 }
 ```
 
@@ -387,6 +446,28 @@ All `data` values are **strings**.
 }
 ```
 
+### MULK example
+
+```json
+{
+  "data": {
+    "eventType": "MULK",
+    "eventKey": "MULK",
+    "soundType": "MULK",
+    "kind": "mulk_reminder",
+    "surahId": "67",
+    "deepLink": "/quran/surah/67",
+    "reminderTime": "20:00",
+    "dedupeKey": "2026-09-26|<userId>|MULK|MULK|<dayKey>|MULK|20:00",
+    "androidChannelId": "mulk",
+    "titleAr": "سورة الملك",
+    "bodyAr": "لا تنس قراءة سورة الملك",
+    "titleEn": "Surah Al-Mulk",
+    "bodyEn": "Don't forget to read Surah Al-Mulk"
+  }
+}
+```
+
 **Important:** A remote URL will **not** play as the OS notification sound. Bundle short sounds; stream/cache long Azan for in-app playback.
 
 ---
@@ -400,6 +481,7 @@ Create **separate** channels (Android 8+ locks sound per channel):
 | `near_prayer` | PRE_PRAYER |
 | `azan` | PRAYER_AZAN / JUMUAH tray (short default; full Adhan via player) |
 | `salawat` | SALAWAT → bundled `salli_ala_muhammad` |
+| `mulk` | MULK bedtime Surah Al-Mulk (default system / soft tone OK) |
 
 Also accept legacy FCM channel id `azan-reminder` during migration.
 
@@ -486,11 +568,12 @@ Implement all of these for a perfect 2026 release:
 
 - [ ] Exact local PRE + AZAN scheduling using user timezone  
 - [ ] Reschedule when `reminderMinutes` / prayer toggles / method / madhab change  
-- [ ] Android channels: `near_prayer`, `azan`, `salawat`  
+- [ ] Android channels: `near_prayer`, `azan`, `salawat`, `mulk`  
 - [ ] Bundle short sounds (`sc_near_*`, `salli_ala_muhammad`, optional generic tones)  
 - [ ] Azan picker from `/azan/sounds`; play full Adhan in-app at exact time  
 - [ ] Reminder tone picker from `/azan/notification-sounds` **or** `sc_near_auto` for Arabic near voice  
 - [ ] Salawat settings UI ↔ `/profile/salawat-preferences` + play/preview default voice  
+- [ ] Mulk settings UI ↔ `/profile/mulk-preferences`; local 20:00 alarm; tap → `/quran/surah/67`  
 - [ ] FCM handlers branch on `eventType` / `soundType`  
 - [ ] Dedup local ↔ FCM via `dedupeKey`  
 - [ ] Optional local DUHA / QIYAM if product requires  
@@ -506,6 +589,7 @@ Implement all of these for a perfect 2026 release:
 - [ ] PRE sound ≠ Azan sound  
 - [ ] Friday PRE uses الجمعة + `sc_near_jumuah`  
 - [ ] Salawat fires only inside window; sound = `salli_ala_muhammad`  
+- [ ] Mulk fires once at local `time` (default 20:00); title/body AR as above; opens Surah 67  
 - [ ] Local + FCM same `dedupeKey` → one notification  
 - [ ] Channels correct on Android 8+  
 - [ ] Offline: already scheduled locals still fire  

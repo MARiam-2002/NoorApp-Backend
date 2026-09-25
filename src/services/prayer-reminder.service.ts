@@ -10,6 +10,7 @@ import {
   resolveTimezone,
   runSalawatReminders,
 } from './salawat-reminder.service';
+import { runMulkReminders } from './mulk-reminder.service';
 import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
 import {
   AZAN_MEDIA_FILES,
@@ -696,7 +697,7 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
 
 /**
  * Existing cron entrypoint (every ~10 minutes).
- * Runs Azan backup + Salawat reminders in the same job — no separate scheduler.
+ * Runs Azan backup + Salawat + Surah Al-Mulk reminders in the same job — no separate scheduler.
  */
 export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
   usersScanned: number;
@@ -709,16 +710,24 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
     pushesSent: number;
     skipped: Record<string, number>;
   };
+  mulk: {
+    usersScanned: number;
+    pushesAttempted: number;
+    pushesSent: number;
+    skipped: Record<string, number>;
+  };
 }> {
   const azan = await runAzanBackupReminders(windowMinutes);
   const salawat = await runSalawatReminders();
+  const mulk = await runMulkReminders();
 
   const summary = {
-    usersScanned: azan.usersScanned + salawat.usersScanned,
-    pushesAttempted: azan.pushesAttempted + salawat.pushesAttempted,
-    pushesSent: azan.pushesSent + salawat.pushesSent,
+    usersScanned: azan.usersScanned + salawat.usersScanned + mulk.usersScanned,
+    pushesAttempted: azan.pushesAttempted + salawat.pushesAttempted + mulk.pushesAttempted,
+    pushesSent: azan.pushesSent + salawat.pushesSent + mulk.pushesSent,
     azan,
     salawat,
+    mulk,
   };
 
   logPushCronSummary({
@@ -733,6 +742,12 @@ export async function runPrayerReminderCron(windowMinutes = 10): Promise<{
       pushesAttempted: salawat.pushesAttempted,
       pushesSent: salawat.pushesSent,
       skipped: salawat.skipped,
+    },
+    mulk: {
+      usersScanned: mulk.usersScanned,
+      pushesAttempted: mulk.pushesAttempted,
+      pushesSent: mulk.pushesSent,
+      skipped: mulk.skipped,
     },
   });
 
