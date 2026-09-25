@@ -93,3 +93,5 @@ prisma/data/hadith/_audit.txt
 
 .vercel
 prisma/data/hadith/verified-sahih-hadith-bank.json
+
+.firebase-sa*.json
