@@ -229,7 +229,6 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     format: 'mp3',
     provider: 'aladhan_selfhosted',
     source: 'AlAdhan — Adhan from Dubai\'s One TV by Mishary Rashid Alafasy (mirrored)',
-    isDefault: true,
     durationSeconds: null,
     license: aladhanLicense('Adhan from Dubai\'s One TV by Mishary Rashid Alafasy'),
     streamingAllowed: true,
@@ -356,6 +355,7 @@ export const AZAN_SOUND_OPTIONS: AzanSoundOption[] = [
     format: 'mp3',
     provider: 'assabile_selfhosted',
     source: 'Assabile — Nasser Al Qatami Adhan Al Riad (mirrored)',
+    isDefault: true,
     durationSeconds: 135,
     license: assabileLicense('Nasser Al Qatami - Adhan Al Riad Al Saoudea'),
     streamingAllowed: true,
@@ -796,7 +796,7 @@ export const REMINDER_SOUND_OPTIONS: NotificationSoundOption[] = [
   ...PRAYER_EVENT_SOUND_OPTIONS,
 ];
 
-export const DEFAULT_AZAN_SOUND_ID = 'mishary_alafasy';
+export const DEFAULT_AZAN_SOUND_ID = 'nasser_al_qatami';
 export const DEFAULT_NOTIFICATION_SOUND_ID = 'soft_chime';
 /** Near-prayer auto sentinel (not part of assets/notification list). */
 export const RECOMMENDED_NOTIFICATION_SOUND_ID_2026 = 'sc_near_auto';

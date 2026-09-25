@@ -1,14 +1,36 @@
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import crypto from 'crypto';
 import helmet from 'helmet';
 import hpp from 'hpp';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Express, Request, Response } from 'express';
 import { appConfig, env, ErrorCodes, HttpStatus } from '../config';
 import { morganStream } from '../lib/logger';
 import { buildError } from '../shared/utils/response';
+
+/**
+ * Per-user when Bearer is present (shared Wi‑Fi / CGNAT must not share one bucket).
+ * Falls back to IP for anonymous traffic.
+ */
+function apiClientKey(req: Request): string {
+  const auth = req.headers.authorization;
+  if (typeof auth === 'string' && auth.startsWith('Bearer ') && auth.length > 20) {
+    const token = auth.slice(7).trim();
+    if (token) {
+      return `tok:${crypto.createHash('sha256').update(token).digest('hex').slice(0, 32)}`;
+    }
+  }
+  return ipKeyGenerator(req.ip ?? 'unknown');
+}
+
+/** Audio streaming must not burn the same quota as JSON APIs. */
+function isPublicMediaStream(req: Request): boolean {
+  const url = req.originalUrl || req.url || '';
+  return /\/api\/v1\/(azan|salawat)\/media\//i.test(url);
+}
 
 function buildCorsOriginOption(): cors.CorsOptions['origin'] {
   const raw = (env.CORS_ORIGIN || '').trim();
@@ -84,6 +106,8 @@ export const apiRateLimiter = rateLimit({
   max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: apiClientKey,
+  skip: isPublicMediaStream,
   message: buildRateLimitMessage('Too many requests, please try again later'),
   statusCode: HttpStatus.TOO_MANY_REQUESTS,
 });

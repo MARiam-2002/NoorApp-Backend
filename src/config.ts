@@ -29,8 +29,14 @@ const envSchema = z.object({
    * Example: https://noorapp-backend-production.up.railway.app
    */
   PUBLIC_APP_ORIGIN: z.string().default(''),
+  /** Sliding window for global API limiter (default 15 minutes). */
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900_000),
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  /**
+   * Max requests per client key per window.
+   * Key = authenticated Bearer token (hashed) when present, else IP.
+   * Default 2000/15min is production-safe for Flutter; auth routes stay stricter.
+   */
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(2_000),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('1h'),
   JWT_REFRESH_SECRET: z.string().min(32),

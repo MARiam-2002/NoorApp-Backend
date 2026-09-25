@@ -251,7 +251,7 @@ Content-Type: application/json
 
 {
   "reminderMinutes": 15,
-  "azanSoundId": "mishary_alafasy",
+  "azanSoundId": "nasser_al_qatami",
   "notificationSoundId": "sc_near_auto",
   "preReminderEnabled": true,
   "fcmPrayerBackupEnabled": true,
@@ -291,16 +291,16 @@ Content-Type: application/json
 
 ```json
 {
-  "azanSoundId": "mishary_alafasy",
-  "voiceId": "mishary_alafasy",
+  "azanSoundId": "nasser_al_qatami",
+  "voiceId": "nasser_al_qatami",
   "reminderMinutes": 15,
   "preReminderMinutes": 15,
   "notificationSoundId": "sc_near_auto",
   "fcmPrayerBackupEnabled": true,
   "azanSound": {
-    "id": "mishary_alafasy",
-    "nameAr": "...",
-    "audioUrl": "https://.../azan/media/mishary_alafasy.mp3"
+    "id": "nasser_al_qatami",
+    "nameAr": "ناصر القطامي",
+    "audioUrl": "https://.../azan/media/nasser_al_qatami.mp3"
   }
 }
 ```
@@ -361,9 +361,9 @@ All `data` values are **strings**.
     "eventType": "PRAYER_AZAN",
     "eventKey": "FAJR",
     "soundType": "AZAN",
-    "soundId": "mishary_alafasy",
-    "azanSoundId": "mishary_alafasy",
-    "azanSoundUrl": "https://.../azan/media/mishary_alafasy.mp3",
+    "soundId": "nasser_al_qatami",
+    "azanSoundId": "nasser_al_qatami",
+    "azanSoundUrl": "https://.../azan/media/nasser_al_qatami.mp3",
     "dedupeKey": "2026-09-25|<userId>|PRAYER_AZAN|FAJR",
     "androidChannelId": "azan"
   }
@@ -527,6 +527,31 @@ Implement all of these for a perfect 2026 release:
 - Use Azan MP3 as OS notification sound  
 - Mix all events into one Android channel  
 - Invent filenames (`jummah`, missing files, etc.)  
+
+---
+
+## 26. Google Play 2026 checklist (Flutter / Android)
+
+Backend design is Play-friendly (FCM backup, channels, in-app full Adhan, opt-in prefs). **Store compliance is Flutter’s responsibility.**
+
+| Requirement | Guidance |
+|-------------|----------|
+| `POST_NOTIFICATIONS` (Android 13+) | Request at runtime before scheduling. App must work if denied. |
+| Exact alarms | Prefer `SCHEDULE_EXACT_ALARM` + user grant (`canScheduleExactAlarms`). Do **not** declare `USE_EXACT_ALARM` unless Play Console review accepts alarm/calendar core-use and you complete the declaration. |
+| Full Adhan audio | Play via in-app / media player — **not** as the OS notification sound. |
+| Foreground service | If Adhan continues in background, use `mediaPlayback` FGS type + Play Console declaration. |
+| Full-screen intent | Avoid unless product requires it and you complete the restricted declaration. |
+| Channels | Keep separate: `near_prayer`, `azan`, `salawat`. |
+| FCM | User-facing prayer / Salawat backup only — not marketing spam; respect toggles. |
+| Data safety | Disclose FCM token / device identifiers in Play Data safety. |
+| Opt-in | Missing notification permission or FCM token must **not** delete the account. |
+
+**Flutter QA (Play):**
+
+- [ ] Deny notifications → app usable; no crash; no account wipe  
+- [ ] Exact-alarm permission denied → graceful fallback (inexact / FCM backup), clear UX  
+- [ ] Full Adhan plays in media session, tray uses short channel sound only  
+- [ ] Data safety form matches actual FCM / prefs collection  
 
 ---
 
