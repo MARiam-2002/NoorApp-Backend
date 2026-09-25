@@ -60,6 +60,15 @@ export function isKnownSalawatAudioId(id: string): boolean {
 export function resolveSalawatAudioClipId(raw?: string | null): string {
   const id = raw?.trim() || '';
   if (isKnownSalawatAudioId(id)) return id;
+  // Legacy defaults / removed ids → canonical single Salawat voice.
+  if (
+    id === 'peaceful_reminder_tone' ||
+    id === 'salli_ala_muhammad' ||
+    id === 'salawat' ||
+    id === 'SALAWAT_SOUND'
+  ) {
+    return DEFAULT_SALAWAT_AUDIO_ID;
+  }
   return DEFAULT_SALAWAT_AUDIO_ID;
 }
 

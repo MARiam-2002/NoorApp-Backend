@@ -198,7 +198,7 @@ assert.equal(salawatPreferencesPatchSchema.safeParse({ startTime: '25:00' }).suc
 assert.equal(salawatPreferencesPatchSchema.safeParse({ endTime: '9:00' }).success, false);
 assert.equal(salawatPreferencesPatchSchema.safeParse({}).success, false);
 assert.equal(salawatPreferencesPatchSchema.safeParse({ enabled: 'yes' }).success, false);
-assert.equal(salawatPreferencesPatchSchema.safeParse({ audioClipId: 'calm_chime' }).success, true);
+assert.equal(salawatPreferencesPatchSchema.safeParse({ audioClipId: 'salli_ala_muhammad_voice' }).success, true);
 assert.equal(salawatPreferencesPatchSchema.safeParse({ audioClipId: 'nope' }).success, false);
 
 assert.equal(typeof runPrayerReminderCron, 'function');

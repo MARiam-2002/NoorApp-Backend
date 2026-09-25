@@ -6,7 +6,7 @@ import { DefaultTimezone } from '../utils/constants';
 import { sendPushToUser } from './device.service';
 import { createNotification } from './notification.service';
 import { resolveReminderAudioClip } from './salawat-audio.service';
-import { resolveSalawatAudioClipId } from '../shared/constants/salawat-audio';
+import { resolveSalawatAudioClipId, DEFAULT_SALAWAT_AUDIO_ID } from '../shared/constants/salawat-audio';
 
 /** Legacy default interval (hours) — maps to intervalMinutes 180. */
 export const SALAWAT_INTERVAL_HOURS = 3;
@@ -26,10 +26,10 @@ export const SALAWAT_DEFAULT_END = '22:00';
 
 const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-const SALAWAT_TITLE_AR = 'الصلاة على النبي ﷺ';
-const SALAWAT_TITLE_EN = 'Pray for the Prophet ﷺ';
-const SALAWAT_BODY_AR = 'اللهم صل وسلم على نبينا محمد ﷺ';
-const SALAWAT_BODY_EN = 'O Allah, send blessings and peace upon our Prophet Muhammad ﷺ';
+const SALAWAT_TITLE_AR = 'صلِّ على محمد ﷺ';
+const SALAWAT_TITLE_EN = 'Send blessings upon Muhammad ﷺ';
+const SALAWAT_BODY_AR = 'تذكير: صلِّ على النبي محمد ﷺ';
+const SALAWAT_BODY_EN = 'Reminder: send blessings upon the Prophet ﷺ';
 
 export type LocalClock = {
   hour: number;
@@ -451,19 +451,32 @@ export async function runSalawatReminders(now = new Date()): Promise<{
         const fcmData: Record<string, string> = {
           type: 'SALAWAT',
           kind: 'salawat_reminder',
+          eventType: 'SALAWAT',
+          eventKey: 'SALAWAT',
+          soundType: 'SALAWAT',
+          soundId: clip?.id || DEFAULT_SALAWAT_AUDIO_ID,
+          androidChannelId: 'salawat',
+          source: 'FCM_BACKUP',
+          locale: 'ar',
         };
-        if (clip?.audioUrl) {
-          fcmData.audioClipId = clip.id;
-          fcmData.audioUrl = clip.audioUrl;
+        if (clip?.id) fcmData.audioClipId = clip.id;
+        if (clip?.audioUrl) fcmData.audioUrl = clip.audioUrl;
+        if (clip?.mediaFile) {
+          fcmData.mediaFile = clip.mediaFile;
+          fcmData.nativeSound = clip.mediaFile.replace(/\.mp3$/i, '');
         }
 
         pushesAttempted += 1;
         const result = await sendPushToUser(user.id, {
-          title: SALAWAT_TITLE_EN,
-          body: SALAWAT_BODY_EN,
+          title: SALAWAT_TITLE_AR,
+          body: SALAWAT_BODY_AR,
           titleAr: SALAWAT_TITLE_AR,
           bodyAr: SALAWAT_BODY_AR,
           data: fcmData,
+          nativeSound: clip?.mediaFile
+            ? clip.mediaFile.replace(/\.mp3$/i, '')
+            : 'default',
+          androidChannelId: 'salawat',
         });
         pushesSent += result.sent;
 
@@ -478,6 +491,10 @@ export async function runSalawatReminders(now = new Date()): Promise<{
           payload: {
             type: 'SALAWAT',
             kind: 'salawat_reminder',
+            eventType: 'SALAWAT',
+            eventKey: 'SALAWAT',
+            soundType: 'SALAWAT',
+            soundId: clip?.id,
             dayKey: getLocalClock(now, timeZone).dayKey,
             occurrenceKey: decision.occurrenceKey,
             ...(clip?.audioUrl

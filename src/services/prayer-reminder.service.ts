@@ -58,8 +58,11 @@ export function buildAzanNotificationCopy(input: {
   prayerTitle: string;
   nameAr: string;
   isFridayJumuahPre: boolean;
-  /** Additive Flutter event type (does not replace `kind`). */
-  eventType: 'PRE_PRAYER_REMINDER' | 'PRAYER_AZAN';
+  isFridayJumuah: boolean;
+  /** Canonical Flutter event type. */
+  eventType: 'PRE_PRAYER' | 'PRAYER_AZAN' | 'JUMUAH';
+  eventKey: string;
+  legacyEventType: 'PRE_PRAYER_REMINDER' | 'PRAYER_AZAN';
 } {
   const now = input.nowUtc ?? new Date();
   const prayerKey =
@@ -85,10 +88,10 @@ export function buildAzanNotificationCopy(input: {
     .format(now)
     .toLowerCase();
   const isFriday = weekday === 'fri';
-  const isFridayJumuahPre =
-    input.isPre && isFriday && prayerKey === PrayerNameEnum.DHUHR;
+  const isFridayJumuah =
+    isFriday && prayerKey === PrayerNameEnum.DHUHR;
 
-  const nameAr = isFridayJumuahPre
+  const nameAr = isFridayJumuah
     ? 'الجمعة'
     : (PrayerLabelsAr as Record<string, string>)[prayerKey] ??
       String(input.prayerNameOrKey);
@@ -97,35 +100,49 @@ export function buildAzanNotificationCopy(input: {
   const prePhraseAr = formatPreReminderMinutesPhraseAr(pre);
 
   const titleEn = input.isPre
-    ? pre === 1
-      ? `${prayerTitle} in 1 minute`
-      : `${prayerTitle} in ${pre} minutes`
-    : `Azan time for ${prayerTitle}`;
-  // Product copy (Flutter settings screen contract):
-  // PRE: بعد دقيقة يحين موعد صلاة العصر | بعد 15 دقيقة يحين موعد صلاة العصر
-  // AZAN: حان الآن موعد أذان العصر
+    ? isFridayJumuah
+      ? 'Jumuah prayer is approaching'
+      : `${prayerTitle} prayer is approaching`
+    : isFridayJumuah
+      ? 'It is time for Jumuah prayer'
+      : `Azan time for ${prayerTitle}`;
+  // Canonical 2026 Arabic copy (Flutter contract):
+  // PRE: اقترب موعد صلاة {name}
+  // AZAN: حان الآن موعد أذان {name}
   const titleAr = input.isPre
-    ? pre === 1
-      ? `بعد دقيقة يحين موعد صلاة ${nameAr}`
-      : `بعد ${pre} دقيقة يحين موعد صلاة ${nameAr}`
+    ? `اقترب موعد صلاة ${nameAr}`
     : `حان الآن موعد أذان ${nameAr}`;
   const bodyEn = input.isPre
-    ? `Reminder: ${prayerTitle} in about ${pre} minutes (${input.time})`
-    : `It's time for the ${prayerTitle} Azan (${input.time})`;
+    ? `Reminder: ${isFridayJumuah ? 'Jumuah' : prayerTitle} in about ${pre} minutes (${input.time})`
+    : `It's time for the ${isFridayJumuah ? 'Jumuah' : prayerTitle} Azan (${input.time})`;
   const bodyAr = input.isPre
-    ? `تذكير: بعد ${prePhraseAr} يحين موعد صلاة ${nameAr} (${input.time})`
+    ? `تذكير: اقترب موعد صلاة ${nameAr} بعد ${prePhraseAr} (${input.time})`
     : `حان الآن موعد أذان ${nameAr} (${input.time})`;
+
+  /** Canonical public event taxonomy (Flutter must not guess). */
+  const eventType = input.isPre
+    ? 'PRE_PRAYER'
+    : isFridayJumuah
+      ? 'JUMUAH'
+      : 'PRAYER_AZAN';
+  const eventKey = isFridayJumuah && !input.isPre ? 'JUMUAH' : String(prayerKey);
+  /** PRE on Friday Dhuhr still uses FAJR…ISHA key with Friday Arabic name. */
+  const prayerKeyOut = String(prayerKey);
 
   return {
     titleEn,
     titleAr,
     bodyEn,
     bodyAr,
-    prayerKey,
+    prayerKey: prayerKeyOut,
     prayerTitle,
     nameAr,
-    isFridayJumuahPre,
-    eventType: input.isPre ? 'PRE_PRAYER_REMINDER' : 'PRAYER_AZAN',
+    isFridayJumuahPre: Boolean(input.isPre && isFridayJumuah),
+    isFridayJumuah,
+    eventType,
+    eventKey,
+    /** Legacy alias kept in FCM data for older clients. */
+    legacyEventType: input.isPre ? 'PRE_PRAYER_REMINDER' : 'PRAYER_AZAN',
   };
 }
 
@@ -469,10 +486,21 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           preReminderMinutes: pre,
           evaluationTimezone: evaluationTz,
         });
-        const { titleEn, titleAr, bodyEn, bodyAr, prayerTitle, eventType } = copy;
+        const {
+          titleEn,
+          titleAr,
+          bodyEn,
+          bodyAr,
+          prayerTitle,
+          eventType,
+          eventKey,
+          legacyEventType,
+          prayerKey: prayerKeyOut,
+        } = copy;
         const nearPrayerLocalTime = isPre
           ? computeNearPrayerLocalHhmm(row.time, pre)
           : row.time;
+        const dedupeKey = `${scheduleDate}|${user.id}|${eventType}|${eventKey}`;
 
         const baseData: Record<string, string> = {
           type: 'AZAN',
@@ -480,20 +508,30 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           prayer: prayerTitle,
           /** Canonical enum — prefer this for new client logic. */
           key: String(prayerEnum),
+          prayerKey: prayerKeyOut,
+          eventKey,
           date: scheduleDate,
           time: row.time,
+          scheduledAtLocal: isPre ? nearPrayerLocalTime : row.time,
+          timezone: evaluationTz,
           kind,
-          /** Additive event taxonomy for Flutter local + FCM (does not replace kind). */
+          /** Canonical taxonomy — Flutter must branch on this, not guess from sound. */
           eventType,
+          /** Older clients that still expect PRE_PRAYER_REMINDER. */
+          legacyEventType,
+          dedupeKey,
           idempotencyKey: occurrenceKey,
           occurrenceKey,
           soundEnabled: soundEnabled ? 'true' : 'false',
           vibrationEnabled: vibrationEnabled ? 'true' : 'false',
           locale: 'ar',
           deepLink: '/prayer-times',
+          source: 'FCM_BACKUP',
         };
 
         let nativeSound: string | null = 'default';
+        let soundType: 'NEAR_PRAYER' | 'AZAN' | 'GENERIC_NOTIFICATION' | 'DEFAULT' = 'DEFAULT';
+        let soundId = '';
         if (!soundEnabled) {
           nativeSound = null;
         }
@@ -518,13 +556,22 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
             ? mediaAbsoluteUrl(effectiveNotifSound.mediaFile)
             : staticNotifSoundUrl;
           const matchesPrayerKey = (effectiveNotifSound as any).matchesPrayer ?? '';
+          const mood = String((effectiveNotifSound as any).mood || '');
+          soundType =
+            mood === 'prayer_specific_voice' || String(effectiveNotifSound.id).startsWith('sc_near_')
+              ? 'NEAR_PRAYER'
+              : effectiveNotifSound.id === 'silent'
+                ? 'DEFAULT'
+                : 'GENERIC_NOTIFICATION';
+          soundId = effectiveNotifSound.id;
 
           Object.assign(baseData, {
             preReminderMinutes: String(pre ?? 0),
-            /** Alias for Flutter UIs that label the field reminderMinutes. */
             reminderMinutes: String(pre ?? 0),
             nearPrayerLocalTime,
             audioScope: 'pre_reminder',
+            soundType,
+            soundId,
             autoMatched: resolved.autoMatched ? 'true' : 'false',
             matchedPrayerKey: String(matchesPrayerKey),
             notificationSoundId: effectiveNotifSound.id,
@@ -537,10 +584,8 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
               effectiveNotifSound.durationSeconds != null
                 ? String(effectiveNotifSound.durationSeconds)
                 : '',
-            notificationSoundMood:
-              (effectiveNotifSound as any).mood != null
-                ? String((effectiveNotifSound as any).mood)
-                : '',
+            notificationSoundMood: mood,
+            androidChannelId: 'near_prayer',
           });
           if (soundEnabled && effectiveNotifSound.id !== 'silent') {
             nativeSound = effectiveNotifSound.mediaFile
@@ -550,8 +595,12 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
             nativeSound = null;
           }
         } else {
+          soundType = 'AZAN';
+          soundId = azanSoundRaw.id;
           Object.assign(baseData, {
             audioScope: 'prayer_time_azan',
+            soundType,
+            soundId,
             azanSoundId: azanSoundRaw.id,
             azanSoundNameEn: azanSoundRaw.nameEn || '',
             azanSoundNameAr: azanSoundRaw.nameAr || '',
@@ -569,11 +618,12 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
             azanSoundCategory: String(azanSoundRaw.category || ''),
             azanSoundIsFamousVoice: azanSoundRaw.isFamousVoice ? 'true' : 'false',
             azanSoundProvider: String(azanSoundRaw.provider || ''),
+            androidChannelId: 'azan',
           });
           if (soundEnabled) {
-            nativeSound = azanSoundRaw.mediaFile
-              ? azanSoundRaw.mediaFile.replace(/\.mp3$/i, '')
-              : 'default';
+            // Full Azan is NOT suitable as OS notification sound — Flutter plays via audioUrl.
+            // Channel uses a short default; data carries azanSound* for app playback.
+            nativeSound = 'default';
           } else {
             nativeSound = null;
           }
@@ -588,13 +638,14 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
 
         pushesAttempted += 1;
         const result = await sendPushToUser(user.id, {
-          title: titleEn,
-          body: bodyEn,
+          // Prefer Arabic tray text (app locale); EN remains in data.
+          title: titleAr,
+          body: bodyAr,
           titleAr,
           bodyAr,
           data: baseData,
           nativeSound,
-          androidChannelId: isPre ? 'azan-reminder' : 'azan',
+          androidChannelId: isPre ? 'near_prayer' : 'azan',
         });
         pushesSent += result.sent;
 
@@ -609,11 +660,17 @@ export async function runAzanBackupReminders(windowMinutes = 10): Promise<{
           payload: {
             prayer: prayerTitle,
             key: String(prayerEnum),
+            prayerKey: prayerKeyOut,
+            eventKey,
+            eventType,
             date: scheduleDate,
             time: row.time,
             kind,
+            dedupeKey,
             idempotencyKey: occurrenceKey,
             occurrenceKey,
+            soundType,
+            soundId,
             preReminderMinutes: isPre ? pre : undefined,
             nearPrayerLocalTime: isPre ? nearPrayerLocalTime : undefined,
             audioScope: baseData.audioScope,

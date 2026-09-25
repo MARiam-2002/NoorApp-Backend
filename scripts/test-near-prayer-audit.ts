@@ -85,11 +85,11 @@ if (withNull.success) {
 
 console.log('--- 5) Arabic titles ---');
 const expected: Record<string, string> = {
-  FAJR: 'بعد 15 دقيقة يحين موعد صلاة الفجر',
-  DHUHR: 'بعد 15 دقيقة يحين موعد صلاة الظهر',
-  ASR: 'بعد 15 دقيقة يحين موعد صلاة العصر',
-  MAGHRIB: 'بعد 15 دقيقة يحين موعد صلاة المغرب',
-  ISHA: 'بعد 15 دقيقة يحين موعد صلاة العشاء',
+  FAJR: 'اقترب موعد صلاة الفجر',
+  DHUHR: 'اقترب موعد صلاة الظهر',
+  ASR: 'اقترب موعد صلاة العصر',
+  MAGHRIB: 'اقترب موعد صلاة المغرب',
+  ISHA: 'اقترب موعد صلاة العشاء',
 };
 for (const [k, title] of Object.entries(expected)) {
   const c = buildAzanNotificationCopy({
@@ -101,7 +101,7 @@ for (const [k, title] of Object.entries(expected)) {
     nowUtc: thursday,
   });
   assert.equal(c.titleAr, title);
-  assert.equal(c.eventType, 'PRE_PRAYER_REMINDER');
+  assert.equal(c.eventType, 'PRE_PRAYER');
 }
 const oneMin = buildAzanNotificationCopy({
   prayerNameOrKey: 'ASR',
@@ -111,7 +111,7 @@ const oneMin = buildAzanNotificationCopy({
   evaluationTimezone: tzCairo,
   nowUtc: thursday,
 });
-assert.equal(oneMin.titleAr, 'بعد دقيقة يحين موعد صلاة العصر');
+assert.equal(oneMin.titleAr, 'اقترب موعد صلاة العصر');
 const azanCopy = buildAzanNotificationCopy({
   prayerNameOrKey: 'ASR',
   time: '15:00',
@@ -130,7 +130,7 @@ const jum = buildAzanNotificationCopy({
   evaluationTimezone: tzCairo,
   nowUtc: friday,
 });
-assert.equal(jum.titleAr, 'بعد 15 دقيقة يحين موعد صلاة الجمعة');
+assert.equal(jum.titleAr, 'اقترب موعد صلاة الجمعة');
 assert.equal(jum.isFridayJumuahPre, true);
 
 console.log('--- 6) Sound mapping + Azan separation ---');
@@ -252,14 +252,17 @@ const payload = {
   notificationSoundId: sound.sound.id,
   notificationSoundMediaFile: sound.sound.mediaFile,
   titleAr: fajrCopy.titleAr,
-  androidChannelId: 'azan-reminder',
+  eventType: fajrCopy.eventType,
+  soundType: 'NEAR_PRAYER',
+  androidChannelId: 'near_prayer',
   nativeSound: String(sound.sound.mediaFile).replace(/\.mp3$/i, ''),
   azanSoundId: getAzanSoundById('mishary_alafasy').id,
 };
 assert.equal(payload.nearPrayerLocalTime, '04:45');
 assert.equal(payload.notificationSoundId, 'sc_near_fajr');
 assert.equal(payload.nativeSound, 'sc_near_fajr');
-assert.equal(payload.titleAr, 'بعد 15 دقيقة يحين موعد صلاة الفجر');
+assert.equal(payload.titleAr, 'اقترب موعد صلاة الفجر');
+assert.equal(payload.eventType, 'PRE_PRAYER');
 assert.equal(payload.azanSoundId, 'mishary_alafasy');
 assert.notEqual(payload.notificationSoundId, payload.azanSoundId);
 

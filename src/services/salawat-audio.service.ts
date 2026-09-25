@@ -24,6 +24,7 @@ export type SalawatAudioClipDto = {
   listenUrl: string | null;
   youtubeUrl: string | null;
   spotifyUrl: string | null;
+  mediaFile: string | null;
   source: string;
   license: string;
   attribution: string;
@@ -71,6 +72,7 @@ function toDto(clip: SalawatAudioClipDef, req?: Request): SalawatAudioClipDto {
     listenUrl: clip.listenUrl,
     youtubeUrl: clip.youtubeUrl,
     spotifyUrl: clip.spotifyUrl,
+    mediaFile: clip.mediaFile,
     source: clip.source,
     license: clip.license,
     attribution: clip.attribution,

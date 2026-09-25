@@ -84,6 +84,7 @@ export const getAzanPreferencesHandler = asyncHandler(async (req: Request, res: 
         preReminderEnabled: true,
         prePrayerReminderEnabled: true,
         prayers: { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true },
+        fcmPrayerBackupEnabled: true,
         isGuestDefaults: true,
       },
       'Default Azan audio preferences (guest)',

@@ -8,6 +8,7 @@ import path from 'node:path';
 import {
   buildAzanNotificationCopy,
   resolvePreReminderSoundFor,
+  computeNearPrayerLocalHhmm,
 } from '../src/services/prayer-reminder.service';
 import { AZAN_MEDIA_FILES } from '../src/shared/constants/azan-sounds';
 
@@ -37,11 +38,11 @@ for (const prayer of ['ASR', 'MAGHRIB', 'ISHA'] as const) {
 }
 
 const expectedTitles: Record<string, string> = {
-  FAJR: 'بعد 15 دقيقة يحين موعد صلاة الفجر',
-  DHUHR: 'بعد 15 دقيقة يحين موعد صلاة الظهر',
-  ASR: 'بعد 15 دقيقة يحين موعد صلاة العصر',
-  MAGHRIB: 'بعد 15 دقيقة يحين موعد صلاة المغرب',
-  ISHA: 'بعد 15 دقيقة يحين موعد صلاة العشاء',
+  FAJR: 'اقترب موعد صلاة الفجر',
+  DHUHR: 'اقترب موعد صلاة الظهر',
+  ASR: 'اقترب موعد صلاة العصر',
+  MAGHRIB: 'اقترب موعد صلاة المغرب',
+  ISHA: 'اقترب موعد صلاة العشاء',
 };
 
 for (const [key, title] of Object.entries(expectedTitles)) {
@@ -54,6 +55,8 @@ for (const [key, title] of Object.entries(expectedTitles)) {
     nowUtc: thursday,
   });
   assert.equal(copy.titleAr, title, `titleAr for ${key}`);
+  assert.equal(copy.eventType, 'PRE_PRAYER');
+  assert.equal(copy.eventKey, key);
 }
 
 const fridayCopy = buildAzanNotificationCopy({
@@ -64,8 +67,40 @@ const fridayCopy = buildAzanNotificationCopy({
   evaluationTimezone: tz,
   nowUtc: friday,
 });
-assert.equal(fridayCopy.titleAr, 'بعد 15 دقيقة يحين موعد صلاة الجمعة');
+assert.equal(fridayCopy.titleAr, 'اقترب موعد صلاة الجمعة');
 assert.equal(fridayCopy.isFridayJumuahPre, true);
+assert.equal(fridayCopy.eventType, 'PRE_PRAYER');
+
+const fridayAzan = buildAzanNotificationCopy({
+  prayerNameOrKey: 'DHUHR',
+  time: '12:05',
+  isPre: false,
+  preReminderMinutes: 15,
+  evaluationTimezone: tz,
+  nowUtc: friday,
+});
+assert.equal(fridayAzan.titleAr, 'حان الآن موعد أذان الجمعة');
+assert.equal(fridayAzan.eventType, 'JUMUAH');
+assert.equal(fridayAzan.eventKey, 'JUMUAH');
+
+const fajrAzan = buildAzanNotificationCopy({
+  prayerNameOrKey: 'FAJR',
+  time: '05:00',
+  isPre: false,
+  preReminderMinutes: 15,
+  evaluationTimezone: tz,
+  nowUtc: thursday,
+});
+assert.equal(fajrAzan.titleAr, 'حان الآن موعد أذان الفجر');
+assert.equal(fajrAzan.eventType, 'PRAYER_AZAN');
+
+// reminderMinutes shifts PRE local clock, not title wording
+assert.equal(
+  computeNearPrayerLocalHhmm('05:00', 15),
+  '04:45',
+);
+assert.equal(computeNearPrayerLocalHhmm('05:00', 10), '04:50');
+assert.equal(computeNearPrayerLocalHhmm('05:00', 5), '04:55');
 
 const assets = path.join(process.cwd(), 'assets');
 const required = [

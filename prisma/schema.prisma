@@ -47,7 +47,7 @@ model User {
   /// Active local window end (HH:mm). May be overnight vs start.
   salawatWindowEnd        String                 @default("22:00")
   /// Selected catalog clip id (famous listen-link or hosted tone).
-  salawatAudioClipId      String                 @default("peaceful_reminder_tone")
+  salawatAudioClipId      String                 @default("salli_ala_muhammad_voice")
   /// Personal daily Sadaqah target (EGP). Progress is DailyProgress.sadaqahAmount.
   sadaqahGoal             Decimal                @default(1000) @db.Decimal(10, 2)
   challengeCompletions    ChallengeCompletion[]
