@@ -729,12 +729,17 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
   }
 
   if (!user) {
+    // Google display names are not unique (and may be non-Latin), so derive a unique handle.
+    const nameHandle = normalizeUsername(googlePayload.name || '');
+    const username = await ensureUniqueUsername(
+      /[a-z0-9]{3,}/i.test(nameHandle) ? nameHandle : generateUsernameFromEmail(emailLower),
+    );
     // Create new user from Google profile. Always store googleId so we can
     // find this user back even if the primary Google email changes later.
     user = await prisma.user.create({
       data: {
         email: emailLower,
-        username: (googlePayload.name || emailLower.split('@')[0]) as string,
+        username,
         fullName: googlePayload.name || null,
         provider: 'GOOGLE',
         providerId: googlePayload.sub || null,
