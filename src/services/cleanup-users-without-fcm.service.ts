@@ -178,7 +178,8 @@ export async function findUsersWithNoValidFcmDevice(options?: {
 
 /**
  * Maintenance cleanup: delete accounts that have zero valid FCM tokens,
- * reusing hardDeleteUserAccount (same path as DELETE /auth/me).
+ * reusing hardDeleteUserAccount without recording DeletedIdentity, so affected
+ * users can sign in again (fresh empty account).
  *
  * Default dryRun=true. Real deletion requires confirm phrase.
  */
@@ -272,7 +273,7 @@ export async function cleanupUsersWithoutFcm(
           continue;
         }
 
-        await hardDeleteUserAccount(candidate.id);
+        await hardDeleteUserAccount(candidate.id, { blockIdentity: false });
         result.deletedUsers += 1;
         result.deletedIds.push(candidate.id);
       } catch (err) {

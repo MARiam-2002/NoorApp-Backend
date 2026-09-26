@@ -82,7 +82,8 @@ cronRouter.get(
  *       NOT scheduled automatically. Auth: CRON_SECRET.
  *       Default dryRun=true (count only). Real delete requires
  *       body.dryRun=false AND body.confirm=DELETE_USERS_WITHOUT_FCM.
- *       Reuses the same hard-delete path as DELETE /auth/me.
+ *       Reuses the same hard-delete path as DELETE /auth/me, but does NOT block the
+ *       identity — deleted users can sign in again with a fresh empty account.
  */
 cronRouter.post(
   '/cleanup-users-without-fcm',

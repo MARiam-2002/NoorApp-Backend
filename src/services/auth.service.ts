@@ -365,12 +365,23 @@ export type DeleteAccountResult = {
   deletedAt: string;
 };
 
+export type HardDeleteOptions = {
+  /**
+   * Record DeletedIdentity so login/Google cannot silently recreate the account.
+   * Only user-initiated deletion should block; admin maintenance must not lock users out.
+   */
+  blockIdentity?: boolean;
+};
+
 /**
  * Core hard-delete used by Play `DELETE /auth/me` and maintenance cleanup.
- * Cascades user-owned rows via Prisma FKs; also explicitly clears sessions/FCM/reset tokens
- * and records DeletedIdentity so login/Google cannot restore the account.
+ * Cascades user-owned rows via Prisma FKs; also explicitly clears sessions/FCM/reset tokens.
  */
-export async function hardDeleteUserAccount(userId: string): Promise<DeleteAccountResult> {
+export async function hardDeleteUserAccount(
+  userId: string,
+  options: HardDeleteOptions = {},
+): Promise<DeleteAccountResult> {
+  const blockIdentity = options.blockIdentity !== false;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true, googleId: true, providerId: true },
@@ -385,23 +396,25 @@ export async function hardDeleteUserAccount(userId: string): Promise<DeleteAccou
 
   try {
     await prisma.$transaction(async (tx) => {
-      if (googleId) {
-        await tx.deletedIdentity.deleteMany({
-          where: { googleId, email: { not: user.email.toLowerCase() } },
+      if (blockIdentity) {
+        if (googleId) {
+          await tx.deletedIdentity.deleteMany({
+            where: { googleId, email: { not: user.email.toLowerCase() } },
+          });
+        }
+        await tx.deletedIdentity.upsert({
+          where: { email: user.email.toLowerCase() },
+          create: {
+            email: user.email.toLowerCase(),
+            googleId,
+            deletedAt,
+          },
+          update: {
+            googleId,
+            deletedAt,
+          },
         });
       }
-      await tx.deletedIdentity.upsert({
-        where: { email: user.email.toLowerCase() },
-        create: {
-          email: user.email.toLowerCase(),
-          googleId,
-          deletedAt,
-        },
-        update: {
-          googleId,
-          deletedAt,
-        },
-      });
       await tx.refreshToken.deleteMany({ where: { userId } });
       await tx.deviceToken.deleteMany({ where: { userId } });
       await tx.passwordResetToken.deleteMany({ where: { userId } });
@@ -414,7 +427,11 @@ export async function hardDeleteUserAccount(userId: string): Promise<DeleteAccou
     throw err;
   }
 
-  logger.info('Account hard-deleted', { userId, deletedAt: deletedAt.toISOString() });
+  logger.info('Account hard-deleted', {
+    userId,
+    deletedAt: deletedAt.toISOString(),
+    identityBlocked: blockIdentity,
+  });
 
   return {
     deleted: true,

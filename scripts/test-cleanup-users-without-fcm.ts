@@ -194,6 +194,16 @@ async function main() {
     assert.equal(limited.deletedUsers, 1);
     assert.deepEqual(limited.deletedIds, [doomed2]);
     assert.ok(await prisma.user.findUnique({ where: { id: oneValid } }));
+    assert.equal(
+      await prisma.deletedIdentity.count({ where: { email: `nofcm-doomed2-${stamp}@example.com` } }),
+      0,
+      'maintenance cleanup must not block the identity',
+    );
+    const reSignup = await authService.login({
+      email: `nofcm-doomed2-${stamp}@example.com`,
+      password: 'NoFcmTest123!',
+    }).catch((e: Error) => e);
+    assert.ok(reSignup instanceof Error, 'deleted account data must not come back on login');
 
     console.log('--- DB: deleteAccount (/auth/me) unchanged ---');
     const playUser = await signup('playpath');
@@ -207,17 +217,25 @@ async function main() {
     const playResult = await authService.deleteAccount(playUser);
     assert.equal(playResult.deleted, true);
     assert.equal(await prisma.user.findUnique({ where: { id: playUser } }), null);
+    assert.equal(
+      await prisma.deletedIdentity.count({ where: { email: `nofcm-playpath-${stamp}@example.com` } }),
+      1,
+      'user-initiated delete must still block the identity',
+    );
 
     console.log('cleanup-users-without-fcm tests: OK');
   } finally {
     for (const id of createdIds) {
       try {
         const u = await prisma.user.findUnique({ where: { id } });
-        if (u) await authService.hardDeleteUserAccount(id);
+        if (u) await authService.hardDeleteUserAccount(id, { blockIdentity: false });
       } catch {
         /* ignore */
       }
     }
+    await prisma.deletedIdentity.deleteMany({
+      where: { email: { startsWith: 'nofcm-', endsWith: `-${stamp}@example.com` } },
+    });
   }
 }
 
