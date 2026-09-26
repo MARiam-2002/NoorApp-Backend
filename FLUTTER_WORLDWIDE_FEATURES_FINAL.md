@@ -4,6 +4,7 @@
 > **Send THIS FILE ONLY** for: **Home (`GET /dashboard`)** + timezone (worldwide) + الرواتب + إعدادات الإشعارات + ختمة جديدة.  
 > Do **not** send older split docs for these features (`NAWAFEL_*`, `NOTIFICATION_*`, `MULK_*`, `KHATMAH_*`).  
 > **Still separate (unchanged):** `FLUTTER_PRAYER_NOTIFICATIONS_CONTRACT.md` (Azan sound catalogs / FCM prayer payload detail) · `STANCE_FEATURE_FINAL.md`  
+> **Auto refresh (Home + رحلتي, no Socket.io):** send `FLUTTER_AUTO_REFRESH_CONTRACT_2026.md` as its own file.  
 > **Production Base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`
 
 ---
