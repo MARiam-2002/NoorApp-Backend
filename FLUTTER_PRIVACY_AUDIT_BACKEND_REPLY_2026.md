@@ -10,6 +10,40 @@ Your audit matches the backend. The public pages were updated to match it:
 
 Both now say **Account tab → Delete account → Confirm**, disclose precise location, Firebase Analytics/Crashlytics, Google Fonts, and the Quran audio hosts, and say that on-device data is removed on uninstall.
 
+This is the **only file** you need from Backend for this round. It replaces the earlier `FLUTTER_PLAY_LAUNCH_HANDOFF_2026.md` updates.
+
+---
+
+## 0. API changes in this deploy (auth)
+
+No endpoint, request, or response shape changed. Only these behaviors:
+
+### `DELETE /auth/me` — new `429`
+
+| Condition | HTTP | `code` |
+|-----------|------|--------|
+| More than 5 delete attempts / hour for the same user | 429 | `RATE_LIMIT_EXCEEDED` |
+
+On `429`: show `message`, do **not** auto-retry. Other delete errors are unchanged (`401 UNAUTHORIZED` / `INVALID_TOKEN` / `TOKEN_EXPIRED`; on `TOKEN_EXPIRED` refresh once and retry).
+
+### Auth rate limits (same `429` envelope as before)
+
+Limits are now per account, so users sharing a mobile-carrier IP no longer block each other.
+
+| Route | Limit |
+|-------|-------|
+| `POST /auth/login` | 10 **failed** attempts / 15 min per email (successful logins never count) |
+| `POST /auth/sign-up` | 30 / hour per IP |
+| `POST /auth/forgot-password` | 5 / hour per email |
+| `POST /auth/reset-password` | 10 / hour per reset code |
+| `DELETE /auth/me` | 5 / hour per user |
+
+`429` body stays `{ "success": false, "code": "RATE_LIMIT_EXCEEDED", "message": "...", "requestId": "..." }`.
+
+### Bug fixed
+
+Double-tapping login / sign-up (two requests in the same second) used to return `409 CONFLICT`. It now returns `200` for both.
+
 ---
 
 ## 1. Answers to §17 (backend items)

@@ -88,6 +88,8 @@ export async function sendPushToUser(
     nativeSound?: string | null;
     /** Android notification channel ID override. */
     androidChannelId?: string;
+    ttlSeconds?: number;
+    iosInterruptionLevel?: 'active' | 'time-sensitive';
   },
 ) {
   const tokens = await prisma.deviceToken.findMany({
@@ -122,6 +124,8 @@ export async function sendPushToUser(
       data: dataForLog,
       nativeSound: payload.nativeSound,
       androidChannelId: payload.androidChannelId,
+      ttlSeconds: payload.ttlSeconds,
+      iosInterruptionLevel: payload.iosInterruptionLevel,
     },
   );
 

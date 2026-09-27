@@ -21,10 +21,11 @@ export const azanRouter = Router();
  * /azan/calculation-methods:
  *   get:
  *     tags: ['Azan Audio']
- *     summary: Calculation method dropdown catalog (6 methods, EN/AR)
+ *     summary: Calculation method dropdown catalog (14 methods, EN/AR)
  *     description: |
  *       Public catalog for building the "Calculation Method" dropdown picker in Azan Settings.
- *       Returns 6 canonical methods (EGYPT, MWL, MAKKAH, KARACHI, ISNA, TEHRAN) sorted by recommended order,
+ *       Returns 14 canonical methods (EGYPT, MWL, MAKKAH, KARACHI, ISNA, TEHRAN, DUBAI, QATAR, KUWAIT,
+ *       TURKEY, SINGAPORE, KEMENAG, UOIF, MOONSIGHTING) sorted by recommended order,
  *       with EN/AR labels, region hints, and EGYPT marked as default=true.
  *       Use the short `id` field as the canonical key when saving preferences and in query params.
  *       Both short ids and legacy long ids (e.g. EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY) are accepted.

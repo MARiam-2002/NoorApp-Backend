@@ -20,8 +20,9 @@ import {
 } from '../src/services/azan.service';
 import { getAzanSoundById, AZAN_MEDIA_FILES } from '../src/shared/constants/azan-sounds';
 import { isCronRequestAuthorized } from '../src/routes/cron';
+import { azanChannelId, nearPrayerChannelId } from '../src/shared/utils/notification-channels';
+import { localCoverageUntilMs } from '../src/shared/utils/reminder-timing';
 
-const WINDOW = 12;
 const tzCairo = 'Africa/Cairo';
 const tzAhead = 'Asia/Dubai'; // UTC+4
 const tzBehind = 'America/New_York';
@@ -39,7 +40,6 @@ function assertHit(
     minutesUntil: mins,
     preReminderMinutes: pre,
     preReminderEnabled: enabled,
-    windowMinutes: WINDOW,
   });
   assert.equal(got, expect, `${label}: mins=${mins} pre=${pre} → ${got} (want ${expect})`);
 }
@@ -52,23 +52,42 @@ assert.equal(computeNearPrayerLocalHhmm('05:00', 10), '04:50');
 assert.equal(computeNearPrayerLocalHhmm('05:00', 5), '04:55');
 assert.equal(computeNearPrayerLocalHhmm('00:10', 15), '23:55');
 
-console.log('--- 2) classify: 15 / 10 / 5 ---');
-// Target: fire pre when mins ≈ pre
-assertHit(15, 15, true, 'pre_reminder', 'pre15@15');
-assertHit(14, 15, true, 'pre_reminder', 'pre15@14');
-assertHit(20, 15, true, 'pre_reminder', 'pre15@20 within window');
-assertHit(28, 15, true, 'none', 'pre15@28 outside window');
+console.log('--- 2) classify: never early, bounded late ---');
+// Pre fires at exactly `pre` minutes before, never earlier; slip ≤ floor(pre/2).
+assertHit(15, 15, true, 'pre_reminder', 'pre15@15 on time');
+assertHit(16, 15, true, 'none', 'pre15@16 too early');
+assertHit(20, 15, true, 'none', 'pre15@20 too early (old ±12 window sent this)');
+assertHit(27, 15, true, 'none', 'pre15@27 too early (seen in prod logs)');
+assertHit(8, 15, true, 'pre_reminder', 'pre15@8 max slip 7');
+assertHit(7, 15, true, 'none', 'pre15@7 too late for "in 15 minutes"');
 assertHit(10, 10, true, 'pre_reminder', 'pre10@10');
-assertHit(8, 10, true, 'pre_reminder', 'pre10@8');
-assertHit(5, 5, true, 'pre_reminder', 'pre5@5 must NOT be swallowed by prayer_time');
-assertHit(3, 5, true, 'pre_reminder', 'pre5@3 closer to pre than 0');
-assertHit(1, 5, true, 'prayer_time', 'pre5@1 closer to prayer');
+assertHit(5, 5, true, 'pre_reminder', 'pre5@5');
+assertHit(3, 5, true, 'pre_reminder', 'pre5@3 slip 2');
+assertHit(2, 5, true, 'none', 'pre5@2 slip 3 > floor(5/2)');
+assertHit(1, 1, true, 'pre_reminder', 'pre1@1');
+// Azan fires at the prayer minute or after — never before.
+assertHit(1, 15, true, 'none', 'prayer@-1min not yet');
+assertHit(7, 15, true, 'none', 'prayer@-7min not yet (old window sent Azan 7 min early)');
 assertHit(0, 15, true, 'prayer_time', 'at prayer');
-assertHit(5, 15, true, 'prayer_time', 'between pre and prayer → prayer_time');
+assertHit(-3, 15, true, 'prayer_time', 'missed tick catch-up');
+assertHit(-10, 15, true, 'prayer_time', 'late tolerance edge');
+assertHit(-11, 15, true, 'none', 'beyond late tolerance');
+
+console.log('--- 2b) Fajr regression: pre must never swallow prayer_time ---');
+// Prod 2026-09-26/27: run at 05:00 sent pre (mins 19), run at 05:10 (mins 9) chose pre
+// again → already claimed → Azan never sent. Every minute from pre to prayer must
+// classify to at most one kind, and minute 0 must always be prayer_time.
+for (let m = 20; m >= -10; m--) {
+  const got = classifyAzanReminderHit({ minutesUntil: m, preReminderMinutes: 15, preReminderEnabled: true });
+  if (m <= 0) assert.equal(got, 'prayer_time', `mins=${m}`);
+  else if (m <= 15 && m >= 8) assert.equal(got, 'pre_reminder', `mins=${m}`);
+  else assert.equal(got, 'none', `mins=${m}`);
+}
 
 console.log('--- 3) reminder disabled ---');
 assertHit(15, 15, false, 'none', 'disabled@15');
-assertHit(5, 15, false, 'prayer_time', 'disabled still allows prayer_time');
+assertHit(0, 15, false, 'prayer_time', 'disabled still allows prayer_time');
+assertHit(5, 15, false, 'none', 'disabled: no early Azan');
 
 console.log('--- 4) prefs validation ---');
 assert.equal(azanPreferencesSchema.parse({ preReminderMinutes: 10 }).preReminderMinutes, 10);
@@ -254,7 +273,10 @@ const payload = {
   titleAr: fajrCopy.titleAr,
   eventType: fajrCopy.eventType,
   soundType: 'NEAR_PRAYER',
-  androidChannelId: 'near_prayer',
+  androidChannelId: nearPrayerChannelId(
+    String(sound.sound.mediaFile).replace(/\.mp3$/i, ''),
+    true,
+  ),
   nativeSound: String(sound.sound.mediaFile).replace(/\.mp3$/i, ''),
   azanSoundId: getAzanSoundById('mishary_alafasy').id,
 };
@@ -265,6 +287,27 @@ assert.equal(payload.titleAr, 'اقترب موعد صلاة الفجر');
 assert.equal(payload.eventType, 'PRE_PRAYER');
 assert.equal(payload.azanSoundId, 'mishary_alafasy');
 assert.notEqual(payload.notificationSoundId, payload.azanSoundId);
+assert.equal(payload.androidChannelId, 'near_sc_near_fajr');
+assert.equal(nearPrayerChannelId(null, false), 'near_silent_novib');
+assert.equal(nearPrayerChannelId('default', true), 'near_default');
+assert.equal(azanChannelId('nasser_al_qatami', true, true), 'azan_nasser_al_qatami');
+assert.equal(azanChannelId('nasser_al_qatami', false, true), 'azan_silent');
+assert.equal(azanChannelId('mishary_alafasy', true, false), 'azan_mishary_alafasy_novib');
+
+// Local-coverage handshake: backup skipped only up to localScheduledUntil (capped at 16 days).
+{
+  const nowMs = Date.parse('2026-09-27T10:00:00Z');
+  assert.equal(localCoverageUntilMs(null, nowMs), Number.NEGATIVE_INFINITY);
+  assert.equal(localCoverageUntilMs('garbage', nowMs), Number.NEGATIVE_INFINITY);
+  assert.equal(
+    localCoverageUntilMs('2026-09-30T12:00:00+03:00', nowMs),
+    Date.parse('2026-09-30T09:00:00Z'),
+  );
+  assert.equal(
+    localCoverageUntilMs('2027-09-30T00:00:00Z', nowMs),
+    nowMs + 16 * 24 * 60 * 60 * 1000,
+  );
+}
 
 // Prayer-event assets present
 for (const f of [

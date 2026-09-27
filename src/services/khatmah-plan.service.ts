@@ -11,11 +11,12 @@ import {
 } from './salawat-reminder.service';
 import { evaluateMulkEligibility } from './mulk-reminder.service';
 import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
+import { PUSH_TTL_SECONDS, REMINDER_LATE_TOLERANCE_MINUTES } from '../shared/utils/reminder-timing';
 
 export const TOTAL_QURAN_PAGES = 604;
 export const TOTAL_JUZ = 30;
 export const KHATMAH_REMINDER_DEFAULT_TIME = '21:00';
-export const KHATMAH_REMINDER_WINDOW_MINUTES = 12;
+export const KHATMAH_REMINDER_WINDOW_MINUTES = REMINDER_LATE_TOLERANCE_MINUTES;
 
 export const PLAN_MODE_DURATION = 'DURATION_DAYS';
 export const PLAN_MODE_JUZ_MONTH = 'JUZ_PER_MONTH';
@@ -317,18 +318,16 @@ export async function updateKhatmahReminderPreferences(
 }
 
 async function claimOccurrence(userId: string, key: string): Promise<boolean> {
-  try {
-    await prisma.khatmahSendLog.create({ data: { userId, occurrenceKey: key } });
-    return true;
-  } catch (err: any) {
-    if (err?.code === 'P2002') return false;
-    throw err;
-  }
+  const { count } = await prisma.khatmahSendLog.createMany({
+    data: [{ userId, occurrenceKey: key }],
+    skipDuplicates: true,
+  });
+  return count === 1;
 }
 
 /**
  * FCM backup: users with reminder ON + active plan + today's ward incomplete,
- * within ±window of local reminder time.
+ * from the local reminder time up to `windowMinutes` after it.
  */
 export async function runKhatmahReminders(
   now = new Date(),
@@ -443,6 +442,7 @@ export async function runKhatmahReminders(
           bodyAr: BODY_AR,
           data: fcmData,
           androidChannelId: 'khatmah',
+          ttlSeconds: PUSH_TTL_SECONDS.SCHEDULED_REMINDER,
         });
         pushesSent += result.sent;
 

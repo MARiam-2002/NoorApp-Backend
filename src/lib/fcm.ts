@@ -11,9 +11,27 @@ type FcmPayload = {
    * Pass 'default' for OS default. Pass null/undefined for silent notification.
    */
   nativeSound?: string | null;
-  /** Android notification channel ID override. Defaults to 'azan' for Azan-type pushes. */
+  /** Android notification channel ID (must exist on the device). Defaults to `general`. */
   androidChannelId?: string;
+  /**
+   * Drop the message if it cannot be delivered within this many seconds (device offline).
+   * Omit for FCM's default (up to 4 weeks) — only acceptable for non-time-sensitive pushes.
+   */
+  ttlSeconds?: number;
+  /**
+   * iOS 15+ delivery level. `time-sensitive` breaks through Focus / Scheduled Summary
+   * when the app has the Time Sensitive Notifications capability (ignored otherwise).
+   */
+  iosInterruptionLevel?: 'active' | 'time-sensitive';
 };
+
+const APNS_COLLAPSE_ID_MAX_BYTES = 64;
+
+/** APNs needs the bundled file name with extension; Android wants the bare raw name. */
+function apnsSoundName(nativeSound: string): string {
+  if (nativeSound === 'default' || nativeSound.includes('.')) return nativeSound;
+  return `${nativeSound}.caf`;
+}
 
 type SendResult = {
   successCount: number;
@@ -107,17 +125,43 @@ export async function sendFcmToTokens(
   const soundExplicitlyDisabled = payload.nativeSound === null;
 
   const androidNotif: any = {
-    channelId: payload.androidChannelId || 'azan',
+    channelId: payload.androidChannelId || 'general',
   };
   if (!soundExplicitlyDisabled) {
     androidNotif.sound = nativeSound;
+  }
+  // Same logical reminder retried / re-sent replaces the tray entry instead of stacking.
+  const occurrenceKey = payload.data?.occurrenceKey;
+  if (occurrenceKey) {
+    androidNotif.tag = occurrenceKey;
   }
 
   const aps: any = {
     contentAvailable: true,
   };
   if (!soundExplicitlyDisabled) {
-    aps.sound = nativeSound;
+    aps.sound = apnsSoundName(nativeSound);
+  }
+  if (payload.iosInterruptionLevel) {
+    aps['interruption-level'] = payload.iosInterruptionLevel;
+  }
+  if (payload.data?.type) {
+    aps.threadId = payload.data.type;
+  }
+
+  const ttlSeconds =
+    payload.ttlSeconds != null && Number.isFinite(payload.ttlSeconds)
+      ? Math.max(0, Math.floor(payload.ttlSeconds))
+      : null;
+  const apnsHeaders: Record<string, string> = {
+    'apns-priority': '10',
+    'apns-push-type': 'alert',
+  };
+  if (ttlSeconds != null) {
+    apnsHeaders['apns-expiration'] = String(Math.floor(Date.now() / 1000) + ttlSeconds);
+  }
+  if (occurrenceKey && Buffer.byteLength(occurrenceKey, 'utf8') <= APNS_COLLAPSE_ID_MAX_BYTES) {
+    apnsHeaders['apns-collapse-id'] = occurrenceKey;
   }
 
   const response = await msg.sendEachForMulticast({
@@ -131,9 +175,11 @@ export async function sendFcmToTokens(
     ),
     android: {
       priority: 'high',
+      ...(ttlSeconds != null ? { ttl: ttlSeconds * 1000 } : {}),
       notification: androidNotif,
     },
     apns: {
+      headers: apnsHeaders,
       payload: {
         aps,
       },

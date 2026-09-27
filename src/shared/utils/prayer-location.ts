@@ -33,6 +33,8 @@ export function inferTimezoneFromCoordinates(
   return fallback;
 }
 
+const ymdFormatters = new Map<string, Intl.DateTimeFormat>();
+
 /**
  * Calendar Y-M-D parts in a given IANA timezone.
  */
@@ -40,12 +42,17 @@ export function getZonedYmd(
   date: Date,
   timeZone: string,
 ): { year: number; month: number; day: number; dateStr: string } {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
+  let formatter = ymdFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    ymdFormatters.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
   const year = Number(parts.find((p) => p.type === 'year')?.value);
   const month = Number(parts.find((p) => p.type === 'month')?.value);
   const day = Number(parts.find((p) => p.type === 'day')?.value);

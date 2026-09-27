@@ -586,8 +586,19 @@ Backend /prayers/today is a **cross-check / UI source**. But **Azan alarms must 
    - `KARACHI` → `Karachi()`
    - `ISNA` → `NorthAmerica()`
    - `TEHRAN` → `Tehran()`
+   - `DUBAI` → `Dubai()`
+   - `QATAR` → `Qatar()`
+   - `KUWAIT` → `Kuwait()`
+   - `TURKEY` → `Turkey()`
+   - `SINGAPORE` → `Singapore()`
+   - `MOONSIGHTING` → `MoonsightingCommittee()`
+   - `KEMENAG` → `Other()` with `fajrAngle = 20`, `ishaAngle = 18`
+   - `UOIF` → `Other()` with `fajrAngle = 12`, `ishaAngle = 12`
    - `SHAFI` → `Madhab.Shafi`
    - `HANAFI` → `Madhab.Hanafi`
+   - Always (to match Backend): `highLatitudeRule = HighLatitudeRule.recommended(coordinates)`,
+     `polarCircleResolution = PolarCircleResolution.aqrabBalad`, and for `MAKKAH` during Ramadan
+     (Umm al-Qura month 9) `ishaInterval = 120`.
 5. At every prayer time alarm:
    a. Show system notification (title/body localized).
    b. If `soundEnabled && prayers[X] == true && azanEnabled` → play the MP3 from `notificationSound.audioUrl` (pre-reminder N min before) or `azanSound.audioUrl` (at exact Azan time). Prefer caching MP3 locally after first play.

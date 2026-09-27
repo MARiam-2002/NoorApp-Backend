@@ -6,6 +6,7 @@ import { appConfig, getApiBasePath } from './config';
 import { initializeApp } from './app';
 import { logger } from './lib/logger';
 import { disconnectDatabase } from './lib/prisma';
+import { startReminderScheduler, stopReminderScheduler } from './lib/reminder-scheduler';
 
 async function bootstrap(): Promise<void> {
   const app = await initializeApp();
@@ -16,6 +17,7 @@ async function bootstrap(): Promise<void> {
       apiBasePath: getApiBasePath(),
       docs: `${getApiBasePath()}/docs`,
     });
+    startReminderScheduler();
   });
 
   let shuttingDown = false;
@@ -23,6 +25,7 @@ async function bootstrap(): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
     logger.info(`${signal} received. Shutting down gracefully...`);
+    stopReminderScheduler();
     server.close(() => {
       void disconnectDatabase()
         .catch((error: unknown) => {

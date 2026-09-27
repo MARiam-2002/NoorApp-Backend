@@ -12,6 +12,7 @@ import {
   DEFAULT_SALAWAT_NATIVE_SOUND,
   DEFAULT_SALAWAT_MEDIA_FILE,
 } from '../shared/constants/salawat-audio';
+import { PUSH_TTL_SECONDS } from '../shared/utils/reminder-timing';
 
 /** Legacy default interval (hours) — maps to intervalMinutes 180. */
 export const SALAWAT_INTERVAL_HOURS = 3;
@@ -28,6 +29,12 @@ export const SALAWAT_QUIET_END_HOUR = 8;
 export const SALAWAT_DEFAULT_INTERVAL_MINUTES: SalawatIntervalMinutes = 180;
 export const SALAWAT_DEFAULT_START = '08:00';
 export const SALAWAT_DEFAULT_END = '22:00';
+
+/**
+ * Per-minute ticks send a few seconds after the minute starts; without this grace the
+ * next send would slip one whole minute every interval (08:00 → 09:01 → 10:02 …).
+ */
+const SALAWAT_TICK_JITTER_GRACE_MINUTES = 0.5;
 
 const HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -250,7 +257,10 @@ export function evaluateSalawatEligibility(input: {
     lastAt == null ? null : (input.now.getTime() - lastAt.getTime()) / 60_000;
   const hoursSinceLast = minutesSinceLast == null ? null : minutesSinceLast / 60;
 
-  if (minutesSinceLast != null && minutesSinceLast < intervalMinutes) {
+  if (
+    minutesSinceLast != null &&
+    minutesSinceLast < intervalMinutes - SALAWAT_TICK_JITTER_GRACE_MINUTES
+  ) {
     return {
       eligible: false,
       reason: 'TOO_SOON',
@@ -508,6 +518,7 @@ export async function runSalawatReminders(now = new Date()): Promise<{
           data: fcmData,
           nativeSound,
           androidChannelId: 'salawat',
+          ttlSeconds: PUSH_TTL_SECONDS.SALAWAT,
         });
         pushesSent += result.sent;
 

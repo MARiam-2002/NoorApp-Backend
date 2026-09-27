@@ -18,39 +18,33 @@ const tzNy = 'America/New_York';
 
 assert.equal(MULK_DEFAULT_TIME, '20:00');
 assert.equal(MULK_SURAH_ID, 67);
-assert.equal(MULK_WINDOW_MINUTES, 12);
+assert.equal(MULK_WINDOW_MINUTES, 10);
 assert.equal(occurrenceKey('2026-09-26', '20:00'), '2026-09-26|MULK|20:00');
 
-/** Find a recent instant whose local clock is within ±window of target HH:mm. */
-function findNearLocalTime(targetHhmm: string, timeZone: string, window = 12): Date {
-  const target = parseHhmm(targetHhmm)?.total;
-  if (target == null) throw new Error(`bad target ${targetHhmm}`);
-  const base = new Date();
-  for (let i = 0; i < 48 * 6; i++) {
-    const d = new Date(base.getTime() - i * 10 * 60_000);
-    const clock = getLocalClock(d, timeZone);
-    const now = clock.hour * 60 + clock.minute;
-    if (Math.abs(now - target) <= window) return d;
-  }
-  throw new Error(`Could not find local ~${targetHhmm} (±${window}) in ${timeZone}`);
-}
+// Cairo is UTC+3 and New York UTC-4 on these dates.
+const atEightCairo = new Date('2026-09-26T17:00:20.000Z');
+const afternoonCairo = new Date('2026-09-26T12:00:00.000Z');
+const atEightNy = new Date('2026-09-27T00:00:20.000Z');
+assert.equal(getLocalClock(atEightCairo, tzCairo).hour, 20);
+assert.equal(getLocalClock(atEightNy, tzNy).hour, 20);
+assert.equal(parseHhmm('20:00')?.total, 20 * 60);
 
-function findFarFromLocalTime(targetHhmm: string, timeZone: string, minDistance = 60): Date {
-  const target = parseHhmm(targetHhmm)?.total;
-  if (target == null) throw new Error(`bad target ${targetHhmm}`);
-  const base = new Date();
-  for (let i = 0; i < 48 * 6; i++) {
-    const d = new Date(base.getTime() - i * 10 * 60_000);
-    const clock = getLocalClock(d, timeZone);
-    const now = clock.hour * 60 + clock.minute;
-    if (Math.abs(now - target) >= minDistance) return d;
-  }
-  throw new Error(`Could not find local far from ${targetHhmm} in ${timeZone}`);
+console.log('--- never early, bounded late ---');
+for (const [offsetMin, want] of [
+  [-12, false],
+  [-1, false],
+  [0, true],
+  [5, true],
+  [10, true],
+  [11, false],
+] as const) {
+  const d = new Date(atEightCairo.getTime() + offsetMin * 60_000);
+  assert.equal(
+    evaluateMulkEligibility({ enabled: true, now: d, timeZone: tzCairo }).eligible,
+    want,
+    `offset ${offsetMin}m`,
+  );
 }
-
-const atEightCairo = findNearLocalTime('20:00', tzCairo);
-const afternoonCairo = findFarFromLocalTime('20:00', tzCairo, 60);
-const atEightNy = findNearLocalTime('20:00', tzNy);
 
 assert.equal(
   evaluateMulkEligibility({
@@ -86,13 +80,12 @@ const okNy = evaluateMulkEligibility({
 });
 assert.equal(okNy.eligible, true);
 
-const nearCustom = findNearLocalTime('21:30', tzCairo);
+const nearCustom = new Date('2026-09-26T18:30:30.000Z');
 const customOk = evaluateMulkEligibility({
   enabled: true,
   now: nearCustom,
   timeZone: tzCairo,
   reminderTime: '21:30',
-  windowMinutes: 12,
 });
 assert.equal(customOk.eligible, true);
 assert.ok(customOk.occurrenceKey?.includes('|MULK|21:30'));

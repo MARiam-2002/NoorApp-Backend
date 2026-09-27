@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
-import { DEFAULT_PRAYER_LOCATION } from '../shared/constants/default-location';
+import {
+  CALCULATION_METHODS_CATALOG,
+  DEFAULT_PRAYER_LOCATION,
+} from '../shared/constants/default-location';
 import {
   DEFAULT_AZAN_SOUND_ID,
   DEFAULT_NOTIFICATION_SOUND_ID,
@@ -71,6 +74,13 @@ export const azanPreferencesSchema = z.object({
   lastLng: z.number().min(-180).max(180).nullable().optional(),
   lastLocationLabel: z.string().trim().max(200).nullable().optional(),
   fcmPrayerBackupEnabled: z.boolean().default(true),
+  /**
+   * Latest instant (ISO-8601 with offset) up to which the app has scheduled
+   * local Azan / pre-prayer / Duha / Qiyam notifications on this account.
+   * Server FCM backup is skipped for occurrences at or before this instant so
+   * the user never gets the same reminder twice. `null` = no local coverage.
+   */
+  localScheduledUntil: z.string().datetime({ offset: true }).nullable().optional(),
   /** Present on GET responses when Backend filled Cairo defaults. */
   isDefaultLocation: z.boolean().optional(),
   locationSource: z.enum(['default_cairo', 'profile', 'query']).optional(),
@@ -180,36 +190,53 @@ function enrichPrefs(prefs: AzanPreferences): AzanPreferencesResponse {
   };
 }
 
+export const AZAN_PREFERENCES_USER_SELECT = {
+  azanPreferences: true,
+  prayerCalculationMethod: true,
+  latitude: true,
+  longitude: true,
+  city: true,
+} as const;
+
+export type AzanPreferencesUserRow = {
+  azanPreferences: unknown;
+  prayerCalculationMethod: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  city: string | null;
+};
+
+function canonicalMethodId(raw: string): string | null {
+  const method = raw.trim().toUpperCase();
+  const exact = CALCULATION_METHODS_CATALOG.find((m) => m.aliases.includes(method));
+  if (exact) return exact.id;
+  const partial = CALCULATION_METHODS_CATALOG.find((m) =>
+    m.aliases.some((alias) => method.includes(alias)),
+  );
+  return partial?.id ?? null;
+}
+
 export async function getAzanPreferences(userId: string): Promise<AzanPreferencesResponse> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      azanPreferences: true,
-      prayerCalculationMethod: true,
-      latitude: true,
-      longitude: true,
-      city: true,
-    },
+    select: AZAN_PREFERENCES_USER_SELECT,
   });
   if (!user) {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
+  return buildAzanPreferencesFromUser(user);
+}
 
+/** Pure (no DB) — lets batch jobs build prefs from one findMany instead of N queries. */
+export function buildAzanPreferencesFromUser(user: AzanPreferencesUserRow): AzanPreferencesResponse {
   const prefs = normalizePrefs(user.azanPreferences);
   if (prefs.lastLat == null && user.latitude != null) prefs.lastLat = user.latitude;
   if (prefs.lastLng == null && user.longitude != null) prefs.lastLng = user.longitude;
   if (!prefs.lastLocationLabel && user.city) prefs.lastLocationLabel = user.city;
   if (prefs.calculationMethod === 'EGYPT' && user.prayerCalculationMethod) {
     if (user.azanPreferences == null) {
-      const method = String(user.prayerCalculationMethod).toUpperCase();
-      if (method.includes('EGYPT')) prefs.calculationMethod = 'EGYPT';
-      else if (method.includes('MWL') || method.includes('MUSLIM_WORLD'))
-        prefs.calculationMethod = 'MWL';
-      else if (method.includes('MAKKAH') || method.includes('UMM'))
-        prefs.calculationMethod = 'MAKKAH';
-      else if (method.includes('KARACHI')) prefs.calculationMethod = 'KARACHI';
-      else if (method.includes('ISNA')) prefs.calculationMethod = 'ISNA';
-      else if (method.includes('TEHRAN')) prefs.calculationMethod = 'TEHRAN';
+      prefs.calculationMethod =
+        canonicalMethodId(String(user.prayerCalculationMethod)) ?? prefs.calculationMethod;
     }
   }
 

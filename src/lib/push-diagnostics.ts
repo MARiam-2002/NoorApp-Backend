@@ -128,7 +128,9 @@ function safeHost(url: string): string | undefined {
 /** Cron / batch summary — one line per job. */
 export function logPushCronSummary(input: {
   job: 'prayer_reminders';
-  windowMinutes?: number;
+  trigger?: 'scheduler' | 'http';
+  durationMs?: number;
+  lateToleranceMinutes?: number;
   usersScanned: number;
   pushesAttempted: number;
   pushesSent: number;

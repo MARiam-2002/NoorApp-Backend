@@ -1,5 +1,12 @@
 import type { PrayerName } from '@prisma/client';
-import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from 'adhan';
+import {
+  CalculationMethod,
+  Coordinates,
+  HighLatitudeRule,
+  Madhab,
+  PolarCircleResolution,
+  PrayerTimes,
+} from 'adhan';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
@@ -97,14 +104,38 @@ export type DailyPrayerSchedule = {
   totalCount: number;
 } & PrayerLocationMeta;
 
+// Constructing Intl.DateTimeFormat is ~100x slower than using one; the per-minute
+// reminder pass formats thousands of times, so formatters are cached per zone.
+const validTimezones = new Map<string, boolean>();
+const timeFormatters = new Map<string, Intl.DateTimeFormat>();
+
 function resolveTimezone(timezone?: string | null): string {
   const candidate = timezone?.trim() || DefaultTimezone;
-  try {
-    Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(new Date());
-    return candidate;
-  } catch {
-    return DefaultTimezone;
+  let valid = validTimezones.get(candidate);
+  if (valid === undefined) {
+    try {
+      Intl.DateTimeFormat('en-US', { timeZone: candidate }).format(new Date());
+      valid = true;
+    } catch {
+      valid = false;
+    }
+    validTimezones.set(candidate, valid);
   }
+  return valid ? candidate : DefaultTimezone;
+}
+
+function cachedFormatter(
+  locale: 'en-GB' | 'en-US',
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  const key = `${locale}|${timeZone}|${options.hour12 ? '12' : '24'}`;
+  let formatter = timeFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone });
+    timeFormatters.set(key, formatter);
+  }
+  return formatter;
 }
 
 const ARABIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -115,35 +146,20 @@ function toArabicDigits(value: string): string {
 
 function formatTime(date: Date, timezone: string): string {
   const tz = resolveTimezone(timezone);
-  try {
-    return new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: tz,
-    }).format(date);
-  } catch {
-    return new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: DefaultTimezone,
-    }).format(date);
-  }
+  return cachedFormatter('en-GB', tz, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
 }
 
 function formatDisplayEn(date: Date, timezone: string): string {
   const tz = resolveTimezone(timezone);
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: tz,
-    }).format(date);
-  } catch {
-    return formatTime(date, timezone);
-  }
+  return cachedFormatter('en-US', tz, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
 }
 
 function formatDisplayAr(date: Date, timezone: string): string {
@@ -188,11 +204,34 @@ function normalizeMadhabKey(madhab?: string | null): string {
     : 'SHAFI';
 }
 
-function resolveCalculationParams(options?: PrayerCalcOptions) {
+function customAngleMethod(fajrAngle: number, ishaAngle: number) {
+  const params = CalculationMethod.Other();
+  params.fajrAngle = fajrAngle;
+  params.ishaAngle = ishaAngle;
+  return params;
+}
+
+const ummAlQuraMonthFormatter = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {
+  timeZone: 'UTC',
+  month: 'numeric',
+});
+
+/** `adhanDay` is the UTC-noon Date that represents the user's local calendar day. */
+function isRamadan(adhanDay: Date): boolean {
+  const month = ummAlQuraMonthFormatter.formatToParts(adhanDay).find((p) => p.type === 'month');
+  return month?.value === '9';
+}
+
+function resolveCalculationParams(
+  options: PrayerCalcOptions | undefined,
+  coordinates: Coordinates,
+  adhanDay: Date,
+) {
   const methodKey = normalizeMethodKey(options?.method);
   const madhabKey = normalizeMadhabKey(options?.madhab);
 
   let params;
+  let isUmmAlQura = false;
   switch (methodKey) {
     case 'MWL':
     case 'MUSLIM_WORLD_LEAGUE':
@@ -201,6 +240,7 @@ function resolveCalculationParams(options?: PrayerCalcOptions) {
     case 'MAKKAH':
     case 'UMM_AL_QURA':
       params = CalculationMethod.UmmAlQura();
+      isUmmAlQura = true;
       break;
     case 'KARACHI':
       params = CalculationMethod.Karachi();
@@ -212,6 +252,38 @@ function resolveCalculationParams(options?: PrayerCalcOptions) {
     case 'TEHRAN':
       params = CalculationMethod.Tehran();
       break;
+    case 'DUBAI':
+    case 'UAE':
+      params = CalculationMethod.Dubai();
+      break;
+    case 'QATAR':
+      params = CalculationMethod.Qatar();
+      break;
+    case 'KUWAIT':
+      params = CalculationMethod.Kuwait();
+      break;
+    case 'SINGAPORE':
+    case 'MUIS':
+    case 'JAKIM':
+    case 'MALAYSIA':
+      params = CalculationMethod.Singapore();
+      break;
+    case 'TURKEY':
+    case 'DIYANET':
+      params = CalculationMethod.Turkey();
+      break;
+    case 'MOONSIGHTING':
+    case 'MOONSIGHTING_COMMITTEE':
+      params = CalculationMethod.MoonsightingCommittee();
+      break;
+    case 'UOIF':
+    case 'FRANCE':
+      params = customAngleMethod(12, 12);
+      break;
+    case 'KEMENAG':
+    case 'INDONESIA':
+      params = customAngleMethod(20, 18);
+      break;
     case 'EGYPT':
     case 'EGYPTIAN':
     case 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY':
@@ -221,6 +293,16 @@ function resolveCalculationParams(options?: PrayerCalcOptions) {
   }
 
   params.madhab = madhabKey === 'HANAFI' ? Madhab.Hanafi : Madhab.Shafi;
+  // Above 48° Fajr/Isha twilight may never end in summer; SeventhOfTheNight is the
+  // adhan-recommended rule there (MiddleOfTheNight below 48° = unchanged for MENA).
+  params.highLatitudeRule = HighLatitudeRule.recommended(coordinates);
+  // Inside the polar circles sunrise/sunset can be missing entirely; use the
+  // nearest latitude where they exist instead of returning invalid times.
+  params.polarCircleResolution = PolarCircleResolution.AqrabBalad;
+  // Umm al-Qura officially extends Isha to 120 min after Maghrib during Ramadan.
+  if (isUmmAlQura && isRamadan(adhanDay)) {
+    params.ishaInterval = 120;
+  }
   return { params, methodKey, madhabKey };
 }
 
@@ -265,6 +347,80 @@ function buildLocationMeta(
   };
 }
 
+/**
+ * Stale Africa/Cairo on non-Cairo coords wins over "explicit" — User.timezone
+ * and many clients default to Cairo even after GPS updates elsewhere.
+ */
+export function resolvePrayerTimezone(
+  lat: number,
+  lng: number,
+  timezone: string | null | undefined,
+  locationSource: PrayerLocationSource,
+): string {
+  const providedTz = timezone?.trim() || '';
+  const looksLikeStaleCairoDefault =
+    locationSource !== 'default_cairo' &&
+    providedTz === DEFAULT_PRAYER_LOCATION.timezone &&
+    (Math.abs(lat - DEFAULT_LATITUDE) > 0.05 || Math.abs(lng - DEFAULT_LONGITUDE) > 0.05);
+
+  return resolveTimezone(
+    looksLikeStaleCairoDefault
+      ? inferTimezoneFromCoordinates(lat, lng, DEFAULT_PRAYER_LOCATION.timezone)
+      : providedTz
+        ? providedTz
+        : locationSource === 'default_cairo'
+          ? DEFAULT_PRAYER_LOCATION.timezone
+          : inferTimezoneFromCoordinates(lat, lng, DEFAULT_PRAYER_LOCATION.timezone),
+  );
+}
+
+export type PrayerInstant = {
+  key: PrayerNameEnum;
+  /** Local calendar day (YYYY-MM-DD) this prayer belongs to — Isha may fall after midnight. */
+  date: string;
+  /** Local HH:mm in `timezone`. */
+  time: string;
+  timestamp: Date;
+};
+
+/**
+ * Absolute prayer instants for the user's local yesterday, today and tomorrow.
+ * Reminder scheduling must compare instants (not same-day HH:mm) so Isha after
+ * midnight (high latitudes in summer) and pre-reminders that cross midnight work.
+ */
+export function computePrayerInstantsAround(input: {
+  latitude: number;
+  longitude: number;
+  timezone?: string | null;
+  method?: string;
+  madhab?: string;
+  locationSource: PrayerLocationSource;
+  now?: Date;
+}): { timezone: string; instants: PrayerInstant[] } {
+  const now = input.now ?? new Date();
+  const tz = resolvePrayerTimezone(input.latitude, input.longitude, input.timezone, input.locationSource);
+  const coordinates = new Coordinates(input.latitude, input.longitude);
+  const today = zonedCalendarDateForAdhan(now, tz);
+  const instants: PrayerInstant[] = [];
+
+  for (const offset of [-1, 0, 1]) {
+    const day = addCalendarDaysUtcNoon(today, offset);
+    const { params } = resolveCalculationParams(
+      { method: input.method, madhab: input.madhab },
+      coordinates,
+      day,
+    );
+    const map = getPrayerDateMap(new PrayerTimes(coordinates, day, params));
+    const date = day.toISOString().slice(0, 10);
+    for (const key of PrayerOrder) {
+      const timestamp = map[key];
+      if (!(timestamp instanceof Date) || Number.isNaN(timestamp.getTime())) continue;
+      instants.push({ key, date, time: formatTime(timestamp, tz), timestamp });
+    }
+  }
+  return { timezone: tz, instants };
+}
+
 export function calculateDailyPrayerSchedule(
   latitude: number,
   longitude: number,
@@ -279,31 +435,13 @@ export function calculateDailyPrayerSchedule(
   const locationSource: PrayerLocationSource =
     options?.locationSource ?? (usedDefaultCoords ? 'default_cairo' : 'query');
 
-  const providedTz = timezone?.trim() || '';
-  const looksLikeStaleCairoDefault =
-    locationSource !== 'default_cairo' &&
-    providedTz === DEFAULT_PRAYER_LOCATION.timezone &&
-    (Math.abs(lat - DEFAULT_LATITUDE) > 0.05 || Math.abs(lng - DEFAULT_LONGITUDE) > 0.05);
-
-  // Stale Africa/Cairo on non-Cairo coords wins over "explicit" — User.timezone
-  // and many clients default to Cairo even after GPS updates elsewhere.
-  const tz = resolveTimezone(
-    looksLikeStaleCairoDefault
-      ? inferTimezoneFromCoordinates(lat, lng, DEFAULT_PRAYER_LOCATION.timezone)
-      : options?.timezoneExplicit && providedTz
-        ? providedTz
-        : providedTz
-          ? providedTz
-          : locationSource === 'default_cairo'
-            ? DEFAULT_PRAYER_LOCATION.timezone
-            : inferTimezoneFromCoordinates(lat, lng, DEFAULT_PRAYER_LOCATION.timezone),
-  );
+  const tz = resolvePrayerTimezone(lat, lng, timezone, locationSource);
 
   const nowInstant = referenceDate;
   // Adhan day = local calendar day in the prayer timezone (not server UTC day).
   const adhanDay = zonedCalendarDateForAdhan(nowInstant, tz);
   const coordinates = new Coordinates(lat, lng);
-  const { params, methodKey, madhabKey } = resolveCalculationParams(options);
+  const { params, methodKey, madhabKey } = resolveCalculationParams(options, coordinates, adhanDay);
   const prayerTimes = new PrayerTimes(coordinates, adhanDay, params);
   const prayerDateMap = getPrayerDateMap(prayerTimes);
   const now = nowInstant.getTime();
@@ -358,7 +496,11 @@ export function calculateDailyPrayerSchedule(
     };
   } else {
     const tomorrow = addCalendarDaysUtcNoon(adhanDay, 1);
-    const tomorrowTimes = new PrayerTimes(coordinates, tomorrow, params);
+    const tomorrowTimes = new PrayerTimes(
+      coordinates,
+      tomorrow,
+      resolveCalculationParams(options, coordinates, tomorrow).params,
+    );
     const fajrTs = tomorrowTimes.fajr;
     nextPrayer = {
       name: prayerEnumToTitle(PrayerNameEnum.FAJR),

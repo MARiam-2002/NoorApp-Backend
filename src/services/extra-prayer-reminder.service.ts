@@ -12,10 +12,15 @@ import {
   resolveTimezone,
 } from './salawat-reminder.service';
 import { evaluateMulkEligibility } from './mulk-reminder.service';
+import {
+  localCoverageUntilMs,
+  PUSH_TTL_SECONDS,
+  REMINDER_LATE_TOLERANCE_MINUTES,
+} from '../shared/utils/reminder-timing';
 
 export const DUHA_DEFAULT_TIME = '09:30';
 export const QIYAM_DEFAULT_TIME = '02:30';
-export const EXTRA_PRAYER_WINDOW_MINUTES = 12;
+export const EXTRA_PRAYER_WINDOW_MINUTES = REMINDER_LATE_TOLERANCE_MINUTES;
 
 export const DUHA_SOUND_ID = 'sc_event_duha';
 export const QIYAM_SOUND_ID = 'sc_event_qiyam';
@@ -209,6 +214,7 @@ async function runKindReminders(
         duhaReminderTime: true,
         qiyamReminderEnabled: true,
         qiyamReminderTime: true,
+        azanPreferences: true,
       },
       take: 200,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -240,6 +246,21 @@ async function runKindReminders(
         if (!decision.eligible || !occurrenceKey || !decision.dayKey) {
           const key = decision.reason ?? 'SKIP';
           skipped[key] = (skipped[key] ?? 0) + 1;
+          continue;
+        }
+
+        const fireAtMs =
+          Math.floor(now.getTime() / 60_000) * 60_000 - (decision.minutesFromTarget ?? 0) * 60_000;
+        const localScheduledUntil = (user.azanPreferences as { localScheduledUntil?: unknown } | null)
+          ?.localScheduledUntil;
+        if (
+          fireAtMs <=
+          localCoverageUntilMs(
+            typeof localScheduledUntil === 'string' ? localScheduledUntil : null,
+            now.getTime(),
+          )
+        ) {
+          skipped.LOCAL_SCHEDULED = (skipped.LOCAL_SCHEDULED ?? 0) + 1;
           continue;
         }
 
@@ -289,6 +310,7 @@ async function runKindReminders(
           data: fcmData,
           nativeSound: m.nativeSound,
           androidChannelId: m.androidChannelId,
+          ttlSeconds: PUSH_TTL_SECONDS.SCHEDULED_REMINDER,
         });
         pushesSent += result.sent;
 

@@ -56,18 +56,32 @@ export const sendTestPushHandler = asyncHandler(async (req: Request, res: Respon
   if (!userId) {
     throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
   }
-  const { title, body, titleAr, bodyAr } = (req.body ?? {}) as {
+  const { title, body, titleAr, bodyAr, androidChannelId, nativeSound } = (req.body ?? {}) as {
     title?: string;
     body?: string;
     titleAr?: string;
     bodyAr?: string;
+    /** Lets QA verify each channel + sound end-to-end, e.g. `azan_nasser_al_qatami`. */
+    androidChannelId?: string;
+    nativeSound?: string;
   };
+  const resourceName = /^[a-z0-9_]{1,64}$/;
+  const channel =
+    typeof androidChannelId === 'string' && resourceName.test(androidChannelId)
+      ? androidChannelId
+      : 'general';
+  const sound =
+    typeof nativeSound === 'string' && (nativeSound === 'default' || resourceName.test(nativeSound))
+      ? nativeSound
+      : 'default';
   const data = await sendPushToUser(userId, {
     title: title ?? 'Noor',
     body: body ?? 'Test notification',
     titleAr: titleAr ?? 'نور',
     bodyAr: bodyAr ?? 'إشعار تجريبي',
-    data: { type: 'TEST' },
+    data: { type: 'TEST', androidChannelId: channel, nativeSound: sound },
+    androidChannelId: channel,
+    nativeSound: sound,
   });
   sendSuccess(res, data, 'Test push attempted', req);
 });

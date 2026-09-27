@@ -10,11 +10,16 @@ import {
   normalizeHhmm,
   resolveTimezone,
 } from './salawat-reminder.service';
+import {
+  isDueAtLocalMinute,
+  PUSH_TTL_SECONDS,
+  REMINDER_LATE_TOLERANCE_MINUTES,
+} from '../shared/utils/reminder-timing';
 
 /** Default local bedtime reminder (8 PM). */
 export const MULK_DEFAULT_TIME = '20:00';
-/** Cron window (± minutes) around mulkReminderTime — matches ~10m prayer cron cadence. */
-export const MULK_WINDOW_MINUTES = 12;
+/** Minutes after mulkReminderTime a missed tick may still send (never before). */
+export const MULK_WINDOW_MINUTES = REMINDER_LATE_TOLERANCE_MINUTES;
 /** Quran surah number for deep link. */
 export const MULK_SURAH_ID = 67;
 
@@ -49,8 +54,8 @@ export function occurrenceKey(dayKey: string, time: string): string {
 }
 
 /**
- * True when local clock is within ±windowMinutes of target HH:mm.
- * Does not wrap midnight (20:00 ±12 stays evening-only).
+ * True from the target local HH:mm up to `windowMinutes` after it — never before.
+ * Does not wrap midnight. Shared by Mulk, Duha, Qiyam and Khatmah.
  */
 export function evaluateMulkEligibility(input: {
   enabled: boolean;
@@ -85,8 +90,8 @@ export function evaluateMulkEligibility(input: {
   }
 
   const nowMinutes = clock.hour * 60 + clock.minute;
-  const minutesFromTarget = Math.abs(nowMinutes - target.total);
-  if (minutesFromTarget > window) {
+  const minutesFromTarget = nowMinutes - target.total;
+  if (!isDueAtLocalMinute(minutesFromTarget, window)) {
     return {
       eligible: false,
       reason: 'OUTSIDE_WINDOW',
@@ -275,6 +280,7 @@ export async function runMulkReminders(
           bodyAr: MULK_BODY_AR,
           data: fcmData,
           androidChannelId: 'mulk',
+          ttlSeconds: PUSH_TTL_SECONDS.SCHEDULED_REMINDER,
         });
         pushesSent += result.sent;
 

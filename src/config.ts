@@ -79,6 +79,8 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: z.string().default(''),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().default(''),
   CRON_SECRET: z.string().default(''),
+  // Per-minute in-process reminder scheduler. auto = production only (dev servers must not push real users).
+  REMINDER_SCHEDULER_ENABLED: z.enum(['auto', 'true', 'false']).default('auto'),
   // Public legal pages (/privacy, /delete-account). Empty values render as [PLACEHOLDER].
   LEGAL_DEVELOPER_NAME: z.string().default(''),
   LEGAL_CONTACT_EMAIL: z.string().default(''),

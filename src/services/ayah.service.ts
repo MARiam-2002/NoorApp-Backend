@@ -168,22 +168,29 @@ export async function getUserAyah(userId: string, sessionId: string) {
       : undefined;
 
     const picked = await pickRandomAyah(exclude);
-    surahId = picked.surahId;
-    ayahNumber = picked.ayahNumber;
 
-    const created = await prisma.userAyahHistory.upsert({
-      where: { userId_sessionId: { userId, sessionId } },
-      create: {
-        userId,
-        sessionId,
-        surahId,
-        ayahNumber,
-        displayDate: today,
-      },
-      update: {},
-      select: { id: true, createdAt: true },
+    // Concurrent first requests for one session race here; ON CONFLICT DO NOTHING
+    // lets the loser read the winner's row instead of failing with 409.
+    const inserted = await prisma.userAyahHistory.createMany({
+      data: [
+        {
+          userId,
+          sessionId,
+          surahId: picked.surahId,
+          ayahNumber: picked.ayahNumber,
+          displayDate: today,
+        },
+      ],
+      skipDuplicates: true,
     });
-    historyId = created.id;
+    const row = await prisma.userAyahHistory.findUniqueOrThrow({
+      where: { userId_sessionId: { userId, sessionId } },
+      select: { id: true, surahId: true, ayahNumber: true },
+    });
+    isNew = inserted.count === 1;
+    surahId = row.surahId;
+    ayahNumber = row.ayahNumber;
+    historyId = row.id;
   }
 
   const raw = await prisma.ayah.findUnique({

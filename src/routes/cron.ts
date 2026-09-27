@@ -50,15 +50,16 @@ function assertCronAuthorized(req: {
  *     tags: ['Cron']
  *     summary: FCM reminders cron — Azan backup + Pray-for-the-Prophet ﷺ
  *     description: |
- *       Same scheduler (~every 10 minutes). Runs Azan prayer-window pushes, then
- *       Salawat reminders (opt-in; user interval 30/60/120/180 min; active HH:mm window in user timezone).
+ *       Safety net for the in-process per-minute reminder scheduler (Railway cron ~every 10 minutes).
+ *       Runs Azan, Salawat, Mulk, Duha, Qiyam and Khatmah reminders. Reminders are never sent
+ *       before their local time; a missed minute is caught up within the late tolerance.
  *       Auth: Authorization Bearer CRON_SECRET, X-Cron-Secret, or ?secret= (no Vercel bypass).
  */
 cronRouter.post(
   '/prayer-reminders',
   asyncHandler(async (req, res) => {
     assertCronAuthorized(req as any);
-    const data = await runPrayerReminderCron(12);
+    const data = await runPrayerReminderCron('http');
     sendSuccess(res, data, 'Prayer reminder cron completed', req);
   }),
 );
@@ -67,7 +68,7 @@ cronRouter.get(
   '/prayer-reminders',
   asyncHandler(async (req, res) => {
     assertCronAuthorized(req as any);
-    const data = await runPrayerReminderCron(12);
+    const data = await runPrayerReminderCron('http');
     sendSuccess(res, data, 'Prayer reminder cron completed', req);
   }),
 );
