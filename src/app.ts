@@ -9,6 +9,7 @@ import { connectDatabase } from './lib/prisma';
 import { httpLogger, applySecurityMiddlewares, apiRateLimiter } from './middleware/http';
 import { setupSwagger } from './lib/swagger';
 import { v1Router } from './routes';
+import { legalRouter } from './routes/legal';
 import { logger } from './lib/logger';
 import { warmRedisConnection } from './lib/redis';
 
@@ -210,6 +211,8 @@ code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:rgba(
 </body>
 </html>`);
   });
+
+  app.use(legalRouter);
 
   setupSwagger(app);
 

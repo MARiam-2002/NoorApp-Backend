@@ -803,6 +803,6 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
     );
   }
 
-  logger.info('User logged in via Google', { userId: user.id, email: user.email });
+  logger.info('User logged in via Google', { userId: user.id });
   return createAuthResultForUser(user);
 }

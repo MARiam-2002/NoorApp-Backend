@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { env, ErrorCodes, HttpStatus } from '../config';
@@ -36,7 +37,11 @@ export function generateAccessToken(payload: JwtPayload): string {
 
 export function generateRefreshToken(payload: JwtPayload): string {
   assertSecureSecrets();
-  return jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN as any });
+  // jwtid: refresh tokens are stored by unique hash; same user + same second would otherwise collide.
+  return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN as any,
+    jwtid: randomUUID(),
+  });
 }
 
 export function verifyAccessToken(token: string): JwtPayload {

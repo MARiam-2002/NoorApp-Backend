@@ -47,7 +47,6 @@ function pickData(data: Record<string, string> | undefined, key: string): string
  */
 export function logPushDelivery(input: {
   userId: string;
-  userEmail?: string | null;
   sent: number;
   failed: number;
   reason?: 'NO_DEVICE_TOKENS';
@@ -80,7 +79,6 @@ export function logPushDelivery(input: {
     event: 'push_delivery',
     blame,
     userId: input.userId,
-    userEmail: input.userEmail || undefined,
     eventType,
     eventKey,
     soundType,

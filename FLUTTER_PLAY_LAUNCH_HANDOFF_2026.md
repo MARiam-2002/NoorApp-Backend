@@ -2,7 +2,7 @@
 
 **Audience:** Flutter (`com.noor.app`)  
 **From:** Noor Backend  
-**Date:** 2026-09-19  
+**Date:** 2026-09-19 (updated 2026-09-27)  
 **Spec:** `BACKEND_REQUIREMENTS_FOR_GOOGLE_PLAY_LAUNCH.md`
 
 Use this file to wire in-app account deletion and point **Play / closed-testing builds** at Production.
@@ -58,8 +58,9 @@ No JSON body.
 | Invalid token | 401 | `INVALID_TOKEN` |
 | Expired access token | 401 | `TOKEN_EXPIRED` |
 | Already deleted | 401 | `UNAUTHORIZED` |
+| More than 5 delete attempts / hour for the same user | 429 | `RATE_LIMIT_EXCEEDED` |
 
-Client: on `TOKEN_EXPIRED`, refresh once and retry delete. On success, clear secure storage / local DB / caches and go to welcome/login.
+Client: on `TOKEN_EXPIRED`, refresh once and retry delete. On `429`, show `message` and do not auto-retry. On success, clear secure storage / local DB / caches and go to welcome/login.
 
 ### After delete
 
@@ -108,9 +109,29 @@ Automated: `npm run test:account-delete`
 
 ## Flutter follow-up
 
-1. Account screen: Delete account → confirm dialog → `DELETE /auth/me` → clear tokens/local DB → welcome/login.  
+1. **Account tab → Delete account** → confirm dialog → `DELETE /auth/me` → clear tokens/local DB → welcome/login.  
+   The public pages tell users this exact path (matches `account_page.dart`, per the Flutter privacy audit 2026-09-26). **If it moves, tell Backend** so the pages match.  
 2. Play listing: describe in-app deletion (this route).  
-3. Privacy policy / Data safety / SHA-1s: **not** Backend.
+3. Public legal pages (hosted by Backend, no login, for Play Console):
+   - Privacy Policy: `https://noorapp-backend-production.up.railway.app/privacy`
+   - Account deletion: `https://noorapp-backend-production.up.railway.app/delete-account`
+   
+   Flutter may open these from Settings (e.g. "Privacy Policy") with `url_launcher`. They are **not** under `/api/v1`.  
+4. Data safety form / SHA-1s: **not** Backend.
+
+### Auth rate limits (all auth routes, 2026-09-27)
+
+Same endpoints, same `429` + `RATE_LIMIT_EXCEEDED` envelope as before. Limits are now per account, so users sharing a mobile-carrier IP no longer block each other.
+
+| Route | Limit |
+|-------|-------|
+| `POST /auth/login` | 10 **failed** attempts / 15 min per email (successful logins never count) |
+| `POST /auth/sign-up` | 30 / hour per IP |
+| `POST /auth/forgot-password` | 5 / hour per email |
+| `POST /auth/reset-password` | 10 / hour per reset code |
+| `DELETE /auth/me` | 5 / hour per user |
+
+Double-tapping login/sign-up no longer returns `409`.
 
 ---
 
@@ -120,7 +141,7 @@ Automated: `npm run test:account-delete`
 |------|--------|
 | Canonical Production URL | **Railway** (this file). Vercel retired. |
 | Prayer-reminder cron | Endpoint **live**: unauthenticated `POST /cron/prayer-reminders` → **401** `UNAUTHORIZED`. Cadence **`*/10 * * * *`** on Railway Cron. Confirm the dashboard job is **enabled**. |
-| FCM backup sends | Production `GET /health` → **`fcm.configured: false`**. Cron will no-op sends until Railway Firebase env is `noorapp-d5d7d`. Local Azan remains source of truth. |
+| FCM backup sends | Production `GET /api/v1/health` → **`fcm.configured: true`** (re-checked 2026-09-27). Local Azan remains source of truth. |
 | Password-reset SMTP | **`email.readyForDelivery: true`** (`provider: smtp`). One real inbox round-trip is still human QA. No new API. |
 
 ---

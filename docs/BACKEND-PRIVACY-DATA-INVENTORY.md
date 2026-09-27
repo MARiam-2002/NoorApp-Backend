@@ -7,14 +7,17 @@
 > **Production API:** `https://noorapp-backend-production.up.railway.app/api/v1`  
 > **Account deletion API:** `DELETE /auth/me` (Bearer) → immediate hard-delete.
 
-### Product note on location (read carefully)
+### Location — CONFIRMED collected (Flutter privacy audit, 2026-09-26)
 
-Product instruction for Play disclosure: **Noor does not collect user location.**
+The earlier product note "Noor does not collect user location" is **wrong** for the shipping app. The Flutter audit confirms:
 
-Separately, this backend **does contain** optional PostgreSQL fields and APIs that *can* store coordinates / city / country if a client sends them (`User.latitude`, `User.longitude`, `User.city`, `User.country`, `azanPreferences.lastLat/lastLng`, `PATCH /profile/location`, Azan prefs PATCH). Prayer times also use an in-process `adhan` library with a **default Cairo** fallback when no coordinates are stored.
+- `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` (Android) and `NSLocationWhenInUseUsageDescription` (iOS) are declared and requested at runtime (`geolocator`).
+- Precise lat/lng is sent to this backend via `PUT /profile/location` (lat, lng, optional timezone, optional city), `PATCH /profile/azan-preferences` (`lastLat`, `lastLng`, `lastLocationLabel`), `GET /prayers/today|schedule?latitude=&longitude=`, and `GET /qibla/calculate?lat=&lng=` (unauthenticated).
+- Optional, user can deny; Cairo default is used otherwise. No background location, no device geocoder.
 
-Those fields are listed in **§1** as *backend-capable storage* so the inventory is honest. They are **not** asserted as “collected in production” here.  
-**Play Data Safety / Privacy Policy may claim “Location not collected” only if Flutter confirms the app never requests device location and never sends lat/lng/city/country to these APIs.** That confirmation is **Flutter/Product confirmation required.**
+Backend storage: `User.latitude`, `User.longitude`, `User.city`, `User.country`, `User.timezone`, `azanPreferences.lastLat/lastLng`. Deleted with the user on `DELETE /auth/me`. Request logs strip the query string, so coordinates in `GET` query params are **not** written to Noor's API logs (the hosting edge may still see full URLs).
+
+**Play Data Safety must declare Location → Precise location: collected, optional, App functionality, not shared.** The public Privacy Policy (`/privacy` §3) already discloses this.
 
 ---
 
@@ -91,7 +94,7 @@ JWT payload claims confirmed: `userId`, `email` (access & refresh generators in 
 | Locale | `DeviceToken` | `locale` | Yes if sent | Yes | Localization diagnostics | Optional | Low | No | Cascade | No | Same |
 | lastSeenAt / timestamps | `DeviceToken` | `lastSeenAt`, `createdAt`, `updatedAt` | System | Yes | Freshness | Required defaults | Low | No | Cascade | No | Same |
 
-Registration logs may include `userId`, `userEmail`, `tokenFingerprint` (first 8 chars) via Winston → host logs (Railway). **Host log retention: Flutter/Product confirmation required.**
+Registration logs include `userId` and `tokenFingerprint` (first 8 chars) via Winston → host logs (Railway). Email is **not** logged (removed 2026-09-27). **Host log retention: Flutter/Product confirmation required.**
 
 ---
 
@@ -137,7 +140,7 @@ FCM **idempotency logs** (not analytics products): `SalawatSendLog`, `MulkSendLo
 | Category | Where | Stored in PG? | Collected? | Why | Sensitive? | Shared 3rd party? | Retention | Hashed / encrypted? | User deletion |
 |----------|-------|---------------|------------|-----|------------|-------------------|-----------|---------------------|---------------|
 | Client IP | Express `req.ip` (trust proxy) | **No PG model found** | Used in-memory for **rate-limit key** when no Bearer token (`express-rate-limit`) | Abuse protection | Yes | No intentional third-party analytics SDK found | Process memory / window only for limiter | Rate-limit auth key hashes Bearer with SHA-256 prefix; IP used raw as key when anonymous | Not in DB; **host access logs may retain** — see below |
-| User-Agent | Morgan `combined` format in production | **No PG model** | Logged to Winston console stream | HTTP access logging | Yes | Logs go to hosting stdout (e.g. Railway). **No separate analytics vendor in code** | Host log retention: **Flutter/Product confirmation required** | No | Cannot delete historical host logs via `DELETE /auth/me` |
+| User-Agent | **Not logged** since 2026-09-27 (production Morgan format is `:method :path-only :status :res[content-length] - :response-time ms`; no IP, no user agent, no query string) | **No PG model** | Not logged by Noor | — | Yes | Logs go to hosting stdout (e.g. Railway). **No separate analytics vendor in code** | Host log retention: **Flutter/Product confirmation required** | No | Cannot delete historical host logs via `DELETE /auth/me` |
 | Request ID | Header `X-Request-ID` or UUID | Not a user table | Correlates responses / diagnostics | Debugging | Low | Returned to client; may appear in logs | Ephemeral + logs | No | N/A |
 | API diagnostics logs | `requestDiagnosticsMiddleware`, `logApiError` | No | Method/path/status/duration/blame; may include user context on some paths | Ops | May include identifiers | Host logs only | Host retention unknown | No | Account delete does **not** purge host logs |
 
@@ -149,7 +152,7 @@ FCM **idempotency logs** (not analytics products): `SalawatSendLog`, `MulkSendLo
 
 | Category | Backend finding |
 |----------|-----------------|
-| Application logs | Winston → Console (JSON in production). Includes HTTP (Morgan combined), auth events, FCM/email diagnostics, cron warnings. May contain `userId`, email (e.g. device register, Google login, account delete). |
+| Application logs | Winston → Console (JSON in production). Includes HTTP access lines (method, path without query, status, size, duration), auth events, FCM/email diagnostics, cron warnings. Users are identified by `userId` only; no email, IP, user agent, bodies, or tokens (since 2026-09-27). Railway's own edge logs may still hold IPs. |
 | Product analytics DB | **Not found** |
 | Crash reporting service | **Not found** in backend |
 | AI / LLM user data | **Not found** |
@@ -261,9 +264,9 @@ Confirmed path: `hardDeleteUserAccount` → explicit delete of refresh tokens, d
 
 # 5. Data That Flutter Must Confirm
 
-1. Whether the **shipping app** ever calls `PATCH /profile/location` or sends `latitude`/`longitude`/`city`/`country`/`lastLat`/`lastLng` (Product says location is not collected).  
-2. Whether **phone** / **avatarUrl** are collected in UI and sent to `PATCH /profile`.  
-3. Exact **FCM data payload** keys visible to Google/Firebase (and whether `userId`/email ever appear in notification `data`).  
+1. ~~Location~~ — **answered 2026-09-26: YES**, precise location is collected (see top note).  
+2. ~~Phone / avatar~~ — **answered: NO**, no phone field and no avatar upload in Flutter.  
+3. ~~FCM payload~~ — **answered:** Flutter does not read `userId`/email from FCM `data`.  
 4. Client-side storage: SharedPreferences/secure storage contents, local prayer caches, analytics (Firebase Analytics, Crashlytics, etc.) — **out of backend scope**.  
 5. Whether Google Sign-In requests scopes beyond email/profile needed.  
 6. Host log retention (Railway), email provider retention (Brevo/Resend), Firebase retention.  
@@ -315,7 +318,7 @@ Map **only after Flutter confirms collection**. Backend-capable categories:
 | App activity — in-app actions | Prayer/quran/adhkar/tasbih/challenges/stance | If features used | No (except push triggers) | App functionality |
 | App info and performance — crash logs | Backend Winston/Morgan only | Server-side | Host | (Declare separately if Flutter uses Crashlytics) |
 | Device or other IDs | FCM tokens, platform | If push registered | **Firebase** | Push notifications |
-| Location | lat/lng/city/country fields exist | **Product: not collected** — confirm Flutter | N/A if never sent | Prayer/Qibla if ever enabled |
+| Location | lat/lng/city/country/timezone stored when the app sends them | **Collected — Precise location** (confirmed by Flutter audit) | Optional (user can deny; Cairo default) | App functionality (prayer times, Qibla) |
 | Financial info | No cards; optional sadaqah amounts | If user enters amounts | No processor | App functionality |
 | Auth credentials | Password (hashed), tokens | Yes for LOCAL | No password share | Account |
 

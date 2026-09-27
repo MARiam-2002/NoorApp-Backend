@@ -65,10 +65,9 @@ function routeTemplate(req: Request): string {
   return `${req.method} ${pathOnly}`;
 }
 
-/** Who hit the API — for support when something breaks. */
+/** Who hit the API — for support when something breaks. userId only: no email in logs (Privacy Policy). */
 export type RequestUserIdentity = {
   userId?: string;
-  userEmail?: string;
 };
 
 /**
@@ -77,10 +76,7 @@ export type RequestUserIdentity = {
  */
 export function identityFromReq(req: Request): RequestUserIdentity {
   if (req.user?.sub) {
-    return {
-      userId: req.user.sub,
-      userEmail: typeof req.user.email === 'string' ? req.user.email : undefined,
-    };
+    return { userId: req.user.sub };
   }
   const raw = req.headers.authorization;
   const header = Array.isArray(raw) ? raw[0] : raw;
@@ -89,14 +85,13 @@ export function identityFromReq(req: Request): RequestUserIdentity {
   if (!token) return {};
   try {
     // Decode only — do not verify here (logging identity of expired tokens too).
-    const payload = jwt.decode(token) as { userId?: string; sub?: string; email?: string } | null;
+    const payload = jwt.decode(token) as { userId?: string; sub?: string } | null;
     if (!payload || typeof payload !== 'object') return {};
     const userId =
       (typeof payload.userId === 'string' && payload.userId) ||
       (typeof payload.sub === 'string' && payload.sub) ||
       undefined;
-    const userEmail = typeof payload.email === 'string' ? payload.email : undefined;
-    return { userId, userEmail };
+    return { userId };
   } catch {
     return {};
   }
@@ -130,7 +125,6 @@ export function logApiRequestComplete(input: {
     blame,
     requestId: input.req.requestId,
     userId: who.userId,
-    userEmail: who.userEmail,
     method: input.req.method,
     path: (input.req.originalUrl || input.req.url || '').split('?')[0],
     route: routeTemplate(input.req),
@@ -163,7 +157,6 @@ export function logApiError(input: {
     blame,
     requestId: input.req.requestId,
     userId: who.userId,
-    userEmail: who.userEmail,
     method: input.req.method,
     path: (input.req.originalUrl || input.req.url || '').split('?')[0],
     route: routeTemplate(input.req),

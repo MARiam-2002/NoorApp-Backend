@@ -4,7 +4,12 @@ import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import {
   authRateLimiter,
-  authSensitiveRateLimiter,
+  deleteAccountRateLimiter,
+  forgotPasswordRateLimiter,
+  loginEmailRateLimiter,
+  loginIpRateLimiter,
+  resetPasswordRateLimiter,
+  signUpRateLimiter,
 } from '../middleware/http';
 import { validate, passwordFieldSchema } from '../lib/validation';
 import * as authController from '../controllers/auth.controller';
@@ -538,14 +543,15 @@ authRouter.use(authRateLimiter);
 
 authRouter.post(
   '/sign-up',
-  authSensitiveRateLimiter,
+  signUpRateLimiter,
   validate(signUpSchema),
   authController.signUp,
 );
 
 authRouter.post(
   '/login',
-  authSensitiveRateLimiter,
+  loginIpRateLimiter,
+  loginEmailRateLimiter,
   validate(loginSchema),
   authController.login,
 );
@@ -571,20 +577,20 @@ authRouter.get(
 authRouter.delete(
   '/me',
   authenticate,
-  authSensitiveRateLimiter,
+  deleteAccountRateLimiter,
   authController.deleteAccount,
 );
 
 authRouter.post(
   '/forgot-password',
-  authSensitiveRateLimiter,
+  forgotPasswordRateLimiter,
   validate(forgotPasswordSchema),
   authController.forgotPassword,
 );
 
 authRouter.post(
   '/reset-password',
-  authSensitiveRateLimiter,
+  resetPasswordRateLimiter,
   validate(resetPasswordSchema),
   authController.resetPassword,
 );

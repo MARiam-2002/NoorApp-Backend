@@ -42,9 +42,6 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
     event: 'device_token_registered',
     blame: 'FLUTTER_OK_TOKEN_SYNCED',
     userId,
-    userEmail: (
-      await prisma.user.findUnique({ where: { id: userId }, select: { email: true } }).catch(() => null)
-    )?.email,
     platform,
     appVersion: input.appVersion?.slice(0, 64),
     locale: input.locale?.slice(0, 32),
@@ -93,17 +90,10 @@ export async function sendPushToUser(
     androidChannelId?: string;
   },
 ) {
-  const [tokens, userRow] = await Promise.all([
-    prisma.deviceToken.findMany({
-      where: { userId },
-      select: { token: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    }),
-  ]);
-  const userEmail = userRow?.email ?? undefined;
+  const tokens = await prisma.deviceToken.findMany({
+    where: { userId },
+    select: { token: true },
+  });
   const dataForLog = {
     ...(payload.data ?? {}),
     titleAr: payload.titleAr ?? '',
@@ -114,7 +104,6 @@ export async function sendPushToUser(
     const out = { sent: 0, failed: 0, reason: 'NO_DEVICE_TOKENS' as const };
     logPushDelivery({
       userId,
-      userEmail,
       ...out,
       fcmConfigured: isFcmConfigured(),
       tokenCount: 0,
@@ -154,7 +143,6 @@ export async function sendPushToUser(
 
   logPushDelivery({
     userId,
-    userEmail,
     ...out,
     tokenCount: tokens.length,
     androidChannelId: payload.androidChannelId,
