@@ -57,7 +57,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Authentic Morning remembrances every Muslim should recite daily from Hisnul Muslim',
     iconCode: '🌤️',
     sortOrder: 1,
-    totalItems: 12,
   },
   {
     key: 'EVENING',
@@ -67,17 +66,15 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Authentic Evening remembrances at sunset from Hisnul Muslim',
     iconCode: '🌙',
     sortOrder: 2,
-    totalItems: 11,
   },
   {
     key: 'BEFORE_SLEEP',
     nameAr: 'اذكار النوم',
     nameEn: 'Before Sleep Dhikr',
-    descriptionAr: 'أذكار وأدعية الوِرِ النوم من السنة',
+    descriptionAr: 'أذكار وأدعية النوم من السنة',
     descriptionEn: 'Authentic Dhikr and duas before going to sleep from the Sunnah',
     iconCode: '😴',
     sortOrder: 3,
-    totalItems: 9,
   },
   {
     key: 'ENTERING_MOSQUE',
@@ -87,7 +84,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Authentic Dhikr for entering and sitting in the mosque',
     iconCode: '🕌',
     sortOrder: 4,
-    totalItems: 10,
   },
   {
     key: 'AFTER_PRAYER',
@@ -97,7 +93,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Remembrances after the five obligatory daily prayers',
     iconCode: '🤲',
     sortOrder: 5,
-    totalItems: 10,
   },
   {
     key: 'GENERAL_WIRD',
@@ -107,7 +102,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'General daily wird with authentic varied remembrances',
     iconCode: '📖',
     sortOrder: 6,
-    totalItems: 10,
   },
   {
     key: 'TRAVEL',
@@ -117,7 +111,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Authentic travel supplications and remembrances from the Sunnah',
     iconCode: '✈️',
     sortOrder: 7,
-    totalItems: 7,
   },
   {
     key: 'SICK',
@@ -127,7 +120,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Supplications for the sick person and authentic Ruqyah from the Sunnah',
     iconCode: '💊',
     sortOrder: 8,
-    totalItems: 8,
   },
   {
     key: 'FOOD',
@@ -137,7 +129,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Authentic remembrances before and after eating from the Sunnah',
     iconCode: '🍽️',
     sortOrder: 9,
-    totalItems: 7,
   },
   {
     key: 'ISTIKHARA',
@@ -147,7 +138,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'The authentic Istikhara prayer and dua for seeking Allah counsel',
     iconCode: '🤲',
     sortOrder: 10,
-    totalItems: 5,
   },
   {
     key: 'WUDU',
@@ -157,7 +147,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Remembrances before and after performing ablution (Wudu)',
     iconCode: '💧',
     sortOrder: 11,
-    totalItems: 6,
   },
   {
     key: 'ISTIGHFAR',
@@ -167,7 +156,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Sayyid al-Istighfar and authentic repentance remembrances',
     iconCode: '✨',
     sortOrder: 12,
-    totalItems: 7,
   },
   {
     key: 'QAYN',
@@ -177,7 +165,6 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Varied remembrances suitable for daily tasbih counter usage',
     iconCode: '📿',
     sortOrder: 13,
-    totalItems: 7,
   },
   {
     key: 'MASJID_AFTER_SALAM',
@@ -187,6 +174,5 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
     descriptionEn: 'Remembrances after the final taslim from prayer in the mosque',
     iconCode: '🕌',
     sortOrder: 14,
-    totalItems: 6,
   },
 ];

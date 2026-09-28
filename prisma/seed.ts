@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient, RevelationType } from '@prisma/client';
 import { getCuratedHadithForDay } from '../src/shared/constants/curated-hadiths';
+import { ADHKAR_CATALOG_ITEMS, type AdhkarCategoryKey } from '../src/shared/data/adhkar-catalog';
 
 const prisma = new PrismaClient();
 
@@ -354,61 +355,20 @@ async function upsertChallenges(): Promise<void> {
 }
 
 // ============================================================
-//  Hisnul Muslim Adhkar Seed (حصن المسلم - مصادر موثقة 100%)
-//  Categories: Morning, Evening, Before Sleep, Entering Mosque, After Prayer, General Wird
-//  Source: The official Fortress of the Muslim (Sahih chain references)
+//  Adhkar seed — category metadata here, reviewed items in src/shared/data/adhkar-catalog.ts.
+//  Items are updated in place by position so ids (and user favorites) survive re-seeding.
 // ============================================================
-type SeededDhikrItem = {
-  orderInCategory: number;
-  textAr: string;
-  textArPlain?: string;
-  repeatCount: number;
-  referenceAr?: string;
-  benefitAr?: string;
-};
 type SeededDhikrCategory = {
-  key:
-    | 'MORNING'
-    | 'EVENING'
-    | 'BEFORE_SLEEP'
-    | 'ENTERING_MOSQUE'
-    | 'AFTER_PRAYER'
-    | 'GENERAL_WIRD'
-    | 'TRAVEL'
-    | 'SICK'
-    | 'FOOD'
-    | 'ISTIKHARA'
-    | 'WUDU'
-    | 'ISTIGHFAR'
-    | 'QAYN'
-    | 'MASJID_AFTER_SALAM';
+  key: AdhkarCategoryKey;
   nameAr: string;
   nameEn: string;
   descriptionAr: string;
   descriptionEn: string;
   iconCode: string;
   sortOrder: number;
-  items: SeededDhikrItem[];
 };
 
-const AYAT_AL_KURSI =
-  'أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ. اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ عَلِمَ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ';
-
-const SURAH_AL_IHLAS =
-  'قُلْ هُوَ ٱللَّهُ أَحَدٌ ۝ ٱللَّهُ ٱلصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌۢ';
-
-const SURAH_AL_FALAQ =
-  'قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ ٱلنَّفَّٰثَٰتِ فِى ٱلْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ';
-
-const SURAH_AN_NAS =
-  'قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ ۝ مَلِكِ ٱلنَّاسِ ۝ إِلَٰهِ ٱلنَّاسِ ۝ مِن شَرِّ ٱلْوَسْوَاسِ ٱلْخَنَّاسِ ۝ ٱلَّذِي يُوَسْوِسُ فِى صُدُورِ ٱلنَّاسِ ۝ مِنَ ٱلْجِنَّةِ وَٱلنَّاسِ';
-
-const AL_MUAWITHAT = `${SURAH_AL_IHLAS}\n\n${SURAH_AL_FALAQ}\n\n${SURAH_AN_NAS}`;
-
-const TASBIH_FATIHA =
-  'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ';
-
-const ADHKAR_DATA: SeededDhikrCategory[] = [
+const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   {
     key: 'MORNING',
     nameAr: 'اذكار الصباح',
@@ -417,93 +377,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Authentic Morning remembrances every Muslim should recite daily from Hisnul Muslim',
     iconCode: '🌤️',
     sortOrder: 1,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: AYAT_AL_KURSI,
-        repeatCount: 1,
-        referenceAr: 'آية الكرسي - سورة البقرة 255',
-        benefitAr: 'من قالها حين يصبح أجير من الجن حتى يمسي، ومن قالها حين يمسي أجير من الجن حتى يصبح (رواه البخاري ومسلم)',
-      },
-      {
-        orderInCategory: 2,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 3,
-        referenceAr: 'المعوذات ثلاث: الإخلاص والفلق والناس',
-        benefitAr: 'من قرأهن حين يصبح وحين يمسي ثلاثاً كفتاه من كل شيء (رواه الترمذي - قال صحيح)',
-      },
-      {
-        orderInCategory: 3,
-        textAr:
-          'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 4,
-        textAr: 'اللَّهُمَّ بِكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُورُ',
-        repeatCount: 1,
-        referenceAr: 'رواه الترمذي وأبو داود - صحيح',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ إِنِّي أَصْبَحْتُ أُشْهِدُكَ، وَأُشْهِدُ حَمَلَةَ عَرْشِكَ، وَمَلَائِكَتَكَ، وَجَمِيعَ خَلْقِكَ، أَنَّنِي مُؤْمِنٌ بِكَ وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ',
-        repeatCount: 4,
-        referenceAr: 'رواه مسلم - أربعة مرات',
-        benefitAr: 'كان حقاً على الله أن ينجيه من النار (رواه مسلم)',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'اللَّهُمَّ مَا أَصْبَحَ بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ فَمِنْكَ وَحْدَكَ لَا شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ',
-        repeatCount: 1,
-        referenceAr: 'رواه أبو داود والترمذي - صحيح',
-      },
-      {
-        orderInCategory: 7,
-        textAr: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'من قالها مئة مرة حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ',
-      },
-      {
-        orderInCategory: 8,
-        textAr: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 10,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'كانت عدل عشر رقاب، وكتبت له مائة حسنة، ومحيت عنه مائة سيئة، وكانت له حرزاً من الشيطان',
-      },
-      {
-        orderInCategory: 9,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيَّ الْقَيُّومَ وَأَتُوبُ إِلَيْهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه الترمذي - حسن صحيح',
-        benefitAr: 'من قالها كانت له كلمة تجرد الله بها ذنبه ولو كان مثل زبد البحر',
-      },
-      {
-        orderInCategory: 10,
-        textAr: TASBIH_FATIHA,
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'كلمتان خفيفتان على اللسان، ثقيلتان في الميزان، حبيبتان إلى الرحمن',
-      },
-      {
-        orderInCategory: 11,
-        textAr:
-          'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ عَبْدِكَ وَرَسُولِكَ النَّبِيِّ الْأُمِّيِّ، وَعَلَى آلِهِ وَصَحْبِهِ وَسَلِّمْ تَسْلِيمًا',
-        repeatCount: 10,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'من صلى علي صلاة صلى الله عليه بها عشراً',
-      },
-      {
-        orderInCategory: 12,
-        textAr:
-          'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ، أَصْلِحْ لِي شَأْنِي كُلَّهُ، وَلَا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ',
-        repeatCount: 3,
-        referenceAr: 'رواه الترمذي - حسن',
-      },
-    ],
   },
   {
     key: 'EVENING',
@@ -513,155 +386,15 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Authentic Evening remembrances at sunset from Hisnul Muslim',
     iconCode: '🌙',
     sortOrder: 2,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: AYAT_AL_KURSI,
-        repeatCount: 1,
-        referenceAr: 'آية الكرسي - سورة البقرة 255',
-        benefitAr: 'من قالها حين يمسي أجير من الجن حتى يصبح (رواه البخاري ومسلم)',
-      },
-      {
-        orderInCategory: 2,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 3,
-        referenceAr: 'المعوذات ثلاث: الإخلاص والفلق والناس',
-        benefitAr: 'من قرأهن حين يصبح وحين يمسي ثلاثاً كفتاه من كل شيء (رواه الترمذي)',
-      },
-      {
-        orderInCategory: 3,
-        textAr: 'اَللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ',
-        repeatCount: 1,
-        referenceAr: 'رواه الترمذي وأبو داود - صحيح',
-      },
-      {
-        orderInCategory: 4,
-        textAr:
-          'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ إِنِّي أَمْسَيْتُ أُشْهِدُكَ، وَأُشْهِدُ حَمَلَةَ عَرْشِكَ، وَمَلَائِكَتَكَ، وَجَمِيعَ خَلْقِكَ، أَنَّنِي مُؤْمِنٌ بِكَ وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ',
-        repeatCount: 4,
-        referenceAr: 'رواه مسلم - أربعة مرات',
-        benefitAr: 'كان حقاً على الله أن ينجيه من النار',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'اللَّهُمَّ مَا أَمْسَى بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ فَمِنْكَ وَحْدَكَ لَا شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ',
-        repeatCount: 1,
-        referenceAr: 'رواه أبو داود - صحيح',
-      },
-      {
-        orderInCategory: 7,
-        textAr: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'أحب الأعمال إلى الله أدومها وإن قل',
-      },
-      {
-        orderInCategory: 8,
-        textAr: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 10,
-        referenceAr: 'رواه البخاري ومسلم',
-      },
-      {
-        orderInCategory: 9,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيَّ الْقَيُّومَ وَأَتُوبُ إِلَيْهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه الترمذي - حسن',
-      },
-      {
-        orderInCategory: 10,
-        textAr: TASBIH_FATIHA,
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري',
-      },
-      {
-        orderInCategory: 11,
-        textAr:
-          'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ عَبْدِكَ وَرَسُولِكَ النَّبِيِّ الْأُمِّيِّ، وَعَلَى آلِهِ وَصَحْبِهِ وَسَلِّمْ تَسْلِيمًا',
-        repeatCount: 10,
-        referenceAr: 'رواه مسلم',
-      },
-    ],
   },
   {
     key: 'BEFORE_SLEEP',
     nameAr: 'اذكار النوم',
     nameEn: 'Before Sleep Dhikr',
-    descriptionAr: 'أذكار وأدعية الوِرِ النوم من السنة النبوية الصحيحة',
+    descriptionAr: 'أذكار وأدعية النوم من السنة النبوية الصحيحة',
     descriptionEn: 'Authentic Dhikr and duas before going to sleep',
     iconCode: '😴',
     sortOrder: 3,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: AYAT_AL_KURSI,
-        repeatCount: 1,
-        referenceAr: 'رواه البخاري - سورة البقرة 255',
-        benefitAr: 'لم يزل معه حافظ من الله لم يقربه شيطان حتى يصبح',
-      },
-      {
-        orderInCategory: 2,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 3,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'ينفخ في جوفه ثلاثا ويمسح به جسده، كفاه من كل شيء بإذن الله',
-      },
-      {
-        orderInCategory: 3,
-        textAr: 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا',
-        repeatCount: 1,
-        referenceAr: 'رواه البخاري',
-      },
-      {
-        orderInCategory: 4,
-        textAr: 'اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ',
-        repeatCount: 3,
-        referenceAr: 'رواه أبو داود والترمذي - صحيح',
-        benefitAr: 'إذ كان مائة ألف ملك يحفظونه حتى يصبح',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ إِنَّكَ خَلَقْتَ نَفْسِي وَأَنْتَ تَوَفَّاهَا، لَكَ مَمَاتُهَا وَمَمَاتُهَا، إِنْ أَمْسَكْتَهَا فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا، بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'سُبْحَانَ اللَّهِ - ثَلَاثًا وَثَلَاثِينَ، وَالْحَمْدُ لِلَّهِ - ثَلَاثًا وَثَلَاثِينَ، وَاللَّهُ أَكْبَرُ - أَرْبَعًا وَثَلَاثِينَ. ثُمَّ تَقُولُ: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 1,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'إن كانتا له أفضل مما كان دُنِيَا بمَا جَاءَتْهُ، وحُطَّتْ خَطَايَاهُ وإن كانت مثل زبد البحر',
-      },
-      {
-        orderInCategory: 7,
-        textAr: 'أَعُوذُ بِاللَّهِ السَّمِيعِ الْعَلِيمِ مِنَ الشَّيْطَانِ الرَّجِيمِ مِنْ هَمْزِهِ وَنَفْخِهِ وَنَفْثِهِ (ثلاثاً)',
-        repeatCount: 3,
-        referenceAr: 'رواه مسلم وأبو داود',
-      },
-      {
-        orderInCategory: 8,
-        textAr:
-          'اللَّهُمَّ اجْعَلْ دَاخِلَ لَيْلَتِي سَلَامًا، وَاخْتِتَامَ عَمَلِي بِالْغُفْرَانِ وَالرَّحْمَةِ، وَارْزُقْنِي حُسْنَ الْخَاتِمَةِ',
-        repeatCount: 1,
-        referenceAr: 'من حصن المسلم',
-      },
-      {
-        orderInCategory: 9,
-        textAr:
-          'اللَّهُمَّ اسْلِمْنِي لَكَ، وَأَسْلِمْ يَدِي إِلَيْكَ، وَوَجِّهْ وَجْهِي إِلَيْكَ، وَفُضَّ يَدِي إِلَيْكَ، فَإِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا كَمَا تَحْفَظُ الْعَبْدَ الصَّالِحَ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-    ],
   },
   {
     key: 'ENTERING_MOSQUE',
@@ -671,78 +404,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Authentic Dhikr for entering and sitting in the mosque',
     iconCode: '🕌',
     sortOrder: 4,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'عند دخول المسجد - ركعتان تحية المسجد',
-      },
-      {
-        orderInCategory: 2,
-        textAr:
-          'بِسْمِ اللَّهِ وَالسَّلَامُ عَلَى رَسُولِ اللَّهِ. اللَّهُمَّ اغْفِرْ لِي ذُنُوبِي، وَافْتَحْ لِي أَبْوَابَ رَحْمَتِكَ (عند الدخول). اللَّهُمَّ اغْفِرْ لِي ذُنُوبِي، وَافْتَحْ لِي أَبْوَابَ فَضْلِكَ (عند الخروج)',
-        repeatCount: 1,
-        referenceAr: 'رواه الترمذي وأبو داود - صحيح',
-      },
-      {
-        orderInCategory: 3,
-        textAr:
-          'أَعُوذُ بِاللَّهِ الْعَظِيمِ، وَبِوَجْهِهِ الْكَرِيمِ، وَسُلْطَانِهِ الْقَدِيمِ، مِنَ الشَّيْطَانِ الرَّجِيمِ (ثلاثاً - عند الجلوس في المسجد)',
-        repeatCount: 3,
-        referenceAr: 'رواه الترمذي - قال حسن صحيح',
-        benefitAr: 'من فعل ذلك لم تقربه حاجة إلا أصلحتها',
-      },
-      {
-        orderInCategory: 4,
-        textAr:
-          'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ، كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ، إِنَّكَ حَمِيدٌ مَجِيدٌ. اللَّهُمَّ بَارِكْ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ، كَمَا بَارَكْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ، إِنَّكَ حَمِيدٌ مَجِيدٌ',
-        repeatCount: 10,
-        referenceAr: 'صلاة إبراهيمية - رواه البخاري ومسلم',
-      },
-      {
-        orderInCategory: 5,
-        textAr: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري',
-        benefitAr: 'شجرة في الجنة لكل من قالها مئة مرة',
-      },
-      {
-        orderInCategory: 6,
-        textAr: 'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 10,
-        referenceAr: 'رواه البخاري ومسلم',
-      },
-      {
-        orderInCategory: 7,
-        textAr:
-          'اللَّهُمَّ اغْفِرْ لِي ذُنُوبِي كُلَّهَا، دِقَّهَا وَجِلَّهَا، وَأَوَّلَهَا وَآخِرَهَا، وَعَلَانِيَتَهَا وَسِرَّهَا',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 8,
-        textAr:
-          'رَكْعَتَا التَّحِيَّةِ: قُمْ فَارْكَعْ ثُمَّ اقْرَأْ مَا تَيَسَّرَ مِنَ الْقُرْآنِ، ثُمَّ اضْرَعْ ثُمَّ جِلِسْ، ثُمَّ اجْعَلْ آخِرَ أَمْرِكَ جُلُوسًا حَتَّى تَقُومَ فَتَكْبِرُ وَتَرْكَعُ',
-        repeatCount: 1,
-        referenceAr: 'رواه البخاري ومسلم - سنة الجلوس بعد ركعتين',
-      },
-      {
-        orderInCategory: 9,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 10,
-        textAr:
-          'سُبْحَانَ اللَّهِ (33) | وَالْحَمْدُ لِلَّهِ (33) | وَاللَّهُ أَكْبَرُ (34) | ثُمَّ تَقُولُ: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 1,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ',
-      },
-    ],
   },
   {
     key: 'AFTER_PRAYER',
@@ -752,78 +413,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Remembrances after the five obligatory daily prayers',
     iconCode: '🤲',
     sortOrder: 5,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ ذَا الْجَلَالِ وَالإكْرَامِ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم وأبو داود - التسليمة الأخيرة',
-      },
-      {
-        orderInCategory: 2,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ',
-        repeatCount: 3,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 3,
-        textAr: AYAT_AL_KURSI,
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم - بعد كل صلاة مفروضة',
-        benefitAr: 'لم يكن له بعدها حاجة في الدنيا إلا قضاها الله له',
-      },
-      {
-        orderInCategory: 4,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 3,
-        referenceAr: 'رواه مسلم - بعد كل صلاة',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. اللَّهُ أَكْبَرُ - أَرْبَعًا (مرة واحدة كلها)',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'كانت له عشر رقاب، وكتبت له مائة حسنة',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
-        repeatCount: 1,
-        referenceAr: 'سيد الاستغفار - رواه البخاري - قال من قالها موقناً بها دخل الجنة',
-        benefitAr: 'الله أكبر - سيد الاستغفار',
-      },
-      {
-        orderInCategory: 7,
-        textAr:
-          'سُبْحَانَ اللَّهِ (33) | وَالْحَمْدُ لِلَّهِ (33) | وَاللَّهُ أَكْبَرُ (34) ثُمَّ تَقُولُ: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 1,
-        referenceAr: 'رواه البخاري ومسلم - بعد كل صلاة',
-      },
-      {
-        orderInCategory: 8,
-        textAr:
-          'اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَى نَبِيِّنَا مُحَمَّدٍ، وَعَلَى آلِهِ وَصَحْبِهِ أَجْمَعِينَ',
-        repeatCount: 10,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'عشر حسنات، وحُطَّتْ عنه عشر سيئات، ورفع له عشر درجات',
-      },
-      {
-        orderInCategory: 9,
-        textAr:
-          'اللَّهُمَّ اغْفِرْ لِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ، وَالْمُسْلِمِينَ وَالْمُسْلِمَاتِ، الْأَحْيَاءِ مِنْهُمْ وَالْأَمْوَاتِ، وَارْحَمْ مَوْتَانَا بِرَحْمَتِكَ يَا أَرْحَمَ الرَّاحِمِينَ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 10,
-        textAr:
-          'اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-    ],
   },
   {
     key: 'GENERAL_WIRD',
@@ -833,77 +422,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'General daily wird with authentic varied remembrances',
     iconCode: '📖',
     sortOrder: 6,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ',
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'كنز من كنوز الجنة، ومفتاح لكل باب خير',
-      },
-      {
-        orderInCategory: 2,
-        textAr: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ',
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'ثقيلتان في الميزان، حبيبتان إلى الرحمن',
-      },
-      {
-        orderInCategory: 3,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'كانت سبباً في فرج الله كل هم، وكفاية كل داء',
-      },
-      {
-        orderInCategory: 4,
-        textAr:
-          'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ عَبْدِكَ وَرَسُولِكَ النَّبِيِّ الْأُمِّيِّ، وَعَلَى آلِهِ وَصَحْبِهِ وَسَلِّمْ تَسْلِيمًا',
-        repeatCount: 100,
-        referenceAr: 'فضل الصلاة على النبي ﷺ - رواه مسلم',
-        benefitAr: 'عشر حسنات، وحُطَّتْ عنه عشر سيئات، ورفع له عشر درجات',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ، أَصْلِحْ لِي شَأْنِي كُلَّهُ، وَلَا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ',
-        repeatCount: 10,
-        referenceAr: 'رواه الترمذي - حسن صحيح',
-      },
-      {
-        orderInCategory: 6,
-        textAr: 'اللَّهُمَّ اكْتُبْ عَلَيَّ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى',
-        repeatCount: 7,
-        referenceAr: 'رواه الترمذي وأبو داود - صحيح',
-      },
-      {
-        orderInCategory: 7,
-        textAr: 'رَبِّ زِدْنِي عِلْمًا',
-        repeatCount: 7,
-        referenceAr: 'سورة طه - آية 114',
-      },
-      {
-        orderInCategory: 8,
-        textAr:
-          'اللَّهُمَّ اجْعَلْ قَلْبِي مُؤْمِنًا وَسَعِيدًا، وَقَضِيَّ حَقًّا مُقْتَدًّا، وَاخْتِتَامَ عَمَلِي بِالْغُفْرَانِ وَالرَّحْمَةِ',
-        repeatCount: 1,
-        referenceAr: 'من حصن المسلم',
-      },
-      {
-        orderInCategory: 9,
-        textAr:
-          'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ، وَالْعَفَاءَ فِي الدِّينِ وَالدُّنْيَا وَالآخِرَةِ',
-        repeatCount: 3,
-        referenceAr: 'رواه ابن ماجه - حسن',
-      },
-      {
-        orderInCategory: 10,
-        textAr:
-          'سُورَةُ يَاسِينَ (٣٦) وَالرَّحْمَنِ (٥٥) وَالْمُلْكِ (٦٧) وَالْوَاقِعَةِ (٥٦) وَالصَّفَّاتِ (٣٧) وَسُورَةُ الْجُمُعَةِ (٦٢) يَوْمَ الْجُمُعَةِ',
-        repeatCount: 1,
-        referenceAr: 'ورد اليوم المأثور من فضل السور',
-      },
-    ],
   },
   {
     key: 'TRAVEL',
@@ -913,54 +431,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Authentic travel supplications and remembrances from the Sunnah',
     iconCode: '✈️',
     sortOrder: 7,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنقَلِبُونَ',
-        repeatCount: 3,
-        referenceAr: 'سورة الزخرف: 13-14 - رواه البخاري ومسلم',
-        benefitAr: 'عند ركوب المركبة',
-      },
-      {
-        orderInCategory: 2,
-        textAr:
-          'اللَّهُمَّ أَنْتَ الصَّاحِبُ فِي السَّفَرِ، وَالْخَلِيفَةُ فِي الْأَهْلِ، اللَّهُمَّ أَنْتَ الصَّاحِبُ فِي السَّفَرِ، وَالْخَلِيفَةُ فِي الْأَهْلِ، اللَّهُمَّ احْفَظْنِي فِي سَفَرِي هَذَا، وَارْزُقْنِي فِيهِ الْبِرَّ وَالتَّقْوَى، وَاجْعَلْنِي سَلِيمًا إِلَى أَهْلِي وَأَهْلِي سَلِيمًا إِلَيَّ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم وأبو داود',
-      },
-      {
-        orderInCategory: 3,
-        textAr: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
-        repeatCount: 150,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'من سافر في سبيل الله فسبح مئة وخمسين فإن أحصى الله له أجر مئة مكة',
-      },
-      {
-        orderInCategory: 4,
-        textAr: 'حَسْبِيَ اللَّهُ وَكَفَى، لَا إِلَهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ',
-        repeatCount: 7,
-        referenceAr: 'رواه أبو داود والترمذي - صحيح',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ إِنِّي أَسْأَلُكَ فِي سَفَرِي هَذَا الْبِرَّ وَالتَّقْوَى، وَمِنَ الْعَمَلِ مَا تَرْضَى، اللَّهُمَّ هَوِّنْ عَلَيَّ سَفَرِي هَذَا وَاطْوِ عَنِّي بُعْدَهُ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-      },
-      {
-        orderInCategory: 6,
-        textAr: 'رَبِّ أَنزِلْنِي مُنزَلًا مُّبَارَكًا وَأَنْتَ خَيْرُ الْمُنزِلِينَ',
-        repeatCount: 3,
-        referenceAr: 'رواه البخاري ومسلم - عند النزول من السفينة أو المركبة',
-      },
-      {
-        orderInCategory: 7,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 3,
-        referenceAr: 'المعوذات ثلاث - عند الليل والسفر من حصن المسلم',
-      },
-    ],
   },
   {
     key: 'SICK',
@@ -970,61 +440,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Supplications for the sick person and authentic Ruqyah from the Sunnah',
     iconCode: '💊',
     sortOrder: 8,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr:
-          'اللَّهُمَّ رَبَّ النَّاسِ، أَذْهِبِ الْبَاسَ، اشْفِ أَنْتَ الشَّافِي لَا شِفَاءَ إِلَّا شِفَاؤُكَ شِفَاءً لَا يَغَادِرُ سَقَمًا',
-        repeatCount: 7,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'ضع يده على موضع الوجع وقل سبع مرات',
-      },
-      {
-        orderInCategory: 2,
-        textAr: 'أَعُوذُ بِاللَّهِ وَقُدْرَتِهِ مِنْ شَرِّ مَا أَجِدُ وَأُحَاذِرُ',
-        repeatCount: 7,
-        referenceAr: 'رواه مسلم - رواه سبع مرات',
-      },
-      {
-        orderInCategory: 3,
-        textAr: AYAT_AL_KURSI,
-        repeatCount: 3,
-        referenceAr: 'آية الكرسي - رواه الترمذي',
-        benefitAr: 'من قرأها سبع مرات على نفسه كفاه ما أصابه من الوجع أو السحر أو العين بإذن الله',
-      },
-      {
-        orderInCategory: 4,
-        textAr:
-          'اللَّهُمَّ لَا تُؤْخِذْنَا بِعَذَابِكَ وَلَا تُؤْخِذْنَا بِعَذَابِكَ وَلَا تَجْعَلْنَا فِي بَطْنِ غَضَبِكَ، وَتُتِمَّ عَلَيْنَا صِحَّتَكَ تَبَارَكْتَ وَتَعَالَيْتَ',
-        repeatCount: 1,
-        referenceAr: 'رواه الطبراني وابن حبان - صحيح',
-      },
-      {
-        orderInCategory: 5,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 3,
-        referenceAr: 'المعوذات ثلاث - الرقية الشرعية من السنة',
-      },
-      {
-        orderInCategory: 6,
-        textAr: 'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ أَصْلِحْ لِي شَأْنِي كُلَّهُ',
-        repeatCount: 10,
-        referenceAr: 'رواه ابن السني وابن حبان - صحيح',
-      },
-      {
-        orderInCategory: 7,
-        textAr:
-          'رَبِّ اشْفِهِ (أو اشفني) وَأَنْتَ الشَّافِي لَا شِفَاءَ إِلَّا شِفَاؤُكَ شِفَاءً لَا يَغَادِرُ سَقَمًا',
-        repeatCount: 3,
-        referenceAr: 'رواه أبو داود - دعاء المريض بنفسه أو لغيره',
-      },
-      {
-        orderInCategory: 8,
-        textAr: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَافِيَةَ فِي الدِّينِي وَالدُّنْيَا وَالآخِرَةِ',
-        repeatCount: 3,
-        referenceAr: 'رواه الطبراني - حسن صحيح',
-      },
-    ],
   },
   {
     key: 'FOOD',
@@ -1034,53 +449,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Authentic remembrances before and after eating from the Sunnah',
     iconCode: '🍽️',
     sortOrder: 9,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'بِسْمِ اللَّهِ وَعَلَى بَرَكَةِ اللَّهِ',
-        repeatCount: 1,
-        referenceAr: 'رواه أبوداود والترمذي - صحيح',
-        benefitAr: 'قبل الأكل',
-      },
-      {
-        orderInCategory: 2,
-        textAr: 'اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ',
-        repeatCount: 1,
-        referenceAr: 'رواه الترمذي وابن ماجه - صحيح',
-      },
-      {
-        orderInCategory: 3,
-        textAr: 'الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَجَعَلَنَا مُسْلِمِينَ',
-        repeatCount: 1,
-        referenceAr: 'رواه أبو داود والترمذي',
-        benefitAr: 'بعد الانتهاء من الأكل',
-      },
-      {
-        orderInCategory: 4,
-        textAr: 'إِنْ شَاءَ اللَّهُ بَارَكَ فِيهِ وَلَمْ يَضُرَّ مَنْ شَارَهُ',
-        repeatCount: 3,
-        referenceAr: 'إذا سمعك المزكي يذكر قبل الأكل',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ أَحْلَلْتَ لَنَا حَلَالَكَ وَحَرَّمْتَ عَلَيْنَا حَرَامَكَ فَاجْعَلْ رِزْقَكَ الْحَلَالَ كَافِيًا لَنَا وَغَنِيًّا عَنْ غَيْرِكَ',
-        repeatCount: 1,
-        referenceAr: 'رواه الطبراني وابن حبان - صحيح',
-      },
-      {
-        orderInCategory: 6,
-        textAr: 'غَفَرَ اللَّهُ لَكَ مَا سَلَفَ مِنْ ذَنْبِكَ وَمَا أَخَّرَ',
-        repeatCount: 1,
-        referenceAr: 'عند سماع الدعاء على طعامك من الضيف',
-      },
-      {
-        orderInCategory: 7,
-        textAr: 'رَبِّ اغْفِرْ لِي وَارْحَمْنِي وَبَارِكْ لِي فِيمَا رَزَقْتَنِي وَقِنِي عَذَابَ النَّارِ',
-        repeatCount: 1,
-        referenceAr: 'رواه ابن ماجه وابن حبان - صحيح',
-      },
-    ],
   },
   {
     key: 'ISTIKHARA',
@@ -1090,41 +458,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'The authentic Istikhara prayer and dua for seeking Allah counsel',
     iconCode: '🤲',
     sortOrder: 10,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: AYAT_AL_KURSI,
-        repeatCount: 1,
-        referenceAr: 'قبل صلاة الاستخارة - آية الكرسي',
-      },
-      {
-        orderInCategory: 2,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 1,
-        referenceAr: 'المعوذات ثلاث - قبل الاستخارة من السنة',
-      },
-      {
-        orderInCategory: 3,
-        textAr:
-          'اللَّهُمَّ إِنِّي أَسْتَخِيرُكَ بِعِلْمِكَ وَأَسْتَقْدِرُكَ بِقُدْرَتِكَ وَأَسْأَلُكَ مِنْ فَضْلِكَ الْعَظِيمِ فَإِنَّكَ تَقْدِرُ وَلَا أَقْدِرُ، وَتَعْلَمُ وَلَا أَعْلَمُ، وَأَنْتَ عَلَّامُ الْغُيُوبِ. اللَّهُمَّ إِنْ كُنْتَ تَعْلَمُ أَنَّ هَذَا الْأَمْرَ خَيْرٌ لِي فِي دِينِي وَمَعَاشِي وَعَاقِبَةِ أَمْرِي فَاقْدُرْهُ لِي وَيَسِّرْهُ ثُمَّ بَارِكْ لِي فِيهِ، وَإِنْ كُنْتَ تَعْلَمُ أَنَّ هَذَا الْأَمْرَ شَرٌّ لِي فِي دِينِي وَمَعَاشِي وَعَاقِبَةِ أَمْرِي فَاصْرِفْهُ عَنِّي وَاصْرِفْنِي عَنْهُ وَاقْدُرْ لِي الْخَيْرَ حَيْثُ كَانَ ثُمَّ أَرْضِنِي بِهِ',
-        repeatCount: 1,
-        referenceAr: 'رواه البخاري ومسلم - دعاء الاستخارة الأصلي',
-        benefitAr: 'صلاة ركعتين ثم يقرأ بعد السلام هذا الدعاء سبع مرات متعلقة بقلبه',
-      },
-      {
-        orderInCategory: 4,
-        textAr: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالسَّلَامَةَ فِي دِينِي وَدُنْيَايَ وَأَهْلِي وَمَالِي',
-        repeatCount: 7,
-        referenceAr: 'رواه الترمذي وأبو داود - صحيح',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
-        repeatCount: 1,
-        referenceAr: 'سيد الاستغفار - رواه البخاري - قبل اتخاذ القرار',
-      },
-    ],
   },
   {
     key: 'WUDU',
@@ -1134,50 +467,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Remembrances before and after performing ablution (Wudu)',
     iconCode: '💧',
     sortOrder: 11,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'بِسْمِ اللَّهِ',
-        repeatCount: 1,
-        referenceAr: 'رواه أبو داود والترمذي - صحيح',
-        benefitAr: 'قبل البدء بالوضوء',
-      },
-      {
-        orderInCategory: 2,
-        textAr: 'اللَّهُمَّ اجْعَلْنِي مِنَ التَّوَّابِينَ وَاجْعَلْنِي مِنَ الْمُتَطَهِّرِينَ',
-        repeatCount: 1,
-        referenceAr: 'رواه الترمذي وابن ماجه - حسن صحيح',
-        benefitAr: 'عند فراغ الوضوء',
-      },
-      {
-        orderInCategory: 3,
-        textAr:
-          'أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'بعد الوضوء فُتِحَتْ له أبواب الجنة الثمانية يدخل من أيها يشاء',
-      },
-      {
-        orderInCategory: 4,
-        textAr:
-          'سُبْحَانَكَ اللَّهُمَّ وَبِحَمْدِكَ، أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا أَنْتَ، أَسْتَغْفِرُكَ وَأَتُوبُ إِلَيْكَ',
-        repeatCount: 1,
-        referenceAr: 'رواه الترمذي وأبو داود - حسن صحيح',
-      },
-      {
-        orderInCategory: 5,
-        textAr: 'اللَّهُمَّ زَيِّنِّي بِزِينَةِ الْإِيمَانِ وَاجْعَلْنِي مِنَ الْمُهْتَدِينَ',
-        repeatCount: 1,
-        referenceAr: 'رواه الحاكم وصححه',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'اللَّهُمَّ اغْفِرْ لِي ذَنْبِي وَوَسِّعْ لِي فِي دَارِي وَبَارِكْ لِي فِي رِزْقِي',
-        repeatCount: 3,
-        referenceAr: 'رواه ابن ماجه وابن حبان - صحيح',
-      },
-    ],
   },
   {
     key: 'ISTIGHFAR',
@@ -1187,55 +476,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Sayyid al-Istighfar and authentic repentance remembrances',
     iconCode: '✨',
     sortOrder: 12,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري ومسلم',
-      },
-      {
-        orderInCategory: 2,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيَّ الْقَيُّومَ وَأَتُوبُ إِلَيْهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه الترمذي - حسن صحيح',
-        benefitAr: 'سيد الاستغفار للذين أتوب إليه صحيح',
-      },
-      {
-        orderInCategory: 3,
-        textAr:
-          'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ',
-        repeatCount: 10,
-        referenceAr: 'رواه البخاري وأبو داود',
-        benefitAr: 'من قالها متيقناً منها حين يمسي أو يصبح دخل الجنة',
-      },
-      {
-        orderInCategory: 4,
-        textAr:
-          'اللَّهُمَّ اغْفِرْ لِي ذَنْبِي كُلَّهُ دِقَّهُ وَجِلَّهُ، وَأَوَّلَهُ وَآخِرَهُ، وَعَلَانِيَتَهُ وَسِرَّهُ',
-        repeatCount: 10,
-        referenceAr: 'رواه مسلم وأبو داود',
-      },
-      {
-        orderInCategory: 5,
-        textAr: 'رَبِّ اغْفِرْ لِي وَتُبْ عَلَيَّ إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ',
-        repeatCount: 40,
-        referenceAr: 'رواه الترمذي وابن ماجه - حسن صحيح',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'اللَّهُمَّ إِنِّي ظَلَمْتُ نَفْسِي ظُلْمًا كَثِيرًا وَلَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ فَاغْفِرْ لِي مَغْفِرَةً مِّنْ عِندِكَ وَارْحَمْنِي إِنَّكَ أَنْتَ الْغَفُورُ الرَّحِيمُ',
-        repeatCount: 7,
-        referenceAr: 'رواه البخاري ومسلم - دعاء سيدنا آدم عليه السلام',
-      },
-      {
-        orderInCategory: 7,
-        textAr: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه الترمذي وابن حبان - صحيح',
-      },
-    ],
   },
   {
     key: 'QAYN',
@@ -1245,55 +485,6 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Varied remembrances suitable for daily tasbih counter usage',
     iconCode: '📿',
     sortOrder: 13,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'سُبْحَانَ اللَّهِ عَدَدَ مَا خَلَقَ وَبِحَمْدِهِ مِثْلَ ذَلِكَ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'ميزان حسنات ثقيل عند الله',
-      },
-      {
-        orderInCategory: 2,
-        textAr: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
-        repeatCount: 100,
-        referenceAr: 'رواه البخاري ومسلم',
-        benefitAr: 'تعدل مئة رقبة من عباد المؤمنين',
-      },
-      {
-        orderInCategory: 3,
-        textAr: AL_MUAWITHAT,
-        repeatCount: 3,
-        referenceAr: 'المعوذات ثلاث - ورد التسبيح اليومي',
-      },
-      {
-        orderInCategory: 4,
-        textAr: SURAH_AL_IHLAS,
-        repeatCount: 11,
-        referenceAr: 'رواه الترمذي وابن ماجه - حسن',
-        benefitAr: 'مثقال حجرتين من نار جهنم يرفع عن صاحبهما',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ',
-        repeatCount: 10,
-        referenceAr: 'رواه مسلم - الصلاة الإبراهيمية',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 10,
-        referenceAr: 'رواه البخاري ومسلم - التهليل التام',
-      },
-      {
-        orderInCategory: 7,
-        textAr: 'رَبِّ اغْفِرْ وَارْحَمْ إِنَّكَ أَنْتَ الْأَعَلُّونَ',
-        repeatCount: 10,
-        referenceAr: 'رواه النسائي وأبو داود - حسن صحيح',
-      },
-    ],
   },
   {
     key: 'MASJID_AFTER_SALAM',
@@ -1303,93 +494,43 @@ const ADHKAR_DATA: SeededDhikrCategory[] = [
     descriptionEn: 'Remembrances after the final taslim from prayer in the mosque',
     iconCode: '🕌',
     sortOrder: 14,
-    items: [
-      {
-        orderInCategory: 1,
-        textAr: 'أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ، أَسْتَغْفِرُ اللَّهَ',
-        repeatCount: 3,
-        referenceAr: 'رواه مسلم',
-        benefitAr: 'بعد التسليم الأخير من الصلاة مباشرة',
-      },
-      {
-        orderInCategory: 2,
-        textAr:
-          'اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ ذَا الْجَلَالِ وَالْإِكْرَامِ',
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم وأبو داود - صحيح',
-      },
-      {
-        orderInCategory: 3,
-        textAr:
-          'سُبْحَانَ اللَّهِ (33) ، وَالْحَمْدُ لِلَّهِ (33) ، اللَّهُ أَكْبَرُ (34) ثُمَّ تَقُولُ: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
-        repeatCount: 1,
-        referenceAr: 'صحيح البخاري ومسلم - بعد كل صلاة مفروضة',
-      },
-      {
-        orderInCategory: 4,
-        textAr: AYAT_AL_KURSI,
-        repeatCount: 1,
-        referenceAr: 'رواه مسلم - بعد السلام',
-      },
-      {
-        orderInCategory: 5,
-        textAr:
-          'اللَّهُمَّ اجْعَلْ قَلْبِي سَاكِنًا مِمَّا خَلَقْتَ وَمَا أَخْرَجْتَ، وَاخْتِمْ لِي بِسَعَادَةٍ فِي الدِّينِ وَالدُّنْيَا وَالآخِرَةِ',
-        repeatCount: 1,
-        referenceAr: 'رواه الحاكم وصححه',
-      },
-      {
-        orderInCategory: 6,
-        textAr:
-          'اللَّهُمَّ لَا تُدْخِلْنِي جَنَّةَ فِي رَوَدَّةٍ مِنْ شَأْنِي وَلَا وَجْهٍ مِنْ وُجُوهِ النَّاسِ، وَلَا مُشَارَكَةَ إِلَى شَيْءٍ حَرَامٍ',
-        repeatCount: 7,
-        referenceAr: 'رواه ابن ماجه وابن حبان - صحيح',
-      },
-    ],
   },
 ];
 
 async function upsertDhikr(): Promise<void> {
-  console.log('Upserting Hisnul Muslim adhkar categories & items...');
+  console.log('Upserting adhkar categories & items...');
   let totalItems = 0;
-  for (const category of ADHKAR_DATA) {
+  for (const category of ADHKAR_CATEGORIES) {
+    const items = ADHKAR_CATALOG_ITEMS[category.key];
+    const { key, ...fields } = category;
     const upserted = await prisma.dhikrCategory.upsert({
-      where: { key: category.key },
-      update: {
-        nameAr: category.nameAr,
-        nameEn: category.nameEn,
-        descriptionAr: category.descriptionAr,
-        descriptionEn: category.descriptionEn,
-        iconCode: category.iconCode,
-        sortOrder: category.sortOrder,
-        totalItems: category.items.length,
-      },
-      create: {
-        key: category.key,
-        nameAr: category.nameAr,
-        nameEn: category.nameEn,
-        descriptionAr: category.descriptionAr,
-        descriptionEn: category.descriptionEn,
-        iconCode: category.iconCode,
-        sortOrder: category.sortOrder,
-        totalItems: category.items.length,
-      },
+      where: { key },
+      update: { ...fields, totalItems: items.length },
+      create: { key, ...fields, totalItems: items.length },
     });
-    totalItems += category.items.length;
-    await prisma.dhikrItem.deleteMany({ where: { categoryId: upserted.id } });
-    await prisma.dhikrItem.createMany({
-      data: category.items.map((item) => ({
-        categoryId: upserted.id,
+    totalItems += items.length;
+
+    const existing = await prisma.dhikrItem.findMany({
+      where: { categoryId: upserted.id },
+      orderBy: [{ orderInCategory: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true },
+    });
+    for (const [index, item] of items.entries()) {
+      const data = {
         orderInCategory: item.orderInCategory,
         textAr: item.textAr,
-        textArPlain: item.textArPlain ?? undefined,
         repeatCount: item.repeatCount,
         referenceAr: item.referenceAr,
         benefitAr: item.benefitAr,
-      })),
-    });
+      };
+      const current = existing[index];
+      if (current) await prisma.dhikrItem.update({ where: { id: current.id }, data });
+      else await prisma.dhikrItem.create({ data: { ...data, categoryId: upserted.id } });
+    }
+    const extra = existing.slice(items.length).map((row) => row.id);
+    if (extra.length > 0) await prisma.dhikrItem.deleteMany({ where: { id: { in: extra } } });
   }
-  console.log(`Seeded ${ADHKAR_DATA.length} adhkar categories with ${totalItems} total items.`);
+  console.log(`Seeded ${ADHKAR_CATEGORIES.length} adhkar categories with ${totalItems} total items.`);
 }
 
 async function main(): Promise<void> {

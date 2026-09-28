@@ -1,10 +1,12 @@
 # Adhkar Content Review — 2026-09-28
 
 **Scope:** all 115 items served in production by `GET /api/v1/adhkar/full-catalog` (DB rows seeded from `prisma/seed.ts`).
-The hardcoded fallback list in `src/services/adhkar.service.ts` (used only if the DB is unreachable) has the same classes of problems.
+The old hardcoded fallback list in `src/services/adhkar.service.ts` (used only if the DB is unreachable) had the same classes of problems; it now reads the reviewed catalog too.
+Tables below use the **legacy** item numbers (before renumbering).
 
-**Status:** DRAFT for a qualified religious reviewer. This is an engineering triage, not a fatwa.
-Nothing in production has been changed yet. Every proposed correction must be confirmed by the reviewer before it is applied.
+**Status:** APPLIED on 2026-09-28 (115 → 93 items, catalog version 2). This is an engineering triage, not a fatwa;
+a qualified religious reviewer should still confirm the M-confidence rows. Applied content lives in
+`src/shared/data/adhkar-catalog.ts`; the exact rules are in `scripts/lib/adhkar-corrections-2026.ts`.
 
 ## Verdict codes
 
@@ -24,11 +26,14 @@ Confidence: **H** = well-known, easy for a reviewer to confirm; **M** = likely, 
 
 | Verdict | Items |
 |---|---|
-| REMOVE | 20 |
+| REMOVE (incl. 2 CAT items with no fitting category) | 22 |
 | TXT (corrupted / typo / altered wording) | 10 |
-| REF / BEN / CNT / CAT (text fine) | 52 |
+| REF / BEN / CNT / CAT (text fine) | 50 |
 | OK | 33 |
 | **Total** | **115** |
+
+Per category after the fix: MORNING 12, EVENING 11, BEFORE_SLEEP 7, ENTERING_MOSQUE 9, AFTER_PRAYER 9, GENERAL_WIRD 8,
+TRAVEL 5, SICK 7, FOOD 3, ISTIKHARA 1, WUDU 5, ISTIGHFAR 7, QAYN 5, MASJID_AFTER_SALAM 4 — **93**.
 
 The REMOVE items are the most serious: several attribute invented wording to the Prophet ﷺ with the label "صحيح".
 
@@ -77,7 +82,7 @@ The REMOVE items are the most serious: several attribute invented wording to the
 | 4 | اللهم قني عذابك يوم تبعث عبادك ×3 | أبو داود والترمذي - صحيح | BEN | Benefit «مائة ألف ملك يحفظونه» has no known basis | H |
 | 5 | اللهم إنك خلقت نفسي… | رواه مسلم | TXT | Typo «لك مماتها ومماتها» → «لك مماتها ومحياها» | H |
 | 6 | التسبيح 33/33/34 ثم لا إله إلا الله… | البخاري ومسلم | TXT/BEN | Sleep narration (علي وفاطمة) has no tahlil ending; its benefit is «خير لكما من خادم». Current benefit text is garbled | H |
-| 7 | أعوذ بالله السميع العليم من الشيطان الرجيم من همزه ونفخه ونفثه | مسلم وأبو داود | REF/CAT | This is from the opening of prayer (أبو داود، الترمذي), not a sleep dhikr, not in Muslim | H |
+| 7 | أعوذ بالله السميع العليم من الشيطان الرجيم من همزه ونفخه ونفثه | مسلم وأبو داود | REMOVE (CAT) | This is from the opening of prayer (أبو داود، الترمذي), not a sleep dhikr, not in Muslim | H |
 | 8 | اللهم اجعل داخل ليلتي سلاما… | من حصن المسلم | REMOVE | Not in Hisn al-Muslim; no known source | H |
 | 9 | اللهم أسلمني لك… وفض يدي إليك… | رواه مسلم | TXT | Corrupted form of «اللهم أسلمت نفسي إليك، ووجهت وجهي إليك، وفوضت أمري إليك، وألجأت ظهري إليك…» (البخاري ومسلم) | H |
 
@@ -171,7 +176,7 @@ The REMOVE items are the most serious: several attribute invented wording to the
 | 2 | المعوذات «قبل الاستخارة من السنة» | — | REMOVE | No basis for this occasion | H |
 | 3 | دعاء الاستخارة | البخاري ومسلم | REF/BEN | رواه البخاري (not Muslim); «سبع مرات» in the benefit is not narrated | H |
 | 4 | اللهم إني أسألك الهدى والسلامة في ديني ودنياي… ×7 | الترمذي وأبو داود - صحيح | REMOVE | No known narration with this wording | M |
-| 5 | سيد الاستغفار «قبل اتخاذ القرار» | رواه البخاري | CAT | Text authentic; occasion unsupported — remove from this category | H |
+| 5 | سيد الاستغفار «قبل اتخاذ القرار» | رواه البخاري | REMOVE (CAT) | Text authentic; occasion unsupported — removed from this category (still in ISTIGHFAR / AFTER_PRAYER) | H |
 
 ## WUDU
 
@@ -221,8 +226,18 @@ The REMOVE items are the most serious: several attribute invented wording to the
 
 ---
 
-## How fixes will be applied (after review)
+## How the fixes were applied
 
-- Corrections update rows **in place** (same `id`), so user favorites, resume marks and completions stay valid. Flutter contract unchanged (same fields/types).
-- REMOVE items must not be deleted blindly: `adhkar_favorites` and completions cascade on delete. Preferred: a reviewed data script that first backs up affected rows, then removes them and updates `totalItems`; `adhkar/static-meta` `contentHash` then changes so Flutter re-downloads the catalog.
-- `prisma/seed.ts` and the fallback list in `adhkar.service.ts` get the same corrections so a re-seed or DB outage never re-introduces them.
+- `scripts/apply-adhkar-corrections-2026.ts` (dry run by default, `--apply` to write) matched every rule by
+  category + legacy order + text prefix, wrote a JSON backup to `tmp/` (git-ignored), then per category in one transaction:
+  updated surviving rows **in place** (same `id`), renumbered `orderInCategory` 1..n, deleted REMOVE rows, moved any
+  resume mark pointing at a removed row to the next surviving row, and updated `totalItems`. It verifies the result
+  against the catalog and refuses to run again once applied.
+- Impact at apply time: 22 rows removed, 0 favorites lost, 0 resume marks moved, 7 historical completions kept with
+  `itemId = null`.
+- Flutter contract unchanged (same routes, fields, types). `ADHKAR_STATIC_CATALOG_VERSION` is 2, so
+  `adhkar/static-meta` `contentHash` changed and apps re-download the catalog.
+- `prisma/seed.ts` and the offline fallback in `adhkar.service.ts` both read `src/shared/data/adhkar-catalog.ts`, and the
+  seed now updates items in place by position instead of delete + recreate, so re-seeding keeps item ids.
+- Any future wording/reference change: edit the catalog, bump `ADHKAR_STATIC_CATALOG_VERSION`, and update production rows
+  in place (never delete + recreate).
