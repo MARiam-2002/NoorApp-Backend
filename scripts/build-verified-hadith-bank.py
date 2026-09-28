@@ -1,13 +1,19 @@
-/**
- * Rebuild the verified Sahihayn Daily Hadith bank from local Arabic editions.
- *
- * Prerequisites (not committed — download once):
- *   prisma/data/hadith/ara-bukhari.json
- *   prisma/data/hadith/ara-muslim.json
- * from: https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/
- *
- * Usage: python scripts/build-verified-hadith-bank.py
- */
+"""
+Rebuild the verified Sahihayn Daily Hadith bank from local Arabic editions.
+
+Prerequisites (not committed — download once):
+  prisma/data/hadith/ara-bukhari.json
+  prisma/data/hadith/ara-muslim.json
+  prisma/data/hadith/eng-muslim.json  (only for its `arabicnumber` = Fuad Abd al-Baqi numbering)
+from: https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/
+
+Citation numbers must be the ones readers can look up:
+  - Bukhari: edition numbering already equals the standard (Fath al-Bari) numbering.
+  - Muslim: edition numbering is sequential (1..7563), so the Fuad Abd al-Baqi number is
+    cited instead; entries without one, and the Muqaddimah (section 0), are excluded.
+
+Usage: python scripts/build-verified-hadith-bank.py
+"""
 from __future__ import annotations
 
 import json
@@ -79,6 +85,18 @@ def main() -> None:
     ]
     raw: list[dict] = []
     seen: set[str] = set()
+    skipped = {"muslim_no_standard_number": 0, "muslim_muqaddimah": 0}
+
+    eng_muslim = SRC_DIR / "eng-muslim.json"
+    if not eng_muslim.exists():
+        raise SystemExit(f"Missing {eng_muslim} — needed for Fuad Abd al-Baqi numbering")
+    eng_muslim_data = json.loads(eng_muslim.read_text(encoding="utf-8"))
+    muslim_standard = {
+        h["hadithnumber"]: h["arabicnumber"]
+        for h in eng_muslim_data["hadiths"]
+        if h.get("arabicnumber") is not None
+    }
+    muqaddimah_last = int(eng_muslim_data["metadata"]["section_details"]["0"]["hadithnumber_last"])
 
     for fname, coll, collection_ar, short_ar in collections:
         path = SRC_DIR / f"{fname}.json"
@@ -87,6 +105,19 @@ def main() -> None:
         hs = json.loads(path.read_text(encoding="utf-8"))["hadiths"]
         for h in hs:
             num = h.get("hadithnumber")
+            ref = h.get("reference") or {}
+            if coll == "muslim":
+                if num is not None and int(num) <= muqaddimah_last:
+                    skipped["muslim_muqaddimah"] += 1
+                    continue
+                if num not in muslim_standard:
+                    skipped["muslim_no_standard_number"] += 1
+                    continue
+                standard = int(float(muslim_standard[num]))
+                numbering = "fuad-abd-al-baqi"
+            else:
+                standard = int(num)
+                numbering = "fath-al-bari"
             matns = [m for m in extract_matns(h.get("text") or "") if is_ui_quality(m)]
             if not matns:
                 continue
@@ -95,16 +126,17 @@ def main() -> None:
             if key in seen:
                 continue
             seen.add(key)
-            ref = h.get("reference") or {}
             raw.append(
                 {
                     "collection": coll,
                     "collectionAr": collection_ar,
                     "hadithNumber": int(num) if num is not None else None,
+                    "standardNumber": standard,
+                    "numbering": numbering,
                     "book": ref.get("book"),
                     "bookHadith": ref.get("hadith"),
                     "textAr": matn,
-                    "sourceAr": f"{short_ar} — رقم {num}",
+                    "sourceAr": f"{short_ar} — رقم {standard}",
                 }
             )
 
@@ -123,7 +155,7 @@ def main() -> None:
     n = len(interleaved)
     step = pick_step(n)
     bank = {
-        "version": 2,
+        "version": 3,
         "policy": {
             "qualityOverQuantity": True,
             "collectionsAllowed": ["Sahih al-Bukhari", "Sahih Muslim"],
@@ -143,6 +175,10 @@ def main() -> None:
                 "Quoted Arabic prophetic segments with UI length filters; "
                 "isnad leftovers rejected; undiacritized-text dedupe"
             ),
+            "citationNumbering": {
+                "bukhari": "Fath al-Bari numbering (standard)",
+                "muslim": "Fuad Abd al-Baqi numbering (integer part); Muqaddimah excluded",
+            },
         },
         "count": n,
         "step": step,
@@ -151,7 +187,7 @@ def main() -> None:
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(bank, ensure_ascii=False), encoding="utf-8")
-    print(f"Wrote {OUT} count={n} buk={len(buk)} mus={len(mus)} step={step}")
+    print(f"Wrote {OUT} count={n} buk={len(buk)} mus={len(mus)} step={step} skipped={skipped}")
 
 
 if __name__ == "__main__":

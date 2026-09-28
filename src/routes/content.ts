@@ -7,6 +7,7 @@ import {
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
 import { getStaticContentManifest } from '../services/content-static.service';
+import { CONTENT_CREDITS, CONTENT_CREDITS_VERSION } from '../shared/constants/content-credits';
 
 export const contentRouter = Router();
 
@@ -128,3 +129,41 @@ contentRouter.get(
     sendSuccess(res, data, 'Static content meta retrieved successfully', req);
   }),
 );
+
+/**
+ * @openapi
+ * /content/credits:
+ *   get:
+ *     tags: ['Content']
+ *     summary: مصادر المحتوى وحقوقه (شاشة "المصادر")
+ *     description: |
+ *       Public, static. Attribution for Quran text (Tanzil — required by its license),
+ *       tafsir/translations, and Hadith of the Day. Show each item's source + link.
+ *     responses:
+ *       200:
+ *         description: ✅ قائمة المصادر
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Content credits retrieved successfully
+ *               data:
+ *                 version: 1
+ *                 items:
+ *                   - key: quran_text
+ *                     titleAr: نص القرآن الكريم
+ *                     titleEn: Quran text
+ *                     sourceAr: مشروع تنزيل (Tanzil) — الرسم العثماني
+ *                     sourceEn: Tanzil Project — Uthmani script
+ *                     url: https://tanzil.net
+ *                     noteAr: النص منقول حرفيًا دون أي تعديل.
+ *                     noteEn: Reproduced verbatim without any modification.
+ */
+contentRouter.get('/credits', (req, res) => {
+  sendSuccess(
+    res,
+    { version: CONTENT_CREDITS_VERSION, items: CONTENT_CREDITS },
+    'Content credits retrieved successfully',
+    req,
+  );
+});

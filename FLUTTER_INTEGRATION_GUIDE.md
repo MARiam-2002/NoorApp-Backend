@@ -1,5 +1,36 @@
 # Noor App — Flutter Integration Guide — 2026-07-31
 
+## 🔹 API Integration Changes Summary — 2026-09-28 (Content sources & citations)
+
+All changes are additive or string-content only. No field, id, type or route was renamed or removed.
+
+- **New**: `GET /content/credits` (public, static). Show it in an "المصادر / Sources" screen (e.g. from Settings → About). Each item: `key`, `titleAr`, `titleEn`, `sourceAr`, `sourceEn`, `url`, `noteAr | null`, `noteEn | null`. Render `sourceAr` with a tappable `url`. The Tanzil item (`key: "quran_text"`) must be visible somewhere in the app — Tanzil's license requires naming it with a link to tanzil.net.
+
+```json
+{ "success": true, "message": "Content credits retrieved successfully",
+  "data": { "version": 1, "items": [
+    { "key": "quran_text", "titleAr": "نص القرآن الكريم", "titleEn": "Quran text",
+      "sourceAr": "مشروع تنزيل (Tanzil) — الرسم العثماني", "sourceEn": "Tanzil Project — Uthmani script",
+      "url": "https://tanzil.net", "noteAr": "النص منقول حرفيًا دون أي تعديل.",
+      "noteEn": "Reproduced verbatim without any modification." } ] } }
+```
+
+```dart
+class ContentCredit {
+  final String key, titleAr, titleEn, sourceAr, sourceEn, url;
+  final String? noteAr, noteEn;
+  ContentCredit.fromJson(Map<String, dynamic> j)
+      : key = j['key'], titleAr = j['titleAr'], titleEn = j['titleEn'],
+        sourceAr = j['sourceAr'], sourceEn = j['sourceEn'], url = j['url'],
+        noteAr = j['noteAr'], noteEn = j['noteEn'];
+}
+```
+
+- **Updated (content only)**: `GET /content/hadith-of-day` → `sourceAr` keeps the exact shape `رواه البخاري — رقم N` / `رواه مسلم — رقم N`, but Sahih Muslim numbers are now the standard **Fuad Abd al-Baqi** numbers (e.g. «إنما الأعمال بالنية» is `رقم 1907`, previously a sequential `4927`). Which hadith appears on a given day changed once with this update.
+- **Updated (content only)**: `GET /quran/tafsirs` → Tafsir al-Muyassar (`id: "Ibn_Kathir_Muyassar"`, id unchanged) now has the correct `authorAr` / `authorEn` (King Fahd Glorious Quran Printing Complex committee).
+
+---
+
 ## 🔹 API Integration Changes Summary — 2026-07-31
 
 - **New**: `POST /auth/logout` — documented for the first time. Revokes the refresh token on the server so the pair cannot be rotated again. Flutter must additionally call `GoogleSignIn.signOut()` on the device when `user.provider === "GOOGLE"`.
@@ -3048,6 +3079,7 @@ Badge update rule: after `markAsRead` or `markAllAsRead` 200, immediately call `
 | 65  | `/content/hadith-of-day`         | GET    | No   | Standalone hadith-of-day                                                                                |
 | 66  | `/content/daily-challenge`       | GET    | No   | Standalone daily-challenge template                                                                     |
 | 67  | `/health`                        | GET    | No   | Liveness + database ping                                                                                |
+| 68  | `/content/credits`               | GET    | No   | "المصادر" screen: content attribution (Tanzil link is required by its license) — see 2026-09-28 summary |
 
 ---
 

@@ -215,15 +215,16 @@ Do **not** invent Hadith text on the client. Always display `textAr` + `sourceAr
 
 | Item | Detail |
 |------|--------|
-| Verified pool size | **~4,750** unique Arabic matns |
+| Verified pool size | **~4,730** unique Arabic matns (bank v3) |
 | Collections allowed | **Sahih al-Bukhari** and **Sahih Muslim** only (al-Sahihayn) |
 | Collections excluded | Tirmidhi, Abu Dawud, social media, unverified websites |
 | Why Sahihayn | Classical Ahl al-Sunnah scholarly consensus treats these two books as authentic (sahih) collections |
 | Edition source | Arabic editions from `fawazahmed0/hadith-api@1` (sunnah.com-derived Sahihayn texts) |
 | Matn handling | Quoted prophetic Arabic segments; isnad leftovers filtered; undiacritized dedupe |
-| `sourceAr` format | `رواه البخاري — رقم N` or `رواه مسلم — رقم N` |
+| `sourceAr` format | `رواه البخاري — رقم N` or `رواه مسلم — رقم N` (unchanged string shape) |
+| Citation numbering | `N` is the number readers can look up: Bukhari = standard (Fath al-Bari) numbering; Muslim = **Fuad Abd al-Baqi** numbering (bank v3, Sep 2026). Sahih Muslim's Muqaddimah and entries without a standard number are excluded |
 | Runtime source of truth | Verified bank (not a tiny static list); DB upserted to match |
-| Rebuild | `python scripts/build-verified-hadith-bank.py` (after downloading ara-bukhari/ara-muslim) |
+| Rebuild | `python scripts/build-verified-hadith-bank.py` (after downloading ara-bukhari/ara-muslim/eng-muslim) |
 
 **Quality over quantity:** Weak / unverified collections are not used to inflate the count.
 
@@ -238,7 +239,7 @@ Preserve **`sourceAr` exactly** in the UI.
 | One Hadith per calendar day | Yes |
 | Stable within the day | Same `(dayOfYear, year)` → same bank index |
 | Different next day | Coprime `step` so consecutive days never share the same index |
-| Cover the pool | Year stride walks further through the ~4750 bank across years (not stuck on ~30) |
+| Cover the pool | Year stride walks further through the ~4730 bank across years (not stuck on ~30) |
 | Fallback if DB miss | Same verified Sahihayn entry — never a weak/unverified quote |
 | Dashboard vs public API | Same selection service |
 
