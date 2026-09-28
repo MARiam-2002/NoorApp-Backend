@@ -17,10 +17,12 @@ export type ApiBlame =
   | 'BACKEND' // 5xx, DB, internal
   | 'NOT_FOUND' // route or resource — often Flutter wrong path/id
   | 'CONFLICT' // duplicate / state conflict
+  | 'FEATURE_DISABLED' // feature intentionally switched off server-side (not an outage)
   | 'UNKNOWN';
 
 export function resolveApiBlame(statusCode: number, code?: string): ApiBlame {
   if (statusCode >= 200 && statusCode < 400) return 'OK';
+  if (code === ErrorCodes.AI_DISABLED) return 'FEATURE_DISABLED';
   if (code === ErrorCodes.RATE_LIMIT_EXCEEDED || statusCode === 429) return 'FLUTTER_RATE_LIMIT';
   if (
     code === ErrorCodes.UNAUTHORIZED ||
@@ -52,6 +54,8 @@ export function nextCheckForBlame(blame: ApiBlame): string | undefined {
       return 'Resource already exists or invalid state transition.';
     case 'BACKEND':
       return 'Check Railway logs for this requestId; DB/FCM/provider failure.';
+    case 'FEATURE_DISABLED':
+      return 'Feature is switched off on the server; hide its entry point in the app.';
     default:
       return undefined;
   }
@@ -134,7 +138,7 @@ export function logApiRequestComplete(input: {
     nextCheck: nextCheckForBlame(blame),
   };
 
-  if (blame === 'BACKEND' || input.statusCode >= 500) {
+  if (blame === 'BACKEND' || (input.statusCode >= 500 && blame !== 'FEATURE_DISABLED')) {
     logger.error('[API] request', meta);
   } else if (blame === 'OK') {
     logger.info('[API] request', meta);

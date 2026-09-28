@@ -10,6 +10,22 @@ const Environment = {
   Test: 'test',
 } as const;
 
+/**
+ * Noor AI (Phase 1: foundation only). Every field is optional and falls back to
+ * a safe default on missing/invalid values so a bad AI variable can never stop
+ * the API from booting. Model ids come only from env — never hard-code them.
+ */
+export const aiEnvSchema = z.object({
+  AI_ENABLED: z.enum(['true', 'false']).default('false').catch('false').transform(v => v === 'true'),
+  AI_PROVIDER: z.string().trim().toLowerCase().min(1).default('openai').catch('openai'),
+  AI_FAST_MODEL: z.string().trim().default('').catch(''),
+  AI_REASONING_MODEL: z.string().trim().default('').catch(''),
+  AI_EMBEDDING_MODEL: z.string().trim().default('').catch(''),
+  AI_MAX_MESSAGE_LENGTH: z.coerce.number().int().min(1).max(10_000).default(1_500).catch(1_500),
+  AI_DAILY_MESSAGE_LIMIT: z.coerce.number().int().min(1).max(10_000).default(20).catch(20),
+  AI_MAX_STREAM_SECONDS: z.coerce.number().int().min(10).max(600).default(120).catch(120),
+});
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum([Environment.Development, Environment.Staging, Environment.Production, Environment.Test])
@@ -86,7 +102,7 @@ const envSchema = z.object({
   LEGAL_CONTACT_EMAIL: z.string().default(''),
   LEGAL_COUNTRY: z.string().default(''),
   LEGAL_WEBSITE: z.string().default(''),
-});
+}).extend(aiEnvSchema.shape);
 
 type Env = z.infer<typeof envSchema>;
 
@@ -111,6 +127,32 @@ export const appConfig = {
   isStaging: env.NODE_ENV === Environment.Staging,
   isTest: env.NODE_ENV === Environment.Test,
 } as const;
+
+export type AIConfig = {
+  readonly enabled: boolean;
+  readonly provider: string;
+  readonly fastModel: string;
+  readonly reasoningModel: string;
+  readonly embeddingModel: string;
+  readonly maxMessageLength: number;
+  readonly dailyMessageLimit: number;
+  readonly maxStreamSeconds: number;
+};
+
+export function buildAIConfig(source: z.infer<typeof aiEnvSchema>): AIConfig {
+  return Object.freeze({
+    enabled: source.AI_ENABLED,
+    provider: source.AI_PROVIDER,
+    fastModel: source.AI_FAST_MODEL,
+    reasoningModel: source.AI_REASONING_MODEL,
+    embeddingModel: source.AI_EMBEDDING_MODEL,
+    maxMessageLength: source.AI_MAX_MESSAGE_LENGTH,
+    dailyMessageLimit: source.AI_DAILY_MESSAGE_LIMIT,
+    maxStreamSeconds: source.AI_MAX_STREAM_SECONDS,
+  });
+}
+
+export const aiConfig: AIConfig = buildAIConfig(env);
 
 export const getApiBasePath = (): string => API_PREFIX;
 
@@ -145,6 +187,7 @@ export const ErrorCodes = {
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   DATABASE_ERROR: 'DATABASE_ERROR',
   TAFSIR_TEMPORARILY_UNAVAILABLE: 'TAFSIR_TEMPORARILY_UNAVAILABLE',
+  AI_DISABLED: 'AI_DISABLED',
 } as const;
 
 export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];

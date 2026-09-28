@@ -82,7 +82,7 @@ function stripBom(text: string): string {
   return text;
 }
 
-function stripSurahOpeningBismillahIfNeeded(ayah: {
+export function stripSurahOpeningBismillahIfNeeded(ayah: {
   surahId: number;
   ayahNumber: number;
   textAr: string;

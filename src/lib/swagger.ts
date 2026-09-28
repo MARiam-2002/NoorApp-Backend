@@ -1194,6 +1194,7 @@ function buildSwaggerSpec() {
       { name: 'Notifications', description: 'الإشعارات' },
       { name: 'Profile', description: 'الملف الشخصي' },
       { name: 'Health', description: 'فحص حالة الخدمة' },
+      { name: 'AI', description: 'مساعد نور الذكي (مغلق افتراضياً)' },
     ],
   } as const;
   const apis = resolveSwaggerFiles();
