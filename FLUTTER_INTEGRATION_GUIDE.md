@@ -29,9 +29,9 @@ class ContentCredit {
 - **Updated (content only)**: `GET /content/hadith-of-day` → `sourceAr` keeps the exact shape `رواه البخاري — رقم N` / `رواه مسلم — رقم N`, but Sahih Muslim numbers are now the standard **Fuad Abd al-Baqi** numbers (e.g. «إنما الأعمال بالنية» is `رقم 1907`, previously a sequential `4927`). Which hadith appears on a given day changed once with this update.
 - **Updated (content only)**: `GET /quran/tafsirs` → Tafsir al-Muyassar (`id: "Ibn_Kathir_Muyassar"`, id unchanged) now has the correct `authorAr` / `authorEn` (King Fahd Glorious Quran Printing Complex committee).
 - **Updated (content only)**: Adhkar catalog reviewed for authenticity (details: `docs/ADHKAR_CONTENT_REVIEW_2026.md`). Same routes, fields and types; what changes is data:
-  - `GET /adhkar/static-meta` → `catalogVersion: 2` and a new `contentHash`. Apps that cache the catalog offline must re-download `GET /adhkar/full-catalog` when either value differs from the cached one (existing logic).
+  - `GET /adhkar/static-meta` → `catalogVersion: 3` and a new `contentHash` (`adhkar-v3-14-93`). Apps that cache the catalog offline must re-download `GET /adhkar/full-catalog` when either value differs from the cached one (existing logic).
   - Items went from 115 to 93. Per category: MORNING 12, EVENING 11, BEFORE_SLEEP 7, ENTERING_MOSQUE 9, AFTER_PRAYER 9, GENERAL_WIRD 8, TRAVEL 5, SICK 7, FOOD 3, ISTIKHARA 1, WUDU 5, ISTIGHFAR 7, QAYN 5, MASJID_AFTER_SALAM 4. Always use `totalItems` / `items.length` from the response — never hardcode counts.
-  - Surviving items keep their `id`; some have corrected `textAr`, `repeatCount`, `referenceAr` or `benefitAr`, and `orderInCategory` is renumbered 1..n. `referenceAr` / `benefitAr` can be `null` (already nullable).
+  - Surviving items keep their `id`; some have corrected `textAr`, `repeatCount`, `referenceAr` or `benefitAr`, and `orderInCategory` is renumbered 1..n. Nullability is unchanged: `referenceAr` is always a string, `benefitAr` can be `null`.
   - The 22 removed item ids no longer exist: drop them from any local cache or pending offline progress queue (adding a favorite with a removed id returns `404 NOT_FOUND`; saving progress for one is ignored and returns the current progress with `200`). Their favorites were removed server-side; resume marks now point at the next item.
 
 ---

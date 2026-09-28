@@ -46,6 +46,7 @@ const SALAT_NASAI_BEN =
 const ASHHADUKA_REF = 'رواه أبو داود - أربع مرات';
 const ASHHADUKA_BEN = 'من قالها أربع مرات أعتقه الله من النار';
 const HAYY_QAYYUM_REF = 'رواه النسائي في الكبرى والحاكم';
+const GENERAL_DUA_BELIEVERS_REF = 'دعاء عام، أصله قوله تعالى: ﴿وَاسْتَغْفِرْ لِذَنبِكَ وَلِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ﴾ (سورة محمد 19)';
 
 export const ADHKAR_CORRECTIONS_2026: readonly AdhkarCorrection[] = [
   // MORNING
@@ -116,7 +117,7 @@ export const ADHKAR_CORRECTIONS_2026: readonly AdhkarCorrection[] = [
   { category: 'AFTER_PRAYER', order: 6, startsWith: 'اللهم أنت ربي لا إله إلا أنت', patch: { referenceAr: 'سيد الاستغفار - رواه البخاري', benefitAr: 'من قالها من النهار موقنًا بها فمات من يومه قبل أن يمسي فهو من أهل الجنة' } },
   { category: 'AFTER_PRAYER', order: 7, startsWith: 'سبحان الله (33)', patch: { referenceAr: 'رواه مسلم - بعد كل صلاة' } },
   { category: 'AFTER_PRAYER', order: 8, startsWith: 'اللهم صل وسلم وبارك على نبينا محمد', patch: { referenceAr: SALAT_NASAI_REF, benefitAr: SALAT_NASAI_BEN } },
-  { category: 'AFTER_PRAYER', order: 9, startsWith: 'اللهم اغفر للمؤمنين والمؤمنات', patch: { referenceAr: null } },
+  { category: 'AFTER_PRAYER', order: 9, startsWith: 'اللهم اغفر للمؤمنين والمؤمنات', patch: { referenceAr: GENERAL_DUA_BELIEVERS_REF } },
 
   // GENERAL_WIRD
   { category: 'GENERAL_WIRD', order: 1, startsWith: 'لا حول ولا قوة إلا بالله', patch: { benefitAr: 'كنز من كنوز الجنة (رواه البخاري ومسلم)' } },

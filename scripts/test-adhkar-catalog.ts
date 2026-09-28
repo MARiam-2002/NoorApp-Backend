@@ -42,7 +42,7 @@ for (const key of keys) {
     assert.equal(item.orderInCategory, idx + 1, `${key} order is contiguous`);
     assert.ok(item.textAr.trim().length > 0, `${key} #${idx + 1} text`);
     assert.ok(Number.isInteger(item.repeatCount) && item.repeatCount >= 1, `${key} #${idx + 1} repeatCount`);
-    assert.ok(item.referenceAr === null || item.referenceAr.trim().length > 0, `${key} #${idx + 1} reference`);
+    assert.ok(typeof item.referenceAr === 'string' && item.referenceAr.trim().length > 0, `${key} #${idx + 1} reference`);
     assert.ok(item.benefitAr === null || item.benefitAr.trim().length > 0, `${key} #${idx + 1} benefit`);
   });
   const texts = items.map((i) => i.textAr);

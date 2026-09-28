@@ -2,8 +2,9 @@
  * Reviewed adhkar catalog — single source of truth for prisma/seed.ts and the offline fallback in
  * adhkar.service.ts. Production rows were brought to this content by
  * scripts/apply-adhkar-corrections-2026.ts; review notes: docs/ADHKAR_CONTENT_REVIEW_2026.md.
- * Any wording or reference change here needs a qualified reviewer and a bump of
- * ADHKAR_STATIC_CATALOG_VERSION so Flutter re-downloads the catalog.
+ * Any wording or reference change here needs a qualified reviewer, a bump of
+ * ADHKAR_STATIC_CATALOG_VERSION so Flutter re-downloads the catalog, and scripts/sync-adhkar-catalog.ts
+ * to update production rows in place.
  */
 export type AdhkarCategoryKey =
   | 'MORNING'
@@ -25,7 +26,8 @@ export type AdhkarCatalogItem = {
   orderInCategory: number;
   textAr: string;
   repeatCount: number;
-  referenceAr: string | null;
+  /** Never null: production has always sent a string here and Flutter models may rely on it. */
+  referenceAr: string;
   benefitAr: string | null;
 };
 
@@ -380,7 +382,7 @@ export const ADHKAR_CATALOG_ITEMS: Record<AdhkarCategoryKey, readonly AdhkarCata
       orderInCategory: 8,
       textAr: "اللَّهُمَّ اغْفِرْ لِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ، وَالْمُسْلِمِينَ وَالْمُسْلِمَاتِ، الْأَحْيَاءِ مِنْهُمْ وَالْأَمْوَاتِ، وَارْحَمْ مَوْتَانَا بِرَحْمَتِكَ يَا أَرْحَمَ الرَّاحِمِينَ",
       repeatCount: 1,
-      referenceAr: null,
+      referenceAr: "دعاء عام، أصله قوله تعالى: ﴿وَاسْتَغْفِرْ لِذَنبِكَ وَلِلْمُؤْمِنِينَ وَالْمُؤْمِنَاتِ﴾ (سورة محمد 19)",
       benefitAr: null,
     },
     {

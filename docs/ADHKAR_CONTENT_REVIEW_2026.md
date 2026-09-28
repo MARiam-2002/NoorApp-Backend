@@ -4,7 +4,7 @@
 The old hardcoded fallback list in `src/services/adhkar.service.ts` (used only if the DB is unreachable) had the same classes of problems; it now reads the reviewed catalog too.
 Tables below use the **legacy** item numbers (before renumbering).
 
-**Status:** APPLIED on 2026-09-28 (115 → 93 items, catalog version 2). This is an engineering triage, not a fatwa;
+**Status:** APPLIED on 2026-09-28 (115 → 93 items, catalog version 3). This is an engineering triage, not a fatwa;
 a qualified religious reviewer should still confirm the M-confidence rows. Applied content lives in
 `src/shared/data/adhkar-catalog.ts`; the exact rules are in `scripts/lib/adhkar-corrections-2026.ts`.
 
@@ -235,9 +235,10 @@ The REMOVE items are the most serious: several attribute invented wording to the
   against the catalog and refuses to run again once applied.
 - Impact at apply time: 22 rows removed, 0 favorites lost, 0 resume marks moved, 7 historical completions kept with
   `itemId = null`.
-- Flutter contract unchanged (same routes, fields, types). `ADHKAR_STATIC_CATALOG_VERSION` is 2, so
-  `adhkar/static-meta` `contentHash` changed and apps re-download the catalog.
+- Flutter contract unchanged (same routes, fields, types; `referenceAr` stays non-null). `ADHKAR_STATIC_CATALOG_VERSION`
+  is 3 (v2 briefly shipped one `referenceAr: null`, fixed in place), so `adhkar/static-meta` `contentHash` changed and
+  apps re-download the catalog.
 - `prisma/seed.ts` and the offline fallback in `adhkar.service.ts` both read `src/shared/data/adhkar-catalog.ts`, and the
   seed now updates items in place by position instead of delete + recreate, so re-seeding keeps item ids.
-- Any future wording/reference change: edit the catalog, bump `ADHKAR_STATIC_CATALOG_VERSION`, and update production rows
-  in place (never delete + recreate).
+- Any future wording/reference change: edit the catalog, bump `ADHKAR_STATIC_CATALOG_VERSION`, and run
+  `scripts/sync-adhkar-catalog.ts` (dry run, then `--apply`) to update production rows in place (never delete + recreate).
