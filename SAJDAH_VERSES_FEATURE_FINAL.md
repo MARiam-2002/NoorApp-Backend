@@ -2,6 +2,13 @@
 
 > **Status:** 100% READY — Backend implementation for Flutter "آيات السجود" screen (2 Tabs: "سجل السجود" / "قائمة الآيات"). Prisma model added, TypeScript compiled 0 errors, GetDiagnostics clean, all new routes are **additive only** (no existing Quran/Azan/Journey routes or response contracts modified — 100% backward compatible).
 >
+> **v1.1 content correction (2026-09-29) — read first.** The verse list was rebuilt from the 15 sajdah marks (۩) of the Madinah Mushaf (Tanzil Uthmani text, verbatim). Contract (routes, fields, types, counts 10/15) is unchanged; only content changed:
+> - `16:49` → **`16:50`** (the ۩ mark is on verse 50). `4:102` removed (not a sajdah verse) → **`38:24`** (Surah Sad) added.
+> - `22:77` is now `isIn10Muataqidah=false` (Hanafi/Maliki do not count it); `41:38` is now `true`. Still exactly 10 `true` and 15 rows.
+> - `textAr` is verbatim Uthmani for all 15 (27:26, 41:38, 84:21 and 19:58 were previously wrong or truncated). `textEn` is Sahih International.
+> - `sortOrder` 1..15 now follows **Mushaf order**, so the 5 non-agreed rows are interleaved (sortOrder 7, 11, 13, 14, 15). Build the سجل السجود tab by filtering `isIn10Muataqidah == true` — never by `sortOrder <= 10`.
+> - `PATCH` on an old key (`16/49`, `4/102`) now returns **400 `VALIDATION_ERROR`**. Do not hard-code verse keys in the app; always render the rows the API returns.
+
 > **Production Base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`
 > **Vercel mirror:** `https://noor-app-backend-one.vercel.app/api/v1`
 >
@@ -35,30 +42,30 @@
 |---|---|
 | **Header right side counter:** `10 سجدات` (screenshot 2 — "سجل السجود" tab) | `summary.muataqidahTotal` (=10), text: "إجمالي السجدات المؤداة" label in app. |
 | **Header right side counter:** `15 سجدة` (screenshot 1 — "قائمة الآيات" tab) | `summary.fullTotal` (=15), text: "إجمالي السجدات في القرآن". |
-| **Number completed (for progress bar/animation under counter):** e.g. user in screenshot has completed **4 of 10** (A'raf 206 ✅, Ra'd 15 ✅, Nahl 49 ⚪, Isra 109 ✅, Maryam 58 ⚪, Hajj 18 ⚪, Hajj 77 ✅ …) | `summary.muataqidahCompleted / summary.fullCompleted` + `*Percent` for the two respectively. |
+| **Number completed (for progress bar/animation under counter):** e.g. a user who completed A'raf 206 ✅, Ra'd 15 ✅, Isra 109 ✅ and Furqan 60 ✅ has **4 of 10** | `summary.muataqidahCompleted / summary.fullCompleted` + `*Percent` for the two respectively. |
 
 ### Tab 1 = "سجل السجود" (سجل السجود — 10 rows — muataqidah scope)
 The "simple circle-checkbox" UI (left side of each row — no badge chip):
-| Row # | UI (Screenshot 2 order) | Backend field(s) |
+| Row # | UI | Backend field(s) (`scope=muataqidah`, or full rows filtered by `isIn10Muataqidah`) |
 |---|---|---|
-| 1 | سورة الأعراف آية 206 — ✅ | `rows[0].verseKey=7:206`, `.completed=true` → ✅ golden filled checkmark |
-| 2 | سورة الرعد آية 15 — ✅ | `rows[1].verseKey=13:15`, `.completed=true` |
-| 3 | سورة النحل آية 49 — ⚪ | `rows[2].verseKey=16:49`, `.completed=false` → hollow white circle |
-| 4 | سورة الإسراء آية 109 — ✅ | `rows[3].verseKey=17:109`, `.completed=true` |
-| 5 | سورة مريم آية 58 — ⚪ | `rows[4].verseKey=19:58`, `.completed=false` |
-| 6 | سورة الحج آية 18 — ⚪ | `rows[5].verseKey=22:18`, `.completed=false` |
-| 7 | سورة الحج آية 77 — ✅ | `rows[6].verseKey=22:77`, `.completed=true` |
-| 8 | سورة الفرقان آية 60 | rows[7] |
-| 9 | سورة النمل آية 26 | rows[8] |
-| 10 | سورة السجدة آية 15 | rows[9] |
+| 1 | سورة الأعراف آية 206 | `verseKey=7:206` — `.completed=true` → ✅ golden filled checkmark |
+| 2 | سورة الرعد آية 15 | `verseKey=13:15` |
+| 3 | سورة النحل آية 50 | `verseKey=16:50` — `.completed=false` → hollow white circle |
+| 4 | سورة الإسراء آية 109 | `verseKey=17:109` |
+| 5 | سورة مريم آية 58 | `verseKey=19:58` |
+| 6 | سورة الحج آية 18 | `verseKey=22:18` |
+| 7 | سورة الفرقان آية 60 | `verseKey=25:60` |
+| 8 | سورة النمل آية 26 | `verseKey=27:26` |
+| 9 | سورة السجدة آية 15 | `verseKey=32:15` |
+| 10 | سورة فصلت آية 38 | `verseKey=41:38` (has a note: Maliki prostrate after verse 37) |
 | *(Arabic verse text preview under reference header)* | `.textAr` of each row. |
 
 ### Tab 2 = "قائمة الآيات" (قائمة الآيات — 15 rows — full scope)
-Same 7 visible rows order as Tab 1 + 8 extra rows below (sortOrder 11..15). Every row has a **LEFT side chip/badge** (Screenshot 1) instead of just a circle:
+All 15 Mushaf sajdah marks in Mushaf order (the 10 above plus 22:77, 38:24, 53:62, 84:21, 96:19, interleaved by `sortOrder`). Every row has a **LEFT side chip/badge** instead of just a circle:
 | UI chip label (Arabic) | Backend field |
 |---|---|
-| `تم السجود` (dark badge + ✓ checkmark — A'raf 206, Ra'd 15, Isra 109, Hajj 77 in screenshot) | `rows[i].badgeLabelAr = "تم السجود"` when `completed=true` |
-| `لم يتم السجود` (dark badge + ⚪ hollow circle — Nahl 49, Maryam 58, Hajj 18 in screenshot) | `rows[i].badgeLabelAr = "لم يتم السجود"` when `completed=false` |
+| `تم السجود` (dark badge + ✓ checkmark) | `rows[i].badgeLabelAr = "تم السجود"` when `completed=true` |
+| `لم يتم السجود` (dark badge + ⚪ hollow circle) | `rows[i].badgeLabelAr = "لم يتم السجود"` when `completed=false` |
 
 Use `.badgeLabelAr` as chip text (always server-provided to guarantee wording) and use `.completed` to select which chip icon (✓ vs ⚪) to render inside the badge.
 
@@ -94,15 +101,15 @@ curl 'https://noorapp-backend-production.up.railway.app/api/v1/quran/sajdah-vers
       "ayahNumber": 206,
       "referenceAr": "سورة الأعراف - آية 206",
       "referenceEn": "Surah Al-A'raf — Verse 206",
-      "textAr": "إِنَّ الَّذِينَ عِندَ رَبِّكَ لَا يَسْتَكْبِرُونَ عَنْ عِبَادَتِهِ وَيُسَبِّحُونَهُ وَلَهُ يَسْجُدُونَ ۩",
-      "textEn": "Indeed, those with your Lord are not arrogant against His worship, and they glorify Him and to Him they prostrate.",
+      "textAr": "إِنَّ ٱلَّذِينَ عِندَ رَبِّكَ لَا يَسْتَكْبِرُونَ عَنْ عِبَادَتِهِۦ وَيُسَبِّحُونَهُۥ وَلَهُۥ يَسْجُدُونَ ۩",
+      "textEn": "Indeed, those who are near your Lord [i.e., the angels] are not prevented by arrogance from His worship, and they exalt Him, and to Him they prostrate.",
       "badgeLabelAr": "لم يتم السجود",
       "badgeLabelEn": "Sujood not yet performed",
       "isIn10Muataqidah": true,
       "sortOrder": 1,
       "verseKey": "7:206"
     }
-    // … 9 more rows (sortOrder 2..10) for سجل السجود, or 15 for قائمة الآيات.
+    // … 9 more agreed rows for سجل السجود (scope=muataqidah), or 14 more for قائمة الآيات (scope=full).
   ]
 }
 ```
@@ -122,7 +129,7 @@ curl -H 'Authorization: Bearer <access_token>' \
   'https://noorapp-backend-production.up.railway.app/api/v1/quran/sajdah-verses/my-progress?scope=full'
 ```
 
-**Response `data` (matches your screenshot — user has 4 of first 7 Mu'taqidah done):**
+**Response `data` (`scope=full`; user completed 7:206, 13:15, 17:109, 25:60; long texts shortened with … here only — the API always returns the full verse):**
 ```jsonc
 {
   "summary": {
@@ -135,55 +142,41 @@ curl -H 'Authorization: Bearer <access_token>' \
     "lastCompletedAt": "2026-09-20T08:12:14.000Z"
   },
   "rows": [
-    // -- sortOrder 1 --
     { "verseKey":"7:206",  "surahId":7,  "ayahNumber":206,
       "referenceAr":"سورة الأعراف - آية 206", "referenceEn":"Surah Al-A'raf — Verse 206",
-      "textAr":"إِنَّ الَّذِينَ عِندَ رَبِّكَ لَا يَسْتَكْبِرُونَ عَنْ عِبَادَتِهِ وَيُسَبِّحُونَهُ وَلَهُ يَسْجُدُونَ ۩",
-      "textEn":"Indeed, those with your Lord are not arrogant against His worship…",
+      "textAr":"إِنَّ ٱلَّذِينَ عِندَ رَبِّكَ لَا يَسْتَكْبِرُونَ عَنْ عِبَادَتِهِۦ وَيُسَبِّحُونَهُۥ وَلَهُۥ يَسْجُدُونَ ۩",
+      "textEn":"Indeed, those who are near your Lord [i.e., the angels] are not prevented by arrogance from His worship…",
       "badgeLabelAr":"تم السجود", "badgeLabelEn":"Sujood performed",
       "completed":true, "completedAt":"2026-09-15T17:01:21.000Z",
       "isIn10Muataqidah":true, "sortOrder":1 },
-    // -- sortOrder 2 --
-    { "verseKey":"13:15",  "surahId":13, "ayahNumber":15,
-      "referenceAr":"سورة الرعد - آية 15",
-      "textAr":"وَلِلَّهِ يَسْجُدُ مَنْ فِي السَّمَاوَاتِ وَالْأَرْضِ طَوْعًا وَكَرْهًا…",
+    { "verseKey":"13:15",  "surahId":13, "ayahNumber":15, "referenceAr":"سورة الرعد - آية 15",
+      "textAr":"وَلِلَّهِ يَسْجُدُ مَن فِى ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ طَوْعًۭا وَكَرْهًۭا …",
       "badgeLabelAr":"تم السجود","completed":true,"isIn10Muataqidah":true,"sortOrder":2 },
-    // -- sortOrder 3 --
-    { "verseKey":"16:49",  "surahId":16, "ayahNumber":49,
-      "referenceAr":"سورة النحل - آية 49",
-      "textAr":"وَلِلَّهِ يَسْجُدُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ مِن دَابَّةٍ…",
+    { "verseKey":"16:50",  "surahId":16, "ayahNumber":50, "referenceAr":"سورة النحل - آية 50",
+      "textAr":"يَخَافُونَ رَبَّهُم مِّن فَوْقِهِمْ وَيَفْعَلُونَ مَا يُؤْمَرُونَ ۩",
       "badgeLabelAr":"لم يتم السجود","completed":false,"completedAt":null,"isIn10Muataqidah":true,"sortOrder":3 },
-    // -- sortOrder 4 --
-    { "verseKey":"17:109", "surahId":17, "ayahNumber":109,
-      "referenceAr":"سورة الإسراء - آية 109",
-      "textAr":"وَيَخِرُّونَ لِلْأَذْقَانِ يَبْكُونَ وَيَزِيدُهُمْ خُشُوعًا ۩",
+    { "verseKey":"17:109", "surahId":17, "ayahNumber":109, "referenceAr":"سورة الإسراء - آية 109",
+      "textAr":"وَيَخِرُّونَ لِلْأَذْقَانِ يَبْكُونَ وَيَزِيدُهُمْ خُشُوعًۭا ۩",
       "badgeLabelAr":"تم السجود","completed":true,"isIn10Muataqidah":true,"sortOrder":4 },
-    // -- sortOrder 5 --
-    { "verseKey":"19:58",  "surahId":19, "ayahNumber":58,
-      "referenceAr":"سورة مريم - آية 58",
-      "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":5 },
-    // -- sortOrder 6 --
-    { "verseKey":"22:18",  "surahId":22, "ayahNumber":18,
-      "referenceAr":"سورة الحج - آية 18",
-      "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":6 },
-    // -- sortOrder 7 (last visible in both screenshots) --
-    { "verseKey":"22:77",  "surahId":22, "ayahNumber":77,
-      "referenceAr":"سورة الحج - آية 77",
-      "badgeLabelAr":"تم السجود","completed":true,"isIn10Muataqidah":true,"sortOrder":7 },
-    // -- sortOrder 8..10 (remainder of Tab 1) --
-    { "verseKey":"25:60",  "surahId":25, "ayahNumber":60,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":8 },
+    { "verseKey":"19:58",  "surahId":19, "ayahNumber":58,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":5 },
+    { "verseKey":"22:18",  "surahId":22, "ayahNumber":18,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":6 },
+    { "verseKey":"22:77",  "surahId":22, "ayahNumber":77,  "referenceAr":"سورة الحج - آية 77",
+      "noteAr":"السجدة الثانية في سورة الحج: يسجد فيها الشافعية والحنابلة، ولا يراها الحنفية والمالكية سجدة تلاوة.",
+      "noteEn":"The second prostration of Surah Al-Hajj: prostrated by the Shafi‘i and Hanbali schools; the Hanafi and Maliki schools do not count it as a prostration of recitation.",
+      "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":7 },
+    { "verseKey":"25:60",  "surahId":25, "ayahNumber":60,  "badgeLabelAr":"تم السجود","completed":true,"isIn10Muataqidah":true,"sortOrder":8 },
     { "verseKey":"27:26",  "surahId":27, "ayahNumber":26,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":9 },
     { "verseKey":"32:15",  "surahId":32, "ayahNumber":15,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":10 },
-    // -- sortOrder 11..15 (Tab 2 ONLY — extra 5 verses for قائمة الآيات) --
-    { "verseKey":"41:38",  "surahId":41, "ayahNumber":38,
-      "referenceAr":"سورة فصلت - آية 38",
-      "noteAr":"سجودة عند الإمامية، وذكرها في بعض الروايات",
-      "noteEn":"Sujood confirmed in Ja'fari (Imami) fiqh",
+    { "verseKey":"38:24",  "surahId":38, "ayahNumber":24,  "referenceAr":"سورة ص - آية 24",
+      "noteAr":"سجد فيها النبي ﷺ (رواه البخاري — رقم 1069). هي سجدة تلاوة عند الحنفية والمالكية، وسجدة شكر عند الشافعية والحنابلة.",
       "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":11 },
-    { "verseKey":"53:62",  "surahId":53, "ayahNumber":62,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":12 },
-    { "verseKey":"96:19",  "surahId":96, "ayahNumber":19,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":13 },
+    { "verseKey":"41:38",  "surahId":41, "ayahNumber":38,  "referenceAr":"سورة فصلت - آية 38",
+      "noteAr":"موضع السجود عند الجمهور بعد الآية 38، وعند المالكية بعد الآية 37.",
+      "noteEn":"The majority prostrate after verse 38; the Maliki school after verse 37.",
+      "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":true,"sortOrder":12 },
+    { "verseKey":"53:62",  "surahId":53, "ayahNumber":62,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":13 },
     { "verseKey":"84:21",  "surahId":84, "ayahNumber":21,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":14 },
-    { "verseKey":"4:102",  "surahId":4,  "ayahNumber":102, "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":15 }
+    { "verseKey":"96:19",  "surahId":96, "ayahNumber":19,  "badgeLabelAr":"لم يتم السجود","completed":false,"isIn10Muataqidah":false,"sortOrder":15 }
   ]
 }
 ```
@@ -273,9 +266,9 @@ curl -X PATCH \
 | `rows[].badgeLabelEn` | string | English chip text | English locale |
 | `rows[].completed` | boolean | true/false | Renders circle ✓ or ⚪ in سجل السجود; chip icon ✓/⚪ in قائمة الآيات. |
 | `rows[].completedAt` | string? | ISO-8601 / null | When user first marked this sujood; can show as tooltip / subtitle text |
-| `rows[].isIn10Muataqidah` | boolean | true/false | If false → this row appears ONLY in قائمة الآيات Tab (11..15 sortOrder), hide in سجل السجود Tab |
-| `rows[].sortOrder` | int | 1..15 | NEVER sort rows client-side — always render using backend sortOrder exactly as returned, matches screenshot order A'raf → Nisa |
-| `rows[].noteAr` / `noteEn` | string? | optional | Tiny hint below the ayah preview (only shown for sortOrder 11-15 to explain madhhab inclusion) |
+| `rows[].isIn10Muataqidah` | boolean | true/false | If false → this row appears ONLY in قائمة الآيات Tab (22:77, 38:24, 53:62, 84:21, 96:19), hide in سجل السجود Tab |
+| `rows[].sortOrder` | int | 1..15 | Mushaf order (A'raf 206 → Alaq 19). Render rows exactly as returned; never infer the tab from sortOrder |
+| `rows[].noteAr` / `noteEn` | string? | optional | Tiny hint below the ayah preview when present (the 5 non-agreed rows, plus 41:38 for its position) |
 | `toggledVerse.pointsAwarded` | int | 0 or 20 | Confetti/show-points animation on first completion |
 
 ---
@@ -283,26 +276,28 @@ curl -X PATCH \
 ## 4. Catalog, Rules, Points
 
 ### 4.1 Canonical Verse Order (DO NOT REORDER client-side)
-Backend returns rows sorted by `sortOrder` 1..15 exactly matching your screenshot visible list:
-1.  الأعراف 206 — 7:206
-2.  الرعد 15 — 13:15
-3.  النحل 49 — 16:49
-4.  الإسراء 109 — 17:109
-5.  مريم 58 — 19:58
-6.  الحج 18 — 22:18
-7.  الحج 77 — 22:77
-8.  الفرقان 60 — 25:60
-9.  النمل 26 — 27:26
-10. السجدة 15 — 32:15
-11. فصلت 38 — 41:38 *(إمامية)*
-12. النجم 62 — 53:62 *(رواية عمر رضي الله عنه)*
-13. العلق 19 — 96:19 *(حنفية)*
-14. الانشقاق 21 — 84:21 *(شافعية)*
-15. النساء 102 — 4:102 *(سياق الصلاة)*
+Backend returns rows sorted by `sortOrder` 1..15 = the 15 ۩ marks of the Madinah Mushaf, in Mushaf order (✔ = agreed by the four schools):
+1.  الأعراف 206 — 7:206 ✔
+2.  الرعد 15 — 13:15 ✔
+3.  النحل 50 — 16:50 ✔
+4.  الإسراء 109 — 17:109 ✔
+5.  مريم 58 — 19:58 ✔
+6.  الحج 18 — 22:18 ✔
+7.  الحج 77 — 22:77 *(Shafi'i & Hanbali yes; Hanafi & Maliki no)*
+8.  الفرقان 60 — 25:60 ✔
+9.  النمل 26 — 27:26 ✔
+10. السجدة 15 — 32:15 ✔
+11. ص 24 — 38:24 *(Bukhari 1069; tilawah for Hanafi & Maliki, shukr for Shafi'i & Hanbali)*
+12. فصلت 38 — 41:38 ✔ *(majority after verse 38, Maliki after 37)*
+13. النجم 62 — 53:62 *(Bukhari 1067; not a tilawah sajdah in the well-known Maliki position)*
+14. الانشقاق 21 — 84:21 *(Muslim 578; same Maliki note)*
+15. العلق 19 — 96:19 *(Muslim 578; same Maliki note)*
+
+Arabic text source: Tanzil Uthmani (`prisma/data/quran-uthmani.json`), verbatim. Regenerate with `npx tsx scripts/build-sajdah-verses.ts`; `--check` fails if the file drifts; `npm run test:sajdah` verifies text, marks and flags.
 
 ### 4.2 Mu'taqidah (10) vs Full (15)
-- 10 Mu'taqidah verses = `isIn10Muataqidah = true` (sortOrder 1..10) → shown on سجل السجود tab.
-- 15 Full list = 10 Mu'taqidah + 5 additional fiqh-narrated → shown on قائمة الآيات tab.
+- 10 Mu'taqidah verses = `isIn10Muataqidah = true` (✔ above) → shown on سجل السجود tab.
+- 15 Full list = all Mushaf marks → shown on قائمة الآيات tab.
 
 ### 4.3 Points reward (gamification)
 - FIRST-TIME sujood mark (`completed` transitions false → true) → User.points **+20** + `pointsAwarded=20` in response.
@@ -364,7 +359,7 @@ On user taps circle/badge to toggle a verse:
 | # | Check | Status |
 |---|---|---|
 | 1 | Opening آيات السجود screen (logged-in) → calls GET /quran/sajdah-verses/my-progress one-shot; no waterfall. | ☐ |
-| 2 | سجل السجود Tab renders 10 rows (sortOrder 1..10) — circle checkmark filled when `completed==true`; hollow otherwise. | ☐ |
+| 2 | سجل السجود Tab renders the 10 rows with `isIn10Muataqidah == true` (in returned order) — circle checkmark filled when `completed==true`; hollow otherwise. | ☐ |
 | 3 | قائمة الآيات Tab renders 15 rows (sortOrder 1..15) — left side chip shows server `.badgeLabelAr` string exactly; inside icon = ✓ if completed, else ⚪. | ☐ |
 | 4 | Each row 2nd line shows `.textAr` small preview under `.referenceAr`. | ☐ |
 | 5 | Header counter on سجل السجود shows: `"\(summary.muataqidahCompleted) سجدات"` against `muataqidahTotal=10` (in your Arabic wording). Progress bar fill = `muataqidahPercent / 100`. | ☐ |
@@ -376,9 +371,16 @@ On user taps circle/badge to toggle a verse:
 
 ---
 
-## 10. Change Log (Final v1.0 — 2026-09-23)
+## 10. Change Log
+
+### v1.1 — 2026-09-29 (content correction, contract unchanged)
+- Catalog regenerated from the Tanzil Uthmani text by `scripts/build-sajdah-verses.ts`: 16:49 → 16:50, 4:102 → 38:24, verbatim `textAr` for all 15, Sahih International `textEn`, Mushaf-order `sortOrder`.
+- Agreed flags corrected (22:77 false, 41:38 true; still 10 true). Madhhab notes rewritten with Sahihayn references (Bukhari 1067, 1069; Muslim 578).
+- New test `scripts/test-sajdah-verses.ts` (`npm run test:sajdah`), part of `npm test`.
+
+### v1.0 — 2026-09-23
 - **New Prisma model `QuranSajdahCompletion`** with composite unique key `(userId, surahId, ayahNumber)`; upsert pattern idempotent across sessions/devices; inverse relation added to User model (no breaking schema — only one new table).
-- **New constant file `src/shared/constants/sajdah-verses.ts`** → canonical 15-verse list with AR/EN references, AR/EN ayah text, `isIn10Muataqidah` flag, `sortOrder 1..15` matching screenshot order exactly, fiqh note hints for 5 extras.
+- **New constant file `src/shared/constants/sajdah-verses.ts`** → canonical 15-verse list with AR/EN references, AR/EN ayah text, `isIn10Muataqidah` flag, `sortOrder 1..15`, fiqh note hints for 5 extras (superseded by v1.1 above).
 - **New 3 services in `src/services/quran.service.ts`**: `listSajdahVersesCatalog` (public), `getUserSajdahProgress` (auth returns summary + rows), `toggleSajdahVerseCompletion` (auth toggle/set + 20-pts first-time reward + refreshed payload).
 - **New 3 additive controllers** appended in `src/controllers/quran.controller.ts` (old handlers untouched).
 - **New 3 additive routes** mounted at top of `src/routes/quran.ts` after `quranRouter = Router()` but BEFORE existing surahs/bookmarks routes — so existing path resolution unchanged. All OpenAPI `@openapi` docs added for auto-Swagger.
