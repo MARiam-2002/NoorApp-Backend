@@ -43,7 +43,7 @@ Detail shape (`figure-of-day` adds `dayOfYear`; `figures/{id}` has everything el
 
 ```json
 { "success": true, "message": "Figure of the day retrieved successfully",
-  "data": { "dayOfYear": 272, "catalogVersion": 1,
+  "data": { "dayOfYear": 269, "catalogVersion": 1,
     "id": "musab-ibn-umair", "nameAr": "مصعب بن عمير", "nameEn": "Mus'ab ibn Umair",
     "honorificAr": "رضي الله عنه", "titleAr": "أول سفير في الإسلام", "titleEn": "The first envoy of Islam",
     "summaryAr": "فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...",

@@ -3,6 +3,9 @@
  * Creates a throwaway @noor.test account and deletes it at the end (DELETE /auth/me).
  * Run: API_BASE=https://noor-app-backend-one.vercel.app/api/v1 npx tsx scripts/smoke-home-figure-production.ts
  */
+import { getDailyChallengeDefinition } from '../src/shared/data/daily-challenges';
+import { SAJDAH_VERSES_CATALOG } from '../src/shared/constants/sajdah-verses';
+
 const BASE = process.env.API_BASE || 'https://noor-app-backend-one.vercel.app/api/v1';
 
 type Res = { status: number; json: any; ms: number };
@@ -157,6 +160,26 @@ async function main() {
       const r = await req('GET', path, { token });
       check(`GET ${path} (auth) → 200`, r.status === 200 && r.json.success, `${r.ms}ms`);
     }
+
+    const ch = (await req('GET', '/challenges/today', { token })).json?.data;
+    const bank = ch ? getDailyChallengeDefinition(ch.dayOfYear) : undefined;
+    check('challenge of the day equals the bank entry for the server day',
+      bank && ch.titleAr === bank.titleAr && ch.titleEn === bank.titleEn && ch.descriptionEn === bank.descriptionEn
+        && ch.type === bank.type && ch.targetValue === bank.targetValue, `day ${ch?.dayOfYear}: ${ch?.titleEn}`);
+    check('dashboard.dailyChallenge English matches /challenges/today',
+      d?.dailyChallenge?.titleEn === ch?.titleEn && d?.dailyChallenge?.descriptionEn === ch?.descriptionEn);
+
+    const sp = (await req('GET', '/quran/sajdah-verses/my-progress?scope=full', { token })).json?.data;
+    const keys = (sp?.rows ?? []).map((r: { verseKey: string }) => r.verseKey);
+    check('sajdah my-progress: 15 Mushaf rows in order',
+      JSON.stringify(keys) === JSON.stringify(SAJDAH_VERSES_CATALOG.map((v) => `${v.surahId}:${v.ayahNumber}`)));
+    check('sajdah summary totals 10 / 15', sp?.summary?.muataqidahTotal === 10 && sp?.summary?.fullTotal === 15);
+    check('sajdah agreed rows = 10', (sp?.rows ?? []).filter((r: { isIn10Muataqidah: boolean }) => r.isIn10Muataqidah).length === 10);
+    const oldKey = await req('PATCH', '/quran/sajdah-verses/16/49', { token, body: {} });
+    check('PATCH old key 16:49 → 400 VALIDATION_ERROR', oldKey.status === 400 && oldKey.json?.code === 'VALIDATION_ERROR');
+    const toggle = await req('PATCH', '/quran/sajdah-verses/16/50', { token, body: {} });
+    check('PATCH 16:50 → 200, completed, +20 points',
+      toggle.status === 200 && toggle.json?.data?.toggledVerse?.pointsAwarded === 20 && toggle.json?.data?.summary?.muataqidahCompleted === 1);
   } finally {
     const del = await req('DELETE', '/auth/me', { token });
     check('DELETE /auth/me (cleanup temp account)', del.status === 200 && del.json?.data?.deleted === true);
