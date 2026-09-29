@@ -36,7 +36,7 @@
 | **شخصية اليوم (new)** | `GET /dashboard` | **`figureOfTheDay.nameAr`, `titleAr`, `summaryAr`, `id`** |
 | حديث اليوم | same | `hadithOfTheDay.textAr`, `hadithOfTheDay.sourceAr` |
 | موقف اليوم | `GET /stances/today` | `situation.situationAr`, `situation.labelAr`, `situation.alreadyAnswered` |
-| تحدي اليوم | `GET /dashboard` | `dailyChallenge.titleAr`, `descriptionAr`, `rewardPoints`, `targetValue`, `completed`, `claimed` |
+| تحدي اليوم | `GET /dashboard` | `dailyChallenge.titleAr`, `descriptionAr` (English: `titleEn`, `descriptionEn`), `rewardPoints`, `targetValue`, `completed`, `claimed` |
 
 The numbers in the Figma file (12 sajdah verses, 50 points, 5 pages, and so on) are placeholders. Always render the values from the API.
 
@@ -132,8 +132,10 @@ The other dashboard keys (`greeting`, `prayers`, `verseOfTheDay`, `hadithOfTheDa
       "nawafel": { "completed": 0, "total": 12, "progress": 0, "labelAr": "الرواتب", "captionAr": "0 من 12 ركعة اليوم" }
     },
     "khatmah": { "surahId": 2, "surahNameAr": "البقرة", "currentPage": 1, "progressPercent": 0, "surahNameEn": "Al-Baqara" },
-    "dailyChallenge": { "titleAr": "أربع صفحات من القرآن", "descriptionAr": "اقرأ أربع صفحات من القرآن الكريم",
-                        "rewardPoints": 100, "targetValue": 4, "completed": false, "claimed": false },
+    "dailyChallenge": { "titleAr": "إطعام الطعام", "titleEn": "Feeding others",
+                        "descriptionAr": "سُئل النبي ﷺ: أي الإسلام خير؟ فقال: «تُطْعِمُ الطَّعَامَ…» (رواه البخاري — رقم 12). أنفق 10 على الأقل في إطعام محتاج وسجّله",
+                        "descriptionEn": "Asked which Islam is best, the Prophet ﷺ said: “Feed people…” (Sahih al-Bukhari 12). Spend at least 10 on feeding someone in need and log it",
+                        "rewardPoints": 90, "targetValue": 10, "completed": false, "claimed": false },
     "utilities": { "tasbih": { "enabled": true }, "qibla": { "enabled": true } }
   }
 }
@@ -166,9 +168,11 @@ The other dashboard keys (`greeting`, `prayers`, `verseOfTheDay`, `hadithOfTheDa
   "summary": { "muataqidahCompleted": 0, "muataqidahTotal": 10, "muataqidahPercent": 0,
                "fullCompleted": 0, "fullTotal": 15, "fullPercent": 0, "lastCompletedAt": null },
   "rows": [ { "surahId": 7, "ayahNumber": 206, "verseKey": "7:206", "referenceAr": "سورة الأعراف - آية 206",
-              "textAr": "…", "completed": false, "completedAt": null, "sortOrder": 1 } ]
+              "textAr": "…", "completed": false, "completedAt": null, "isIn10Muataqidah": true, "sortOrder": 1 } ]
 }
 ```
+
+The rows are the 15 Mushaf sajdah marks in Mushaf order. For the «سجل السجود» tab, filter `isIn10Muataqidah == true`; don't slice by `sortOrder`.
 
 `GET /stances/today`
 
@@ -411,8 +415,10 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 | Already existed (unchanged) | This pass |
 |-----------------------------|-----------|
 | `GET /dashboard` and all its keys | **Additive** `figureOfTheDay` (7 string fields, never `null`) |
-| Verse / hadith / challenge / stance of the day | Unchanged |
-| `/notifications/unread-count`, `/quran/khatmah/stats`, `/quran/sajdah-verses/my-progress` | Unchanged |
+| Verse / hadith / stance of the day | Unchanged |
+| Challenge of the day (same fields) | **Content:** new 28-challenge bank; `titleEn` / `descriptionEn` now real English for every day; every challenge is auto-checked (PRAYER target always 5, ADHKAR is done/not done). Descriptions may quote a hadith with its Sahihayn number, so let them wrap. |
+| `/quran/sajdah-verses/*` (same fields, counts 10 / 15) | **Content:** 15 Mushaf ۩ marks with verbatim text; keys `16:49` → `16:50` and `4:102` → `38:24`; `22:77` not agreed, `41:38` agreed; `sortOrder` in Mushaf order. Filter the first tab by `isIn10Muataqidah`. See `SAJDAH_VERSES_FEATURE_FINAL.md` v1.1. |
+| `/notifications/unread-count`, `/quran/khatmah/stats` | Unchanged |
 | `GET /content/credits` (`version: 1`) | `version: 2` + `figures` item |
 | — | **New** `GET /content/figure-of-day`, `GET /content/figures`, `GET /content/figures/{id}` |
 

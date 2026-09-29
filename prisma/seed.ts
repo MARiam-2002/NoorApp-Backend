@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { PrismaClient, RevelationType } from '@prisma/client';
 import { getCuratedHadithForDay } from '../src/shared/constants/curated-hadiths';
 import { ADHKAR_CATALOG_ITEMS, type AdhkarCategoryKey } from '../src/shared/data/adhkar-catalog';
+import { buildDailyChallengeTemplates } from '../src/shared/data/daily-challenges';
 
 const prisma = new PrismaClient();
 
@@ -67,42 +68,6 @@ const VERSE_REFS: { surahNumber: number; ayahNumber: number }[] = [
   { surahNumber: 48, ayahNumber: 29 },
   { surahNumber: 57, ayahNumber: 21 },
   { surahNumber: 64, ayahNumber: 11 },
-];
-
-const CHALLENGE_TYPES = ['QURAN_PAGES', 'PRAYER', 'ADHKAR', 'SADAQAH'] as const;
-type ChallengeType = typeof CHALLENGE_TYPES[number];
-
-const CHALLENGE_BANK: { type: ChallengeType; titleAr: string; descriptionAr: string; targetValue: number; rewardPoints: number }[] = [
-  { type: 'QURAN_PAGES', titleAr: 'صفحتا قرآن', descriptionAr: 'اقرأ صفحتين من القرآن الكريم اليوم', targetValue: 2, rewardPoints: 50 },
-  { type: 'QURAN_PAGES', titleAr: 'أربع صفحات من القرآن', descriptionAr: 'اقرأ أربع صفحات من القرآن الكريم', targetValue: 4, rewardPoints: 100 },
-  { type: 'QURAN_PAGES', titleAr: 'تتمة جزء', descriptionAr: 'اقرأ جزء كامل من القرآن', targetValue: 20, rewardPoints: 300 },
-  { type: 'QURAN_PAGES', titleAr: 'سورة يس كاملة', descriptionAr: 'اقرأ سورة يس كاملة واملأ قلبها بالخشوع', targetValue: 5, rewardPoints: 120 },
-  { type: 'QURAN_PAGES', titleAr: 'سورة الملك', descriptionAr: 'اقرأ سورة الملك حماية من عذاب القبر', targetValue: 2, rewardPoints: 80 },
-  { type: 'QURAN_PAGES', titleAr: 'سورة الكهف', descriptionAr: 'اقرأ سورة الكهف يوم الجمعة بركة لليومين', targetValue: 14, rewardPoints: 250 },
-  { type: 'PRAYER', titleAr: 'صلوات خمس في جماعة', descriptionAr: 'أدِ الصلوات الخمس كلها في وقتها وفي جماعة أو مسجد', targetValue: 1, rewardPoints: 100 },
-  { type: 'PRAYER', titleAr: 'الجماعة كلها', descriptionAr: 'مخالطة المؤمنين في المسجد وعدم تفويت جماعة اليوم', targetValue: 1, rewardPoints: 80 },
-  { type: 'PRAYER', titleAr: 'رواتب النوافل', descriptionAr: 'صل النوافل الرواتب (12 ركعة) كلها اليوم', targetValue: 1, rewardPoints: 150 },
-  { type: 'PRAYER', titleAr: 'قيام الليل سجدة', descriptionAr: 'اقم ليلة بقليل من الركعات وسجود الشكر', targetValue: 1, rewardPoints: 200 },
-  { type: 'PRAYER', titleAr: 'استغفار مئة مرة', descriptionAr: 'قل أستغفر الله و أتوب إليه مئة مرة اليوم', targetValue: 1, rewardPoints: 70 },
-  { type: 'PRAYER', titleAr: 'التراويح رمضان', descriptionAr: 'قم في ليالي رمضان بتراويح عشر ركعات', targetValue: 1, rewardPoints: 180 },
-  { type: 'ADHKAR', titleAr: 'أذكار الصباح كاملة', descriptionAr: 'قراءة أذكار الصباح سبع مرات وأركانها كلها', targetValue: 1, rewardPoints: 60 },
-  { type: 'ADHKAR', titleAr: 'أذكار المساء كاملة', descriptionAr: 'قراءة أذكار المساء مع المعتقدات', targetValue: 1, rewardPoints: 60 },
-  { type: 'ADHKAR', titleAr: 'مائة سبحة', descriptionAr: 'سبح الله مئة مرة بحسبان طبيعة', targetValue: 1, rewardPoints: 40 },
-  { type: 'ADHKAR', titleAr: 'مائة تكبير', descriptionAr: 'كبر الله مئة مرة (الله أكبر)', targetValue: 1, rewardPoints: 40 },
-  { type: 'ADHKAR', titleAr: 'مائة تحميد', descriptionAr: 'احمد الله مئة مرة (الحمد لله)', targetValue: 1, rewardPoints: 40 },
-  { type: 'ADHKAR', titleAr: 'أذكار النوم', descriptionAr: 'قم قبل النوم بتلاوة المعوذات وأذكار النوم', targetValue: 1, rewardPoints: 50 },
-  { type: 'ADHKAR', titleAr: 'ورد قرآن صباحاً', descriptionAr: 'ابدأ يومك بورد قرآن نص سورة', targetValue: 1, rewardPoints: 80 },
-  { type: 'SADAQAH', titleAr: 'صدقة جارية مالية', descriptionAr: 'تبرع بمبلغ مالي بسيط لصدقة جارية لمساكين', targetValue: 10, rewardPoints: 90 },
-  { type: 'SADAQAH', titleAr: 'إفطار صائم', descriptionAr: 'أفطر صائماً ولو بماء أو تمر', targetValue: 1, rewardPoints: 120 },
-  { type: 'SADAQAH', titleAr: 'كلمة طيبة صدقة', descriptionAr: 'قل كلمة طيبة لوالديك أو أحد إخوانك', targetValue: 1, rewardPoints: 30 },
-  { type: 'SADAQAH', titleAr: 'دعوة للصالحين', descriptionAr: 'ادعُ لوالديك ولإخوانك المسلمين بدعوة صالحة', targetValue: 1, rewardPoints: 60 },
-  { type: 'SADAQAH', titleAr: 'إرشاد طريق', descriptionAr: 'ساعد أحداً في إرشاد الطريق أو في أمره اليوم', targetValue: 1, rewardPoints: 50 },
-  { type: 'SADAQAH', titleAr: 'مساعدة جارك', descriptionAr: 'أعِن جارك القريب في أمر من أموره', targetValue: 1, rewardPoints: 80 },
-  { type: 'SADAQAH', titleAr: 'صدقة ليلة القدر', descriptionAr: 'تبرع لصدقة جارية في ليالي القدر المباركة', targetValue: 50, rewardPoints: 250 },
-  { type: 'SADAQAH', titleAr: 'سلة إفطار عائلة', descriptionAr: 'إرسال سلة إفطار كاملة لعائلة فقيرة', targetValue: 1, rewardPoints: 200 },
-  { type: 'SADAQAH', titleAr: 'صدقة مادية كبيرة', descriptionAr: 'تبرع بمبلغ مالي كبير لأهل الحاجة', targetValue: 100, rewardPoints: 350 },
-  { type: 'QURAN_PAGES', titleAr: 'ورد مراجعة الحفظ', descriptionAr: 'راجع ما حفظت من القرآن لمدة نصف ساعة', targetValue: 10, rewardPoints: 150 },
-  { type: 'PRAYER', titleAr: 'دعاء بين الأذان والإقامة', descriptionAr: 'لا يرد دعاء بين الأذان والإقامة، اغتنم الفرصة', targetValue: 1, rewardPoints: 90 },
 ];
 
 function revelationOf(raw?: string): RevelationType {
@@ -326,26 +291,8 @@ async function upsertHadiths(): Promise<void> {
   }
 }
 
-function buildChallenges(): { dayOfYear: number; type: ChallengeType; titleAr: string; descriptionAr: string; targetValue: number; rewardPoints: number }[] {
-  const result: { dayOfYear: number; type: ChallengeType; titleAr: string; descriptionAr: string; targetValue: number; rewardPoints: number }[] = [];
-  for (let day = 1; day <= 366; day += 1) {
-    const offset = day % CHALLENGE_BANK.length === 0 ? CHALLENGE_BANK.length - 1 : (day % CHALLENGE_BANK.length) - 1;
-    const base = CHALLENGE_BANK[offset];
-    result.push({
-      dayOfYear: day,
-      type: base.type,
-      titleAr: base.titleAr,
-      descriptionAr: base.descriptionAr,
-      targetValue: base.targetValue,
-      rewardPoints: base.rewardPoints,
-    });
-  }
-  return result;
-}
-
 async function upsertChallenges(): Promise<void> {
-  const challenges = buildChallenges();
-  for (const c of challenges) {
+  for (const c of buildDailyChallengeTemplates()) {
     await prisma.dailyChallengeTemplate.upsert({
       where: { dayOfYear: c.dayOfYear },
       create: c,

@@ -13,6 +13,7 @@ import {
   DAY_OF_YEAR_MAX,
 } from '../shared/constants/fallbacks';
 import { getCuratedHadithForDay } from '../shared/constants/curated-hadiths';
+import { getDailyChallengeDefinition } from '../shared/data/daily-challenges';
 
 export function isValidDayOfYear(day: number): boolean {
   return Number.isInteger(day) && day >= DAY_OF_YEAR_MIN && day <= DAY_OF_YEAR_MAX;
@@ -150,11 +151,18 @@ export async function getDailyChallengeTemplate(dayOfYear = getDayOfYear()) {
 export async function getDailyChallengeTemplateWithFallback(dayOfYear = getDayOfYear()) {
   const template = await getDailyChallengeTemplate(dayOfYear);
   if (template) return template;
-  logger.warn('No DailyChallengeTemplate in DB, returning unified fallback', { dayOfYear });
+  logger.warn('No DailyChallengeTemplate in DB, returning bank entry for the day', { dayOfYear });
+  const fromBank = isValidDayOfYear(dayOfYear) ? getDailyChallengeDefinition(dayOfYear) : FALLBACK_CHALLENGE;
   return {
     id: `fallback-challenge-${dayOfYear}`,
     dayOfYear,
-    ...FALLBACK_CHALLENGE,
+    titleAr: fromBank.titleAr,
+    titleEn: fromBank.titleEn,
+    descriptionAr: fromBank.descriptionAr,
+    descriptionEn: fromBank.descriptionEn,
+    type: fromBank.type,
+    targetValue: fromBank.targetValue,
+    rewardPoints: fromBank.rewardPoints,
   };
 }
 

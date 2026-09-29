@@ -30,8 +30,8 @@ export {
 } from './curated-hadiths';
 
 export const FALLBACK_CHALLENGE = {
-  titleAr: 'صفحتا قرآن',
-  titleEn: 'Two Quran Pages',
+  titleAr: 'صفحتان من القرآن',
+  titleEn: 'Two Quran pages',
   descriptionAr: 'اقرأ صفحتين من القرآن الكريم اليوم',
   descriptionEn: 'Read two pages of the Holy Quran today',
   type: 'QURAN_PAGES' as ChallengeType,

@@ -1,5 +1,35 @@
 # Noor App — Flutter Integration Guide — 2026-07-31
 
+## 🔹 API Integration Changes Summary — 2026-09-29 (Sajdah verses content fix + bilingual daily challenges)
+
+No field, id, type or route was renamed or removed. Content only.
+
+**آيات السجود** (`GET /quran/sajdah-verses`, `GET /quran/sajdah-verses/my-progress`, `PATCH /quran/sajdah-verses/{surahId}/{ayahNumber}`):
+- The 15 rows are now the 15 ۩ marks of the Madinah Mushaf with verbatim Uthmani `textAr` and Sahih International `textEn`.
+- Verse keys changed: `16:49` → `16:50`, and `4:102` (not a sajdah verse) → `38:24`. `PATCH` with an old key returns `400 VALIDATION_ERROR`, so never hard-code keys; render the rows the API returns.
+- Counts are unchanged (`muataqidahTotal = 10`, `fullTotal = 15`), but the agreed set changed: `22:77` is now `isIn10Muataqidah: false` and `41:38` is `true`.
+- `sortOrder` is now Mushaf order, so the non-agreed rows are interleaved (sortOrder 7, 11, 13, 14, 15). Build «سجل السجود» by filtering `isIn10Muataqidah == true` (or `?scope=muataqidah`), not by `sortOrder <= 10`.
+- `noteAr` / `noteEn` are present on the 5 non-agreed rows and on `41:38`; show them as a small hint when not null.
+- Full contract: `SAJDAH_VERSES_FEATURE_FINAL.md` (v1.1).
+
+**تحدي اليوم** (`GET /dashboard` → `dailyChallenge`, `GET /challenges/today`, `GET /journey/today`):
+- `titleEn` and `descriptionEn` now carry the real English for every day (before, every day showed "Two Quran Pages"). Use `titleAr`/`descriptionAr` for Arabic and `titleEn`/`descriptionEn` for English.
+- The 28 challenges rotate by server day and cycle through the four types (`QURAN_PAGES`, `PRAYER`, `ADHKAR`, `SADAQAH`), so consecutive days never repeat a type. Every challenge is checked automatically from the user's logged progress:
+  - `QURAN_PAGES`: pages read today ≥ `targetValue` (2–20).
+  - `PRAYER`: prayers logged today ≥ `targetValue` (always 5).
+  - `ADHKAR`: daily wird done, or morning and evening adhkar both done (`targetValue` is 1, so show it as done/not done, not as a counter).
+  - `SADAQAH`: sadaqah amount logged today ≥ `targetValue` (5–100; no currency, same unit the user logs in).
+- Some descriptions quote a hadith with its Sahih al-Bukhari / Sahih Muslim number, so they can be 2–3 lines. Let the text wrap; don't truncate to one line.
+
+`GET /challenges/today` (day 272; `/dashboard` → `dailyChallenge` has the same texts but no `id`, `dayOfYear` or `type`):
+
+```json
+{ "id": "272", "dayOfYear": 272, "titleAr": "إطعام الطعام", "titleEn": "Feeding others",
+  "descriptionAr": "سُئل النبي ﷺ: أي الإسلام خير؟ فقال: «تُطْعِمُ الطَّعَامَ، وَتَقْرَأُ السَّلاَمَ عَلَى مَنْ عَرَفْتَ وَمَنْ لَمْ تَعْرِفْ» (رواه البخاري — رقم 12). أنفق 10 على الأقل في إطعام محتاج وسجّله",
+  "descriptionEn": "Asked which Islam is best, the Prophet ﷺ said: “Feed people, and greet those you know and those you do not” (Sahih al-Bukhari 12). Spend at least 10 on feeding someone in need and log it",
+  "type": "SADAQAH", "targetValue": 10, "rewardPoints": 90, "completed": false, "claimed": false }
+```
+
 ## 🔹 API Integration Changes Summary — 2026-09-29 (Figure of the Day — شخصية اليوم)
 
 All changes are additive. No field, id, type or route was renamed or removed.
