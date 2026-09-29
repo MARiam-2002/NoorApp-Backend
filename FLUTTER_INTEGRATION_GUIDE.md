@@ -1,5 +1,69 @@
 # Noor App — Flutter Integration Guide — 2026-07-31
 
+## 🔹 API Integration Changes Summary — 2026-09-29 (Figure of the Day — شخصية اليوم)
+
+All changes are additive. No field, id, type or route was renamed or removed.
+
+- **New**: `GET /dashboard` → `data.figureOfTheDay` (always present, never `null`): `{ id, nameAr, nameEn, honorificAr, titleAr, titleEn, summaryAr }`. Use it for the Home card: `nameAr` as the title, `titleAr` as the subtitle, and the «اقرأ القصة» button opens `GET /content/figures/{id}`.
+- **New**: `GET /content/figure-of-day?day=` (public, no auth). Returns the full detail for today (or for `day` 1..366; outside that range → `400 VALIDATION_ERROR`). It changes every day and shows every figure once before any repeats, so it matches the dashboard card on the same server day.
+- **New**: `GET /content/figures` (public) returns `{ catalogVersion, total, items: [lite figure] }`, and `GET /content/figures/{id}` (public) returns the detail without `dayOfYear`; an unknown id → `404 NOT_FOUND`.
+- **Updated (content only)**: `GET /content/credits` → `version: 2` with a new item `key: "figures"`. Render all items; don't hardcode the list.
+
+Detail shape (`figure-of-day` adds `dayOfYear`; `figures/{id}` has everything else):
+
+```json
+{ "success": true, "message": "Figure of the day retrieved successfully",
+  "data": { "dayOfYear": 272, "catalogVersion": 1,
+    "id": "musab-ibn-umair", "nameAr": "مصعب بن عمير", "nameEn": "Mus'ab ibn Umair",
+    "honorificAr": "رضي الله عنه", "titleAr": "أول سفير في الإسلام", "titleEn": "The first envoy of Islam",
+    "summaryAr": "فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...",
+    "storyAr": ["نشأ مصعب بن عمير في مكة في نعمة وترف...", "بعثه النبي ﷺ بعد بيعة العقبة الأولى إلى المدينة..."],
+    "lessonAr": "الإيمان أغلى من كل متاع الدنيا، والدعوة بالحكمة ولين الخلق تفتح القلوب.",
+    "evidence": [ { "collection": "bukhari", "collectionAr": "صحيح البخاري", "number": 3924,
+                    "textAr": "أَوَّلُ مَنْ قَدِمَ عَلَيْنَا مُصْعَبُ بْنُ عُمَيْرٍ", "sourceAr": "رواه البخاري — رقم 3924" } ],
+    "sources": [ { "titleAr": "صحيح البخاري", "authorAr": "الإمام محمد بن إسماعيل البخاري" } ] } }
+```
+
+```dart
+class FigureLite {
+  final String id, nameAr, nameEn, honorificAr, titleAr, titleEn, summaryAr;
+  FigureLite.fromJson(Map<String, dynamic> j)
+      : id = j['id'], nameAr = j['nameAr'], nameEn = j['nameEn'], honorificAr = j['honorificAr'],
+        titleAr = j['titleAr'], titleEn = j['titleEn'], summaryAr = j['summaryAr'];
+}
+
+class FigureEvidence {
+  final String collection, collectionAr, textAr, sourceAr;
+  final int number;
+  FigureEvidence.fromJson(Map<String, dynamic> j)
+      : collection = j['collection'], collectionAr = j['collectionAr'], number = j['number'],
+        textAr = j['textAr'], sourceAr = j['sourceAr'];
+}
+
+class FigureDetail extends FigureLite {
+  final int? dayOfYear; // only in /content/figure-of-day
+  final int catalogVersion;
+  final List<String> storyAr;
+  final String lessonAr;
+  final List<FigureEvidence> evidence;
+  final List<Map<String, dynamic>> sources; // { titleAr, authorAr }
+  FigureDetail.fromJson(Map<String, dynamic> j)
+      : dayOfYear = j['dayOfYear'], catalogVersion = j['catalogVersion'],
+        storyAr = List<String>.from(j['storyAr']), lessonAr = j['lessonAr'],
+        evidence = (j['evidence'] as List).map((e) => FigureEvidence.fromJson(e)).toList(),
+        sources = List<Map<String, dynamic>>.from(j['sources']),
+        super.fromJson(j);
+}
+```
+
+Screen notes:
+
+- Detail screen: show `nameAr` + `honorificAr`, `titleAr`, then `storyAr` paragraphs (the first one or two before «اقرأ المزيد»), then `lessonAr`. Show each `evidence` item as a quote (`textAr`) with `sourceAr` under it, and put `sources` in a small footer.
+- Image: don't show a face or portrait of a Companion. Depicting the Sahaba is not permitted (Al-Azhar and major fatwa bodies), and that is why the API has no image field. Use a calligraphy/monogram of `nameAr` or a neutral pattern instead of the avatar in the Figma design.
+- Heart (favorite): store it locally on the device keyed by `id` (e.g. SharedPreferences / Hive). Ids are stable across catalog versions; there is no server endpoint for figure favorites.
+
+---
+
 ## 🔹 API Integration Changes Summary — 2026-09-28 (Content sources & citations)
 
 All changes are additive or string-content only. No field, id, type or route was renamed or removed.

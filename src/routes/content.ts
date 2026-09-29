@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import {
   getDailyChallengeHandler,
+  getFigureByIdHandler,
+  getFigureOfDayHandler,
   getHadithOfDayHandler,
   getVerseOfDayHandler,
+  listFiguresHandler,
 } from '../controllers/content.controller';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
@@ -107,6 +110,105 @@ contentRouter.get('/hadith-of-day', getHadithOfDayHandler);
  *               timestamp: '2026-07-27T10:30:00.000Z'
  */
 contentRouter.get('/daily-challenge', getDailyChallengeHandler);
+
+/**
+ * @openapi
+ * /content/figure-of-day:
+ *   get:
+ *     tags: ['Content']
+ *     summary: شخصية اليوم
+ *     description: |
+ *       Public, static catalog (no DB). A companion of the Prophet ﷺ for the "شخصية اليوم" card and
+ *       detail screen. Every figure has at least one narration quoted verbatim from Sahih al-Bukhari
+ *       (Fath al-Bari numbering) or Sahih Muslim (Fuad Abd al-Baqi numbering); biographies follow
+ *       al-Isabah (Ibn Hajar) and Siyar A'lam al-Nubala (al-Dhahabi). Rotates daily; every figure is
+ *       shown once before any repeats.
+ *     parameters:
+ *       - in: query
+ *         name: day
+ *         schema: { type: integer, example: 272 }
+ *         description: رقم اليوم في السنة (اختياري، افتراضي اليوم الحالي)
+ *     responses:
+ *       200:
+ *         description: ✅ شخصية اليوم
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Figure of the day retrieved successfully
+ *               data:
+ *                 dayOfYear: 272
+ *                 catalogVersion: 1
+ *                 id: musab-ibn-umair
+ *                 nameAr: مصعب بن عمير
+ *                 nameEn: "Mus'ab ibn Umair"
+ *                 honorificAr: رضي الله عنه
+ *                 titleAr: أول سفير في الإسلام
+ *                 titleEn: The first envoy of Islam
+ *                 summaryAr: فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...
+ *                 storyAr: ['نشأ مصعب بن عمير في مكة في نعمة وترف...', 'بعثه النبي ﷺ بعد بيعة العقبة الأولى إلى المدينة...']
+ *                 lessonAr: الإيمان أغلى من كل متاع الدنيا، والدعوة بالحكمة ولين الخلق تفتح القلوب.
+ *                 evidence:
+ *                   - collection: bukhari
+ *                     collectionAr: صحيح البخاري
+ *                     number: 3924
+ *                     textAr: أَوَّلُ مَنْ قَدِمَ عَلَيْنَا مُصْعَبُ بْنُ عُمَيْرٍ
+ *                     sourceAr: رواه البخاري — رقم 3924
+ *                 sources:
+ *                   - titleAr: صحيح البخاري
+ *                     authorAr: الإمام محمد بن إسماعيل البخاري
+ *       400:
+ *         description: day خارج النطاق 1..366
+ */
+contentRouter.get('/figure-of-day', getFigureOfDayHandler);
+
+/**
+ * @openapi
+ * /content/figures:
+ *   get:
+ *     tags: ['Content']
+ *     summary: قائمة الشخصيات (مختصرة)
+ *     description: Public. Lite list of all figures (no story/evidence) plus catalogVersion for caching.
+ *     responses:
+ *       200:
+ *         description: ✅ القائمة
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Figures retrieved successfully
+ *               data:
+ *                 catalogVersion: 1
+ *                 total: 34
+ *                 items:
+ *                   - id: musab-ibn-umair
+ *                     nameAr: مصعب بن عمير
+ *                     nameEn: "Mus'ab ibn Umair"
+ *                     honorificAr: رضي الله عنه
+ *                     titleAr: أول سفير في الإسلام
+ *                     titleEn: The first envoy of Islam
+ *                     summaryAr: فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...
+ */
+contentRouter.get('/figures', listFiguresHandler);
+
+/**
+ * @openapi
+ * /content/figures/{id}:
+ *   get:
+ *     tags: ['Content']
+ *     summary: تفاصيل شخصية (نفس شكل figure-of-day بدون dayOfYear)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, example: musab-ibn-umair }
+ *     responses:
+ *       200:
+ *         description: ✅ تفاصيل الشخصية
+ *       404:
+ *         description: Figure not found
+ */
+contentRouter.get('/figures/:id', getFigureByIdHandler);
 
 /**
  * @openapi

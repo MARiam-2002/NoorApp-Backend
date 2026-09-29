@@ -13,7 +13,7 @@ export type ContentCredit = {
   noteEn: string | null;
 };
 
-export const CONTENT_CREDITS_VERSION = 1;
+export const CONTENT_CREDITS_VERSION = 2;
 
 export const CONTENT_CREDITS: readonly ContentCredit[] = [
   {
@@ -55,5 +55,15 @@ export const CONTENT_CREDITS: readonly ContentCredit[] = [
     url: 'https://github.com/fawazahmed0/hadith-api',
     noteAr: 'ترقيم البخاري حسب فتح الباري، وترقيم مسلم حسب محمد فؤاد عبد الباقي.',
     noteEn: 'Bukhari numbered per Fath al-Bari; Muslim per Muhammad Fuad Abd al-Baqi.',
+  },
+  {
+    key: 'figures',
+    titleAr: 'شخصية اليوم',
+    titleEn: 'Figure of the Day',
+    sourceAr: 'السِّيَر من «الإصابة في تمييز الصحابة» لابن حجر و«سير أعلام النبلاء» للذهبي؛ والشواهد من الصحيحين',
+    sourceEn: "Biographies per Ibn Hajar's al-Isabah and al-Dhahabi's Siyar A'lam al-Nubala; evidence from the two Sahihs",
+    url: 'https://github.com/fawazahmed0/hadith-api',
+    noteAr: 'كل شاهد منقول حرفيًا من صحيح البخاري أو صحيح مسلم مع رقمه.',
+    noteEn: 'Every evidence excerpt is quoted verbatim from Sahih al-Bukhari or Sahih Muslim with its number.',
   },
 ];

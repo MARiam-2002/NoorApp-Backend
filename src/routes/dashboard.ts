@@ -86,6 +86,14 @@ import * as dashboardController from '../controllers/dashboard.controller';
  *                 hadithOfTheDay:
  *                   textAr: 'المؤمن للمؤمن كالبنيان يشد بعضه بعضاً'
  *                   sourceAr: '[ متفق عليه ]'
+ *                 figureOfTheDay:
+ *                   id: musab-ibn-umair
+ *                   nameAr: مصعب بن عمير
+ *                   nameEn: "Mus'ab ibn Umair"
+ *                   honorificAr: رضي الله عنه
+ *                   titleAr: أول سفير في الإسلام
+ *                   titleEn: The first envoy of Islam
+ *                   summaryAr: فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...
  *                 dailyJourney:
  *                   prayer:
  *                     completed: 2

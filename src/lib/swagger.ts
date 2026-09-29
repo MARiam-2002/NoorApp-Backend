@@ -950,6 +950,21 @@ function buildSwaggerSpec() {
                 },
               },
             },
+            figureOfTheDay: {
+              type: 'object',
+              description:
+                'شخصية اليوم (كارت "اقرأ القصة"). التفاصيل الكاملة من GET /content/figures/{id}.',
+              required: ['id', 'nameAr', 'nameEn', 'honorificAr', 'titleAr', 'titleEn', 'summaryAr'],
+              properties: {
+                id: { type: 'string', example: 'musab-ibn-umair' },
+                nameAr: { type: 'string', example: 'مصعب بن عمير' },
+                nameEn: { type: 'string', example: "Mus'ab ibn Umair" },
+                honorificAr: { type: 'string', example: 'رضي الله عنه' },
+                titleAr: { type: 'string', example: 'أول سفير في الإسلام' },
+                titleEn: { type: 'string', example: 'The first envoy of Islam' },
+                summaryAr: { type: 'string', example: 'فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...' },
+              },
+            },
             dailyJourney: {
               type: 'object',
               description: 'رحلتك اليومية — 4 كروت صغيرة: الصلاة + القرآن + الذكار + الصدقة',
@@ -1151,6 +1166,15 @@ function buildSwaggerSpec() {
             hadithOfTheDay: {
               textAr: 'المؤمن للمؤمن كالبنيان يشد بعضه بعضاً',
               sourceAr: '[ متفق عليه ]',
+            },
+            figureOfTheDay: {
+              id: 'musab-ibn-umair',
+              nameAr: 'مصعب بن عمير',
+              nameEn: "Mus'ab ibn Umair",
+              honorificAr: 'رضي الله عنه',
+              titleAr: 'أول سفير في الإسلام',
+              titleEn: 'The first envoy of Islam',
+              summaryAr: 'فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...',
             },
             dailyJourney: {
               prayer: { completed: 2, total: 5, progress: 40 },

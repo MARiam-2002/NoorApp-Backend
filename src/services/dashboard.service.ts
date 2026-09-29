@@ -36,6 +36,7 @@ import {
 } from './daily-content.service';
 import { syncJourneyAdhkarFromDhikr } from './adhkar.service';
 import { getNawafelDashboardTile } from './nawafel.service';
+import { getFigureOfTheDayLite, type FigureOfTheDayLite } from './figure-of-day.service';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -103,6 +104,7 @@ export type DashboardData = {
     ayahNumber?: number;
   };
   hadithOfTheDay: { textAr: string; sourceAr: string };
+  figureOfTheDay: FigureOfTheDayLite;
   dailyJourney: {
     prayer: { completed: number; total: number; progress: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     quran: { pagesRead: number; target: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
@@ -297,6 +299,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       },
       verseOfTheDay: FALLBACK_VERSE,
       hadithOfTheDay: getCuratedHadithForDay(getDayOfYear()),
+      figureOfTheDay: getFigureOfTheDayLite(getDayOfYear()),
       dailyJourney: {
         prayer: { completed: 0, total: 5, progress: 0, labelAr: 'الصلوات', labelEn: 'Prayers', captionAr: 'صلاة مكتملة اليوم', captionEn: 'prayers completed today' },
         quran: { pagesRead: 0, target: 5, labelAr: 'القرآن', labelEn: 'Quran', captionAr: 'صفحة مقروءة اليوم', captionEn: 'pages read today' },
@@ -592,6 +595,7 @@ async function buildDashboardPayload(
       textAr: hadith.textAr,
       sourceAr: hadith.sourceAr,
     },
+    figureOfTheDay: getFigureOfTheDayLite(dayOfYear),
     dailyJourney: {
       prayer: {
         completed: prayers.completedCount,
