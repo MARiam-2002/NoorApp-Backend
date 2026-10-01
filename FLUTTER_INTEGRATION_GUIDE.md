@@ -30,7 +30,7 @@ All changes are additive. No field, id, type or route was renamed or removed. No
 ```json
 { "timezone": "Africa/Casablanca", "calculationMethod": "MOROCCO", "calculationMethodSource": "auto",
   "schedule": [ { "key": "FAJR", "time": "04:57" }, { "key": "DHUHR", "time": "12:25" }, { "key": "ASR", "time": "15:43" },
-                { "key": "MAGHRIB", "time": "18:19" }, { "key": "ISHA", "time": "19:33" } ] }
+                { "key": "MAGHRIB", "time": "18:20" }, { "key": "ISHA", "time": "19:33" } ] }
 ```
 
 ## 🔹 API Integration Changes Summary — 2026-09-29 (Prayer times: official method per country — `AUTO`)
