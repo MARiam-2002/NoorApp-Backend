@@ -6,7 +6,7 @@ All changes are additive. No field, id, type or route was renamed or removed. No
 
 **Why:** under `AUTO`, Morocco, Algeria, Tunisia, Jordan, Palestine, Oman and Bahrain were still on the Egyptian method, and the UAE method was a generic preset. Each country now uses its own ministry's method, checked against the ministries' published 2026 timetables (matches within 1 minute; Asr and Moroccan sunrise/Maghrib within 2 minutes because of city elevation).
 
-- **New catalog items** in `GET /azan/calculation-methods` (appended, `sortOrder` 15–20): `MOROCCO` (alias `HABOUS`), `ALGERIA`, `TUNISIA`, `JORDAN`, `OMAN`, `BAHRAIN`. Each has `nameAr`, `nameEn`, `descriptionAr`, `descriptionEn`, `regionHintAr`, `regionHintEn` like the existing items. They can be sent as `calculationMethod` in `PATCH /azan/preferences` or as `method` in `/prayers/today` and `/prayers/schedule`.
+- **New catalog items** in `GET /azan/calculation-methods` (appended, `sortOrder` 15–20): `MOROCCO` (alias `HABOUS`), `ALGERIA`, `TUNISIA`, `JORDAN`, `OMAN`, `BAHRAIN`. Each has `nameAr`, `nameEn`, `descriptionAr`, `descriptionEn`, `regionHintAr`, `regionHintEn` like the existing items. They can be sent as `calculationMethod` in `PATCH /profile/azan-preferences` or as `method` in `/prayers/today` and `/prayers/schedule`.
 - **`DUBAI` (UAE) updated** to match the UAE General Authority of Islamic Affairs & Endowments timetable (it was a few minutes off for Dhuhr, Asr and Isha). Same id.
 - **`AUTO` mapping** (what `effectiveCalculationMethod` and `calculationMethod` on prayer payloads now return):
 
@@ -41,15 +41,15 @@ All changes are additive. No field, id, type or route was renamed or removed.
 
 - **New catalog item**: `GET /azan/calculation-methods` now starts with `{ "id": "AUTO", "nameAr": "تلقائي حسب الدولة", "nameEn": "Automatic (by country)", "isDefault": true, "sortOrder": 0 }`, and `defaultId` is `"AUTO"`. `EGYPT` is still in the list but no longer `isDefault`. Build the picker from the list as before; the first row is the default.
 - **Saving**: send `calculationMethod: "AUTO"` (or omit it) unless the user explicitly picks a method in settings. An explicit pick (e.g. `EGYPT`, `MAKKAH`) is always respected on the screen and in the Azan push. Existing accounts on the old Egyptian default were moved to `AUTO` on the server.
-- **New fields on `GET`/`PATCH /azan/preferences`**: `effectiveCalculationMethod` is the method actually used (for example `"MAKKAH"` when `calculationMethod` is `"AUTO"` in Tabuk), and `calculationMethodSource` is `"auto"` or `"user"`. Show `effectiveCalculationMethod` as the subtitle under «طريقة الحساب» when the source is `auto` (e.g. «تلقائي — أم القرى»).
+- **New fields on `GET`/`PATCH /profile/azan-preferences`**: `effectiveCalculationMethod` is the method actually used (for example `"MAKKAH"` when `calculationMethod` is `"AUTO"` in Tabuk), and `calculationMethodSource` is `"auto"` or `"user"`. Show `effectiveCalculationMethod` as the subtitle under «طريقة الحساب» when the source is `auto` (e.g. «تلقائي — أم القرى»).
 - **New field on prayer payloads**: `GET /prayers/today`, `GET /prayers/schedule` and `GET /dashboard` → `prayers` now include `calculationMethodSource` (`"auto"` | `"user"`). `calculationMethod` already returned the resolved method (`"MAKKAH"`, or `"EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY"` for Egypt).
 - **Query calls**: for `GET /prayers/today?lat=&lng=` and `GET /prayers/schedule?lat=&lng=` drop `method` and `madhab` unless the user is changing them on that screen. Logged in, the server then uses the user's saved method and madhab (the same ones the Azan push uses); as a guest it uses `AUTO` at those coordinates. Don't keep sending `method=EGYPT` by default: an explicit query value always wins.
 - **Fixed**: `GET /prayers/today` and the dashboard now use the same method **and madhab** as the Azan push (before, the screen ignored the Hanafi Asr choice and could show a different method than the notification).
-- **Fixed**: `PATCH /azan/preferences` now changes only the fields you send. Before, sending one toggle (e.g. `{ "soundEnabled": false }`) reset the method, madhab, reminder minutes, prayer toggles and voice to their defaults.
+- **Fixed**: `PATCH /profile/azan-preferences` now changes only the fields you send. Before, sending one toggle (e.g. `{ "soundEnabled": false }`) reset the method, madhab, reminder minutes, prayer toggles and voice to their defaults.
 - **Synced**: `PATCH /profile` with `prayerCalculationMethod` now also updates the Azan preferences, so the screen and the push stay identical.
-- **Local Azan scheduling**: schedule from the times the API returns (`/prayers/today` / `/prayers/schedule`). If you compute times on the device, use `effectiveCalculationMethod` and `madhab` from `/azan/preferences`, never a hard-coded Egyptian method.
+- **Local Azan scheduling**: schedule from the times the API returns (`/prayers/today` / `/prayers/schedule`). If you compute times on the device, use `effectiveCalculationMethod` and `madhab` from `/profile/azan-preferences`, never a hard-coded Egyptian method.
 
-`GET /azan/preferences` (Tabuk user on the default):
+`GET /profile/azan-preferences` (Tabuk user on the default):
 
 ```json
 { "calculationMethod": "AUTO", "effectiveCalculationMethod": "MAKKAH", "calculationMethodSource": "auto",
