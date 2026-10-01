@@ -1,5 +1,38 @@
 # Noor App — Flutter Integration Guide — 2026-07-31
 
+## 🔹 API Integration Changes Summary — 2026-10-01 (Prayer times: Arab & Gulf countries + Morocco on GMT)
+
+All changes are additive. No field, id, type or route was renamed or removed. No Flutter change is required if you already build the method picker from `GET /azan/calculation-methods` and show the times the API returns.
+
+**Why:** under `AUTO`, Morocco, Algeria, Tunisia, Jordan, Palestine, Oman and Bahrain were still on the Egyptian method, and the UAE method was a generic preset. Each country now uses its own ministry's method, checked against the ministries' published 2026 timetables (matches within 1 minute; Asr and Moroccan sunrise/Maghrib within 2 minutes because of city elevation).
+
+- **New catalog items** in `GET /azan/calculation-methods` (appended, `sortOrder` 15–20): `MOROCCO` (alias `HABOUS`), `ALGERIA`, `TUNISIA`, `JORDAN`, `OMAN`, `BAHRAIN`. Each has `nameAr`, `nameEn`, `descriptionAr`, `descriptionEn`, `regionHintAr`, `regionHintEn` like the existing items. They can be sent as `calculationMethod` in `PATCH /azan/preferences` or as `method` in `/prayers/today` and `/prayers/schedule`.
+- **`DUBAI` (UAE) updated** to match the UAE General Authority of Islamic Affairs & Endowments timetable (it was a few minutes off for Dhuhr, Asr and Isha). Same id.
+- **`AUTO` mapping** (what `effectiveCalculationMethod` and `calculationMethod` on prayer payloads now return):
+
+| Country | Method id |
+| --- | --- |
+| Saudi Arabia | `MAKKAH` |
+| Egypt | `EGYPT` (returned as `EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY` on prayer payloads) |
+| UAE | `DUBAI` |
+| Kuwait / Qatar | `KUWAIT` / `QATAR` |
+| Oman / Bahrain | `OMAN` / `BAHRAIN` |
+| Jordan, Palestine (Jerusalem, West Bank, Gaza) | `JORDAN` |
+| Morocco (incl. Western Sahara) | `MOROCCO` |
+| Algeria / Tunisia | `ALGERIA` / `TUNISIA` |
+| Iraq, Syria, Lebanon, Yemen, Libya, Sudan, Mauritania, Somalia, Djibouti, Comoros | `EGYPT` (unchanged) |
+
+- **Morocco time zone**: Morocco returned to GMT (UTC+0) on 2026-09-20. The server corrects this itself, so `time`, `displayAr`, `displayEn` and push text for Moroccan users are right. The `iso` fields were always correct. On the device, don't re-format `iso` with the phone's or Dart's time-zone database (it may still assume GMT+1 and show every prayer one hour late). Show the API's `time` / `displayAr` strings, and schedule local notifications from `iso` (absolute instants).
+- **Picker subtitle** for `AUTO` (from the previous section) now also covers the new ids: use the catalog item's `nameAr` for `effectiveCalculationMethod`, for example «تلقائي — وزارة الأوقاف والشؤون الإسلامية (المغرب)».
+
+`GET /prayers/today?lat=33.5731&lng=-7.5898` (Casablanca, 2026-10-01, guest):
+
+```json
+{ "timezone": "Africa/Casablanca", "calculationMethod": "MOROCCO", "calculationMethodSource": "auto",
+  "schedule": [ { "key": "FAJR", "time": "04:57" }, { "key": "DHUHR", "time": "12:25" }, { "key": "ASR", "time": "15:43" },
+                { "key": "MAGHRIB", "time": "18:19" }, { "key": "ISHA", "time": "19:33" } ] }
+```
+
 ## 🔹 API Integration Changes Summary — 2026-09-29 (Prayer times: official method per country — `AUTO`)
 
 All changes are additive. No field, id, type or route was renamed or removed.

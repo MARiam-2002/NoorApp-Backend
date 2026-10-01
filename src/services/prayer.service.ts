@@ -208,10 +208,15 @@ function normalizeMadhabKey(madhab?: string | null): string {
     : 'SHAFI';
 }
 
-function customAngleMethod(fajrAngle: number, ishaAngle: number) {
+function customAngleMethod(
+  fajrAngle: number,
+  ishaAngle: number,
+  adjustments: Partial<Record<'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha', number>> = {},
+) {
   const params = CalculationMethod.Other();
   params.fajrAngle = fajrAngle;
   params.ishaAngle = ishaAngle;
+  params.methodAdjustments = { ...params.methodAdjustments, ...adjustments };
   return params;
 }
 
@@ -261,9 +266,28 @@ function resolveCalculationParams(
     case 'TEHRAN':
       params = CalculationMethod.Tehran();
       break;
+    // Angles + minute offsets below are fitted to each ministry's published 2026 tables
+    // (scripts/test-official-prayer-tables.ts); the offsets are the ministries' own precaution minutes.
     case 'DUBAI':
     case 'UAE':
-      params = CalculationMethod.Dubai();
+      params = customAngleMethod(18.2, 18.2, { sunrise: -3, dhuhr: 2, maghrib: 3, isha: -1 });
+      break;
+    case 'MOROCCO':
+    case 'HABOUS':
+      params = customAngleMethod(19, 17, { sunrise: -4, dhuhr: 5, asr: 1, maghrib: 5 });
+      break;
+    case 'ALGERIA':
+      params = customAngleMethod(18, 17, { maghrib: 3 });
+      break;
+    case 'JORDAN':
+      params = customAngleMethod(18, 18, { sunrise: -6, asr: 1, maghrib: 6 });
+      break;
+    case 'OMAN':
+      params = customAngleMethod(18, 18, { dhuhr: 5, asr: 5, maghrib: 5 });
+      break;
+    case 'TUNISIA':
+    case 'BAHRAIN':
+      params = customAngleMethod(18, 18);
       break;
     case 'QATAR':
       params = CalculationMethod.Qatar();

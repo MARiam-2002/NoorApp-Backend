@@ -6,6 +6,7 @@
  * geo-tz's large on-disk boundary files (which NFT often omits).
  */
 
+import '../../lib/timezone-corrections';
 import tzlookup from 'tz-lookup';
 import { DEFAULT_PRAYER_LOCATION } from '../constants/default-location';
 

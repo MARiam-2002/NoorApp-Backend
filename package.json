@@ -37,7 +37,7 @@
     "cleanup:users-without-fcm": "tsx scripts/cleanup-users-without-fcm.ts",
     "test:near-prayer": "tsx scripts/test-near-prayer-resolver.ts && tsx scripts/test-near-prayer-audit.ts",
     "test:prayer-global": "tsx scripts/test-prayer-global.ts",
-    "test:prayer-method": "tsx scripts/test-auto-calculation-method.ts",
+    "test:prayer-method": "tsx scripts/test-auto-calculation-method.ts && tsx scripts/test-official-prayer-tables.ts",
     "migrate:prayer-method-auto": "tsx scripts/migrate-calculation-method-auto.ts",
     "test:ai-foundation": "tsx scripts/test-ai-foundation.ts",
     "test:ai-quran": "tsx scripts/test-ai-arabic-normalize.ts && tsx scripts/test-ai-quran-tools.ts && tsx scripts/test-ai-quran-eval.ts && tsx scripts/test-ai-quran-discovery-http.ts",

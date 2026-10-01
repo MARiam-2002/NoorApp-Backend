@@ -1,3 +1,4 @@
+import './lib/timezone-corrections';
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import fs from 'node:fs';

@@ -15,7 +15,18 @@ const ZONE_METHOD: Record<string, string> = {
   'Asia/Kuwait': 'KUWAIT',
   'Asia/Qatar': 'QATAR',
   'Asia/Dubai': 'DUBAI',
+  'Asia/Muscat': 'OMAN',
+  'Asia/Bahrain': 'BAHRAIN',
+  'Asia/Amman': 'JORDAN',
+  // Al-Aqsa and the Jerusalem Awqaf follow Jordan's Ministry of Awqaf timetable.
+  'Asia/Jerusalem': 'JORDAN',
+  'Asia/Gaza': 'JORDAN',
+  'Asia/Hebron': 'JORDAN',
   'Africa/Cairo': 'EGYPT',
+  'Africa/Casablanca': 'MOROCCO',
+  'Africa/El_Aaiun': 'MOROCCO',
+  'Africa/Algiers': 'ALGERIA',
+  'Africa/Tunis': 'TUNISIA',
   'Europe/Istanbul': 'TURKEY',
   'Asia/Tehran': 'TEHRAN',
   'Asia/Karachi': 'KARACHI',
@@ -37,10 +48,9 @@ const ZONE_METHOD: Record<string, string> = {
 
 /** Arab and North African countries without their own method in the catalog keep the Egyptian method. */
 const EGYPTIAN_METHOD_ZONES = new Set([
-  'Asia/Amman', 'Asia/Damascus', 'Asia/Beirut', 'Asia/Baghdad', 'Asia/Gaza', 'Asia/Hebron',
-  'Asia/Jerusalem', 'Asia/Aden', 'Asia/Muscat', 'Asia/Bahrain',
-  'Africa/Khartoum', 'Africa/Tripoli', 'Africa/Tunis', 'Africa/Algiers', 'Africa/Casablanca',
-  'Africa/El_Aaiun', 'Africa/Nouakchott', 'Africa/Mogadishu', 'Africa/Djibouti', 'Indian/Comoro',
+  'Asia/Damascus', 'Asia/Beirut', 'Asia/Baghdad', 'Asia/Aden',
+  'Africa/Khartoum', 'Africa/Tripoli', 'Africa/Nouakchott', 'Africa/Mogadishu', 'Africa/Djibouti',
+  'Indian/Comoro',
 ]);
 
 const MEXICO_AND_CARIBBEAN_ZONES = new Set([
