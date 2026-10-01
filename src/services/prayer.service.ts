@@ -25,6 +25,8 @@ import {
   inferTimezoneFromCoordinates,
   zonedCalendarDateForAdhan,
 } from '../shared/utils/prayer-location';
+import { autoCalculationMethodFor, isAutoCalculationMethod } from '../shared/utils/auto-calculation-method';
+import { AZAN_PREFERENCES_USER_SELECT, buildAzanPreferencesFromUser } from './azan.service';
 
 const prayerLabelsAr: Record<PrayerNameEnum, string> = {
   [PrayerNameEnum.FAJR]: 'الفجر',
@@ -69,6 +71,8 @@ export type PrayerLocationMeta = {
   countryAr: string;
   timezone: string;
   calculationMethod: string;
+  /** "auto" = official method of the location's country (user has not picked one); "user" = the user's pick. */
+  calculationMethodSource: 'auto' | 'user';
   madhab: string;
   /** How coordinates were chosen for this response. */
   locationSource: PrayerLocationSource;
@@ -195,7 +199,7 @@ type PrayerCalcOptions = {
 };
 
 function normalizeMethodKey(method?: string | null): string {
-  return (method ?? DEFAULT_PRAYER_LOCATION.calculationMethod).toUpperCase();
+  return (method?.trim() || DEFAULT_PRAYER_LOCATION.calculationMethod).toUpperCase();
 }
 
 function normalizeMadhabKey(madhab?: string | null): string {
@@ -227,7 +231,12 @@ function resolveCalculationParams(
   coordinates: Coordinates,
   adhanDay: Date,
 ) {
-  const methodKey = normalizeMethodKey(options?.method);
+  const requestedKey = normalizeMethodKey(options?.method);
+  const methodSource: 'auto' | 'user' = isAutoCalculationMethod(requestedKey) ? 'auto' : 'user';
+  const methodKey =
+    methodSource === 'auto'
+      ? autoCalculationMethodFor(coordinates.latitude, coordinates.longitude)
+      : requestedKey;
   const madhabKey = normalizeMadhabKey(options?.madhab);
 
   let params;
@@ -303,7 +312,7 @@ function resolveCalculationParams(
   if (isUmmAlQura && isRamadan(adhanDay)) {
     params.ishaInterval = 120;
   }
-  return { params, methodKey, madhabKey };
+  return { params, methodKey, madhabKey, methodSource };
 }
 
 function buildLocationMeta(
@@ -312,6 +321,7 @@ function buildLocationMeta(
   tz: string,
   methodKey: string,
   madhabKey: string,
+  methodSource: 'auto' | 'user',
   options?: PrayerCalcOptions,
 ): PrayerLocationMeta {
   const locationSource = options?.locationSource ?? 'default_cairo';
@@ -341,6 +351,7 @@ function buildLocationMeta(
     calculationMethod: methodKey.includes('EGYPT')
       ? DEFAULT_PRAYER_LOCATION.calculationMethodLabel
       : methodKey,
+    calculationMethodSource: methodSource,
     madhab: madhabKey,
     locationSource,
     isDefaultLocation,
@@ -441,7 +452,7 @@ export function calculateDailyPrayerSchedule(
   // Adhan day = local calendar day in the prayer timezone (not server UTC day).
   const adhanDay = zonedCalendarDateForAdhan(nowInstant, tz);
   const coordinates = new Coordinates(lat, lng);
-  const { params, methodKey, madhabKey } = resolveCalculationParams(options, coordinates, adhanDay);
+  const { params, methodKey, madhabKey, methodSource } = resolveCalculationParams(options, coordinates, adhanDay);
   const prayerTimes = new PrayerTimes(coordinates, adhanDay, params);
   const prayerDateMap = getPrayerDateMap(prayerTimes);
   const now = nowInstant.getTime();
@@ -515,7 +526,7 @@ export function calculateDailyPrayerSchedule(
     };
   }
 
-  const location = buildLocationMeta(lat, lng, tz, methodKey, madhabKey, {
+  const location = buildLocationMeta(lat, lng, tz, methodKey, madhabKey, methodSource, {
     ...options,
     locationSource,
   });
@@ -571,12 +582,9 @@ export async function getTodayPrayers(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      latitude: true,
-      longitude: true,
+      ...AZAN_PREFERENCES_USER_SELECT,
       timezone: true,
-      city: true,
       country: true,
-      prayerCalculationMethod: true,
     },
   });
 
@@ -584,6 +592,8 @@ export async function getTodayPrayers(userId: string) {
     throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   }
 
+  // Same method + madhab as the Azan notifications (one source of truth).
+  const prefs = buildAzanPreferencesFromUser(user);
   const completed = await findCompletedPrayers(userId);
   const hasProfileLocation =
     user.latitude != null &&
@@ -610,7 +620,8 @@ export async function getTodayPrayers(userId: string) {
     completed as PrayerNameEnum[],
     new Date(),
     {
-      method: user.prayerCalculationMethod ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
+      method: prefs.calculationMethod,
+      madhab: prefs.madhab,
       locationSource: hasProfileLocation ? 'profile' : 'default_cairo',
       timezoneExplicit: explicitTimezone,
       city: hasProfileLocation ? user.city : DEFAULT_PRAYER_LOCATION.city,

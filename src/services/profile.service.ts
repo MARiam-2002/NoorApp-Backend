@@ -3,6 +3,7 @@ import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { hashPassword, verifyPassword } from '../lib/auth';
 import { inferTimezoneFromCoordinates } from '../shared/utils/prayer-location';
+import { canonicalMethodId, updateAzanPreferences } from './azan.service';
 
 export type UserProfile = {
   id: string;
@@ -345,6 +346,12 @@ export async function updateProfile(
       HttpStatus.NOT_FOUND,
       ErrorCodes.NOT_FOUND,
     );
+  }
+
+  const pickedMethod =
+    data.prayerCalculationMethod !== undefined ? canonicalMethodId(data.prayerCalculationMethod.trim()) : null;
+  if (pickedMethod) {
+    await updateAzanPreferences(userId, { calculationMethod: pickedMethod });
   }
 
   return getProfile(userId);

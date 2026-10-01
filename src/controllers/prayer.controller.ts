@@ -9,6 +9,7 @@ import {
   getTodayPrayers,
   markPrayer,
 } from '../services/prayer.service';
+import { getAzanPreferences } from '../services/azan.service';
 
 export const getToday = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
@@ -50,13 +51,14 @@ export const getToday = asyncHandler(async (req: Request, res: Response) => {
 
   // Explicit coords (guest or logged-in device GPS) win over profile defaults.
   if (hasCoords) {
+    const saved = userId && (!method || !madhab) ? await getAzanPreferences(userId) : null;
     const data = await getPrayerSchedule(
       parsedLat,
       parsedLng,
       timezone,
       undefined,
-      method,
-      madhab,
+      method || saved?.calculationMethod,
+      madhab || saved?.madhab,
       'query',
       city,
       cityAr,

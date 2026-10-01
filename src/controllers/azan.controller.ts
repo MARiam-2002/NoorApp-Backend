@@ -11,17 +11,16 @@ import {
 import {
   getAzanPreferences,
   updateAzanPreferences,
-  azanPreferencesSchema,
+  pickExplicitAzanPatch,
   DEFAULT_PRE_REMINDER_MINUTES,
-  type AzanPreferences,
 } from '../services/azan.service';
 import { getAudioDefaults } from '../services/azan-audio.service';
 
 /**
  * GET /azan/calculation-methods
  * Public catalog — Flutter builds the "Calculation Method" dropdown picker from this list.
- * Returns the 6 canonical methods sorted with EN/AR labels, aliases, region hints,
- * and the product default (EGYPT) marked with isDefault=true.
+ * Returns the canonical methods sorted with EN/AR labels, aliases, region hints,
+ * and the product default (AUTO = official method of the user's country) marked with isDefault=true.
  */
 export const listCalculationMethodsHandler = asyncHandler(async (req: Request, res: Response) => {
   const sorted = [...CALCULATION_METHODS_CATALOG].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -32,7 +31,7 @@ export const listCalculationMethodsHandler = asyncHandler(async (req: Request, r
       defaultId: DEFAULT_PRAYER_LOCATION.calculationMethod,
       methods: sorted,
       note:
-        'Use the short `id` field as the canonical key in query params and when saving preferences. Both short ids (EGYPT) and legacy long ids (EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY) are accepted by all prayer-calculation endpoints and normalized internally.',
+        'Use the short `id` field as the canonical key in query params and when saving preferences. AUTO (default) applies the official method of the country at the saved location (e.g. Umm Al-Qura in Saudi Arabia); prayer responses expose the resolved method. Legacy long ids (EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY) are still accepted.',
     },
     'Prayer calculation methods catalog retrieved successfully',
     req,
@@ -76,7 +75,9 @@ export const getAzanPreferencesHandler = asyncHandler(async (req: Request, res: 
         notificationSoundId: defaults.notificationSoundId,
         azanSound: defaults.azanSound,
         notificationSound: defaults.notificationSound,
-        calculationMethod: 'EGYPT',
+        calculationMethod: DEFAULT_PRAYER_LOCATION.calculationMethod,
+        effectiveCalculationMethod: 'EGYPT',
+        calculationMethodSource: 'auto',
         madhab: 'SHAFI',
         preReminderMinutes: DEFAULT_PRE_REMINDER_MINUTES,
         reminderMinutes: DEFAULT_PRE_REMINDER_MINUTES,
@@ -117,10 +118,10 @@ export const patchAzanPreferencesHandler = asyncHandler(async (req: Request, res
   if (body.preReminderEnabled == null && body.prePrayerReminderEnabled != null) {
     body.preReminderEnabled = body.prePrayerReminderEnabled;
   }
-  const parsed = azanPreferencesSchema.partial().parse(body);
+  const parsed = pickExplicitAzanPatch(body);
   if (typeof body.azanSoundId === 'string' && body.azanSoundId.trim()) {
     (parsed as any).azanSoundId = body.azanSoundId;
   }
-  const data = await updateAzanPreferences(userId, parsed as Partial<AzanPreferences>);
+  const data = await updateAzanPreferences(userId, parsed);
   sendSuccess(res, data, 'Azan preferences updated successfully', req);
 });

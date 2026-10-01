@@ -18,6 +18,11 @@ import {
   type NotificationSoundOption,
 } from '../shared/constants/azan-sounds';
 import { mediaAbsoluteUrl } from './azan-audio.service';
+import {
+  autoCalculationMethodFor,
+  isAutoCalculationMethod,
+  isUnsetStoredCalculationMethod,
+} from '../shared/utils/auto-calculation-method';
 
 /** Canonical default for دقائق التذكير — must stay consistent across schema, API, cron. */
 export const DEFAULT_PRE_REMINDER_MINUTES = 15;
@@ -98,6 +103,12 @@ export type AzanPreferencesResponse = AzanPreferences & {
   prePrayerReminderEnabled: boolean;
   /** Alias of preReminderMinutes. */
   prePrayerReminderMinutes: number;
+};
+
+export type AzanPreferencesWithMethod = AzanPreferencesResponse & {
+  /** Catalog id actually used for prayer times (AUTO resolved from the saved location, e.g. "MAKKAH"). */
+  effectiveCalculationMethod: string;
+  calculationMethodSource: 'auto' | 'user';
 };
 
 export function defaultAzanPreferences(): AzanPreferences {
@@ -206,7 +217,7 @@ export type AzanPreferencesUserRow = {
   city: string | null;
 };
 
-function canonicalMethodId(raw: string): string | null {
+export function canonicalMethodId(raw: string): string | null {
   const method = raw.trim().toUpperCase();
   const exact = CALCULATION_METHODS_CATALOG.find((m) => m.aliases.includes(method));
   if (exact) return exact.id;
@@ -216,7 +227,7 @@ function canonicalMethodId(raw: string): string | null {
   return partial?.id ?? null;
 }
 
-export async function getAzanPreferences(userId: string): Promise<AzanPreferencesResponse> {
+export async function getAzanPreferences(userId: string): Promise<AzanPreferencesWithMethod> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: AZAN_PREFERENCES_USER_SELECT,
@@ -228,16 +239,14 @@ export async function getAzanPreferences(userId: string): Promise<AzanPreference
 }
 
 /** Pure (no DB) — lets batch jobs build prefs from one findMany instead of N queries. */
-export function buildAzanPreferencesFromUser(user: AzanPreferencesUserRow): AzanPreferencesResponse {
+export function buildAzanPreferencesFromUser(user: AzanPreferencesUserRow): AzanPreferencesWithMethod {
   const prefs = normalizePrefs(user.azanPreferences);
   if (prefs.lastLat == null && user.latitude != null) prefs.lastLat = user.latitude;
   if (prefs.lastLng == null && user.longitude != null) prefs.lastLng = user.longitude;
   if (!prefs.lastLocationLabel && user.city) prefs.lastLocationLabel = user.city;
-  if (prefs.calculationMethod === 'EGYPT' && user.prayerCalculationMethod) {
-    if (user.azanPreferences == null) {
-      prefs.calculationMethod =
-        canonicalMethodId(String(user.prayerCalculationMethod)) ?? prefs.calculationMethod;
-    }
+  if (user.azanPreferences == null && !isUnsetStoredCalculationMethod(user.prayerCalculationMethod)) {
+    prefs.calculationMethod =
+      canonicalMethodId(String(user.prayerCalculationMethod)) ?? prefs.calculationMethod;
   }
 
   const hasLocation =
@@ -260,13 +269,31 @@ export function buildAzanPreferencesFromUser(user: AzanPreferencesUserRow): Azan
     prefs.isDefaultLocation = isCairoDefault;
     prefs.locationSource = isCairoDefault ? 'default_cairo' : 'profile';
   }
-  return enrichPrefs(prefs);
+  const auto = isAutoCalculationMethod(prefs.calculationMethod);
+  return {
+    ...enrichPrefs(prefs),
+    effectiveCalculationMethod: auto
+      ? autoCalculationMethodFor(prefs.lastLat!, prefs.lastLng!)
+      : canonicalMethodId(prefs.calculationMethod) ?? prefs.calculationMethod,
+    calculationMethodSource: auto ? 'auto' : 'user',
+  };
+}
+
+/**
+ * PATCH semantics: only fields present in the request body change. The schema's
+ * defaults must not leak in, or saving one toggle would reset every other setting.
+ */
+export function pickExplicitAzanPatch(body: Record<string, unknown>): Partial<AzanPreferences> {
+  const parsed = azanPreferencesSchema.partial().parse(body) as Record<string, unknown>;
+  return Object.fromEntries(
+    Object.entries(parsed).filter(([key]) => body[key] !== undefined),
+  ) as Partial<AzanPreferences>;
 }
 
 export async function updateAzanPreferences(
   userId: string,
   patch: Partial<AzanPreferences> & { azanSoundId?: string },
-): Promise<AzanPreferencesResponse> {
+): Promise<AzanPreferencesWithMethod> {
   const current = await getAzanPreferences(userId);
 
   // If the client sends only voiceId (legacy), do not let the previous

@@ -3,6 +3,7 @@ import type { ChallengeType, PrayerName } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { calculateDailyPrayerSchedule } from './prayer.service';
+import { buildAzanPreferencesFromUser } from './azan.service';
 import type { DailyPrayerSchedule } from './prayer.service';
 import { formatArabicDateInfo, getDayOfYear } from '../utils/date';
 import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
@@ -82,6 +83,7 @@ export type DashboardData = {
     country?: string;
     countryAr?: string;
     calculationMethod?: string;
+    calculationMethodSource?: 'auto' | 'user';
     madhab?: string;
     locationSource?: string;
     isDefaultLocation?: boolean;
@@ -221,7 +223,8 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
     longitude: null as number | null,
     city: null as string | null,
     country: null as string | null,
-    prayerCalculationMethod: 'EGYPT' as string | null,
+    prayerCalculationMethod: null as string | null,
+    azanPreferences: null as unknown,
   };
 
   let user = fallbackUser;
@@ -239,6 +242,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
         city: true,
         country: true,
         prayerCalculationMethod: true,
+        azanPreferences: true,
         sadaqahGoal: true,
       },
     });
@@ -365,6 +369,7 @@ async function buildDashboardPayload(
     city?: string | null;
     country?: string | null;
     prayerCalculationMethod?: string | null;
+    azanPreferences?: unknown;
     sadaqahGoal?: unknown;
   },
 ): Promise<DashboardData> {
@@ -433,6 +438,14 @@ async function buildDashboardPayload(
 
   let prayers: DailyPrayerSchedule;
   try {
+    // Same method + madhab as the Azan notifications (one source of truth).
+    const azanPrefs = buildAzanPreferencesFromUser({
+      azanPreferences: user.azanPreferences ?? null,
+      prayerCalculationMethod: user.prayerCalculationMethod ?? null,
+      latitude: user.latitude,
+      longitude: user.longitude,
+      city: user.city ?? null,
+    });
     prayers = calculateDailyPrayerSchedule(
       latitude,
       longitude,
@@ -440,7 +453,8 @@ async function buildDashboardPayload(
       completedPrayers as PrayerNameEnum[],
       new Date(),
       {
-        method: user.prayerCalculationMethod ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
+        method: azanPrefs.calculationMethod,
+        madhab: azanPrefs.madhab,
         locationSource: hasProfileLocation ? 'profile' : 'default_cairo',
         timezoneExplicit: explicitTimezone,
         city: hasProfileLocation ? user.city : DEFAULT_PRAYER_LOCATION.city,
@@ -502,6 +516,7 @@ async function buildDashboardPayload(
       country: DEFAULT_PRAYER_LOCATION.country,
       countryAr: DEFAULT_PRAYER_LOCATION.countryAr,
       calculationMethod: DEFAULT_PRAYER_LOCATION.calculationMethodLabel,
+      calculationMethodSource: 'auto',
       madhab: DEFAULT_PRAYER_LOCATION.madhab,
       locationSource: 'default_cairo',
       isDefaultLocation: true,
@@ -580,6 +595,7 @@ async function buildDashboardPayload(
       country: prayers.country,
       countryAr: prayers.countryAr,
       calculationMethod: prayers.calculationMethod,
+      calculationMethodSource: prayers.calculationMethodSource,
       madhab: prayers.madhab,
       locationSource: prayers.locationSource,
       isDefaultLocation: prayers.isDefaultLocation,

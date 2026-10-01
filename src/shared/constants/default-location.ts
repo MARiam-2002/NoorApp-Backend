@@ -1,6 +1,7 @@
 /**
  * Default prayer / Azan location before login or before the user saves GPS.
- * Cairo, Egypt — Egyptian General Authority of Survey method.
+ * Cairo, Egypt. The default method is AUTO: the official method of the user's country
+ * (Egyptian General Authority of Survey for Cairo).
  */
 export const DEFAULT_PRAYER_LOCATION = {
   city: 'Cairo',
@@ -10,7 +11,7 @@ export const DEFAULT_PRAYER_LOCATION = {
   latitude: 30.0444,
   longitude: 31.2357,
   timezone: 'Africa/Cairo',
-  calculationMethod: 'EGYPT',
+  calculationMethod: 'AUTO',
   calculationMethodLabel: 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY',
   madhab: 'SHAFI',
   locationSource: 'default_cairo' as const,
@@ -56,15 +57,26 @@ export type MadhabOption = {
  */
 export const CALCULATION_METHODS_CATALOG: CalculationMethodOption[] = [
   {
+    id: 'AUTO',
+    aliases: ['AUTO', 'AUTOMATIC'],
+    nameEn: 'Automatic (by country)',
+    nameAr: 'تلقائي حسب الدولة',
+    descriptionEn: "Uses the official method of the country you are in: Umm Al-Qura in Saudi Arabia, the Egyptian Authority in Egypt, Dubai in the UAE, Diyanet in Turkey, and so on. Follows you when you travel.",
+    descriptionAr: 'يستخدم الطريقة الرسمية للدولة الموجود فيها: أم القرى في السعودية، والهيئة المصرية في مصر، ودبي في الإمارات، وديانت في تركيا، وهكذا. ويتغير تلقائيًا عند السفر.',
+    regionHintEn: 'All countries',
+    regionHintAr: 'كل الدول',
+    isDefault: true,
+    sortOrder: 0,
+  },
+  {
     id: 'EGYPT',
     aliases: ['EGYPT', 'EGYPTIAN', 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY'],
     nameEn: 'Egyptian General Authority',
     nameAr: 'الهيئة المصرية للمساحة',
-    descriptionEn: 'Egyptian General Authority of Survey — standard for Egypt / MENA region (Im region.',
-    descriptionAr: 'الهيئة المصرية العامة للمساحة — المعيار لمصر وشمال أفريقيا والشرق الأوسط.',
+    descriptionEn: 'Egyptian General Authority of Survey — official for Egypt.',
+    descriptionAr: 'الهيئة المصرية العامة للمساحة — الطريقة الرسمية في مصر.',
     regionHintEn: 'Egypt, MENA',
-    regionHintAr: 'مصر، الوط العربي، شمال أفريقيا، الشرق الأوسط',
-    isDefault: true,
+    regionHintAr: 'مصر، الوطن العربي، شمال أفريقيا',
     sortOrder: 1,
   },
   {

@@ -1,5 +1,43 @@
 # Noor App — Flutter Integration Guide — 2026-07-31
 
+## 🔹 API Integration Changes Summary — 2026-09-29 (Prayer times: official method per country — `AUTO`)
+
+All changes are additive. No field, id, type or route was renamed or removed.
+
+**Why:** every account defaulted to the Egyptian method, so outside Egypt the times were off. In Tabuk, for example, Isha came at 19:37 instead of the official Umm Al-Qura time of 19:51. Now the default is `AUTO`: the server picks the official method of the country at the user's location (Saudi Arabia → Umm Al-Qura, Egypt → Egyptian Authority, UAE → Dubai, Kuwait, Qatar, Turkey → Diyanet, Pakistan/India/Bangladesh → Karachi, Malaysia/Singapore → MUIS, Indonesia → Kemenag, UK → Moonsighting, USA/Canada → ISNA, everywhere else → MWL). It switches automatically when the user travels. Egypt's times did not change.
+
+- **New catalog item**: `GET /azan/calculation-methods` now starts with `{ "id": "AUTO", "nameAr": "تلقائي حسب الدولة", "nameEn": "Automatic (by country)", "isDefault": true, "sortOrder": 0 }`, and `defaultId` is `"AUTO"`. `EGYPT` is still in the list but no longer `isDefault`. Build the picker from the list as before; the first row is the default.
+- **Saving**: send `calculationMethod: "AUTO"` (or omit it) unless the user explicitly picks a method in settings. An explicit pick (e.g. `EGYPT`, `MAKKAH`) is always respected on the screen and in the Azan push. Existing accounts on the old Egyptian default were moved to `AUTO` on the server.
+- **New fields on `GET`/`PATCH /azan/preferences`**: `effectiveCalculationMethod` is the method actually used (for example `"MAKKAH"` when `calculationMethod` is `"AUTO"` in Tabuk), and `calculationMethodSource` is `"auto"` or `"user"`. Show `effectiveCalculationMethod` as the subtitle under «طريقة الحساب» when the source is `auto` (e.g. «تلقائي — أم القرى»).
+- **New field on prayer payloads**: `GET /prayers/today`, `GET /prayers/schedule` and `GET /dashboard` → `prayers` now include `calculationMethodSource` (`"auto"` | `"user"`). `calculationMethod` already returned the resolved method (`"MAKKAH"`, or `"EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY"` for Egypt).
+- **Query calls**: for `GET /prayers/today?lat=&lng=` and `GET /prayers/schedule?lat=&lng=` drop `method` and `madhab` unless the user is changing them on that screen. Logged in, the server then uses the user's saved method and madhab (the same ones the Azan push uses); as a guest it uses `AUTO` at those coordinates. Don't keep sending `method=EGYPT` by default: an explicit query value always wins.
+- **Fixed**: `GET /prayers/today` and the dashboard now use the same method **and madhab** as the Azan push (before, the screen ignored the Hanafi Asr choice and could show a different method than the notification).
+- **Fixed**: `PATCH /azan/preferences` now changes only the fields you send. Before, sending one toggle (e.g. `{ "soundEnabled": false }`) reset the method, madhab, reminder minutes, prayer toggles and voice to their defaults.
+- **Synced**: `PATCH /profile` with `prayerCalculationMethod` now also updates the Azan preferences, so the screen and the push stay identical.
+- **Local Azan scheduling**: schedule from the times the API returns (`/prayers/today` / `/prayers/schedule`). If you compute times on the device, use `effectiveCalculationMethod` and `madhab` from `/azan/preferences`, never a hard-coded Egyptian method.
+
+`GET /azan/preferences` (Tabuk user on the default):
+
+```json
+{ "calculationMethod": "AUTO", "effectiveCalculationMethod": "MAKKAH", "calculationMethodSource": "auto",
+  "madhab": "SHAFI", "lastLat": 28.3835, "lastLng": 36.5662, "lastLocationLabel": "Tabuk", "...": "unchanged fields" }
+```
+
+`GET /prayers/today` (same user, 2026-09-30, matches Umm Al-Qura):
+
+```json
+{ "timezone": "Asia/Riyadh", "calculationMethod": "MAKKAH", "calculationMethodSource": "auto", "madhab": "SHAFI",
+  "schedule": [ { "key": "FAJR", "time": "05:06" }, { "key": "DHUHR", "time": "12:24" }, { "key": "ASR", "time": "15:47" },
+                { "key": "MAGHRIB", "time": "18:21" }, { "key": "ISHA", "time": "19:51" } ] }
+```
+
+```dart
+final method = prefs['calculationMethod'] as String? ?? 'AUTO';
+final effective = prefs['effectiveCalculationMethod'] as String? ?? method;
+final isAuto = prefs['calculationMethodSource'] == 'auto';
+// Picker: preselect `method` ("AUTO" = first row). Subtitle when isAuto: label of `effective`.
+```
+
 ## 🔹 API Integration Changes Summary — 2026-09-29 (Sajdah verses content fix + bilingual daily challenges)
 
 No field, id, type or route was renamed or removed. Content only.
