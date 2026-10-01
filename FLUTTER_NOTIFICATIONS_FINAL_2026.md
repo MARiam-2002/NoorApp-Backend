@@ -365,12 +365,12 @@ int notificationIdFor(String occurrenceKey) {
 
 | Kind | titleAr | bodyAr |
 |---|---|---|
-| Pre | `اقترب موعد صلاة {name}` | `تذكير: اقترب موعد صلاة {name} بعد {n} دقيقة ({HH:mm})` — when n = 1: `بعد دقيقة` |
-| Azan | `حان الآن موعد أذان {name}` | `حان الآن موعد أذان {name} ({HH:mm})` |
+| Pre | `اقترب موعد صلاة {name}` | `تذكير: اقترب موعد صلاة {name} بعد {n} دقيقة ({time})` — when n = 1: `بعد دقيقة` |
+| Azan | `حان الآن موعد أذان {name}` | `حان الآن موعد أذان {name} ({time})` |
 | Duha | `صلاة الضحى` | `حان الآن موعد صلاة الضحى` |
 | Qiyam | `قيام الليل` | `حان الآن موعد صلاة قيام الليل` |
 
-`{name}`: Fajr `الفجر`, Dhuhr `الظهر`, Asr `العصر`, Maghrib `المغرب`, Isha `العشاء` — **Friday Dhuhr = `الجمعة`** (Jumuah). `{HH:mm}` = the prayer time (24 h, as `schedule[].time`).
+`{name}`: Fajr `الفجر`, Dhuhr `الظهر`, Asr `العصر`, Maghrib `المغرب`, Isha `العشاء` — **Friday Dhuhr = `الجمعة`** (Jumuah). `{time}` = the prayer time on a **12-hour clock**, exactly `schedule[].displayAr` (e.g. `٧:٥٠ م`, `٤:٥٧ ص`). English body uses `schedule[].displayEn` style (`7:50 PM`). Updated 2026-10-01: the push used to show 24 h (`19:50`).
 
 **Schedule one item:**
 

@@ -173,6 +173,16 @@ function formatDisplayAr(date: Date, timezone: string): string {
   return `${toArabicDigits(clock)} ${meridiem}`;
 }
 
+/** "19:50" → { en: "7:50 PM", ar: "٧:٥٠ م" } — same text as `displayEn` / `displayAr`. */
+export function formatClock12(hhmm: string): { en: string; ar: string } {
+  const match = /^(\d{1,2}):(\d{2})/.exec(hhmm.trim());
+  if (!match) return { en: hhmm, ar: hhmm };
+  const hour = Number(match[1]);
+  const clock = `${hour % 12 || 12}:${match[2]}`;
+  const pm = hour >= 12;
+  return { en: `${clock} ${pm ? 'PM' : 'AM'}`, ar: `${toArabicDigits(clock)} ${pm ? 'م' : 'ص'}` };
+}
+
 function getPrayerDateMap(prayerTimes: PrayerTimes): Record<PrayerNameEnum, Date> {
   return {
     [PrayerNameEnum.FAJR]: prayerTimes.fajr,

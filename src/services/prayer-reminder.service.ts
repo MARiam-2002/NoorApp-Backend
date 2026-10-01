@@ -7,7 +7,7 @@ import {
 } from './azan.service';
 import { sendPushToUser } from './device.service';
 import { logPushCronSummary } from '../lib/push-diagnostics';
-import { computePrayerInstantsAround } from './prayer.service';
+import { computePrayerInstantsAround, formatClock12 } from './prayer.service';
 import { createNotification } from './notification.service';
 import {
   getLocalClock,
@@ -120,12 +120,13 @@ export function buildAzanNotificationCopy(input: {
   const titleAr = input.isPre
     ? `اقترب موعد صلاة ${nameAr}`
     : `حان الآن موعد أذان ${nameAr}`;
+  const clock = formatClock12(input.time);
   const bodyEn = input.isPre
-    ? `Reminder: ${isFridayJumuah ? 'Jumuah' : prayerTitle} in about ${pre} minutes (${input.time})`
-    : `It's time for the ${isFridayJumuah ? 'Jumuah' : prayerTitle} Azan (${input.time})`;
+    ? `Reminder: ${isFridayJumuah ? 'Jumuah' : prayerTitle} in about ${pre} minutes (${clock.en})`
+    : `It's time for the ${isFridayJumuah ? 'Jumuah' : prayerTitle} Azan (${clock.en})`;
   const bodyAr = input.isPre
-    ? `تذكير: اقترب موعد صلاة ${nameAr} بعد ${prePhraseAr} (${input.time})`
-    : `حان الآن موعد أذان ${nameAr} (${input.time})`;
+    ? `تذكير: اقترب موعد صلاة ${nameAr} بعد ${prePhraseAr} (${clock.ar})`
+    : `حان الآن موعد أذان ${nameAr} (${clock.ar})`;
 
   /** Canonical public event taxonomy (Flutter must not guess). */
   const eventType = input.isPre

@@ -131,6 +131,25 @@ const oneMin = buildAzanNotificationCopy({
   nowUtc: thursday,
 });
 assert.equal(oneMin.titleAr, 'اقترب موعد صلاة العصر');
+assert.equal(oneMin.bodyAr, 'تذكير: اقترب موعد صلاة العصر بعد دقيقة (٣:٠٠ م)');
+const ishaAzan = buildAzanNotificationCopy({
+  prayerNameOrKey: 'ISHA',
+  time: '19:50',
+  isPre: false,
+  preReminderMinutes: 15,
+  evaluationTimezone: tzCairo,
+  nowUtc: thursday,
+});
+assert.equal(ishaAzan.bodyAr, 'حان الآن موعد أذان العشاء (٧:٥٠ م)', '12-hour clock in the push text');
+assert.equal(ishaAzan.bodyEn, "It's time for the Isha Azan (7:50 PM)");
+assert.equal(
+  buildAzanNotificationCopy({ prayerNameOrKey: 'FAJR', time: '04:57', isPre: false, preReminderMinutes: 0, evaluationTimezone: tzCairo, nowUtc: thursday }).bodyAr,
+  'حان الآن موعد أذان الفجر (٤:٥٧ ص)',
+);
+assert.equal(
+  buildAzanNotificationCopy({ prayerNameOrKey: 'DHUHR', time: '12:05', isPre: false, preReminderMinutes: 0, evaluationTimezone: tzCairo, nowUtc: thursday }).bodyAr,
+  'حان الآن موعد أذان الظهر (١٢:٠٥ م)',
+);
 const azanCopy = buildAzanNotificationCopy({
   prayerNameOrKey: 'ASR',
   time: '15:00',

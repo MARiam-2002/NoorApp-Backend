@@ -22,6 +22,7 @@
 | 4 | Morocco time zone guard (§5) | The app formats `iso` with the device/`timezone` package, or schedules Duha/Qiyam by local clock time | **Required** for Moroccan users |
 | 5 | Picker subtitle «تلقائي — …» (§3.2) | Always | Recommended |
 | 6 | Method picker shows the new items | Only if the picker list is hard-coded. If it is built from `GET /azan/calculation-methods`, nothing to do | Only if hard-coded |
+| 7 | 12-hour clock in local notification text (§5.1) | The app builds its own local Azan / pre-reminder notifications | **Required** (so local = push) |
 
 If the app already shows the API's `time` / `displayAr`, schedules from `iso`, builds the picker from the catalog, and sends no default method, items 1, 2, 5 and 6 need no code. Items 3 and 4 still apply if there is an offline fallback or local clock-time scheduling.
 
@@ -224,11 +225,23 @@ tz.Location prayerLocation(String zone) {
 
 The guard turns itself off once the bundled data includes the change.
 
+### 5.1 Notification text uses a 12-hour clock
+
+The Azan and pre-reminder push now show the time on a 12-hour clock (before: `19:50`):
+
+| | Before | Now |
+|---|---|---|
+| bodyAr (Azan) | `حان الآن موعد أذان العشاء (19:50)` | `حان الآن موعد أذان العشاء (٧:٥٠ م)` |
+| bodyAr (pre) | `تذكير: اقترب موعد صلاة الفجر بعد 15 دقيقة (04:57)` | `تذكير: اقترب موعد صلاة الفجر بعد 15 دقيقة (٤:٥٧ ص)` |
+| bodyEn (Azan) | `It's time for the Isha Azan (19:50)` | `It's time for the Isha Azan (7:50 PM)` |
+
+The time in parentheses is exactly `schedule[].displayAr` (Arabic) / `displayEn` style (English). Build local notifications the same way, so a local alarm and a backup push look identical. The FCM `data.time` field is unchanged (`"19:50"`, 24 h, for logic only, not for display).
+
 ---
 
 ## 6. QA checklist (production values, Shafi'i)
 
-Call `GET /prayers/schedule?lat=&lng=&date=` as a guest (no `method`), or log in with the method on `AUTO` at that location. Expected (the app must show exactly these strings):
+Call `GET /prayers/schedule?lat=&lng=&date=` as a guest (no `method`), or log in with the method on `AUTO` at that location. Expected `schedule[].time` values below (24 h, as returned in `time`). On screen and in notifications show the 12-hour `displayAr` (e.g. Tabuk Isha `٧:٥١ م`):
 
 | City | Date | `calculationMethod` | Fajr | Sunrise | Dhuhr | Asr | Maghrib | Isha |
 |------|------|---------------------|------|---------|-------|-----|---------|------|
@@ -240,7 +253,7 @@ Call `GET /prayers/schedule?lat=&lng=&date=` as a guest (no `method`), or log in
 | Muscat (23.588, 58.3829) | 2026-10-01 | `OMAN` | 04:43 | 05:58 | 12:01 | 15:25 | 17:59 | 19:09 |
 | Dubai (25.2048, 55.2708) | 2026-09-14 | `DUBAI` | 04:47 | 06:01 | 12:17 | 15:42 | 18:27 | 19:41 |
 
-- [ ] Tabuk user on `AUTO`: the Isha notification arrives at **19:51** (it was 19:37).
+- [ ] Tabuk user on `AUTO`: the Isha notification arrives at **7:51 PM** (it was 7:37 PM) and its text reads `حان الآن موعد أذان العشاء (٧:٥١ م)`.
 - [ ] Casablanca: times shown in GMT (Fajr 04:57, not 05:57). The Duha/Qiyam reminder fires at the chosen clock time, not one hour later.
 - [ ] Picker preselects «تلقائي حسب الدولة» for a new user; subtitle shows the effective method.
 - [ ] Picking `EGYPT` manually in Tabuk shows Isha 19:37 on the screen **and** in the push (an explicit pick wins).

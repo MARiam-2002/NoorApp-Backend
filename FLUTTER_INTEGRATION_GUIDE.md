@@ -23,6 +23,7 @@ All changes are additive. No field, id, type or route was renamed or removed. No
 | Iraq, Syria, Lebanon, Yemen, Libya, Sudan, Mauritania, Somalia, Djibouti, Comoros | `EGYPT` (unchanged) |
 
 - **Morocco time zone**: Morocco returned to GMT (UTC+0) on 2026-09-20. The server corrects this itself, so `time`, `displayAr`, `displayEn` and push text for Moroccan users are right. The `iso` fields were always correct. On the device, don't re-format `iso` with the phone's or Dart's time-zone database (it may still assume GMT+1 and show every prayer one hour late). Show the API's `time` / `displayAr` strings, and schedule local notifications from `iso` (absolute instants).
+- **Push text uses a 12-hour clock**: Azan and pre-reminder `bodyAr` now read `حان الآن موعد أذان العشاء (٧:٥٠ م)` instead of `(19:50)`, and `bodyEn` reads `(7:50 PM)`. The time is exactly `schedule[].displayAr`. Use the same text in local notifications. FCM `data.time` stays `"19:50"` (logic only).
 - **Picker subtitle** for `AUTO` (from the previous section) now also covers the new ids: use the catalog item's `nameAr` for `effectiveCalculationMethod`, for example «تلقائي — وزارة الأوقاف والشؤون الإسلامية (المغرب)».
 
 `GET /prayers/today?lat=33.5731&lng=-7.5898` (Casablanca, 2026-10-01, guest):
