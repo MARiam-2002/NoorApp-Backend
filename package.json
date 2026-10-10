@@ -56,7 +56,8 @@
     "test:email-registration": "tsx scripts/test-email-registration.ts",
     "test:brevo-email": "tsx scripts/test-brevo-email.ts",
     "test:reading": "tsx scripts/test-reading-experience.ts",
-    "test:travel": "tsx scripts/test-travel.ts"
+    "test:travel": "tsx scripts/test-travel.ts",
+    "test:kahf": "tsx scripts/test-kahf-reminder.ts"
   },
   "keywords": [
     "express",

@@ -9,6 +9,8 @@ datasource db {
 }
 
 model User {
+  kahfPreference KahfPreference?
+  kahfSendLogs KahfSendLog[]
   travelPreferences Json?
   travelOperations TravelOperation[]
   readingPlans ReadingPlan[]
@@ -978,4 +980,22 @@ model TravelOperation {
  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
  @@id([userId,requestKey])
  @@map("travel_operations")
+}
+
+model KahfPreference {
+ userId String @id
+ enabled Boolean @default(false)
+ time String @default("09:00")
+ updatedAt DateTime @default(now()) @updatedAt
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@map("kahf_preferences")
+}
+model KahfSendLog {
+ userId String
+ occurrenceKey String
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@id([userId,occurrenceKey])
+ @@index([createdAt],map:"kahf_send_logs_createdAt_idx")
+ @@map("kahf_send_logs")
 }

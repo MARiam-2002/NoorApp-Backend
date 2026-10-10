@@ -1,3 +1,4 @@
+import { addKahfOpenApi } from '../shared/data/kahf-openapi';
 import { addTravelOpenApi } from '../shared/data/travel-openapi';
 import { addReadingOpenApi } from '../shared/data/reading-openapi';
 import path from 'node:path';
@@ -1362,6 +1363,7 @@ export function getSwaggerSpec(): any {
     const spec = completeSwaggerContracts(buildSwaggerSpec());
     addReadingOpenApi(spec);
     addTravelOpenApi(spec);
+    addKahfOpenApi(spec);
     cachedSpec = spec;
     return spec;
   } catch (err: any) {

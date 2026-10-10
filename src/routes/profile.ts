@@ -1,3 +1,6 @@
+import { getKahfPreferences, updateKahfPreferences } from '../services/kahf-reminder.service';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -686,3 +689,6 @@ profileRouter.put(
   validate(khatmahReminderPatchSchema),
   patchKhatmahReminderHandler,
 );
+
+profileRouter.get('/kahf-preferences', authenticate, privateNawafelCache, asyncHandler(async(req,res)=>{sendSuccess(res,await getKahfPreferences(req.user!.sub),'Surah Al-Kahf reminder preferences',req);}));
+profileRouter.patch('/kahf-preferences', authenticate, privateNawafelCache, asyncHandler(async(req,res)=>{sendSuccess(res,await updateKahfPreferences(req.user!.sub,req.body),'Surah Al-Kahf reminder updated',req);}));

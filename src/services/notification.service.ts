@@ -72,7 +72,7 @@ function serializeNotification(
     titleEn: (row.titleEn ?? (extra?.titleEn as string | undefined) ?? row.titleAr) as string,
     bodyAr: row.bodyAr,
     bodyEn: (row.bodyEn ?? (extra?.bodyEn as string | undefined) ?? row.bodyAr) as string,
-    type: rowPayload?.type === 'CHARITY_REMINDER' ? 'CHARITY_REMINDER' : contractType,
+    type: rowPayload?.type === 'CHARITY_REMINDER' ? 'CHARITY_REMINDER' : rowPayload?.type === 'KAHF' ? 'KAHF' : contractType,
     read: isRead,
     isRead,
     readAt: row.readAt ? row.readAt.toISOString() : null,
