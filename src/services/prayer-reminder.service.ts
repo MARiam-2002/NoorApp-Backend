@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { runCharityReminders } from './charity-reminder.service';
 import { logger } from '../lib/logger';
 import {
   AZAN_PREFERENCES_USER_SELECT,
@@ -847,6 +848,10 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
   const duha = await runDuhaReminders();
   const qiyam = await runQiyamReminders();
   const khatmah = await runKhatmahReminders();
+  const charity = await runCharityReminders().catch((error: unknown) => {
+    logger.error('[CharityReminder] Pass failed', { message: error instanceof Error ? error.message : 'unknown' });
+    return { usersScanned: 0, pushesAttempted: 0, pushesSent: 0, skipped: { pass_failed: 1 } };
+  });
 
   const summary = {
     usersScanned:
@@ -855,27 +860,28 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
       mulk.usersScanned +
       duha.usersScanned +
       qiyam.usersScanned +
-      khatmah.usersScanned,
+      khatmah.usersScanned + charity.usersScanned,
     pushesAttempted:
       azan.pushesAttempted +
       salawat.pushesAttempted +
       mulk.pushesAttempted +
       duha.pushesAttempted +
       qiyam.pushesAttempted +
-      khatmah.pushesAttempted,
+      khatmah.pushesAttempted + charity.pushesAttempted,
     pushesSent:
       azan.pushesSent +
       salawat.pushesSent +
       mulk.pushesSent +
       duha.pushesSent +
       qiyam.pushesSent +
-      khatmah.pushesSent,
+      khatmah.pushesSent + charity.pushesSent,
     azan,
     salawat,
     mulk,
     duha,
     qiyam,
     khatmah,
+    charity,
     trigger,
     durationMs: Date.now() - startedAt,
   };

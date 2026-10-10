@@ -193,7 +193,12 @@ export const DAILY_CHALLENGE_BANK: readonly DailyChallengeDefinition[] = [
 
 export function getDailyChallengeDefinition(dayOfYear: number): DailyChallengeDefinition {
   const n = DAILY_CHALLENGE_BANK.length;
-  return DAILY_CHALLENGE_BANK[(((dayOfYear - 1) % n) + n) % n]!;
+  const entry = DAILY_CHALLENGE_BANK[(((dayOfYear - 1) % n) + n) % n]!;
+  return entry.type === 'SADAQAH' ? {
+    type: 'QURAN_PAGES', targetValue: 2, rewardPoints: 50,
+    titleAr: 'صفحتان من القرآن', titleEn: 'Two Quran pages',
+    descriptionAr: 'اقرأ صفحتين من القرآن الكريم اليوم', descriptionEn: 'Read two pages of the Holy Quran today',
+  } : entry;
 }
 
 export type DailyChallengeTemplateRow = DailyChallengeDefinition & { dayOfYear: number };

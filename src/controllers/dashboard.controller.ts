@@ -7,6 +7,7 @@ import { ErrorCodes, HttpStatus } from '../config';
 import * as dashboardService from '../services/dashboard.service';
 
 export const getDashboard = asyncHandler(async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'private, no-store');
   const userId = req.user?.sub;
 
   if (!userId) {

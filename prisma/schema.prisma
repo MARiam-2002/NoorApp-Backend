@@ -93,8 +93,62 @@ model User {
   duhaSendLogs            DuhaSendLog[]
   qiyamSendLogs           QiyamSendLog[]
   khatmahSendLogs         KhatmahSendLog[]
+  zakatCycles             ZakatCycle[]
+  charityReminder         CharityReminder?
+  charitySendLogs         CharitySendLog[]
 
   @@map("users")
+}
+
+model ZakatCycle {
+  id           String   @id @default(uuid())
+  userId       String
+  requestKey   String
+  currency     String
+  dueDate      DateTime @db.Date
+  assessment   Json
+  dueAmount    Decimal  @db.Decimal(24, 6)
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments     ZakatPayment[]
+  @@unique([userId, requestKey])
+  @@index([userId, createdAt])
+  @@map("zakat_cycles")
+}
+
+model ZakatPayment {
+  id           String   @id @default(uuid())
+  cycleId      String
+  requestKey   String
+  amount       Decimal  @db.Decimal(24, 6)
+  paidOn       DateTime @db.Date
+  createdAt    DateTime @default(now())
+  cycle        ZakatCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  @@unique([cycleId, requestKey])
+  @@index([cycleId, paidOn])
+  @@map("zakat_payments")
+}
+
+model CharityReminder {
+  userId       String @id
+  enabled      Boolean @default(false)
+  localTime    String @default("12:00")
+  weekdays     Json
+  language     String @default("ar")
+  updatedAt    DateTime @updatedAt
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("charity_reminders")
+}
+
+model CharitySendLog {
+  id           String @id @default(uuid())
+  userId       String
+  occurrenceKey String
+  createdAt    DateTime @default(now())
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, occurrenceKey])
+  @@index([createdAt])
+  @@map("charity_send_logs")
 }
 
 /// Durable Salawat FCM idempotency (one row per user per occurrence slot).

@@ -1,6 +1,7 @@
 import type { ChallengeType, PrayerName } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
+import { charityExperience, getZakatHomeTile } from './zakat.service';
 import { getDailyQuranGoal } from './quran-daily-goal.service';
 import { DEFAULT_DAILY_QURAN_PAGES } from '../shared/utils/quran-daily-goal';
 import { logger } from '../lib/logger';
@@ -44,6 +45,8 @@ import { getFigureOfTheDayLite, type FigureOfTheDayLite } from './figure-of-day.
 const TOTAL_QURAN_PAGES = 604;
 
 export type DashboardData = {
+  charityExperience?: typeof charityExperience;
+  zakat?: Awaited<ReturnType<typeof getZakatHomeTile>>;
   greeting: {
     displayName: string;
     weekdayName: string;
@@ -215,6 +218,11 @@ async function getChallengeCompletion(userId: string, dayOfYear: number) {
 }
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
+  const [data, zakat] = await Promise.all([getDashboardLegacy(userId), getZakatHomeTile(userId)]);
+  return { ...data, charityExperience, zakat };
+}
+
+async function getDashboardLegacy(userId: string): Promise<DashboardData> {
   const todayInfo = formatArabicDateInfo();
   const fallbackUser = {
     id: userId,

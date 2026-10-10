@@ -145,7 +145,8 @@ export async function getDailyChallengeTemplate(dayOfYear = getDayOfYear()) {
   const template = await prisma.dailyChallengeTemplate.findFirst({
     where: { dayOfYear },
   });
-  return template ?? null;
+  // Retain the day/id while retiring amount-based charity challenges.
+  return template?.type === 'SADAQAH' ? { ...template, ...FALLBACK_CHALLENGE } : template ?? null;
 }
 
 export async function getDailyChallengeTemplateWithFallback(dayOfYear = getDayOfYear()) {

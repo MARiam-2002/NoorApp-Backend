@@ -18,7 +18,7 @@ export function isDailyChallengeCompleted(
     case 'ADHKAR':
       return journey.adhkarCompleted;
     case 'SADAQAH':
-      return Number(journey.sadaqahAmount) >= targetValue;
+      return false; // Charity is never scored or rewarded based on monetary entries.
     case 'PRAYER':
       return completedPrayers.length >= targetValue;
     default:

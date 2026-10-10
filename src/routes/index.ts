@@ -22,6 +22,7 @@ import { ayahRouter } from './ayah';
 import { stancesRouter } from './stances';
 import { nawafelRouter } from './nawafel';
 import { aiRouter } from './ai';
+import { zakatRouter, charityRouter } from './zakat';
 
 export const v1Router = Router();
 
@@ -47,3 +48,5 @@ v1Router.use('/ayah', ayahRouter);
 v1Router.use('/stances', stancesRouter);
 v1Router.use('/nawafel', nawafelRouter);
 v1Router.use('/ai', aiRouter);
+v1Router.use('/zakat', zakatRouter);
+v1Router.use('/charity', charityRouter);

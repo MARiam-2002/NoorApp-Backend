@@ -5,6 +5,7 @@ import type { Express, Request, Response } from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import { env, appConfig, getApiBasePath } from '../config';
 import { logger } from '../lib/logger';
+import { addZakatOpenApi } from '../shared/data/zakat-openapi';
 
 const NOOR_PREMIUM_CSS = `
 :root {
@@ -1280,6 +1281,7 @@ let buildError: any = null;
 /** Complete response envelopes and document additive contracts without altering the API. */
 function completeSwaggerContracts(spec: any): any {
   const schemas = spec.components.schemas;
+  addZakatOpenApi(spec);
   schemas.QuranDailyGoal = {
     type: 'object', description: 'Goal shared by Home and Khatmah. Target 0 means a completed active plan.',
     properties: {

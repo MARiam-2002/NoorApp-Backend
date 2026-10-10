@@ -3,6 +3,7 @@ import type { ChallengeType } from '@prisma/client';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
+import { charityExperience, getZakatHomeTile } from './zakat.service';
 import { getDailyQuranGoal } from './quran-daily-goal.service';
 import { getDayOfYear } from '../utils/date';
 import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
@@ -260,7 +261,7 @@ export async function getTodayJourney(userId: string) {
   ];
 
   const overallPercent = Math.round(
-    ((quranProgress + prayerProgress + ((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2 + sadaqahProgress) / 4) * 100,
+    ((quranProgress + prayerProgress + ((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2 ) / 3) * 100,
   );
 
   let points = 0;
@@ -307,7 +308,7 @@ export async function getTodayJourney(userId: string) {
 
     const datesSet = new Set(
       last30Progress
-        .filter((p) => p.quranPagesRead > 0 || p.morningAdhkarCompleted || p.eveningAdhkarCompleted || Number(p.sadaqahAmount) > 0)
+        .filter((p) => p.quranPagesRead > 0 || p.morningAdhkarCompleted || p.eveningAdhkarCompleted)
         .map((p) => p.date.toISOString().slice(0, 10)),
     );
     const cursor = new Date(date);
@@ -416,7 +417,8 @@ export async function getTodayJourney(userId: string) {
 
   return {
     date: date.toISOString().slice(0, 10),
-    tasks,
+    tasks: tasks.filter(task => task.key !== 'sadaqah'),
+    charityExperience,
     streakDays,
     badges,
     points,
@@ -882,7 +884,7 @@ export async function getJourneyProgress(userId: string, days = 7) {
   }
 
   const QURAN_GOAL = 4;
-  const SADAQAH_GOAL = await getUserSadaqahGoal(userId);
+
   const TOTAL_PRAYERS = 5;
 
   const daily = progress.map((p) => {
@@ -894,9 +896,9 @@ export async function getJourneyProgress(userId: string, days = 7) {
     const eveningDone = p.eveningAdhkarCompleted ?? p.adhkarCompleted;
     const adhkarCompleted = morningDone && eveningDone;
     const adhkarProgress = ((morningDone ? 1 : 0) + (eveningDone ? 1 : 0)) / 2;
-    const sadaqahProgress = SADAQAH_GOAL > 0 ? Math.min(1, Number(p.sadaqahAmount) / SADAQAH_GOAL) : 0;
+
     const overallPercent = Math.round(
-      ((quranProgress + prayerProgress + adhkarProgress + sadaqahProgress) / 4) * 100,
+      ((quranProgress + prayerProgress + adhkarProgress ) / 3) * 100,
     );
 
     return {
@@ -1142,7 +1144,7 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
 
   const QURAN_PAGES_GOAL_PER_DAY = 4;
   const PRAYERS_PER_DAY = 5;
-  const SADAQAH_GOAL = await getUserSadaqahGoal(userId);
+
 
   const [progressRows, prayerCompletions] = await Promise.all([
     prisma.dailyProgress.findMany({
@@ -1165,17 +1167,6 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
   const maxPossiblePages = days * QURAN_PAGES_GOAL_PER_DAY;
   const quranPercent =
     maxPossiblePages > 0 ? Math.round(Math.min(1, totalQuranPages / maxPossiblePages) * 100) : 0;
-
-  // --- Sadaqah % (days with any sadaqah recorded — or aggregate amount/goal average per day)
-  let sadaqahPercent: number;
-  const sadaqahDailyAvg = days > 0 ? progressRows.filter((r) => Number(r.sadaqahAmount) > 0).length / days : 0;
-  // Prefer the amount-based ratio when it produces a meaningful number; otherwise fallback to the daily-participation percent.
-  const totalAmount = progressRows.reduce((s, r) => s + Number(r.sadaqahAmount), 0);
-  const amountBased = SADAQAH_GOAL > 0 ? Math.min(1, totalAmount / (days * SADAQAH_GOAL)) : 0;
-  sadaqahPercent = Math.round(
-    Math.max(sadaqahDailyAvg, amountBased) * 100,
-  );
-  if (!Number.isFinite(sadaqahPercent)) sadaqahPercent = 0;
 
   // --- Adhkar % (morning + evening both per-day halves) ---
   let adhkarHalves = 0;
@@ -1214,15 +1205,6 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
         descriptionEn: 'Daily Holy Quran pages read',
       },
       {
-        key: 'SADAQAH',
-        keyAr: 'الصدقة',
-        keyEn: 'Sadaqah',
-        percent: sadaqahPercent,
-        color: 'indigo',
-        descriptionAr: 'الصدقات المالية والمعنوية المسجلة',
-        descriptionEn: 'Recorded monetary + non-monetary sadaqah',
-      },
-      {
         key: 'ADHKAR',
         keyAr: 'الذكار',
         keyEn: 'Dhikr',
@@ -1258,7 +1240,7 @@ export async function getMonthlyCalendarHeatmap(
 
   const QURAN_GOAL = 4;
   const PRAYERS_PER_DAY = 5;
-  const SADAQAH_GOAL = await getUserSadaqahGoal(userId);
+
 
   const [progressRows, prayerRows] = await Promise.all([
     prisma.dailyProgress.findMany({
@@ -1334,8 +1316,8 @@ export async function getMonthlyCalendarHeatmap(
       const q = QURAN_GOAL > 0 ? Math.min(1, quranPages / QURAN_GOAL) : 0;
       const p = prayersDone / PRAYERS_PER_DAY;
       const a = ((morning ? 1 : 0) + (evening ? 1 : 0)) / 2;
-      const s = SADAQAH_GOAL > 0 ? Math.min(1, sadaqahAmount / SADAQAH_GOAL) : 0;
-      overallPercent = Math.round(((q + p + a + s) / 4) * 100);
+
+      overallPercent = Math.round(((q + p + a) / 3) * 100);
     }
 
     let status: HeatmapDayStatus;
@@ -1404,6 +1386,8 @@ export async function getJourneyDashboard(
   ]);
 
   return {
+    charityExperience,
+    zakat: await getZakatHomeTile(userId),
     // Backward-compat top-level metadata aliases (already present in /today response):
     date: today.date,
     points: today.points,

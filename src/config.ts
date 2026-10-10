@@ -27,6 +27,11 @@ export const aiEnvSchema = z.object({
 });
 
 const envSchema = z.object({
+  METALS_DEV_API_KEY: z.string().trim().default(''),
+  METALS_CACHE_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+  METALS_MAX_AGE_SECONDS: z.coerce.number().int().min(120).max(7200).default(1800),
+  METALS_REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1000).max(15000).default(8000),
+  ZAKAT_ALLOW_MANUAL_PRICES: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
   NODE_ENV: z
     .enum([Environment.Development, Environment.Staging, Environment.Production, Environment.Test])
     .default(Environment.Development),
@@ -172,6 +177,7 @@ export const HttpStatus = {
 } as const;
 
 export const ErrorCodes = {
+  METAL_PRICES_UNAVAILABLE: 'METAL_PRICES_UNAVAILABLE',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',

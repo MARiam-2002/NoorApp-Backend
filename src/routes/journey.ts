@@ -88,6 +88,7 @@ const prayerSchema = z.object({
 });
 
 export const journeyRouter = Router();
+journeyRouter.use((_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 
 /**
  * @openapi

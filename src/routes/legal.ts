@@ -162,8 +162,10 @@ legalRouter.get('/privacy', (req, res) => {
 <li>Adhkar progress and favorites</li>
 <li>Tasbih counts and custom Tasbih phrases</li>
 <li>Daily challenge progress, answers, points, and level</li>
-<li>Sadaqah goals and amounts you enter (personal tracking only — Noor does not process payments)</li>
-<li>Reminder preferences (Azan, Salawat, Surah Al-Mulk, Duha, Qiyam, Khatmah)</li>
+<li>Legacy Sadaqah goals and amounts you previously entered, and optional charity reminder preferences. New charity experiences do not set monetary targets or award charity points.</li>
+<li>Zakat calculations are processed from your inputs without saving the asset breakdown. If you explicitly save an assessment, Noor stores its financial totals, currency, due date, chosen reference and price source/date, plus payment entries you record. These are private user-reported records, not verified donations or bank transactions. You can delete these records or your account. Noor does not process payments.</li>
+<li>Reference gold and silver prices are obtained by the backend from Metals.dev and converted to the selected currency. Requests contain price-query parameters; your identity, asset values and payment records are not sent to that provider. These international spot prices exclude local dealer premiums, taxes and making charges. Saved assessments retain the price source and collection timestamp.</li>
+<li>Reminder preferences (Azan, Salawat, Surah Al-Mulk, Duha, Qiyam, Khatmah, optional charity reminders)</li>
 </ul>
 <p>This information is used only to provide personal progress tracking and the features you request. We do not sell your religious or worship activity data.</p>
 </section>
