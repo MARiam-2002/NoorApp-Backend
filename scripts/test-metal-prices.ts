@@ -17,13 +17,15 @@ async function main() {
       const parsed = new URL(String(url));
       assert.equal(parsed.searchParams.get('unit'), 'g');
       assert.equal(parsed.searchParams.get('currency'), 'USD');
-      return new Response(JSON.stringify({ status: 'success', currency: 'USD', unit: 'g', timestamp: new Date().toISOString(),
+      return new Response(JSON.stringify({ status: 'success', currency: 'USD', unit: 'g', timestamps: { metal: new Date().toISOString(), currency: new Date(Date.now() - 120000).toISOString() },
         metals: { gold: 100, silver: 2 }, currencies: { EGP: 0.02, EUR: 1.25, JPY: 0.01, KWD: 3.25 } }), { status: 200 });
     };
     const quotes = await Promise.all(Array.from({ length: 12 }, () => getMetalQuote({ currency: 'EGP', nisabBasis: 'EGYPT_GOLD_21K_85G', timezone: 'Africa/Cairo' })));
     assert.equal(calls, 1, 'Concurrent requests share one provider request');
     assert.equal(quotes[0]!.pricePerGram, '4375.000000');
     const quote = quotes[0]!;
+    assert.equal(quote.asOfUtc, quote.currencyAsOfUtc, 'Freshness uses the older metal/FX collection timestamp');
+    assert(Date.parse(quote.metalAsOfUtc) > Date.parse(quote.currencyAsOfUtc));
     const input = calculationSchema.parse({ currency: quote.currency, nisabBasis: quote.nisabBasis, asOfDate: quote.asOfDate,
       pricePerGram: quote.pricePerGram, priceAsOfDate: quote.priceAsOfDate, priceSource: quote.priceSource, quoteToken: quote.quoteToken,
       hawlCompleted: true, assets: { cash: '1000000' } });
@@ -52,6 +54,9 @@ async function main() {
       { status: 'failure', error_code: 1203 },
       { status: 'success', currency: 'USD', unit: 'g', timestamp: '2020-01-01T00:00:00Z', metals: { gold: 100, silver: 2 }, currencies: {} },
       { status: 'success', currency: 'USD', unit: 'g', timestamp: '2099-01-01T00:00:00Z', metals: { gold: 100, silver: 2 }, currencies: {} },
+      { status: 'success', currency: 'USD', unit: 'g', timestamps: { metal: new Date().toISOString(), currency: '2020-01-01T00:00:00Z' }, metals: { gold: 100, silver: 2 }, currencies: {} },
+      { status: 'success', currency: 'USD', unit: 'g', timestamps: { metal: '2020-01-01T00:00:00Z', currency: new Date().toISOString() }, metals: { gold: 100, silver: 2 }, currencies: {} },
+      { status: 'success', currency: 'USD', unit: 'g', metals: { gold: 100, silver: 2 }, currencies: {} },
     ]) {
       Date.now = () => originalNow() + offset;
       globalThis.fetch = async () => new Response(JSON.stringify(broken), { status: 200 });

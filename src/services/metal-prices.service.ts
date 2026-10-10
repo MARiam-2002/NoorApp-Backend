@@ -9,8 +9,16 @@ const basisSchema = z.enum(['GOLD_24K_85G', 'EGYPT_GOLD_21K_85G', 'SILVER_999_59
 export const metalQuoteQuery = z.object({ currency: currencySchema, nisabBasis: basisSchema,
   timezone: z.string().max(100).default('UTC').refine(value => { try { new Intl.DateTimeFormat('en', { timeZone: value }); return true; } catch { return false; } }, 'Invalid IANA timezone') }).strict();
 const positive = z.number().finite().positive();
+const providerTimestamp = z.string().datetime({ offset: true });
 const snapshotSchema = z.object({ status: z.literal('success'), currency: z.literal('USD'), unit: z.literal('g'),
-  timestamp: z.string().datetime({ offset: true }), metals: z.object({ gold: positive, silver: positive }), currencies: z.record(z.string(), positive) });
+  timestamp: providerTimestamp.optional(), timestamps: z.object({ metal: providerTimestamp, currency: providerTimestamp }).optional(),
+  metals: z.object({ gold: positive, silver: positive }), currencies: z.record(z.string(), positive),
+}).refine(value => Boolean(value.timestamps || value.timestamp), 'Provider collection timestamps are required').transform(value => {
+  const metalAsOfUtc = value.timestamps?.metal ?? value.timestamp!;
+  const currencyAsOfUtc = value.timestamps?.currency ?? value.timestamp!;
+  return { ...value, metalAsOfUtc, currencyAsOfUtc,
+    timestamp: Date.parse(metalAsOfUtc) <= Date.parse(currencyAsOfUtc) ? metalAsOfUtc : currencyAsOfUtc };
+});
 type Snapshot = z.infer<typeof snapshotSchema>;
 let cached: { snapshot: Snapshot; fetchedAt: number } | undefined;
 let pending: Promise<Snapshot> | undefined;
@@ -18,8 +26,10 @@ let retryAfter = 0;
 const unavailable = () => new AppError('Metal prices are temporarily unavailable; retry later. No estimated or manual fallback is applied.', 503, ErrorCodes.METAL_PRICES_UNAVAILABLE);
 const invalid = () => new AppError('Invalid, changed or expired metal quote. Request a new quote and recalculate.', 400, ErrorCodes.VALIDATION_ERROR);
 function fresh(snapshot: Snapshot, now: number) {
-  const age = now - Date.parse(snapshot.timestamp);
-  return age >= -60000 && age <= env.METALS_MAX_AGE_SECONDS * 1000;
+  return [snapshot.timestamp, snapshot.metalAsOfUtc, snapshot.currencyAsOfUtc].filter(Boolean).every(value => {
+    const age = now - Date.parse(value);
+    return age >= -60000 && age <= env.METALS_MAX_AGE_SECONDS * 1000;
+  });
 }
 async function getSnapshot(): Promise<Snapshot> {
   if (!env.METALS_DEV_API_KEY) throw unavailable();
@@ -47,7 +57,8 @@ async function getSnapshot(): Promise<Snapshot> {
 }
 const receiptSchema = z.object({ purpose: z.literal('NOOR_METAL_QUOTE_V1'), currency: currencySchema, nisabBasis: basisSchema,
   pricePerGram: z.string(), priceAsOfDate: dateSchema, priceSource: z.literal('Metals.dev international spot benchmark'),
-  asOfUtc: z.string().datetime({ offset: true }), fetchedAtUtc: z.string().datetime(), expiresAt: z.number().int(), timezone: z.string() }).strict();
+  asOfUtc: providerTimestamp, metalAsOfUtc: providerTimestamp, currencyAsOfUtc: providerTimestamp,
+  fetchedAtUtc: z.string().datetime(), expiresAt: z.number().int(), timezone: z.string() }).strict();
 const signature = (body: string) => createHmac('sha256', env.JWT_SECRET).update('noor:metal-quote:v1:').update(body).digest();
 function encode(value: z.infer<typeof receiptSchema>) {
   const body = Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -68,6 +79,7 @@ export async function getMetalQuote(raw: z.infer<typeof metalQuoteQuery>) {
   const date = `${part('year')}-${part('month')}-${part('day')}`;
   const receipt = receiptSchema.parse({ purpose: 'NOOR_METAL_QUOTE_V1', ...input, pricePerGram,
     priceAsOfDate: date, priceSource: 'Metals.dev international spot benchmark', asOfUtc: snapshot.timestamp,
+    metalAsOfUtc: snapshot.metalAsOfUtc, currencyAsOfUtc: snapshot.currencyAsOfUtc,
     fetchedAtUtc: new Date(cached!.fetchedAt).toISOString(), expiresAt: Math.min(Date.now() + 600000, Date.parse(snapshot.timestamp) + env.METALS_MAX_AGE_SECONDS * 1000) });
   return { ...receipt, quoteToken: encode(receipt), asOfDate: date, unit: 'g', verifiedByBackend: true,
     priceType: 'INTERNATIONAL_SPOT', derivedPurity: basis.metal === 'gold21k', supportedCurrencies: [...new Set(['USD', ...Object.keys(snapshot.currencies).filter(v => currencySchema.safeParse(v).success)])].sort(),
@@ -85,11 +97,12 @@ export function assessWithMetalQuote(raw: ZakatCalculationInput) {
     const actual = Buffer.from(sig, 'base64url'), expected = signature(body);
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw invalid();
     const quote = receiptSchema.parse(JSON.parse(Buffer.from(body, 'base64url').toString('utf8')));
-    if (Date.now() >= quote.expiresAt || !fresh({ timestamp: quote.asOfUtc } as Snapshot, Date.now())) throw invalid();
+    if (Date.now() >= quote.expiresAt || !fresh({ timestamp: quote.asOfUtc, metalAsOfUtc: quote.metalAsOfUtc, currencyAsOfUtc: quote.currencyAsOfUtc } as Snapshot, Date.now())) throw invalid();
     for (const key of ['currency', 'nisabBasis', 'pricePerGram', 'priceAsOfDate', 'priceSource'] as const) if (input[key] !== quote[key]) throw invalid();
     if (input.asOfDate !== quote.priceAsOfDate) throw invalid();
     return { ...calculateZakat(input), quote: { pricePerGram: quote.pricePerGram, asOfDate: quote.priceAsOfDate,
       source: quote.priceSource, verifiedByBackend: true, isCurrent: true, asOfUtc: quote.asOfUtc,
+      metalAsOfUtc: quote.metalAsOfUtc, currencyAsOfUtc: quote.currencyAsOfUtc,
       fetchedAtUtc: quote.fetchedAtUtc, expiresAtUtc: new Date(quote.expiresAt).toISOString(), priceType: 'INTERNATIONAL_SPOT', timezone: quote.timezone } };
   } catch { throw invalid(); }
 }

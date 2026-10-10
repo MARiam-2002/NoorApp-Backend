@@ -16,7 +16,7 @@ ZAKAT_ALLOW_MANUAL_PRICES=false
 
 Never put the key in Flutter, source control, screenshots or logs. `.env.example` intentionally leaves it blank. Without a valid key, calculator configuration remains available and requesting prices returns 503. The deployed service must be tested after configuration; local mocked tests do not prove live subscription activation.
 
-Provider: [Metals.dev documentation](https://metals.dev/docs). The backend requests `/v1/latest` with `currency=USD&unit=g` and validates status, units, currency, positive prices/rates and timestamp. Its USD-per-currency rates are divided into the USD metal price. Gold 21K is derived as pure gold × 21/24. Silver uses the provider's silver benchmark without an extra 0.999 multiplier. This is an international spot benchmark, not an Egyptian or other local dealer quote. Taxes, premiums and making charges are excluded. Provider retrieval is verified; user assets, scholarly eligibility and payments are not automatically verified.
+Provider: [Metals.dev documentation](https://metals.dev/docs). The backend requests `/v1/latest` with `currency=USD&unit=g` and validates status, units, currency, positive prices/rates and both metal/FX collection timestamps. The current provider returns `timestamps.metal` and `timestamps.currency`; the adapter also accepts its legacy single `timestamp` format. Its USD-per-currency rates are divided into the USD metal price. Gold 21K is derived as pure gold × 21/24. Silver uses the provider's silver benchmark without an extra 0.999 multiplier. This is an international spot benchmark, not an Egyptian or other local dealer quote. Taxes, premiums and making charges are excluded. Provider retrieval is verified; user assets, scholarly eligibility and payments are not automatically verified.
 
 ## Price request
 
@@ -35,7 +35,8 @@ Read these `data` fields:
 | `pricePerGram` | Decimal string, six decimals; copy exactly |
 | `priceAsOfDate`, `priceSource` | Copy exactly; do not edit |
 | `quoteToken` | Opaque signed receipt; keep only in memory for this flow |
-| `asOfUtc` | Actual provider collection timestamp; display converted to local time |
+| `asOfUtc` | Older of the metal/FX collection timestamps; freshness of the combined quote |
+| `metalAsOfUtc`, `currencyAsOfUtc` | Actual separate provider collection timestamps; display in local time |
 | `fetchedAtUtc` | Backend snapshot retrieval timestamp; not a substitute for collection time |
 | `expiresAt` | Expiry in Unix **milliseconds** |
 | `verifiedByBackend` | Provider receipt/signature verification, not a religious endorsement |
