@@ -48,7 +48,7 @@ import * as path from 'path';
 export function formatPreReminderMinutesPhraseAr(minutes: number): string {
   const n = Math.max(0, Math.floor(Number(minutes) || 0));
   if (n === 1) return 'دقيقة';
-  return `${n} دقيقة`;
+  return `${new Intl.NumberFormat('ar-EG', { useGrouping: false }).format(n)} دقيقة`;
 }
 
 export function buildAzanNotificationCopy(input: {

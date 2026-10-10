@@ -19,7 +19,7 @@
     "test:salawat-http": "tsx scripts/test-salawat-http.ts",
     "test:mulk": "tsx scripts/test-mulk-eligibility.ts",
     "smoke:mulk": "tsx scripts/smoke-mulk-production.ts",
-    "test:nawafel": "tsx scripts/test-nawafel-catalog.ts",
+    "test:nawafel": "tsx scripts/test-nawafel-catalog.ts && tsx scripts/test-nawafel-preferences.ts",
     "test:adhkar-catalog": "tsx scripts/test-adhkar-catalog.ts",
     "test:figures": "tsx scripts/test-figures-of-the-day.ts",
     "test:sajdah": "tsx scripts/test-sajdah-verses.ts",

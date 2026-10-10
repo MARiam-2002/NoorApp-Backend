@@ -3,9 +3,14 @@ import { authenticate } from '../middleware/auth';
 import {
   getNawafelTodayHandler,
   markNawafelHandler,
+  setNawafelCompletionHandler,
 } from '../controllers/nawafel.controller';
+import { validate } from '../lib/validation';
+import { nawafelCompletionSchema } from '../services/nawafel.service';
 
 export const nawafelRouter = Router();
+nawafelRouter.use((_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
+nawafelRouter.put('/:key/completion', authenticate, validate(nawafelCompletionSchema), setNawafelCompletionHandler);
 
 /**
  * @openapi

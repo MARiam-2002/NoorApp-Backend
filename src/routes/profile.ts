@@ -5,6 +5,8 @@ import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import { validate } from '../shared/utils/validator';
 import { ianaTimezoneSchema } from '../shared/schemas/validation.schemas';
 import * as profileController from '../controllers/profile.controller';
+import { getNawafelPreferencesHandler, patchNawafelPreferencesHandler } from '../controllers/nawafel.controller';
+import { nawafelPreferencesPatchSchema } from '../services/nawafel.service';
 import {
   getAzanPreferencesHandler,
   patchAzanPreferencesHandler,
@@ -32,6 +34,7 @@ import {
   khatmahReminderPatchSchema,
 } from '../controllers/khatmah-plan.controller';
 
+const privateNawafelCache: import('express').RequestHandler = (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); };
 const updateReadingPreferencesSchema = z.object({
   quranFontSize: z.coerce.number().int().min(12).max(60).optional(),
   quranReciter: z.string().trim().min(1).max(100).optional(),
@@ -345,6 +348,8 @@ const updateLocationSchema = z.object({
  *         $ref: '#/components/responses/Unauthorized'
  */
 export const profileRouter = Router();
+profileRouter.get('/nawafel-preferences', privateNawafelCache, authenticate, getNawafelPreferencesHandler);
+profileRouter.patch('/nawafel-preferences', privateNawafelCache, authenticate, validate(nawafelPreferencesPatchSchema), patchNawafelPreferencesHandler);
 
 profileRouter.get(
   '/me',
