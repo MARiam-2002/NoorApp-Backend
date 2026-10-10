@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { resolveQuranDailyGoal } from '../shared/utils/quran-daily-goal';
 import { logger } from '../lib/logger';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
@@ -58,12 +59,6 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-function daysBetweenUtc(from: Date, to: Date): number {
-  const a = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
-  const b = Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate());
-  return Math.max(0, Math.round((b - a) / 86_400_000));
-}
-
 async function ensureKhatmahRow(userId: string) {
   return prisma.khatmah.upsert({
     where: { userId },
@@ -81,7 +76,7 @@ async function getPagesReadToday(userId: string): Promise<number> {
   return row?.quranPagesRead ?? 0;
 }
 
-function buildPlanDto(input: {
+export function buildPlanDto(input: {
   row: {
     planMode: string | null;
     planDurationDays: number | null;
@@ -94,6 +89,7 @@ function buildPlanDto(input: {
   };
   pagesReadToday: number;
   now?: Date;
+  timezone?: string;
 }) {
   const { row, pagesReadToday } = input;
   const now = input.now ?? new Date();
@@ -121,13 +117,10 @@ function buildPlanDto(input: {
 
   const pagesReadInPlan = Math.max(0, row.totalPagesRead - row.planPagesAtStart);
   const pagesRemaining = Math.max(0, TOTAL_QURAN_PAGES - pagesReadInPlan);
-  const targetEnd = row.planTargetEndAt ?? addDays(row.planStartedAt, row.planDurationDays ?? 30);
-  const daysRemaining = Math.max(1, daysBetweenUtc(now, targetEnd) || 1);
-
-  // Soft catch-up: redistribute remaining pages over remaining days.
-  const softDaily = Math.max(1, Math.ceil(pagesRemaining / daysRemaining));
-  const dailyWardPages = pagesRemaining === 0 ? 0 : softDaily;
-
+  const goal = resolveQuranDailyGoal(row, pagesReadToday, now, input.timezone);
+  const targetEnd = goal.targetEndAt!;
+  const daysRemaining = goal.daysRemaining!;
+  const dailyWardPages = goal.pagesTarget;
   const todayTarget = dailyWardPages;
   const completed = pagesReadToday >= todayTarget && todayTarget > 0;
   const remainingToday = Math.max(0, todayTarget - pagesReadToday);
@@ -179,7 +172,8 @@ function buildPlanDto(input: {
 export async function getKhatmahPlan(userId: string) {
   const row = await ensureKhatmahRow(userId);
   const pagesReadToday = await getPagesReadToday(userId);
-  return buildPlanDto({ row, pagesReadToday });
+  const { timezone } = await getUserLocalCalendarDay(userId);
+  return buildPlanDto({ row, pagesReadToday, timezone });
 }
 
 export async function startKhatmahPlan(userId: string, input: StartKhatmahPlanInput) {
@@ -387,6 +381,7 @@ export async function runKhatmahReminders(
         const plan = buildPlanDto({
           row: user.khatmah as any,
           pagesReadToday,
+          timezone: user.timezone ?? undefined,
           now,
         });
         if (!plan.active || !plan.todayWard) {

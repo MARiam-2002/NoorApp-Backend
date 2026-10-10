@@ -1,18 +1,18 @@
 # Backend: Firebase / FCM project alignment
 
 **Audience:** Backend / Vercel ops  
-**Status:** Flutter client is locked to Firebase project **`noorapp-d5d7d`** with application ID **`com.noor.app`**.
+**Status:** Flutter client is locked to Firebase project **`noorapp-d5d7d`**. Android applicationId is **`com.noor.mobile`** (Play Store rename); iOS bundle ID remains **`com.noor.app`**.
 
 ---
 
 ## Canonical Firebase project (use this only)
 
-| Field | Value |
-|-------|--------|
-| **Project ID** | `noorapp-d5d7d` |
-| **Console** | https://console.firebase.google.com/project/noorapp-d5d7d/overview |
-| **Project number / messagingSenderId** | `770958562307` |
-| **Storage bucket** | `noorapp-d5d7d.firebasestorage.app` |
+| Field                                  | Value                                                              |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| **Project ID**                         | `noorapp-d5d7d`                                                    |
+| **Console**                            | https://console.firebase.google.com/project/noorapp-d5d7d/overview |
+| **Project number / messagingSenderId** | `770958562307`                                                     |
+| **Storage bucket**                     | `noorapp-d5d7d.firebasestorage.app`                                |
 
 > Do **not** use `noor-app-mahmoud` (or any other project). Device FCM tokens are issued only for `noorapp-d5d7d`. Sending from a different project → `sent:0` / undelivered.
 
@@ -20,14 +20,14 @@
 
 ## Registered mobile apps (Flutter)
 
-| Platform | Package / Bundle ID | Firebase App ID |
-|----------|---------------------|-----------------|
-| Android | **`com.noor.app`** | `1:770958562307:android:5031fcc31f80a886796a36` |
-| iOS | **`com.noor.app`** | `1:770958562307:ios:b286f822000af347796a36` |
+| Platform | Package / Bundle ID                                                                | Firebase App ID                                                                  |
+| -------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Android  | **`com.noor.mobile`** (renamed 2026-10-03 — Play Store reject; was `com.noor.app`) | `1:770958562307:android:2aa44fd04e44f416796a36` (was `…:5031fcc31f80a886796a36`) |
+| iOS      | **`com.noor.app`** (unchanged)                                                     | `1:770958562307:ios:b286f822000af347796a36`                                      |
 
 Do **not** use package `com.example.noor`.
 
-If Backend docs or Firebase Console still list `com.example.noor`, update them to **`com.noor.app`**. The Flutter `applicationId` / iOS bundle ID is already `com.noor.app`.
+If Backend docs or Firebase Console still list the old Android package `com.noor.app` or `com.example.noor`, update Android entries to **`com.noor.mobile`**; iOS bundle stays **`com.noor.app`**. Flutter client has already regenerated `android/app/google-services.json` and `lib/firebase_options.dart` for the new Android app registration.
 
 Register (or confirm) both apps under **`noorapp-d5d7d`**, then Flutter regenerates client config with:
 
@@ -87,12 +87,12 @@ Flutter creates / reuses channel id **`azan`** for local Azan and FCM foreground
 
 ## Flutter ↔ Backend FCM contract
 
-| Action | Endpoint | Notes |
-|--------|----------|--------|
-| Register token | `POST /api/v1/devices/fcm-token` | Body: `token` / `fcmToken`, optional `platform`, `locale`, `appVersion` |
-| Unregister | `DELETE /api/v1/devices/fcm-token` | On logout |
-| Test push | `POST /api/v1/devices/test-push` | After client re-registers under `noorapp-d5d7d` |
-| Prayer backup | cron / prayer reminders | Data `type: "AZAN"` — **backup only**; local Azan is primary |
+| Action         | Endpoint                           | Notes                                                                   |
+| -------------- | ---------------------------------- | ----------------------------------------------------------------------- |
+| Register token | `POST /api/v1/devices/fcm-token`   | Body: `token` / `fcmToken`, optional `platform`, `locale`, `appVersion` |
+| Unregister     | `DELETE /api/v1/devices/fcm-token` | On logout                                                               |
+| Test push      | `POST /api/v1/devices/test-push`   | After client re-registers under `noorapp-d5d7d`                         |
+| Prayer backup  | cron / prayer reminders            | Data `type: "AZAN"` — **backup only**; local Azan is primary            |
 
 ### Notification `data.type` values the app handles
 
@@ -148,8 +148,8 @@ Preference sync: `GET/PATCH /profile/salawat-preferences` with `{ "enabled": tru
 
 - [ ] Vercel Firebase env is for **`noorapp-d5d7d`** (not `noor-app-mahmoud`)
 - [ ] `GET /health` → `fcm.configured: true`
-- [ ] Firebase Console Android app package is **`com.noor.app`** (not `com.example.noor`)
-- [ ] Firebase Console iOS bundle is **`com.noor.app`**
+- [ ] Firebase Console Android app package is **`com.noor.mobile`** (not `com.noor.app` or `com.example.noor`); Firebase App ID is `…:android:2aa44fd04e44f416796a36`
+- [ ] Firebase Console iOS bundle is **`com.noor.app`** (unchanged)
 - [ ] Push channel id remains **`azan`**
 - [ ] `POST /devices/test-push` delivers after Flutter re-registers a token from `noorapp-d5d7d`
 - [ ] Prayer reminder cron uses same Firebase credentials

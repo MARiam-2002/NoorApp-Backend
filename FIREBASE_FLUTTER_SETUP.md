@@ -1,23 +1,24 @@
 # Firebase + FCM Setup Guide for Flutter (Noor)
 
-**Audience:** Flutter developer finishing Firebase / FCM integration  
+**Audience:** Flutter developer finishing Firebase / FCM integration
 
-| Field | Value |
-|-------|--------|
-| **Firebase project ID** | `noorapp-d5d7d` |
-| **Console** | https://console.firebase.google.com/project/noorapp-d5d7d/overview |
-| **Project number / messagingSenderId** | `770958562307` |
-| **Storage bucket** | `noorapp-d5d7d.firebasestorage.app` |
-| **Android package / applicationId** | **`com.noor.app`** |
-| **iOS bundle ID** | **`com.noor.app`** |
-| **Android Firebase App ID** | `1:770958562307:android:5031fcc31f80a886796a36` |
-| **iOS Firebase App ID** | `1:770958562307:ios:b286f822000af347796a36` |
-| **Production API base** | `https://noor-app-backend-one.vercel.app/api/v1` |
+| Field                                  | Value                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| **Firebase project ID**                | `noorapp-d5d7d`                                                                  |
+| **Console**                            | https://console.firebase.google.com/project/noorapp-d5d7d/overview               |
+| **Project number / messagingSenderId** | `770958562307`                                                                   |
+| **Storage bucket**                     | `noorapp-d5d7d.firebasestorage.app`                                              |
+| **Android package / applicationId**    | **`com.noor.mobile`** (renamed 2026-10-03; was `com.noor.app`)                   |
+| **iOS bundle ID**                      | **`com.noor.app`** (unchanged)                                                   |
+| **Android Firebase App ID**            | `1:770958562307:android:2aa44fd04e44f416796a36` (was `…:5031fcc31f80a886796a36`) |
+| **iOS Firebase App ID**                | `1:770958562307:ios:b286f822000af347796a36`                                      |
+| **Production API base**                | `https://noor-app-backend-one.vercel.app/api/v1`                                 |
 
 **Do NOT use:**
 
 - Firebase project `noor-app-mahmoud` (or any other project)
-- Android package **`com.example.noor`** (wrong — use **`com.noor.app`**)
+- Android package **`com.example.noor`** (wrong — use **`com.noor.mobile`**)
+- Old Android package **`com.noor.app`** (Play Store rejected; migrated to `com.noor.mobile`)
 
 Backend ops alignment: [`BACKEND_FIREBASE_FCM_ALIGNMENT.md`](./BACKEND_FIREBASE_FCM_ALIGNMENT.md)
 
@@ -29,14 +30,14 @@ This guide lives in the **NoorApp-Backend** repository. Flutter owns client conf
 
 What **is** known from Backend + Flutter contract docs:
 
-| Fact | Source |
-|------|--------|
-| Flutter client locked to `noorapp-d5d7d` + `com.noor.app` | Flutter → Backend alignment |
-| Flutter already wires FCM token **register / unregister** against Backend | `FLUTTER_TO_BACKEND_STATUS_REPLY.md` |
-| Local Azan is primary; FCM is **backup only** | Azan / data-contract docs |
-| Auth is **JWT + `google_sign_in`**, not Firebase Auth | `FLUTTER_INTEGRATION_GUIDE.md` |
-| Backend FCM Android channel id is **`azan`** | `src/lib/fcm.ts` |
-| Push data payloads use `type=AZAN` or `type=TEST` | Backend device / prayer-reminder services |
+| Fact                                                                                      | Source                                    |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Flutter client locked to `noorapp-d5d7d` + Android `com.noor.mobile` / iOS `com.noor.app` | Flutter → Backend alignment               |
+| Flutter already wires FCM token **register / unregister** against Backend                 | `FLUTTER_TO_BACKEND_STATUS_REPLY.md`      |
+| Local Azan is primary; FCM is **backup only**                                             | Azan / data-contract docs                 |
+| Auth is **JWT + `google_sign_in`**, not Firebase Auth                                     | `FLUTTER_INTEGRATION_GUIDE.md`            |
+| Backend FCM Android channel id is **`azan`**                                              | `src/lib/fcm.ts`                          |
+| Push data payloads use `type=AZAN` or `type=TEST`                                         | Backend device / prayer-reminder services |
 
 **Before changing Gradle or packages:** verify against the **actual** Flutter files. Do not blindly replace existing Gradle / plugin architecture. Preserve FlutterFire / FCM services; only ensure project ID, package/`bundleId`, and client config match the table above.
 
@@ -46,8 +47,8 @@ This document contains **no** private keys, service-account JSON, or secrets.
 
 ## 1. Open Firebase project
 
-1. Open: https://console.firebase.google.com/project/noorapp-d5d7d/overview  
-2. Confirm the project name/selector shows **`noorapp-d5d7d`** (not `noor-app-mahmoud`).  
+1. Open: https://console.firebase.google.com/project/noorapp-d5d7d/overview
+2. Confirm the project name/selector shows **`noorapp-d5d7d`** (not `noor-app-mahmoud`).
 3. Verify Project ID:
    - Click the gear → **Project settings**
    - Under **General** → **Your project**, confirm:
@@ -68,22 +69,22 @@ This document contains **no** private keys, service-account JSON, or secrets.
 
 ### Expected registered app
 
-| Field | Value |
-|-------|--------|
-| Package name | **`com.noor.app`** |
-| Firebase App ID | `1:770958562307:android:5031fcc31f80a886796a36` |
+| Field           | Value                                                              |
+| --------------- | ------------------------------------------------------------------ |
+| Package name    | **`com.noor.mobile`** (renamed; was `com.noor.app`)                |
+| Firebase App ID | `1:770958562307:android:2aa44fd04e44f416796a36` (was `…:5031fcc…`) |
 
-Do **not** register or use **`com.example.noor`**.
+Do **not** register or use **`com.example.noor`**, and do **not** re-register the old **`com.noor.app`** (Play Store rejected). The new `com.noor.mobile` Android app is already registered under `noorapp-d5d7d`.
 
 ### If an Android app exists
 
 - Confirm **Android package name / application ID** is exactly:
 
   ```text
-  com.noor.app
+  com.noor.mobile
   ```
 
-- If the package is `com.example.noor` or anything else, fix Console / Flutter so both are **`com.noor.app`**.
+- If the package is `com.noor.app` (old), `com.example.noor`, or anything else, fix Console / Flutter so both are **`com.noor.mobile`**. The iOS bundle ID stays **`com.noor.app`**.
 
 ### If no Android app exists
 
@@ -91,7 +92,7 @@ Do **not** register or use **`com.example.noor`**.
 2. Enter Android package name:
 
    ```text
-  com.noor.app
+   com.noor.mobile
    ```
 
 3. Nickname optional (e.g. `Noor Android`).
@@ -111,7 +112,7 @@ Open the JSON and confirm it contains something like:
 and a client with package:
 
 ```text
-com.noor.app
+com.noor.mobile
 ```
 
 If `project_id` is anything else, discard the file and download again from the correct project.
@@ -128,13 +129,13 @@ android/app/google-services.json
 
 Rules:
 
-| Do | Do not |
-|----|--------|
-| Keep the filename `google-services.json` | Put it in the Flutter project root |
-| Keep it under `android/app/` | Put it under `lib/` |
-| Use the file generated by Firebase | Rename it |
-| Prefer Firebase Console downloads | Manually edit Firebase-generated values unless fixing a documented mismatch |
-| Commit only the **client** config file if your team policy allows | Commit Backend **service account** / private keys |
+| Do                                                                | Do not                                                                      |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Keep the filename `google-services.json`                          | Put it in the Flutter project root                                          |
+| Keep it under `android/app/`                                      | Put it under `lib/`                                                         |
+| Use the file generated by Firebase                                | Rename it                                                                   |
+| Prefer Firebase Console downloads                                 | Manually edit Firebase-generated values unless fixing a documented mismatch |
+| Commit only the **client** config file if your team policy allows | Commit Backend **service account** / private keys                           |
 
 `google-services.json` is a **client** config (API keys with Firebase restrictions). It is **not** the Backend Admin service account. Still: never paste Admin private keys into Flutter.
 
@@ -149,12 +150,12 @@ Do **not** blindly overwrite existing Gradle files. Modern Flutter projects usua
 In `android/app/build.gradle` (or `build.gradle.kts`), confirm:
 
 ```text
-applicationId = "com.noor.app"
+applicationId = "com.noor.mobile"
 ```
 
-(or Groovy: `applicationId "com.noor.app"`)
+(or Groovy: `applicationId "com.noor.mobile"`)
 
-This **must** match the Firebase Android app package.
+This **must** match the Firebase Android app package. iOS bundle ID stays `com.noor.app` and is configured separately.
 
 Also check `namespace` if present — it can differ from `applicationId` in newer AGP, but **`applicationId` is what Firebase / Play care about for FCM registration**.
 
@@ -217,9 +218,9 @@ Inspect your local `pubspec.yaml`.
 
 ### Required for FCM (this feature)
 
-| Package | Role |
-|---------|------|
-| `firebase_core` | Initialize Firebase |
+| Package              | Role                         |
+| -------------------- | ---------------------------- |
+| `firebase_core`      | Initialize Firebase          |
 | `firebase_messaging` | FCM token + message handlers |
 
 ### Do not add duplicates
@@ -384,10 +385,10 @@ Preserve existing navigation / notification deep-link architecture from the in-a
 
 ### 7.10 Expected data payloads (Backend)
 
-| `data.type` | Meaning |
-|-------------|---------|
-| `TEST` | From `POST /devices/test-push` |
-| `AZAN` | Prayer backup push from cron / reminder pipeline |
+| `data.type` | Meaning                                          |
+| ----------- | ------------------------------------------------ |
+| `TEST`      | From `POST /devices/test-push`                   |
+| `AZAN`      | Prayer backup push from cron / reminder pipeline |
 
 Also may include Arabic title/body fields in `data` (`titleAr`, `bodyAr`) alongside the notification title/body.
 
@@ -481,32 +482,33 @@ Sends to all registered devices for the authenticated user with `data.type = TES
 
 ### Flutter responsibility summary
 
-1. Get FCM token from Firebase Messaging.  
-2. Register with Backend while authenticated.  
-3. Refresh registration when token changes.  
-4. Delete token on logout.  
+1. Get FCM token from Firebase Messaging.
+2. Register with Backend while authenticated.
+3. Refresh registration when token changes.
+4. Delete token on logout.
 5. Handle `AZAN` / `TEST` without treating FCM as the only Azan path.
 
 ---
 
 ## 9. CRITICAL: Firebase Project Must Match
 
-| Layer | Must be |
-|-------|---------|
-| Flutter Firebase project | `noorapp-d5d7d` |
-| Backend Firebase Admin project | `noorapp-d5d7d` |
-| messagingSenderId | `770958562307` |
-| Android package / `applicationId` | `com.noor.app` |
-| iOS bundle ID | `com.noor.app` |
+| Layer                             | Must be                                         |
+| --------------------------------- | ----------------------------------------------- |
+| Flutter Firebase project          | `noorapp-d5d7d`                                 |
+| Backend Firebase Admin project    | `noorapp-d5d7d`                                 |
+| messagingSenderId                 | `770958562307`                                  |
+| Android package / `applicationId` | `com.noor.mobile` (renamed; was `com.noor.app`) |
+| iOS bundle ID                     | `com.noor.app` (unchanged)                      |
 
 The Flutter `google-services.json` / `GoogleService-Info.plist` / `firebase_options.dart` and the Backend Admin credentials **must belong to the same Firebase project**.
 
 **Do NOT mix** credentials or config from:
 
-| Forbidden | Required |
-|-----------|----------|
-| `noor-app-mahmoud` | `noorapp-d5d7d` |
-| Package `com.example.noor` | Package / bundle `com.noor.app` |
+| Forbidden                                          | Required                                                |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| `noor-app-mahmoud`                                 | `noorapp-d5d7d`                                         |
+| Package `com.example.noor`                         | Android `com.noor.mobile` / iOS bundle `com.noor.app`   |
+| Old Android package `com.noor.app` (Play rejected) | New Android app `com.noor.mobile` under `noorapp-d5d7d` |
 
 Symptoms of a mismatch: token registers in Backend DB, but test push `sent: 0` / failures, or “invalid registration token”.
 
@@ -539,11 +541,11 @@ Flutter uses only client config (`google-services.json` / FlutterFire options).
 
 In project `noorapp-d5d7d`:
 
-1. **Project settings → General → Your apps**  
-   Confirm Android app `com.noor.app` and re-download `google-services.json` if needed.
+1. **Project settings → General → Your apps**
+   Confirm Android app `com.noor.mobile` (not the old `com.noor.app`) and re-download `google-services.json` if needed.
 
-2. **Project settings → Cloud Messaging**  
-   - Confirm Cloud Messaging API is available for the project.  
+2. **Project settings → Cloud Messaging**
+   - Confirm Cloud Messaging API is available for the project.
    - Note legacy server keys are not needed for FlutterFire + Admin SDK modern flow.
 
 3. **Engage → Messaging** (or Build → Messaging, depending on Console UI)  
@@ -551,11 +553,11 @@ In project `noorapp-d5d7d`:
 
 ### Android-specific FCM requirements
 
-- Correct `google-services.json` + Google Services plugin  
-- Matching `applicationId`  
-- Notification permission on Android 13+  
-- Notification channel `azan` for Backend-sent alerts  
-- Device has Google Play services (typical physical Android / emulator with Play image)  
+- Correct `google-services.json` + Google Services plugin
+- Matching `applicationId`
+- Notification permission on Android 13+
+- Notification channel `azan` for Backend-sent alerts
+- Device has Google Play services (typical physical Android / emulator with Play image)
 - App not force-stopped / OEM battery restrictions can still drop pushes — hence Local Azan remains primary
 
 ---
@@ -566,7 +568,7 @@ In project `noorapp-d5d7d`:
 
 Noor auth uses:
 
-- Email/password (LOCAL) against Backend JWT APIs  
+- Email/password (LOCAL) against Backend JWT APIs
 - Google via **`google_sign_in`** → Backend `POST /auth/google` with Google **`idToken`**
 
 Do **not** introduce `firebase_auth` as the source of tokens for Backend.  
@@ -576,10 +578,10 @@ If Firebase Auth is ever added for an unrelated reason, Backend Google login mus
 
 ## 13. Firestore / Storage
 
-| Service | Status for Noor |
-|---------|-----------------|
-| Cloud Firestore | **Not used** for the current Backend-backed app contract |
-| Firebase Storage | **Not used** for the current contract |
+| Service          | Status for Noor                                          |
+| ---------------- | -------------------------------------------------------- |
+| Cloud Firestore  | **Not used** for the current Backend-backed app contract |
+| Firebase Storage | **Not used** for the current contract                    |
 
 Do **not** enable or integrate Firestore/Storage unless a future product requirement explicitly needs them. Quran, profile, journey, etc. are served by the Noor Backend + PostgreSQL.
 
@@ -587,26 +589,26 @@ Do **not** enable or integrate Firestore/Storage unless a future product require
 
 ## 14. iOS
 
-Flutter iOS bundle ID is locked to **`com.noor.app`** (same as Android application ID).
+Flutter iOS bundle ID is locked to **`com.noor.app`** (note: Android applicationId is now **`com.noor.mobile`** since the 2026-10-03 Play Store rename).
 
 Registered Firebase iOS app under `noorapp-d5d7d`:
 
-| Field | Value |
-|-------|--------|
-| Bundle ID | `com.noor.app` |
+| Field           | Value                                       |
+| --------------- | ------------------------------------------- |
+| Bundle ID       | `com.noor.app`                              |
 | Firebase App ID | `1:770958562307:ios:b286f822000af347796a36` |
 
 ### Setup
 
-1. Confirm the iOS app exists in Firebase Console (`noorapp-d5d7d`) with bundle **`com.noor.app`**.  
-2. Download **`GoogleService-Info.plist`** from that app (same project only).  
-3. Place it via Xcode at `ios/Runner/GoogleService-Info.plist` and include it in the Runner target.  
-4. Confirm plist `PROJECT_ID` = `noorapp-d5d7d` and `GOOGLE_APP_ID` matches the table above.  
-5. Prefer regenerating FlutterFire options with the Flutter repo script: `.\tool\configure_firebase.ps1`.  
+1. Confirm the iOS app exists in Firebase Console (`noorapp-d5d7d`) with bundle **`com.noor.app`**.
+2. Download **`GoogleService-Info.plist`** from that app (same project only).
+3. Place it via Xcode at `ios/Runner/GoogleService-Info.plist` and include it in the Runner target.
+4. Confirm plist `PROJECT_ID` = `noorapp-d5d7d` and `GOOGLE_APP_ID` matches the table above.
+5. Prefer regenerating FlutterFire options with the Flutter repo script: `.\tool\configure_firebase.ps1`.
 6. APNs:
-   - Upload APNs auth key (or certificates) in Firebase → Project settings → Cloud Messaging → Apple app configuration.  
-   - Enable Push Notifications capability in Xcode.  
-7. Use the same Dart FCM registration flow; set `platform: "ios"` when calling Backend.  
+   - Upload APNs auth key (or certificates) in Firebase → Project settings → Cloud Messaging → Apple app configuration.
+   - Enable Push Notifications capability in Xcode.
+7. Use the same Dart FCM registration flow; set `platform: "ios"` when calling Backend.
 8. Do **not** mix an iOS plist from `noor-app-mahmoud`.
 
 ---
@@ -616,12 +618,12 @@ Registered Firebase iOS app under `noorapp-d5d7d`:
 Use this while wiring the client:
 
 - [ ] Firebase project is `noorapp-d5d7d`
-- [ ] Android app exists in that project
-- [ ] Package name is `com.noor.app`
-- [ ] `google-services.json` downloaded from `noorapp-d5d7d`
+- [ ] Android app exists in that project (package `com.noor.mobile` — not the old `com.noor.app`)
+- [ ] Package name is `com.noor.mobile` (new Android; iOS stays `com.noor.app`)
+- [ ] `google-services.json` downloaded from `noorapp-d5d7d` for `com.noor.mobile`
 - [ ] File is at `android/app/google-services.json`
 - [ ] `project_id` inside JSON is `noorapp-d5d7d`
-- [ ] `applicationId` in Gradle is `com.noor.app`
+- [ ] `applicationId` in Gradle is `com.noor.mobile` (Android only; iOS bundle `com.noor.app` separate)
 - [ ] Google Services plugin configured
 - [ ] `firebase_core` configured
 - [ ] `firebase_messaging` configured
@@ -640,28 +642,30 @@ Use this while wiring the client:
 
 ## 16. End-to-end test procedure
 
-1. **Run** the Flutter app on a real Android device (or Play-enabled emulator).  
-2. Confirm logs show **Firebase initialization success** (no missing `google-services.json` / wrong options).  
-3. **Request** notification permission; grant it.  
-4. **Get** FCM token (`getToken()`); copy for debugging if needed (do not commit tokens).  
-5. **Log in** to Backend (JWT).  
+1. **Run** the Flutter app on a real Android device (or Play-enabled emulator).
+2. Confirm logs show **Firebase initialization success** (no missing `google-services.json` / wrong options).
+3. **Request** notification permission; grant it.
+4. **Get** FCM token (`getToken()`); copy for debugging if needed (do not commit tokens).
+5. **Log in** to Backend (JWT).
 6. **Send** token:
 
-   `POST https://noor-app-backend-one.vercel.app/api/v1/devices/fcm-token`  
+   `POST https://noor-app-backend-one.vercel.app/api/v1/devices/fcm-token`
 
-   with body `{ "token": "...", "platform": "android", "locale": "ar" }` and Bearer token.  
-7. Confirm Backend **accepts** (`success: true`, `registered: true`). Note `fcmConfigured`.  
+   with body `{ "token": "...", "platform": "android", "locale": "ar" }` and Bearer token.
+
+7. Confirm Backend **accepts** (`success: true`, `registered: true`). Note `fcmConfigured`.
 8. Call:
 
-   `POST https://noor-app-backend-one.vercel.app/api/v1/devices/test-push`  
+   `POST https://noor-app-backend-one.vercel.app/api/v1/devices/test-push`
 
-   with Bearer token.  
-9. Confirm the **test notification** reaches the device.  
-10. **Foreground:** app open → message handled / local notification shown.  
-11. **Background:** app minimized → system notification appears.  
-12. **Terminated:** force-stop / swipe away → send another test → notification appears; tap opens app via `getInitialMessage` / open handlers.  
-13. **Tap:** notification open routes correctly for `type=TEST` (and later `AZAN`).  
-14. **Logout:** app calls `DELETE /devices/fcm-token` with the token.  
+   with Bearer token.
+
+9. Confirm the **test notification** reaches the device.
+10. **Foreground:** app open → message handled / local notification shown.
+11. **Background:** app minimized → system notification appears.
+12. **Terminated:** force-stop / swipe away → send another test → notification appears; tap opens app via `getInitialMessage` / open handlers.
+13. **Tap:** notification open routes correctly for `type=TEST` (and later `AZAN`).
+14. **Logout:** app calls `DELETE /devices/fcm-token` with the token.
 15. Confirm cleanup (`removed: true` or idempotent success); further test-push should report no devices / `sent: 0`.
 
 Optional isolation: Firebase Console → Messaging → send test to the device token (proves client Firebase project without Backend).
@@ -674,80 +678,80 @@ For each issue: **CAUSE → CHECK → FIX**
 
 ### Firebase project does not match
 
-- **CAUSE:** Client config or Admin credentials from `noor-app-mahmoud` (or other).  
-- **CHECK:** `project_id` in `google-services.json` / `firebase_options.dart`; Backend env project id.  
+- **CAUSE:** Client config or Admin credentials from `noor-app-mahmoud` (or other).
+- **CHECK:** `project_id` in `google-services.json` / `firebase_options.dart`; Backend env project id.
 - **FIX:** Re-download client config from `noorapp-d5d7d`; Backend must use Admin for the same project.
 
 ### `google-services.json` is missing
 
-- **CAUSE:** File not at `android/app/google-services.json`.  
-- **CHECK:** Path, filename, Android Studio / Gradle sync logs.  
+- **CAUSE:** File not at `android/app/google-services.json`.
+- **CHECK:** Path, filename, Android Studio / Gradle sync logs.
 - **FIX:** Place the file exactly under `android/app/` and rebuild.
 
 ### Wrong package name
 
-- **CAUSE:** Firebase Android app package ≠ Gradle `applicationId`.  
-- **CHECK:** Console package vs `applicationId`.  
-- **FIX:** Make both `com.noor.app` (or re-register the Firebase app to match the real id — they must match).
+- **CAUSE:** Firebase Android app package ≠ Gradle `applicationId`.
+- **CHECK:** Console package vs `applicationId` (Android should be `com.noor.mobile`; iOS bundle stays `com.noor.app`).
+- **FIX:** Make both `com.noor.mobile` for Android (or re-register the Firebase app to match the real id — they must match). Do **not** use the old `com.noor.app` on Android (Play Store rejected).
 
 ### Firebase initialization failed
 
-- **CAUSE:** Missing/wrong options, plugin not applied, corrupt JSON.  
-- **CHECK:** `Firebase.initializeApp` error message; plugins; JSON validity.  
+- **CAUSE:** Missing/wrong options, plugin not applied, corrupt JSON.
+- **CHECK:** `Firebase.initializeApp` error message; plugins; JSON validity.
 - **FIX:** Fix config / plugin; use options generated for `noorapp-d5d7d`.
 
 ### FCM token is null
 
-- **CAUSE:** Init failed, Play services missing, wrong config, emulator without Google Play.  
-- **CHECK:** Init logs; device type; `getToken()` error.  
+- **CAUSE:** Init failed, Play services missing, wrong config, emulator without Google Play.
+- **CHECK:** Init logs; device type; `getToken()` error.
 - **FIX:** Use Play image / physical device; fix Firebase Android setup; retry after permission.
 
 ### Notification permission denied
 
-- **CAUSE:** User denied; Android 13+ permission not requested.  
-- **CHECK:** App info → Notifications.  
+- **CAUSE:** User denied; Android 13+ permission not requested.
+- **CHECK:** App info → Notifications.
 - **FIX:** Request permission in-flow; deep-link to system settings if permanently denied.
 
 ### Notification in background but not foreground
 
-- **CAUSE:** Foreground does not auto-display notification UI.  
-- **CHECK:** `FirebaseMessaging.onMessage` wired; local notification shown.  
+- **CAUSE:** Foreground does not auto-display notification UI.
+- **CHECK:** `FirebaseMessaging.onMessage` wired; local notification shown.
 - **FIX:** Handle foreground explicitly (local notifications / in-app UI).
 
 ### Notification not received at all
 
-- **CAUSE:** Wrong project, no token registered, Backend `fcmConfigured: false`, wrong channel, OEM kill, permission off.  
-- **CHECK:** `GET /health` / register response `fcmConfigured`; `GET /devices`; channel `azan`; device battery settings.  
+- **CAUSE:** Wrong project, no token registered, Backend `fcmConfigured: false`, wrong channel, OEM kill, permission off.
+- **CHECK:** `GET /health` / register response `fcmConfigured`; `GET /devices`; channel `azan`; device battery settings.
 - **FIX:** Align project; register token; ensure Backend Admin env; create channel; test on unrestricted device.
 
 ### Backend rejects FCM token
 
-- **CAUSE:** Missing/short token; no Bearer auth; validation error.  
-- **CHECK:** Request body has `token` or `fcmToken` (≥ 10 chars); `Authorization` header.  
+- **CAUSE:** Missing/short token; no Bearer auth; validation error.
+- **CHECK:** Request body has `token` or `fcmToken` (≥ 10 chars); `Authorization` header.
 - **FIX:** Send valid token after login; match API schema.
 
 ### Invalid Firebase credentials (Backend)
 
-- **CAUSE:** Bad Admin JSON / private key escaping on Vercel.  
-- **CHECK:** Backend logs; `health.fcm.configured`.  
+- **CAUSE:** Bad Admin JSON / private key escaping on Vercel.
+- **CHECK:** Backend logs; `health.fcm.configured`.
 - **FIX:** Ops fixes env (Flutter does not embed Admin keys).
 
 ### Wrong Service Account project
 
-- **CAUSE:** Admin SA belongs to a different Firebase project than the client.  
-- **CHECK:** SA `project_id` vs client `project_id`.  
+- **CAUSE:** Admin SA belongs to a different Firebase project than the client.
+- **CHECK:** SA `project_id` vs client `project_id`.
 - **FIX:** Use Admin credentials for `noorapp-d5d7d` only.
 
 ### Duplicate Firebase configuration
 
-- **CAUSE:** Multiple `google-services.json`, mixed old options, two Firebase apps.  
-- **CHECK:** Search repo for old project ids; multiple JSON files.  
+- **CAUSE:** Multiple `google-services.json`, mixed old options, two Firebase apps.
+- **CHECK:** Search repo for old project ids; multiple JSON files.
 - **FIX:** Remove stale config; keep a single `noorapp-d5d7d` client setup.
 
 ### Gradle / plugin compatibility errors
 
-- **CAUSE:** Conflicting Google Services versions; plugin applied twice; AGP mismatch.  
-- **CHECK:** Full Gradle error; `settings.gradle` + app module plugins.  
+- **CAUSE:** Conflicting Google Services versions; plugin applied twice; AGP mismatch.
+- **CHECK:** Full Gradle error; `settings.gradle` + app module plugins.
 - **FIX:** Apply Google Services once; align plugin versions with current Flutter template / FlutterFire docs; do not delete unrelated plugins.
 
 ---
@@ -756,26 +760,26 @@ For each issue: **CAUSE → CHECK → FIX**
 
 Do **not** mark Firebase integration complete until all of the following are true:
 
-1. Flutter is connected to **`noorapp-d5d7d`** (`messagingSenderId` `770958562307`).  
-2. Android / iOS IDs are **`com.noor.app`** (not `com.example.noor`).  
-3. **`google-services.json`** is correctly installed at `android/app/google-services.json`.  
-4. Firebase **initializes successfully**.  
-5. FCM **token is generated**.  
-6. Token **reaches the Backend** via `POST /devices/fcm-token`.  
-7. Backend **`test-push` is received** on device.  
-8. **Logout removes** the token via `DELETE /devices/fcm-token`.  
-9. **No** configuration from **`noor-app-mahmoud`** remains.  
+1. Flutter is connected to **`noorapp-d5d7d`** (`messagingSenderId` `770958562307`).
+2. Android `applicationId` is **`com.noor.mobile`** AND iOS bundle ID is **`com.noor.app`** (not `com.example.noor` or old Android `com.noor.app`).
+3. **`google-services.json`** is correctly installed at `android/app/google-services.json`.
+4. Firebase **initializes successfully**.
+5. FCM **token is generated**.
+6. Token **reaches the Backend** via `POST /devices/fcm-token`.
+7. Backend **`test-push` is received** on device.
+8. **Logout removes** the token via `DELETE /devices/fcm-token`.
+9. **No** configuration from **`noor-app-mahmoud`** remains.
 10. **No** Backend Service Account / private key is included in Flutter.
 
 ---
 
 ## Related Backend docs
 
-- `BACKEND_DATA_CONTRACT.md` — FCM / devices contract  
-- `FLUTTER_TO_BACKEND_STATUS_REPLY.md` — Flutter FCM client status  
-- `FLUTTER_INTEGRATION_GUIDE.md` — Auth (`google_sign_in`, not Firebase Auth)  
-- `AZAN_FEATURE.md` — Local Azan primary; FCM backup  
+- `BACKEND_DATA_CONTRACT.md` — FCM / devices contract
+- `FLUTTER_TO_BACKEND_STATUS_REPLY.md` — Flutter FCM client status
+- `FLUTTER_INTEGRATION_GUIDE.md` — Auth (`google_sign_in`, not Firebase Auth)
+- `AZAN_FEATURE.md` — Local Azan primary; FCM backup
 
 ---
 
-*Last updated for Flutter finish-line Firebase setup against Firebase project `noorapp-d5d7d` and Backend Production device APIs.*
+_Last updated for Flutter finish-line Firebase setup against Firebase project `noorapp-d5d7d` and Backend Production device APIs._

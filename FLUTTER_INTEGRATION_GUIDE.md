@@ -789,7 +789,7 @@ property, never from any Firebase package.**
 
    | Client type | Fields to fill                                                                                 | Output                                                                                                                           |
    | ----------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-   | **Android** | Package name (`com.noor.app`) + **SHA-1 fingerprint of the debug AND release keystore**        | A numeric Client ID (no downloadable file needed).                                                                               |
+   | **Android** | Package name (`com.noor.mobile`) + **SHA-1 fingerprint of the debug AND release keystore**    | A numeric Client ID (no downloadable file needed).                                                                               |
    | **iOS**     | Bundle ID (`com.noor.app`) + optional App Store ID + Team ID                                   | A plist `GoogleService-Info.plist` plus numeric Client ID.                                                                       |
    | **Web**     | Authorized JavaScript origins (e.g. `http://localhost:3000`, the production Web domain if any) | A numeric **Web Client ID string of the form** `123456-abcdef.apps.googleusercontent.com`. **Copy this string — Dart needs it.** |
 
@@ -798,7 +798,7 @@ property, never from any Firebase package.**
    > **"In production" (PUBLISHED)** with "Testing" user list containing nothing useful.
    > If left in "Testing" with no users added, every Google account that is not
    > explicitly whitelisted will silently authenticate but return a **null** idToken.
-   > Same symptom happens if the Android SHA-1 or package name is a typo.
+   > Same symptom happens if the Android SHA-1 or package name is a typo (Android must be `com.noor.mobile`, not the old `com.noor.app`).
 
 2. **Project files** (Flutter engineer owns these):
    - **Android:** add the Android OAuth Client ID to

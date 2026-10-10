@@ -1,6 +1,8 @@
 import type { ChallengeType, PrayerName } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
+import { getDailyQuranGoal } from './quran-daily-goal.service';
+import { DEFAULT_DAILY_QURAN_PAGES } from '../shared/utils/quran-daily-goal';
 import { logger } from '../lib/logger';
 import { calculateDailyPrayerSchedule } from './prayer.service';
 import { buildAzanPreferencesFromUser } from './azan.service';
@@ -164,6 +166,7 @@ export type DashboardData = {
     completed: boolean;
     claimed: boolean;
   };
+  dailyGoal?: { pagesTarget: number; pagesReadToday: number; completed: boolean; remainingToday: number; percent: number; source: 'khatmah_plan' | 'default' };
   utilities: Record<string, unknown>;
 };
 
@@ -306,7 +309,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
       figureOfTheDay: getFigureOfTheDayLite(getDayOfYear()),
       dailyJourney: {
         prayer: { completed: 0, total: 5, progress: 0, labelAr: 'الصلوات', labelEn: 'Prayers', captionAr: 'صلاة مكتملة اليوم', captionEn: 'prayers completed today' },
-        quran: { pagesRead: 0, target: 5, labelAr: 'القرآن', labelEn: 'Quran', captionAr: 'صفحة مقروءة اليوم', captionEn: 'pages read today' },
+        quran: { pagesRead: 0, target: DEFAULT_DAILY_QURAN_PAGES, labelAr: 'القرآن', labelEn: 'Quran', captionAr: 'صفحة مقروءة اليوم', captionEn: 'pages read today' },
         adhkar: { completed: false, labelAr: 'الأذكار', labelEn: 'Adhkar', captionAr: 'اكمل وردك اليومي', captionEn: 'Complete your daily wird' },
         sadaqah: {
           amount: 0,
@@ -409,6 +412,8 @@ async function buildDashboardPayload(
       captionEn: '0 of 12 rak‘ahs today',
     })),
   ]);
+
+  const dailyQuranGoal = await getDailyQuranGoal(userId, journey.quranPagesRead);
 
   const surah = khatmah?.currentSurahId
     ? await getSurah(khatmah.currentSurahId)
@@ -624,7 +629,7 @@ async function buildDashboardPayload(
       },
       quran: {
         pagesRead: journey.quranPagesRead,
-        target: 5,
+        target: dailyQuranGoal.pagesTarget,
         labelAr: 'القرآن',
         labelEn: 'Quran',
         captionAr: `${journey.quranPagesRead} صفحة مقروءة اليوم`,
@@ -667,6 +672,7 @@ async function buildDashboardPayload(
       },
       nawafel: nawafelTile,
     },
+    dailyGoal: dailyQuranGoal,
     khatmah: {
       surahId: surah?.id ?? 2,
       surahNameAr: resolveSurahNameAr(surah?.id ?? 2, surah?.nameAr) || 'البقرة',

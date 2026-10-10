@@ -1,6 +1,6 @@
 # Near-Prayer + Azan Notification Audio — Flutter handoff (2026)
 
-**To:** Flutter (`com.noor.app`)  
+**To:** Flutter (Android `com.noor.mobile` / iOS `com.noor.app` — Android renamed 2026-10-03)  
 **From:** Noor Backend  
 **Date:** 2026-09-25  
 **Production base:** `https://noorapp-backend-production.up.railway.app/api/v1`

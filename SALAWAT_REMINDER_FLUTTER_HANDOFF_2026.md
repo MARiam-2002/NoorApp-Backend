@@ -1,6 +1,6 @@
 # الصلاة على النبي ﷺ — Flutter handoff (Production)
 
-**To:** Flutter (`com.noor.app`)  
+**To:** Flutter (Android `com.noor.mobile` / iOS `com.noor.app` — Android renamed 2026-10-03)  
 **From:** Noor Backend  
 **Date:** 2026-09-19  
 **Production verified:** YES — Railway live smoke passed (prefs, catalog count 6, `audioClipId` persist, hosted MP3 `200 audio/mpeg`)

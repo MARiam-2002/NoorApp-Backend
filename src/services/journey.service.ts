@@ -3,6 +3,7 @@ import type { ChallengeType } from '@prisma/client';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
+import { getDailyQuranGoal } from './quran-daily-goal.service';
 import { getDayOfYear } from '../utils/date';
 import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
@@ -174,10 +175,11 @@ export async function getTodayJourney(userId: string) {
   });
 
   const totalPrayers = 5;
-  const quranGoal = 4;
+  const dailyQuranGoal = await getDailyQuranGoal(userId, progress.quranPagesRead);
+  const quranGoal = dailyQuranGoal.pagesTarget;
   const sadaqahGoal = await getUserSadaqahGoal(userId);
 
-  const quranProgress = quranGoal > 0 ? Math.min(1, progress.quranPagesRead / quranGoal) : 0;
+  const quranProgress = quranGoal > 0 ? Math.min(1, progress.quranPagesRead / quranGoal) : 1;
   const prayerProgress = prayersCompleted / totalPrayers;
   const morningCompleted = progress.morningAdhkarCompleted;
   const eveningCompleted = progress.eveningAdhkarCompleted;
@@ -447,6 +449,9 @@ export async function getTodayJourney(userId: string) {
     quran: {
       pages: progress.quranPagesRead,
       goal: quranGoal,
+      completed: dailyQuranGoal.completed,
+      remainingToday: dailyQuranGoal.remainingToday,
+      source: dailyQuranGoal.source,
       percent: quranPercent,
     },
     adhkar: {

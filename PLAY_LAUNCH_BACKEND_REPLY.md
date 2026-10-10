@@ -1,7 +1,7 @@
 # Backend → Flutter — Play launch reply
 
 **From:** Noor Backend  
-**To:** Flutter (`com.noor.app`)  
+**To:** Flutter (Android `com.noor.mobile` / iOS `com.noor.app` — Android renamed 2026-10-03)  
 **Updated:** 2026-09-19  
 **Production base URL (Play builds only):** `https://noorapp-backend-production.up.railway.app/api/v1`  
 **Retired:** `https://noor-app-backend-one.vercel.app/api/v1` (do not use for release QA)

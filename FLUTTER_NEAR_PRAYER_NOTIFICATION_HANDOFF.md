@@ -1,6 +1,6 @@
 # FLUTTER_NEAR_PRAYER_NOTIFICATION_HANDOFF.md
 
-**Audience:** Flutter (`com.noor.app`)  
+**Audience:** Flutter (Android `com.noor.mobile` / iOS `com.noor.app` — Android renamed 2026-10-03)  
 **From:** Noor Backend — **production audit 2026-09-25**  
 **Status:** Backend **code** verified + fixed. See § READY / blockers for Railway deploy & FCM.
 

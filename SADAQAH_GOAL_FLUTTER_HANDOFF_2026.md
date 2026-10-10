@@ -1,6 +1,6 @@
 # Sadaqah Goal Edit — Flutter handoff (2026)
 
-**Audience:** Flutter (`com.noor.app`)  
+**Audience:** Flutter (Android `com.noor.mobile` / iOS `com.noor.app` — Android renamed 2026-10-03)  
 **From:** Noor Backend  
 **Date:** 2026-09-19  
 

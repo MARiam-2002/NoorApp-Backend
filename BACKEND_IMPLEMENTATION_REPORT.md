@@ -1,7 +1,7 @@
 # BACKEND_IMPLEMENTATION_REPORT.md
 
 **Date:** 2026-09-25  
-**App:** Noor (`com.noor.app`)  
+**App:** Noor (Android `com.noor.mobile` / iOS `com.noor.app` — Android renamed 2026-10-03; was `com.noor.app`)  
 **Spec:** `BACKEND_REQUIREMENTS_FOR_GOOGLE_PLAY_LAUNCH.md` + Azan/Flutter master task
 
 ---

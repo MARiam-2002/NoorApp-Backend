@@ -1,6 +1,6 @@
 # FLUTTER_BACKEND_INTEGRATION_GUIDE.md
 
-**Audience:** Flutter (`com.noor.app`)  
+**Audience:** Flutter (Android `com.noor.mobile` / iOS `com.noor.app` — Android renamed 2026-10-03)  
 **From:** Noor Backend  
 **Updated:** 2026-09-25  
 **Firebase:** `noorapp-d5d7d`  

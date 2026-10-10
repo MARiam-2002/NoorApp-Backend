@@ -37,6 +37,7 @@ import {
   SAJDAH_VERSE_COUNT_MUATAQIDAH,
 } from '../shared/constants/sajdah-verses';
 import { getKhatmahPlan } from './khatmah-plan.service';
+import { DEFAULT_DAILY_QURAN_PAGES } from '../shared/utils/quran-daily-goal';
 
 const TOTAL_QURAN_PAGES = 604;
 
@@ -1002,7 +1003,7 @@ const JUZ_ENGLISH_NAMES = [
   "Juz' 26", "Juz' 27", "Juz' 28", "Juz' 29", "Juz' 30",
 ];
 
-const DAILY_QURAN_PAGES_TARGET = 5;
+const DAILY_QURAN_PAGES_TARGET = DEFAULT_DAILY_QURAN_PAGES;
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -1194,7 +1195,7 @@ export async function getKhatmahWithStats(userId: string) {
   const [streakDays, pagesReadToday, plan] = await Promise.all([
     getReadingStreakDays(userId),
     getPagesReadToday(userId),
-    getKhatmahPlan(userId).catch(() => null),
+    getKhatmahPlan(userId),
   ]);
   const completedKhatmahCount = Math.floor((base.totalPagesRead ?? 0) / TOTAL_QURAN_PAGES);
   const totalPagesRead = base.totalPagesRead;
@@ -1209,9 +1210,9 @@ export async function getKhatmahWithStats(userId: string) {
     totalPagesRead,
     dailyGoal: {
       pagesTarget: wardTarget,
-      pagesReadToday,
-      completed: pagesReadToday >= wardTarget,
-      remainingToday: Math.max(0, wardTarget - pagesReadToday),
+      pagesReadToday: plan.active ? plan.todayWard.pagesReadToday : pagesReadToday,
+      completed: plan.active ? plan.todayWard.completed : pagesReadToday >= wardTarget,
+      remainingToday: plan.active ? plan.todayWard.remainingToday : Math.max(0, wardTarget - pagesReadToday),
     },
     stats: {
       streakDays,
