@@ -78,6 +78,12 @@ model User {
   prayerCompletions       PrayerCompletion[]
   nawafelCompletions      NawafelCompletion[]
   quranBookmarks          QuranBookmark[]
+  mushafReaderStates      MushafReaderState[]
+  mushafPreference        MushafPreference?
+  mushafBookmarks         MushafBookmark[]
+  warshReaderStates       WarshReaderState[]
+  warshBookmarks          WarshBookmark[]
+  warshCycles             WarshCycle[]
   quranLastRead           QuranLastRead?
   quranReadingHistory     QuranReadingHistory[]
   quranSajdahCompletions  QuranSajdahCompletion[]
@@ -100,6 +106,88 @@ model User {
   charitySendLogs         CharitySendLog[]
 
   @@map("users")
+}
+
+model MushafReaderState {
+  userId    String
+  editionId String
+  page      Int
+  verseKey  String?
+  revision  Int @default(1)
+  updatedAt DateTime @default(now()) @db.Timestamp(3)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([userId, editionId])
+  @@map("mushaf_reader_states")
+}
+
+model MushafPreference {
+  userId String @id
+  editionId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("mushaf_preferences")
+}
+
+model MushafBookmark {
+  userId String
+  editionId String
+  verseKey String
+  page Int
+  note String @default("")
+  updatedAt DateTime @default(now()) @db.Timestamp(3)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([userId, editionId, verseKey])
+  @@map("mushaf_bookmarks")
+}
+
+model WarshReaderState {
+  userId String
+  contentVersion String
+  verseKey String
+  revision Int @default(1)
+  updatedAt DateTime @default(now()) @db.Timestamp(3)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([userId, contentVersion])
+  @@map("warsh_reader_states")
+}
+
+model WarshBookmark {
+  userId String
+  contentVersion String
+  verseKey String
+  ordinal Int
+  note String @default("")
+  updatedAt DateTime @default(now()) @db.Timestamp(3)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([userId, contentVersion, verseKey])
+  @@index([userId, contentVersion, ordinal])
+  @@map("warsh_bookmarks")
+}
+
+model WarshCycle {
+  id String @id
+  userId String
+  contentVersion String
+  requestKey String
+  expectedCycleId String?
+  durationDays Int
+  startedOn DateTime @db.Date
+  active Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamp(3)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions WarshCompletion[]
+  @@unique([userId, requestKey])
+  // One-active-per-user partial unique index is maintained in the SQL migration.
+  @@map("warsh_cycles")
+}
+
+model WarshCompletion {
+  cycleId String
+  verseKey String
+  completedOn DateTime @db.Date
+  cycle WarshCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  @@id([cycleId, verseKey])
+  @@index([cycleId, completedOn])
+  @@map("warsh_completions")
 }
 
 model ZakatCycle {

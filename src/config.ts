@@ -94,6 +94,8 @@ const envSchema = z.object({
   QF_CLIENT_ID: z.string().default(''),
   QF_CLIENT_SECRET: z.string().default(''),
   QF_ENV: z.string().default('production'),
+  // Enable only after text redistribution evidence and corpus review are recorded.
+  WARSH_TEXT_APPROVED: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),
   // Firebase Cloud Messaging (optional until credentials are set)
   FIREBASE_PROJECT_ID: z.string().default(''),
   FIREBASE_CLIENT_EMAIL: z.string().default(''),
@@ -178,6 +180,7 @@ export const HttpStatus = {
 
 export const ErrorCodes = {
   METAL_PRICES_UNAVAILABLE: 'METAL_PRICES_UNAVAILABLE',
+  WARSH_SOURCE_UNAVAILABLE: 'WARSH_SOURCE_UNAVAILABLE',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',

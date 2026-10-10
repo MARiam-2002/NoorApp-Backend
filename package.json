@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json && node scripts/copy-hadith-bank.cjs",
+    "build": "tsc -p tsconfig.json && node scripts/copy-hadith-bank.cjs && node scripts/copy-warsh-assets.cjs",
     "postinstall": "prisma generate --no-hints && node scripts/patch-adhan.cjs",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -50,7 +50,9 @@
     "prisma:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
     "test:zakat-charity": "tsx scripts/test-zakat-charity.ts",
-    "test:metal-prices": "tsx scripts/test-metal-prices.ts"
+    "test:metal-prices": "tsx scripts/test-metal-prices.ts",
+    "test:mushaf-editions": "tsx scripts/test-mushaf-editions.ts",
+    "test:warsh": "tsx scripts/test-warsh-reader.ts"
   },
   "keywords": [
     "express",

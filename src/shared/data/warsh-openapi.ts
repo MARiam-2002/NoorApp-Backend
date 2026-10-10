@@ -1,0 +1,30 @@
+import { WARSH_CONTENT_VERSION } from '../../services/warsh-content.service';
+export function addWarshOpenApi(spec: any) {
+  const s=spec.components.schemas;
+  const version={type:'string',enum:[WARSH_CONTENT_VERSION]};
+  const verseKey={type:'string',pattern:'^\\d{1,3}:\\d{1,3}$',description:'Warsh-local numbering. Never join to Hafs by this key.'};
+  const object=(properties:any,required:string[]=Object.keys(properties))=>({type:'object',additionalProperties:false,properties,required});
+  s.WarshPositionInput=object({contentVersion:version,verseKey,revision:{type:'integer',minimum:0}});
+  s.WarshBookmarkInput=object({contentVersion:version,verseKey,saved:{type:'boolean'},note:{type:'string',maxLength:500,default:''}},['contentVersion','verseKey','saved']);
+  s.WarshCycleInput=object({contentVersion:version,requestKey:{type:'string',format:'uuid'},expectedCycleId:{type:'string',format:'uuid',nullable:true},durationDays:{type:'integer',minimum:1,maximum:365}});
+  s.WarshCompletionInput=object({contentVersion:version,verseKeys:{type:'array',minItems:1,maxItems:100,uniqueItems:true,items:verseKey},completed:{type:'boolean'},date:{type:'string',format:'date',description:'Current user-local day from the cycle dailyGoal; old offline dates return 409.'}});
+  s.WarshVerse=object({key:verseKey,surah:{type:'integer',minimum:1,maximum:114},ayah:{type:'integer',minimum:1},text:{type:'string'},ordinal:{type:'integer',minimum:1,maximum:6214}});
+  s.WarshChapter=object({editionId:{type:'string',enum:['warsh-nafi']},contentVersion:version,surah:{type:'integer'},totalAyahs:{type:'integer'},verses:{type:'array',items:{$ref:'#/components/schemas/WarshVerse'}},nextFromAyah:{type:'integer',nullable:true}});
+  s.WarshPosition=object({editionId:{type:'string',enum:['warsh-nafi']},contentVersion:version,verseKey,revision:{type:'integer'},surah:{type:'integer'},ayah:{type:'integer'}});
+  s.WarshDailyGoal=object({date:{type:'string',format:'date'},timezone:{type:'string'},unit:{type:'string',enum:['VERSE']},targetVerses:{type:'integer'},completedVerses:{type:'integer'},remainingVerses:{type:'integer'},completed:{type:'boolean'}});
+  s.WarshCycle=object({editionId:{type:'string',enum:['warsh-nafi']},contentVersion:version,cycleId:{type:'string',format:'uuid'},active:{type:'boolean'},unit:{type:'string',enum:['VERSE']},totalVerses:{type:'integer',enum:[6214]},completedVerses:{type:'integer'},remainingVerses:{type:'integer'},progress:{type:'number',minimum:0,maximum:1},status:{type:'string',enum:['ACTIVE','OVERDUE','COMPLETED']},durationDays:{type:'integer'},startedOn:{type:'string',format:'date'},targetEndDate:{type:'string',format:'date'},dailyGoal:{$ref:'#/components/schemas/WarshDailyGoal'}});
+  s.WarshCycleResponse=object({editionId:{type:'string',enum:['warsh-nafi']},contentVersion:version,cycle:{allOf:[{$ref:'#/components/schemas/WarshCycle'}],nullable:true}});
+  const errors={'400':{description:'Invalid Warsh-local key/body/query/version'},'401':{description:'Authentication required'},'404':{description:'Cycle not found for current owner'},'409':{description:'Stale revision, local day, active cycle or changed request key'},'503':{description:'Warsh source invalid or text release approval not configured'}};
+  const operation=(summary:string,privateState:boolean,body?:string,response?:string)=>({tags:['Warsh Quran'],summary,description:'Surah/ayah reader and unique-verse Khatmah. No printed pages or Hafs progress credit.',...(privateState?{security:[{bearerAuth:[]}]}:{}),responses:{...errors,'200':{description:'Standard Noor success envelope',...(response?{content:{'application/json':{schema:{type:'object',properties:{success:{type:'boolean'},data:{$ref:'#/components/schemas/'+response}}}}}}:{})}},...(body?{requestBody:{required:true,content:{'application/json':{schema:{$ref:'#/components/schemas/'+body}}}}}:{})});
+  const query=(name:string,min:number,max:number,required=false,defaultValue?:number)=>({in:'query',name,required,schema:{type:'integer',minimum:min,maximum:max,...(defaultValue!==undefined?{default:defaultValue}:{})}});
+  const cycleParam={in:'path',name:'cycleId',required:true,schema:{type:'string',format:'uuid'}};
+  const p=spec.paths;
+  p['/quran/warsh/chapters']={get:operation('List 114 Warsh surahs and source-specific verse counts',false)};
+  p['/quran/warsh/chapters/{surah}']={get:{...operation('Read a Warsh surah with bounded verse pagination',false,undefined,'WarshChapter'),parameters:[{in:'path',name:'surah',required:true,schema:{type:'integer',minimum:1,maximum:114}},query('fromAyah',1,300,false,1),query('limit',1,100,false,50)]}};
+  p['/quran/warsh/reader-state']={get:operation('Get source-version-scoped Warsh resume position',true,undefined,'WarshPosition'),put:operation('Save Warsh position using revision guard',true,'WarshPositionInput','WarshPosition')};
+  p['/quran/warsh/bookmarks']={get:{...operation('List private Warsh bookmarks by ordinal cursor',true),parameters:[query('afterOrdinal',0,6214,false,0),query('limit',1,100,false,50)]},put:operation('Set Warsh bookmark state explicitly',true,'WarshBookmarkInput')};
+  p['/quran/warsh/cycles/current']={get:operation('Read current Warsh Khatmah and daily verse goal',true,undefined,'WarshCycleResponse')};
+  p['/quran/warsh/cycles']={post:operation('Start/restart Warsh Khatmah with idempotency and active-cycle guard',true,'WarshCycleInput','WarshCycleResponse')};
+  p['/quran/warsh/cycles/{cycleId}']={get:{...operation('Read an owned current or historical Warsh cycle',true,undefined,'WarshCycleResponse'),parameters:[cycleParam]}};
+  p['/quran/warsh/cycles/{cycleId}/completions']={get:{...operation('List confirmed Warsh-local verses in a surah',true),parameters:[cycleParam,query('surah',1,114,true)]},put:{...operation('Set confirmed reading for up to 100 unique verses; retries never double-count',true,'WarshCompletionInput','WarshCycleResponse'),parameters:[cycleParam]}};
+}

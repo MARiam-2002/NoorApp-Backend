@@ -97,9 +97,10 @@ async function getAccessToken(forceRefresh = false): Promise<string | null> {
   return data.access_token;
 }
 
-async function qfFetchJson<T>(
+export async function qfFetchJson<T>(
   path: string,
   query?: Record<string, string | number | undefined>,
+  allowPublicFallback = true,
 ): Promise<T | null> {
   if (isProviderCoolingDown(PROVIDER_KEYS.QURAN_FOUNDATION)) {
     logger.warn('[QF] skipping fetch; provider cooling down after rate limit');
@@ -147,6 +148,7 @@ async function qfFetchJson<T>(
     }
   }
 
+  if (!allowPublicFallback) return null;
   // Public Content API v4 (same family; works without console credentials).
   const publicRes = await fetchWithTimeout(`${PUBLIC_CONTENT_BASE}${pathWithQuery}`, {
     headers: { Accept: 'application/json' },

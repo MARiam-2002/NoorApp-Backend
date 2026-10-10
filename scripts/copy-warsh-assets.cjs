@@ -1,0 +1,10 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const src = path.join(__dirname, '../src/shared/data/qpc-warsh-script-ayah.json');
+const dest = path.join(__dirname, '../dist/shared/data/qpc-warsh-script-ayah.json');
+const bytes = fs.readFileSync(src);
+if (crypto.createHash('sha256').update(bytes).digest('hex') !== '4f1ca6245b059aafa3917e1ef06bd22e70d27f7b417f303e97dbcb5d60b77f7a') throw new Error('Warsh asset checksum mismatch');
+fs.mkdirSync(path.dirname(dest), { recursive: true });
+fs.copyFileSync(src, dest);
+console.log('Copied checksum-verified Warsh source; release approval remains separate.');

@@ -7,6 +7,8 @@ import { env, appConfig, getApiBasePath } from '../config';
 import { logger } from '../lib/logger';
 import { addZakatOpenApi } from '../shared/data/zakat-openapi';
 import { addNawafelOpenApi } from '../shared/data/nawafel-openapi';
+import { addMushafOpenApi } from '../shared/data/mushaf-openapi';
+import { addWarshOpenApi } from '../shared/data/warsh-openapi';
 
 const NOOR_PREMIUM_CSS = `
 :root {
@@ -1284,6 +1286,8 @@ function completeSwaggerContracts(spec: any): any {
   const schemas = spec.components.schemas;
   addZakatOpenApi(spec);
   addNawafelOpenApi(spec);
+  addMushafOpenApi(spec);
+  addWarshOpenApi(spec);
   schemas.QuranDailyGoal = {
     type: 'object', description: 'Goal shared by Home and Khatmah. Target 0 means a completed active plan.',
     properties: {
