@@ -1,3 +1,4 @@
+import { buildVerificationEmailPayload } from './email-templates';
 import { env, appConfig } from '../config';
 import { logger } from './logger';
 
@@ -359,7 +360,5 @@ export function getEmailProviderStatus() {
 }
 
 export async function sendVerificationEmail(code: string, to: string): Promise<boolean> {
-  if (!/^\d{6}$/.test(code)) throw new Error('Invalid verification code');
-  const text='Your Noor verification code is '+code+'. It expires in 10 minutes. Never share it. If you did not request this, ignore this email. / رمز تأكيد بريدك في نور: '+code+'، صالح لمدة ١٠ دقائق.';
-  return sendEmail({to,subject:'Noor — Verify your email / تأكيد بريدك',text,html:'<div style="background:#FAF8F3;padding:32px;font-family:Arial,sans-serif;color:#1A1040"><h1>Noor · نور</h1><h2>Verify your email / تأكيد بريدك</h2><p>Enter this code in Noor. / أدخل الرمز في نور.</p><div dir="ltr" style="font-size:32px;letter-spacing:8px;color:#1A1040;background:white;padding:20px;border:1px solid #C9A86A">'+code+'</div><p>Expires in 10 minutes. Never share this code.</p><p dir="rtl">صالح لمدة ١٠ دقائق. لا تشارك الرمز مع أي شخص. تجاهل الرسالة إن لم تطلبها.</p></div>'});
+ return sendEmail(buildVerificationEmailPayload(code,to));
 }

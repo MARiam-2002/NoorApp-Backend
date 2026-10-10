@@ -3,6 +3,13 @@ import { env } from '../config';
 import { NOOR_LOGO_DATA_URL } from '../shared/data/noor-brand';
 
 export const legalRouter = Router();
+// HTTPS-hosted PNG: email clients commonly block embedded base64/SVG logos.
+const emailLogo = Buffer.from(NOOR_LOGO_DATA_URL.slice(NOOR_LOGO_DATA_URL.indexOf(',') + 1), 'base64');
+legalRouter.get('/assets/noor-logo-v1.png', (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.type('png').send(emailLogo);
+});
 
 const EFFECTIVE_DATE = 'September 27, 2026';
 const LAST_UPDATED = 'October 10, 2026';
