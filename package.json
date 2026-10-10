@@ -53,7 +53,8 @@
     "test:metal-prices": "tsx scripts/test-metal-prices.ts",
     "test:mushaf-editions": "tsx scripts/test-mushaf-editions.ts",
     "test:warsh": "tsx scripts/test-warsh-reader.ts",
-    "test:email-registration": "tsx scripts/test-email-registration.ts"
+    "test:email-registration": "tsx scripts/test-email-registration.ts",
+    "test:brevo-email": "tsx scripts/test-brevo-email.ts"
   },
   "keywords": [
     "express",

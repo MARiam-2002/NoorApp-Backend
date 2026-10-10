@@ -1,7 +1,7 @@
 import { env, appConfig } from '../config';
 import { logger } from './logger';
 
-type EmailProvider = 'resend' | 'smtp' | 'mock';
+type EmailProvider = 'brevo' | 'resend' | 'smtp' | 'mock';
 
 interface SendEmailArgs {
   to: string;
@@ -19,7 +19,7 @@ function hasSmtpCredentials(): boolean {
 }
 
 function hasEmailCredentials(): boolean {
-  return hasResendCredentials() || hasSmtpCredentials();
+  return Boolean(env.BREVO_API_KEY?.trim()) || hasResendCredentials() || hasSmtpCredentials();
 }
 
 /** Production/staging: mail is on whenever credentials exist. Local: only if MAIL_ENABLED=true. */
@@ -45,9 +45,11 @@ function resolveProvider(): EmailProvider {
   const hasResend = hasResendCredentials();
   const hasSmtp = hasSmtpCredentials();
 
+  if (env.EMAIL_PROVIDER === 'brevo') return env.BREVO_API_KEY?.trim() ? 'brevo' : 'mock';
   if (env.EMAIL_PROVIDER === 'resend') return hasResend ? 'resend' : 'mock';
   if (env.EMAIL_PROVIDER === 'smtp') return hasSmtp ? 'smtp' : 'mock';
 
+  if (env.BREVO_API_KEY?.trim()) return 'brevo';
   if (hasResend) return 'resend';
   if (hasSmtp) return 'smtp';
   return 'mock';
@@ -56,6 +58,33 @@ function resolveProvider(): EmailProvider {
 function buildDeeplink(rawToken: string): string {
   const tpl = env.RESET_PASSWORD_DEEPLINK?.trim() || 'noorapp://auth/reset-password?token={{token}}';
   return tpl.replaceAll('{{token}}', encodeURIComponent(rawToken));
+}
+
+async function sendViaBrevo(payload: SendEmailArgs): Promise<boolean> {
+  const apiKey = env.BREVO_API_KEY?.trim();
+  const from = resolveMailFrom();
+  const address = from.match(/<([^<>]+)>\s*$/)?.[1]?.trim() || from;
+  if (!apiKey || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) || address.toLowerCase().endsWith('@smtp-brevo.com')) {
+    logger.error('[Email] Brevo HTTPS requires BREVO_API_KEY and a verified MAIL_FROM sender');
+    return false;
+  }
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST', signal: AbortSignal.timeout(15000),
+    headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ sender: { name: 'Noor', email: address }, to: [{email:payload.to}], subject:payload.subject, htmlContent:payload.html, textContent:payload.text }),
+  });
+  if (!response.ok) {
+    // Do not log provider bodies: they may contain recipient details or content.
+    logger.error('[Email] Brevo HTTPS rejected email', { status:response.status });
+    return false;
+  }
+  const result = await response.json().catch(()=>null) as {messageId?:unknown} | null;
+  if (!result || typeof result.messageId !== 'string' || !result.messageId) {
+    logger.error('[Email] Brevo HTTPS returned no message ID', {status:response.status});
+    return false;
+  }
+  logger.info('[Email] Brevo HTTPS accepted email', {messageId:result.messageId});
+  return true;
 }
 
 async function sendViaSmtp(payload: SendEmailArgs): Promise<boolean> {
@@ -187,6 +216,7 @@ async function sendViaMock(payload: SendEmailArgs, reason = 'disabled'): Promise
 async function sendEmail(payload: SendEmailArgs): Promise<boolean> {
   const provider = resolveProvider();
   try {
+    if (provider === 'brevo') return await sendViaBrevo(payload);
     if (provider === 'resend') return await sendViaResend(payload);
     if (provider === 'smtp') return await sendViaSmtp(payload);
     return await sendViaMock(payload, 'provider=mock');
@@ -319,6 +349,7 @@ export function getEmailProviderStatus() {
     provider: resolveProvider(),
     mailEnabled: env.MAIL_ENABLED,
     mailEffectivelyEnabled: isMailEffectivelyEnabled(),
+    hasBrevoKey: Boolean(env.BREVO_API_KEY?.trim()),
     hasResendKey: hasResendCredentials(),
     hasSmtpAuth: hasSmtpCredentials(),
     hasMailFrom: Boolean(from),

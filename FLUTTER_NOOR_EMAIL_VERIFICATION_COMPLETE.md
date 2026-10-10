@@ -93,7 +93,7 @@ npx prisma migrate deploy
 
 Start remains `npm start`. Do not manually replay CREATE statements or mark the migration applied without checking actual schema state.
 
-Production SMTP configuration is present. Reuse `EMAIL_PROVIDER`, `MAIL_FROM` and existing SMTP credentials (or supported Resend configuration). No new provider key is required by this feature. Mock providers, missing senders and Resend test senders are refused. Provider acceptance is not proof of inbox delivery; run a dedicated real-mailbox test after rollout, including Spam.
+Production SMTP credentials are present, but live Railway delivery failed with Connection timeout. Railway Free/Trial/Hobby disable SMTP. Use the new HTTPS adapter: `EMAIL_PROVIDER=brevo`, `BREVO_API_KEY` from Brevo API keys (NOT its SMTP key), and the existing verified `MAIL_FROM`. Deploy the adapter before selecting the new provider. Verification and password-reset share this HTTPS transport. Mock providers, missing senders and Resend test senders are refused. Provider acceptance is not proof of inbox delivery; run a dedicated real-mailbox test after rollout, including Spam.
 
 Security: cryptographically random OTP; purpose-bound HMAC at rest; timing-safe comparison; hashed pending password; row locks for verification/resend; advisory lock for signup per email; transactional account creation/timestamp/code consumption. Failed attempts commit. Failed delivery invalidates only its matching code, never a newer resend. Rotating the HMAC/JWT secret invalidates pending codes.
 
@@ -108,3 +108,4 @@ Covered: HTTP 202 without tokens, no-store, malformed/localized API code rejecti
 Corrected regression tests stub the mail boundary and send no email. An earlier run mistakenly attempted SMTP delivery to an example test address before test isolation was fixed.
 
 Before mobile release test: real Gmail/another inbox, Spam, leading zero, Arabic digit conversion, resend, expiry/wrong/latest code, timeout/offline, app restart, double taps, foreground countdown, confirmed Login, existing account Login, and handling of 202 by old clients. Never log passwords, OTPs or auth tokens.
+
