@@ -298,7 +298,7 @@ export async function updateAzanPreferences(
   patch: Partial<AzanPreferences> & { azanSoundId?: string },
 ): Promise<AzanPreferencesWithMethod> {
   return prisma.$transaction(async db => {
-    const rows: any[] = await db.$queryRaw`SELECT * FROM "users" WHERE "id"=${userId} FOR UPDATE`;
+    const rows: any[] = await db.$queryRaw`SELECT "latitude","longitude","city","prayerCalculationMethod","azanPreferences" FROM "users" WHERE "id"=${userId} FOR UPDATE`;
     if (!rows.length) throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
     const current = buildAzanPreferencesFromUser(rows[0]);
 

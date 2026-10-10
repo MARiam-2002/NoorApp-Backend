@@ -33,8 +33,8 @@ export function prayerScheduleKey(user: any): string {
 }
 async function row(db: any, userId: string, lock = false): Promise<Row> {
  const rows = lock
-  ? await db.$queryRaw`SELECT * FROM "users" WHERE "id"=${userId} FOR UPDATE`
-  : await db.$queryRaw`SELECT * FROM "users" WHERE "id"=${userId}`;
+  ? await db.$queryRaw`SELECT "id","latitude","longitude","timezone","city","country","prayerCalculationMethod","azanPreferences","travelPreferences" FROM "users" WHERE "id"=${userId} FOR UPDATE`
+  : await db.$queryRaw`SELECT "id","latitude","longitude","timezone","city","country","prayerCalculationMethod","azanPreferences","travelPreferences" FROM "users" WHERE "id"=${userId}`;
  if (!rows[0]) throw new AppError('User not found',404,ErrorCodes.NOT_FOUND);
  return rows[0];
 }
