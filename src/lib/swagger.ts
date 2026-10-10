@@ -1,3 +1,4 @@
+import { addReadingOpenApi } from '../shared/data/reading-openapi';
 import path from 'node:path';
 import process from 'node:process';
 import fs from 'node:fs';
@@ -1358,6 +1359,7 @@ export function getSwaggerSpec(): any {
   if (buildError !== null) return buildError;
   try {
     const spec = completeSwaggerContracts(buildSwaggerSpec());
+    addReadingOpenApi(spec);
     cachedSpec = spec;
     return spec;
   } catch (err: any) {

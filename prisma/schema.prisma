@@ -9,6 +9,10 @@ datasource db {
 }
 
 model User {
+  readingPlans ReadingPlan[]
+  readingUnits ReadingUnit[]
+  readingSessions ReadingSession[]
+  readingOperations ReadingOperation[]
   id                      String                 @id @default(uuid())
   username                String                 @unique(map: "users_username_unique")
   email                   String                 @unique
@@ -902,4 +906,63 @@ model PendingRegistration {
  createdAt DateTime @default(now())
  @@index([createdAt], map: "pending_registrations_createdAt_idx")
  @@map("pending_registrations")
+}
+
+model ReadingPlan {
+ id String @id
+ userId String
+ editionId String
+ contentVersion String
+ startedOn DateTime @db.Date
+ targetEndOn DateTime @db.Date
+ active Boolean @default(true)
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ /// Active partial unique index is maintained in migration SQL.
+ @@map("reading_plans")
+}
+model ReadingUnit {
+ userId String
+ editionId String
+ contentVersion String
+ scope String
+ unitKey String
+ completedOn DateTime @db.Date
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@id([userId,editionId,contentVersion,scope,unitKey])
+ @@index([userId,editionId,completedOn],map:"reading_units_day_idx")
+ @@map("reading_units")
+}
+model ReadingSession {
+ id String @id
+ userId String
+ editionId String
+ contentVersion String
+ scope String
+ day DateTime @db.Date
+ timezone String
+ minutes Int
+ payload Json
+ confirmedUnits Json @default("[]")
+ doneTasks Json @default("[]")
+ skippedTasks Json @default("[]")
+ status String @default("ACTIVE")
+ revision Int @default(0)
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+ updatedAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@index([userId,createdAt],map:"reading_sessions_owner_idx")
+ @@map("reading_sessions")
+}
+model ReadingOperation {
+ userId String
+ requestKey String
+ fingerprint String
+ result Json
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@id([userId,requestKey])
+ @@map("reading_operations")
 }

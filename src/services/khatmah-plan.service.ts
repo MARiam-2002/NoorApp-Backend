@@ -1,3 +1,4 @@
+import { getReadingGoal } from './reading-goal.service';
 import { prisma } from '../lib/prisma';
 import { resolveQuranDailyGoal } from '../shared/utils/quran-daily-goal';
 import { logger } from '../lib/logger';
@@ -344,14 +345,14 @@ export async function runKhatmahReminders(
         isActive: true,
         khatmahReminderEnabled: true,
         deviceTokens: { some: {} },
-        khatmah: { planMode: { not: null } },
+
       },
       select: {
         id: true,
         timezone: true,
         khatmahReminderEnabled: true,
         khatmahReminderTime: true,
-        khatmah: true,
+
       },
       take: 200,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -377,26 +378,9 @@ export async function runKhatmahReminders(
           continue;
         }
 
-        const pagesReadToday = await getPagesReadToday(user.id);
-        const plan = buildPlanDto({
-          row: user.khatmah as any,
-          pagesReadToday,
-          timezone: user.timezone ?? undefined,
-          now,
-        });
-        if (!plan.active || !plan.todayWard) {
-          skipped.NO_PLAN = (skipped.NO_PLAN ?? 0) + 1;
-          continue;
-        }
-        if (plan.pagesRemaining === 0) {
-          skipped.COMPLETE = (skipped.COMPLETE ?? 0) + 1;
-          continue;
-        }
-        if (!plan.todayWard.missed) {
-          skipped.WARD_DONE = (skipped.WARD_DONE ?? 0) + 1;
-          continue;
-        }
-
+        const goal=await getReadingGoal(user.id);
+        if(!goal.available || !goal.plan) {skipped.NO_PLAN=(skipped.NO_PLAN??0)+1;continue;}
+        if(goal.plan.remaining===0 || goal.done) {skipped.WARD_DONE=(skipped.WARD_DONE??0)+1;continue;}
         const occurrenceKey = `${windowHit.dayKey}|KHATMAH|${reminderTime}`;
         const claimed = await claimOccurrence(user.id, occurrenceKey);
         if (!claimed) {
@@ -407,6 +391,7 @@ export async function runKhatmahReminders(
         const dayKey = windowHit.dayKey;
         const dedupeKey = `${dayKey}|${user.id}|KHATMAH|KHATMAH|${occurrenceKey}`;
         const fcmData: Record<string, string> = {
+          editionId: goal.editionId, contentVersion: goal.contentVersion, unit: goal.unit, target: String(goal.target), completed: String(goal.completed),
           type: 'KHATMAH',
           kind: 'khatmah_ward_reminder',
           eventType: 'KHATMAH',
@@ -421,8 +406,8 @@ export async function runKhatmahReminders(
           occurrenceKey,
           dedupeKey,
           deepLink: '/quran/khatmah',
-          pagesTarget: String(plan.todayWard.pagesTarget),
-          pagesReadToday: String(plan.todayWard.pagesReadToday),
+          ...(goal.unit==='PAGE'?{pagesTarget:String(goal.target),pagesReadToday:String(goal.completed)}:{versesTarget:String(goal.target),versesReadToday:String(goal.completed)}),
+
           titleAr: TITLE_AR,
           bodyAr: BODY_AR,
           titleEn: TITLE_EN,
@@ -454,8 +439,9 @@ export async function runKhatmahReminders(
             eventType: 'KHATMAH',
             dayKey,
             dedupeKey,
-            pagesTarget: plan.todayWard.pagesTarget,
-            pagesReadToday: plan.todayWard.pagesReadToday,
+            editionId: goal.editionId, unit: goal.unit, target: goal.target, completed: goal.completed,
+            pagesTarget: goal.unit==='PAGE'?goal.target:undefined,
+            pagesReadToday: goal.unit==='PAGE'?goal.completed:undefined,
           },
         }).catch(() => null);
       } catch (err) {

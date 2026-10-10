@@ -1,3 +1,4 @@
+import { getReadingGoal } from './reading-goal.service';
 import type { ChallengeType, PrayerName } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
@@ -45,6 +46,8 @@ import { getFigureOfTheDayLite, type FigureOfTheDayLite } from './figure-of-day.
 const TOTAL_QURAN_PAGES = 604;
 
 export type DashboardData = {
+  readingJourney?: {percent:number;completedCategories:number;totalCategories:number};
+  readingGoal?: Awaited<ReturnType<typeof getReadingGoal>>;
   charityExperience?: typeof charityExperience;
   zakat?: Awaited<ReturnType<typeof getZakatHomeTile>>;
   greeting: {
@@ -218,8 +221,11 @@ async function getChallengeCompletion(userId: string, dayOfYear: number) {
 }
 
 export async function getDashboard(userId: string): Promise<DashboardData> {
-  const [data, zakat] = await Promise.all([getDashboardLegacy(userId), getZakatHomeTile(userId)]);
-  return { ...data, charityExperience, zakat };
+  const [data, zakat, readingGoal] = await Promise.all([getDashboardLegacy(userId), getZakatHomeTile(userId), getReadingGoal(userId)]);
+  const prayer=data.dailyJourney.prayer;const adhkar=data.dailyJourney.adhkar;
+  const completedCategories=Number(prayer.completed>=prayer.total)+Number(adhkar.completed)+Number(readingGoal.done);
+  const percent=Math.round(((prayer.total?prayer.completed/prayer.total:0)+(adhkar.completed?1:0)+readingGoal.percent/100)/3*100);
+  return { ...data, charityExperience, zakat, readingGoal,readingJourney:{percent,completedCategories,totalCategories:3} };
 }
 
 async function getDashboardLegacy(userId: string): Promise<DashboardData> {

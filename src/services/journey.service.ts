@@ -1,3 +1,4 @@
+import { getReadingGoal } from './reading-goal.service';
 import type { ChallengeType } from '@prisma/client';
 
 import { ErrorCodes, HttpStatus } from '../config';
@@ -138,6 +139,12 @@ async function getOrCreateToday(userId: string, date?: Date) {
 }
 
 export async function getTodayJourney(userId: string) {
+  const [today, readingGoal] = await Promise.all([getTodayJourneyLegacy(userId), getReadingGoal(userId)]);
+  const readingTasks=today.tasks.map(t=>t.key==='quran'?{...t,captionAr:`${readingGoal.completed} / ${readingGoal.target} ${readingGoal.unit==='VERSE'?'آية':'صفحة'}`,captionEn:`${readingGoal.completed} / ${readingGoal.target} ${readingGoal.unit==='VERSE'?'verses':'pages'}`,done:readingGoal.done,progress:readingGoal.percent/100}:t);
+  const readingJourney={percent:Math.round((readingGoal.percent+today.prayers.percent+today.adhkar.percent)/3),completedCategories:readingTasks.filter(t=>t.done).length,totalCategories:3};
+  return { ...today, readingGoal,readingTasks,readingJourney };
+}
+async function getTodayJourneyLegacy(userId: string) {
   const { date } = await getUserLocalCalendarDay(userId);
   // Align DailyProgress adhkar flags with Azkar item completions (same source of truth).
   await syncJourneyAdhkarFromDhikr(userId, date).catch(() => undefined);
@@ -1389,6 +1396,9 @@ export async function getJourneyDashboard(
     charityExperience,
     zakat: await getZakatHomeTile(userId),
     // Backward-compat top-level metadata aliases (already present in /today response):
+    readingGoal: today.readingGoal,
+    readingTasks: today.readingTasks,
+    readingJourney: today.readingJourney,
     date: today.date,
     points: today.points,
     streakDays: today.streakDays,
