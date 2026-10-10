@@ -9,6 +9,7 @@ import { addZakatOpenApi } from '../shared/data/zakat-openapi';
 import { addNawafelOpenApi } from '../shared/data/nawafel-openapi';
 import { addMushafOpenApi } from '../shared/data/mushaf-openapi';
 import { addWarshOpenApi } from '../shared/data/warsh-openapi';
+import { addEmailVerificationOpenApi } from '../shared/data/email-verification-openapi';
 
 const NOOR_PREMIUM_CSS = `
 :root {
@@ -1288,6 +1289,7 @@ function completeSwaggerContracts(spec: any): any {
   addNawafelOpenApi(spec);
   addMushafOpenApi(spec);
   addWarshOpenApi(spec);
+  addEmailVerificationOpenApi(spec);
   schemas.QuranDailyGoal = {
     type: 'object', description: 'Goal shared by Home and Khatmah. Target 0 means a completed active plan.',
     properties: {

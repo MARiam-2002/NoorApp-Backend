@@ -646,7 +646,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
       picture: payload.picture as string | undefined,
     };
 
-    if (googlePayload.sub && !googlePayload.email) {
+    if (!googlePayload.sub || !googlePayload.email || (payload.email_verified !== true && payload.email_verified !== 'true')) {
       throw new AppError(
         'Invalid Google token response',
         HttpStatus.BAD_REQUEST,

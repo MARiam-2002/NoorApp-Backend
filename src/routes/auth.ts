@@ -62,87 +62,7 @@ const googleSignInSchema = z.object({
   idToken: z.string().min(1, 'Google ID token is required'),
 });
 
-/**
- * @openapi
- * /auth/sign-up:
- *   post:
- *     tags: ['Auth']
- *     summary: إنشاء حساب جديد بالبريد الإلكتروني
- *     description: تسجيل مستخدم جديد مع اسم المستخدم والبريد وكلمة المرور. يرجع access token + refresh token.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/SignupRequest'
- *           examples:
- *             default:
- *               summary: مثال لإنشاء حساب
- *               value:
- *                 username: noor_user
- *                 email: noor@example.com
- *                 password: StrongPass123!
- *                 fullName: مريم خالد
- *     responses:
- *       201:
- *         description: ✅ تم إنشاء الحساب بنجاح
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/ApiResponse'
- *                 - type: object
- *                   properties:
- *                     data:
- *                       $ref: '#/components/schemas/AuthResponse'
- *             example:
- *               success: true
- *               message: تم إنشاء الحساب بنجاح
- *               data:
- *                 user:
- *                   id: clx8abc123def456ghi
- *                   username: noor_user
- *                   email: noor@example.com
- *                   fullName: مريم خالد
- *                   avatarUrl: null
- *                   phone: null
- *                   city: null
- *                   country: null
- *                   points: 0
- *                   level: 1
- *                   prayerCalculationMethod: EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY
- *                   createdAt: '2026-07-27T10:30:00.000Z'
- *                 tokens:
- *                   accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwiaWF0IjoxNzIxOTg2NjAwLCJleHAiOjE3MjE5OTAyMDB9.abc123xyz
- *                   refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbHg4YWJjMTIzZGVmNDU2Z2hpIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3MjE5ODY2MDAsImV4cCI6MTcyNDU3ODYwMH0.refresh.abc123
- *                   expiresIn: 3600
- *               meta: null
- *               timestamp: '2026-07-27T10:30:00.000Z'
- *       400:
- *         description: ❌ بيانات غير صالحة
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               success: false
- *               code: VALIDATION_ERROR
- *               message: كلمة المرور قصيرة جداً (6 أحرف على الأقل)
- *               details: [{ field: password, message: 'String must contain at least 6 character(s)' }]
- *               timestamp: '2026-07-27T10:30:00.000Z'
- *       409:
- *         description: ❌ البريد الإلكتروني مستخدم بالفعل
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               success: false
- *               code: DUPLICATE_EMAIL
- *               message: البريد الإلكتروني مستخدم بالفعل
- *               details: null
- *               timestamp: '2026-07-27T10:30:00.000Z'
- */
+// Sign-up and email verification contracts are defined in email-verification-openapi.ts.
 
 /**
  * @openapi
@@ -539,6 +459,7 @@ const googleSignInSchema = z.object({
  */
 export const authRouter = Router();
 
+authRouter.use((_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); });
 authRouter.use(authRateLimiter);
 
 authRouter.post(
@@ -605,3 +526,6 @@ authRouter.post(
   validate(googleSignInSchema),
   authController.googleSignIn,
 );
+
+authRouter.post('/verify-email', validate(z.object({verificationId:z.string().uuid(),code:z.string().regex(/^\d{6}$/)}).strict()), authController.verifyEmail);
+authRouter.post('/resend-verification', signUpRateLimiter, validate(z.object({verificationId:z.string().uuid()}).strict()), authController.resendVerification);

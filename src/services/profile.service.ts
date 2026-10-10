@@ -290,17 +290,9 @@ export async function updateProfile(
   },
 ): Promise<UserProfile> {
   if (data.email !== undefined) {
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.email.toLowerCase() },
-      select: { id: true },
-    });
-
-    if (existingUser && existingUser.id !== userId) {
-      throw new AppError(
-        'Email is already in use by another account',
-        HttpStatus.CONFLICT,
-        ErrorCodes.CONFLICT,
-      );
+    const current = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!current || current.email.toLowerCase() !== data.email.trim().toLowerCase()) {
+      throw new AppError('Changing email requires a dedicated verified email-change flow', HttpStatus.CONFLICT, ErrorCodes.CONFLICT, { field: 'email' });
     }
   }
 
@@ -326,7 +318,7 @@ export async function updateProfile(
   const updateData: any = {};
   if (data.username !== undefined) updateData.username = data.username.trim();
   if (data.fullName !== undefined) updateData.fullName = data.fullName ? data.fullName.trim() : null;
-  if (data.email !== undefined) updateData.email = data.email.toLowerCase();
+  // The existing email may be echoed by older clients, but cannot be changed here.
   if (data.timezone !== undefined) updateData.timezone = data.timezone;
   if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl ? data.avatarUrl.trim() : null;
   if (data.phone !== undefined) updateData.phone = data.phone ? data.phone.trim() : null;

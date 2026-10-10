@@ -12,6 +12,7 @@ model User {
   id                      String                 @id @default(uuid())
   username                String                 @unique(map: "users_username_unique")
   email                   String                 @unique
+  emailVerifiedAt         DateTime?
   password                String?
   provider                AuthProvider           @default(LOCAL)
   providerId              String?
@@ -886,4 +887,19 @@ enum NawafelKey {
   DHUHR_AFTER_2
   MAGHRIB_AFTER_2
   ISHA_AFTER_2
+}
+
+model PendingRegistration {
+ id String @id
+ email String @unique
+ payload Json
+ codeHash String
+ expiresAt DateTime
+ attempts Int @default(0)
+ sentCount Int @default(1)
+ windowStartedAt DateTime @default(now())
+ lastSentAt DateTime @default(now())
+ createdAt DateTime @default(now())
+ @@index([createdAt], map: "pending_registrations_createdAt_idx")
+ @@map("pending_registrations")
 }

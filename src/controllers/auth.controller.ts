@@ -5,6 +5,7 @@ import { sendSuccess } from '../shared/utils/response';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import * as authService from '../services/auth.service';
+import * as registration from '../services/email-registration.service';
 
 export const signUp = asyncHandler(async (req: Request, res: Response) => {
   const { username, fullName, email, password } = req.body as {
@@ -13,14 +14,14 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
     email: string;
     password: string;
   };
-  const result = await authService.signUp({
+  const result = await registration.beginEmailRegistration({
     ...(username ? { username } : {}),
     ...(fullName ? { fullName } : {}),
     email,
     password,
   });
 
-  sendSuccess(res, result, 'Account created successfully', req, HttpStatus.CREATED);
+  sendSuccess(res, result, 'Check your email to complete registration', req, HttpStatus.ACCEPTED);
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -111,3 +112,6 @@ export const googleSignIn = asyncHandler(async (req: Request, res: Response) => 
 
   sendSuccess(res, result, 'Logged in with Google successfully', req);
 });
+
+export const verifyEmail = asyncHandler(async (req: Request,res: Response) => { const result=await registration.verifyEmailRegistration(req.body.verificationId,req.body.code); sendSuccess(res,result,'Email verified. Please log in.',req); });
+export const resendVerification = asyncHandler(async (req: Request,res: Response) => { const result=await registration.resendEmailVerification(req.body.verificationId); sendSuccess(res,result,'Verification email sent',req,HttpStatus.ACCEPTED); });

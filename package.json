@@ -52,7 +52,8 @@
     "test:zakat-charity": "tsx scripts/test-zakat-charity.ts",
     "test:metal-prices": "tsx scripts/test-metal-prices.ts",
     "test:mushaf-editions": "tsx scripts/test-mushaf-editions.ts",
-    "test:warsh": "tsx scripts/test-warsh-reader.ts"
+    "test:warsh": "tsx scripts/test-warsh-reader.ts",
+    "test:email-registration": "tsx scripts/test-email-registration.ts"
   },
   "keywords": [
     "express",
