@@ -26,9 +26,11 @@ import { nawafelRouter } from './nawafel';
 import { aiRouter } from './ai';
 import { zakatRouter, charityRouter } from './zakat';
 
+import { travelRouter } from './travel';
 import { readingRouter } from './reading';
 
 export const v1Router = Router();
+v1Router.use('/travel', travelRouter);
 v1Router.use('/reading', readingRouter);
 
 v1Router.use('/health', healthRouter);

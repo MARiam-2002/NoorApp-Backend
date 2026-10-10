@@ -7,6 +7,7 @@ import { preReminderTtlSeconds } from '../src/shared/utils/reminder-timing';
 async function main() {
   const original = prisma.azanReminderSendLog.createMany;
   const originalNow = Date.now;
+  const originalFind = prisma.user.findUnique;
   const originalNotification = prisma.notification.create;
   const now = new Date('2026-10-08T20:55:03Z'); // Cairo Thursday 23:55; prayer is on Friday
   const prayer = new Date('2026-10-08T21:10:00Z');
@@ -20,6 +21,7 @@ async function main() {
     user.timezone, built.calculationMethod, String(built.madhab).toUpperCase(), 'profile'].join('|'),
     { timezone: user.timezone, instants: [{ key: 'DHUHR', date: '2026-10-09', time: '00:10', timestamp: prayer }] }]]);
   let claims = 0;
+  prisma.user.findUnique = (async () => user) as any;
   try {
     // No database/FCM calls are possible beyond the failed/duplicate claim.
     prisma.azanReminderSendLog.createMany = (async () => { claims++; throw new Error('claim database unavailable'); }) as any;
@@ -28,6 +30,10 @@ async function main() {
     prisma.azanReminderSendLog.createMany = (async () => { claims++; return { count: 0 }; }) as any;
     assert.deepEqual(await runAzanRemindersForUser(user, 10, memo), { pushesAttempted: 0, pushesSent: 0 });
     assert.equal(claims, 2);
+    prisma.user.findUnique = (async () => ({...user, longitude: -74})) as any;
+    assert.deepEqual(await runAzanRemindersForUser(user, 10, memo), { pushesAttempted: 0, pushesSent: 0 });
+    assert.equal(claims, 2, "stale location snapshot must not consume an occurrence");
+    prisma.user.findUnique = (async () => user) as any;
     // Local scheduling suppresses the server before it claims the event.
     user.azanPreferences.localScheduledUntil = prayer.toISOString();
     assert.deepEqual(await runAzanRemindersForUser(user, 10, memo), { pushesAttempted: 0, pushesSent: 0 });
@@ -85,6 +91,7 @@ async function main() {
   } finally {
     prisma.azanReminderSendLog.createMany = original;
     Date.now = originalNow;
+    prisma.user.findUnique = originalFind;
     prisma.notification.create = originalNotification;
   }
   console.log('Prayer delivery regression checks passed (mocked DB, no push sent).');

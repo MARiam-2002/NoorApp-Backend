@@ -9,6 +9,8 @@ datasource db {
 }
 
 model User {
+  travelPreferences Json?
+  travelOperations TravelOperation[]
   readingPlans ReadingPlan[]
   readingUnits ReadingUnit[]
   readingSessions ReadingSession[]
@@ -965,4 +967,15 @@ model ReadingOperation {
  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
  @@id([userId,requestKey])
  @@map("reading_operations")
+}
+
+model TravelOperation {
+ userId String
+ requestKey String
+ fingerprint String
+ result Json
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@id([userId,requestKey])
+ @@map("travel_operations")
 }

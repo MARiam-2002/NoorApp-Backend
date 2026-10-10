@@ -17,7 +17,7 @@ import { DEFAULT_PRAYER_LOCATION } from '../constants/default-location';
 export function inferTimezoneFromCoordinates(
   latitude: number,
   longitude: number,
-  fallback = DEFAULT_PRAYER_LOCATION.timezone,
+  fallback: string = DEFAULT_PRAYER_LOCATION.timezone,
 ): string {
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     return fallback;

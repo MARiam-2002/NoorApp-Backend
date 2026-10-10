@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
+import { getTravelState,getTravelSchedule,updateTravelLocation,acknowledgeTravelCoverage } from '../services/travel.service';
+export const travelRouter=Router();
+travelRouter.use(authenticate);
+travelRouter.use((_req,res,next)=>{res.setHeader('Cache-Control','private, no-store');next();});
+travelRouter.get('/',asyncHandler(async(req,res)=>{sendSuccess(res,await getTravelState(req.user!.sub),'Travel settings',req);}));
+travelRouter.get('/schedule',asyncHandler(async(req,res)=>{sendSuccess(res,await getTravelSchedule(req.user!.sub),'Travel prayer schedule',req);}));
+travelRouter.put('/location',asyncHandler(async(req,res)=>{sendSuccess(res,await updateTravelLocation(req.user!.sub,req.body),'Travel location saved',req);}));
+travelRouter.put('/local-coverage',asyncHandler(async(req,res)=>{sendSuccess(res,await acknowledgeTravelCoverage(req.user!.sub,req.body),'Local schedule coverage saved',req);}));

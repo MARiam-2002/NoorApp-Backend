@@ -1,3 +1,4 @@
+import { inferTimezoneFromCoordinates } from '../shared/utils/prayer-location';
 import { z } from 'zod';
 
 import { prisma } from '../lib/prisma';
@@ -296,64 +297,73 @@ export async function updateAzanPreferences(
   userId: string,
   patch: Partial<AzanPreferences> & { azanSoundId?: string },
 ): Promise<AzanPreferencesWithMethod> {
-  const current = await getAzanPreferences(userId);
+  return prisma.$transaction(async db => {
+    const rows: any[] = await db.$queryRaw`SELECT * FROM "users" WHERE "id"=${userId} FOR UPDATE`;
+    if (!rows.length) throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+    const current = buildAzanPreferencesFromUser(rows[0]);
 
-  // If the client sends only voiceId (legacy), do not let the previous
-  // azanSoundId from `current` win inside normalizePrefs.
-  const mergedInput: Record<string, unknown> = { ...current, ...patch };
-  if (
-    typeof patch.voiceId === 'string' &&
-    patch.voiceId.trim() &&
-    (patch.azanSoundId == null || !String(patch.azanSoundId).trim())
-  ) {
-    mergedInput.azanSoundId = patch.voiceId;
-  }
-  if (
-    typeof patch.azanSoundId === 'string' &&
-    patch.azanSoundId.trim() &&
-    (patch.voiceId == null || !String(patch.voiceId).trim())
-  ) {
-    mergedInput.voiceId = patch.azanSoundId;
-  }
+    // If the client sends only voiceId (legacy), do not let the previous
+    // azanSoundId from `current` win inside normalizePrefs.
+    const mergedInput: Record<string, unknown> = { ...current, ...patch };
+    if (
+      typeof patch.voiceId === 'string' &&
+      patch.voiceId.trim() &&
+      (patch.azanSoundId == null || !String(patch.azanSoundId).trim())
+    ) {
+      mergedInput.azanSoundId = patch.voiceId;
+    }
+    if (
+      typeof patch.azanSoundId === 'string' &&
+      patch.azanSoundId.trim() &&
+      (patch.voiceId == null || !String(patch.voiceId).trim())
+    ) {
+      mergedInput.voiceId = patch.azanSoundId;
+    }
 
-  const next = normalizePrefs(mergedInput);
+    const next = normalizePrefs(mergedInput);
 
-  const {
-    isDefaultLocation: _i,
-    locationSource: _s,
-    azanSound: _a,
-    notificationSound: _n,
-    reminderMinutes: _r,
-    prePrayerReminderMinutes: _rp,
-    prePrayerReminderEnabled: _re,
-    ...persistable
-  } = next as AzanPreferences & {
-    azanSound?: unknown;
-    notificationSound?: unknown;
-    reminderMinutes?: number;
-    prePrayerReminderMinutes?: number;
-    prePrayerReminderEnabled?: boolean;
-  };
+    const {
+      isDefaultLocation: _i,
+      locationSource: _s,
+      azanSound: _a,
+      notificationSound: _n,
+      reminderMinutes: _r,
+      prePrayerReminderMinutes: _rp,
+      prePrayerReminderEnabled: _re,
+      ...persistable
+    } = next as AzanPreferences & {
+      azanSound?: unknown;
+      notificationSound?: unknown;
+      reminderMinutes?: number;
+      prePrayerReminderMinutes?: number;
+      prePrayerReminderEnabled?: boolean;
+    };
 
-  const explicitLocation =
-    patch.lastLat != null &&
-    patch.lastLng != null &&
-    Number.isFinite(patch.lastLat) &&
-    Number.isFinite(patch.lastLng);
+    // Coverage certifies one concrete schedule, not arbitrary later settings.
+    if (patch.localScheduledUntil === undefined && Object.keys(patch).some(k => k !== 'localScheduledUntil')) {
+      persistable.localScheduledUntil = null;
+    }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      azanPreferences: persistable as any,
-      prayerCalculationMethod: next.calculationMethod,
-      ...(explicitLocation
-        ? { latitude: patch.lastLat, longitude: patch.lastLng }
-        : {}),
-      ...(patch.lastLocationLabel != null
-        ? { city: patch.lastLocationLabel || null }
-        : {}),
-    },
+    const explicitLocation =
+      patch.lastLat != null &&
+      patch.lastLng != null &&
+      Number.isFinite(patch.lastLat) &&
+      Number.isFinite(patch.lastLng);
+
+    const updated = await db.user.update({
+      where: { id: userId },
+      data: {
+        azanPreferences: persistable as any,
+        prayerCalculationMethod: next.calculationMethod,
+        ...(explicitLocation
+          ? { latitude: patch.lastLat, longitude: patch.lastLng, timezone: inferTimezoneFromCoordinates(patch.lastLat!, patch.lastLng!), azanPreferences: { ...persistable, localScheduledUntil: null } }
+          : {}),
+        ...(patch.lastLocationLabel != null
+          ? { city: patch.lastLocationLabel || null }
+          : {}),
+      },
+    });
+
+    return buildAzanPreferencesFromUser(updated);
   });
-
-  return getAzanPreferences(userId);
 }

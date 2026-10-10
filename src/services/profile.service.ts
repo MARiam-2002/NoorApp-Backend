@@ -326,10 +326,13 @@ export async function updateProfile(
   if (data.country !== undefined) updateData.country = data.country ? data.country.trim() : null;
   if (data.prayerCalculationMethod !== undefined) updateData.prayerCalculationMethod = data.prayerCalculationMethod.trim();
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: updateData,
-    select: { id: true },
+  const updated = await prisma.$transaction(async db => {
+    if (data.timezone !== undefined) {
+      const rows: any[] = await db.$queryRaw`SELECT "azanPreferences" FROM "users" WHERE "id"=${userId} FOR UPDATE`;
+      if (!rows.length) throw new AppError('User profile not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+      updateData.azanPreferences = { ...(rows[0].azanPreferences ?? {}), localScheduledUntil: null };
+    }
+    return db.user.update({ where: { id: userId }, data: updateData, select: { id: true } });
   });
 
   if (!updated) {
@@ -423,19 +426,15 @@ export async function updateLocation(
   if (data.city !== undefined) updateData.city = data.city ? data.city.trim() : null;
   if (data.country !== undefined) updateData.country = data.country ? data.country.trim() : null;
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: updateData,
-    select: { id: true },
+  await prisma.$transaction(async db => {
+    const rows: any[] = await db.$queryRaw`SELECT "azanPreferences" FROM "users" WHERE "id"=${userId} FOR UPDATE`;
+    if (!rows.length) throw new AppError('User profile not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+    updateData.azanPreferences = { ...(rows[0].azanPreferences ?? {}), lastLat: data.latitude, lastLng: data.longitude,
+      lastLocationLabel: data.city ?? null, localScheduledUntil: null };
+    updateData.city = data.city?.trim() || null;
+    updateData.country = data.country?.trim() || null;
+    await db.user.update({ where: { id: userId }, data: updateData });
   });
-
-  if (!updated) {
-    throw new AppError(
-      'User profile not found',
-      HttpStatus.NOT_FOUND,
-      ErrorCodes.NOT_FOUND,
-    );
-  }
 
   return getProfile(userId);
 }

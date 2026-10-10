@@ -55,7 +55,8 @@
     "test:warsh": "tsx scripts/test-warsh-reader.ts",
     "test:email-registration": "tsx scripts/test-email-registration.ts",
     "test:brevo-email": "tsx scripts/test-brevo-email.ts",
-    "test:reading": "tsx scripts/test-reading-experience.ts"
+    "test:reading": "tsx scripts/test-reading-experience.ts",
+    "test:travel": "tsx scripts/test-travel.ts"
   },
   "keywords": [
     "express",

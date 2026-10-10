@@ -1,3 +1,4 @@
+import { addTravelOpenApi } from '../shared/data/travel-openapi';
 import { addReadingOpenApi } from '../shared/data/reading-openapi';
 import path from 'node:path';
 import process from 'node:process';
@@ -1360,6 +1361,7 @@ export function getSwaggerSpec(): any {
   try {
     const spec = completeSwaggerContracts(buildSwaggerSpec());
     addReadingOpenApi(spec);
+    addTravelOpenApi(spec);
     cachedSpec = spec;
     return spec;
   } catch (err: any) {

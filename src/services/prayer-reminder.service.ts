@@ -1,3 +1,4 @@
+import { prayerScheduleKey, isPrayerSnapshotCurrent } from './travel.service';
 import { prisma } from '../lib/prisma';
 import { runCharityReminders } from './charity-reminder.service';
 import { logger } from '../lib/logger';
@@ -486,6 +487,7 @@ export async function runAzanRemindersForUser(
       instantsMemo.set(memoKey, computed);
     }
     const evaluationTz = computed.timezone;
+    const snapshotKey = prayerScheduleKey(user);
     const now = Date.now();
     const localCoveredUntilMs = localCoverageUntilMs(prefs.localScheduledUntil, now);
 
@@ -527,6 +529,7 @@ export async function runAzanRemindersForUser(
       // Durable claim BEFORE FCM — protects overlapping/retried cron runs.
       let claimed = false;
       try {
+        if (!(await isPrayerSnapshotCurrent(user.id, snapshotKey))) continue;
         claimed = await claimAzanReminderOccurrence(user.id, occurrenceKey);
       } catch (claimErr) {
         logger.error('[Cron] Azan reminder claim failed; send suppressed', {
@@ -564,6 +567,7 @@ export async function runAzanRemindersForUser(
       const dedupeKey = `${scheduleDate}|${user.id}|${eventType}|${eventKey}`;
 
       const baseData: Record<string, string> = {
+        scheduleKey: snapshotKey,
         type: 'AZAN',
         /** Title Case — backward compatible with existing Flutter maps. */
         prayer: prayerTitle,

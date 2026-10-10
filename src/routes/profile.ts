@@ -91,7 +91,7 @@ const updateLocationSchema = z.object({
     .min(-180, 'Longitude must be between -180 and 180')
     .max(180, 'Longitude must be between -180 and 180')
     .optional(),
-  timezone: z.string().trim().min(1, 'Timezone must be a non-empty string').optional(),
+  timezone: ianaTimezoneSchema.optional(),
   city: z.string().trim().min(1).max(120).optional().nullable(),
   country: z.string().trim().min(1).max(120).optional().nullable(),
 }).superRefine((val, ctx) => {
