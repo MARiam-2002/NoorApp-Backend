@@ -207,7 +207,7 @@ html[lang="en"] body { direction: ltr; }
 ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--noor-gold), var(--noor-gold-dark)); }
 
 /* ---------- Hide Swagger's built-in Errors panel (red box) permanently ---------- */
-.swagger-ui .errors-wrapper { display: none !important; }
+.swagger-ui .errors-wrapper { display: block; }
 
 /* ---------- Remove blue-ish badges / default icons in scheme-container ---------- */
 .swagger-ui .scheme-container .schemes-server-container svg,
@@ -222,6 +222,48 @@ html[lang="en"] body { direction: ltr; }
 .swagger-ui .opblock-tag-section svg {
   color: var(--noor-gold-dark) !important;
 }
+`;
+
+const NOOR_PORTAL_CSS = `
+html, body { margin: 0; direction: ltr; }
+.portal-header { max-width: 1280px; margin: auto; padding: 28px 24px; display:flex; align-items:center; justify-content:space-between; gap:20px; border-bottom:1px solid #ece9e0; }
+.portal-brand { display:flex; align-items:center; gap:14px; }
+.portal-brand img { width:46px; height:46px; object-fit:contain; }
+.portal-brand strong { display:block; font-size:20px; color:#1a1040; }
+.portal-brand span { display:block; margin-top:4px; color:#5a5475; font-size:13px; }
+.portal-header nav { display:flex; gap:18px; flex-wrap:wrap; }
+.portal-header a { color:#1a1040; font-size:13px; text-decoration:none; }
+.portal-header a:hover { text-decoration:underline; }
+.portal-intro { max-width:1280px; margin:0 auto; padding:24px; color:#5a5475; font-size:14px; line-height:1.7; }
+.portal-intro code { font-family:ui-monospace,Consolas,monospace!important; color:#1a1040; }
+.swagger-ui { padding-top:12px; }
+.swagger-ui .info { padding:28px; }
+.swagger-ui .info hgroup.main h1.title, .swagger-ui .info .title { font-size:26px; }
+.swagger-ui .info .title small { color:#1a1040!important; }
+.swagger-ui .opblock-summary-path { direction:ltr; unicode-bidi:isolate; overflow-wrap:anywhere; }
+.swagger-ui .opblock-summary-description, .swagger-ui .markdown { unicode-bidi:plaintext; }
+.swagger-ui pre, .swagger-ui code, .swagger-ui .microlight, .swagger-ui textarea { direction:ltr; text-align:left; font-family:ui-monospace,Consolas,monospace!important; }
+.swagger-ui .opblock:hover { transform:none; }
+.swagger-ui .opblock-tag-section { margin-top:28px; }
+.swagger-ui .filter-container { margin-bottom:24px; }
+.swagger-ui .filter-container input { width:100%; min-height:44px; }
+.swagger-ui .opblock-summary { min-height:58px; }
+.swagger-ui .btn:focus-visible, .portal-header a:focus-visible { outline:3px solid #c9a86a!important; outline-offset:3px; }
+.swagger-ui .opblock .opblock-summary-method { min-width:72px; }
+.portal-footer { max-width:1280px; margin:0 auto; padding:24px; color:#5a5475; font-size:12px; border-top:1px solid #ece9e0; }
+@media(max-width:640px) {
+ .portal-header { align-items:flex-start; flex-direction:column; padding:20px 16px; }
+ .portal-intro { padding:18px 16px; }
+ .swagger-ui { padding-inline:12px; }
+ .swagger-ui .info { padding:22px 18px; }
+ .swagger-ui .scheme-container { padding:18px!important; }
+ .swagger-ui .opblock .opblock-summary { padding:12px 10px; gap:8px; flex-wrap:wrap; }
+ .swagger-ui .opblock-summary-path { font-size:12px; }
+ .swagger-ui .opblock-summary-description { flex-basis:100%; font-size:13px; }
+ .swagger-ui .opblock-tag { flex-wrap:wrap; }
+ .swagger-ui .opblock-tag small { font-size:12px; }
+}
+@media(prefers-reduced-motion:reduce) { *, *::before, *::after { transition:none!important; animation:none!important; } }
 `;
 
 function walkRouteDirs(dir: string, ext: string, results: string[]): void {
@@ -282,7 +324,7 @@ function buildSwaggerSpec() {
             `Base URL: \`${apiBasePath}\``,
           ].join('\n')
           : env.SWAGGER_DESCRIPTION,
-      contact: { name: 'Noor Support', email: 'support@noor.app' },
+      ...(env.LEGAL_CONTACT_EMAIL.trim() ? { contact: { name: 'Noor Support', email: env.LEGAL_CONTACT_EMAIL.trim() } } : {}),
     },
     servers: [
       { url: apiBasePath, description: 'API v1 (Production)' },
@@ -1235,11 +1277,77 @@ function buildSwaggerSpec() {
 let cachedSpec: any = null;
 let buildError: any = null;
 
+/** Complete response envelopes and document additive contracts without altering the API. */
+function completeSwaggerContracts(spec: any): any {
+  const schemas = spec.components.schemas;
+  schemas.QuranDailyGoal = {
+    type: 'object', description: 'Goal shared by Home and Khatmah. Target 0 means a completed active plan.',
+    properties: {
+      pagesTarget: { type: 'integer', minimum: 0, example: 21 },
+      pagesReadToday: { type: 'integer', minimum: 0, example: 10 },
+      remainingToday: { type: 'integer', minimum: 0, example: 11 },
+      completed: { type: 'boolean', example: false },
+      percent: { type: 'integer', minimum: 0, maximum: 100, example: 48 },
+      source: { type: 'string', enum: ['default', 'khatmah_plan'] },
+    },
+  };
+  schemas.DashboardResponse.properties.dailyGoal = {
+    $ref: '#/components/schemas/QuranDailyGoal',
+    description: 'Optional during rollout and in the legacy outage fallback. Use Khatmah stats if unavailable.',
+  };
+  schemas.DashboardResponse.properties.dailyJourney.properties.quran.properties.target = {
+    type: 'integer', minimum: 0, example: 21, description: 'Dynamic Khatmah target; 5 without an active plan.',
+  };
+  schemas.AzanPreferencesPatch = {
+    type: 'object', description: 'Partial update: only supplied fields change. FCM data flags are strings; API settings are booleans.',
+    properties: {
+      azanEnabled: { type: 'boolean' }, soundEnabled: { type: 'boolean' }, vibrationEnabled: { type: 'boolean' },
+      prayerTimeSoundMode: { type: 'string', enum: ['azan', 'announcement'], default: 'azan', description: 'Selected full Azan or a short prayer-event clip; one audio owner only.' },
+      azanSoundId: { type: 'string', example: 'mishary_alafasy' },
+      notificationSoundId: { type: 'string', example: 'sc_near_auto', description: 'Auto resolves the prayer-specific approaching clip. soft_chime is a tone.' },
+      preReminderEnabled: { type: 'boolean' }, preReminderMinutes: { type: 'integer', minimum: 0, maximum: 120 },
+      calculationMethod: { type: 'string', example: 'AUTO' }, madhab: { type: 'string', enum: ['SHAFI', 'HANAFI', 'shafi', 'hanafi'] },
+      lastLat: { type: 'number', minimum: -90, maximum: 90, nullable: true },
+      lastLng: { type: 'number', minimum: -180, maximum: 180, nullable: true },
+      lastLocationLabel: { type: 'string', maxLength: 200, nullable: true },
+      fcmPrayerBackupEnabled: { type: 'boolean' },
+      localScheduledUntil: { type: 'string', format: 'date-time', nullable: true, description: 'Account-level local coverage; not per device. Report only after successful scheduling.' },
+      prayers: { type: 'object', required: ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'], properties: Object.fromEntries(['fajr','dhuhr','asr','maghrib','isha'].map(k => [k, {type:'boolean'}])) },
+    },
+  };
+  for (const [route, pathItem] of Object.entries(spec.paths) as [string, any][]) {
+    for (const [method, operation] of Object.entries(pathItem) as [string, any][]) {
+      if (!['get','post','put','patch','delete','head','options'].includes(method)) continue;
+      if (!operation.responses || Object.keys(operation.responses).length === 0) {
+        operation.responses = { '200': { description: 'Successful response using the standard API envelope.', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiResponse' } } } } };
+      }
+      const params = [...(pathItem.parameters ?? []), ...(operation.parameters ?? [])];
+      for (const match of route.matchAll(/\{([^}]+)\}/g)) {
+        if (!params.some((p: any) => p.in === 'path' && p.name === match[1])) {
+          (operation.parameters ??= []).push({ in: 'path', name: match[1], required: true, schema: { type: 'string' } });
+        }
+      }
+    }
+  }
+  const prefs = spec.paths['/profile/azan-preferences'];
+  prefs.get.description = 'Saved settings for an authenticated account; guests receive defaults. Prayer audio resources and channel IDs must exist on the device.';
+  prefs.get.security = [{ bearerAuth: [] }, {}];
+  prefs.patch.requestBody = { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/AzanPreferencesPatch' }, example: { notificationSoundId: 'sc_near_auto', prayerTimeSoundMode: 'announcement', preReminderMinutes: 15 } } } };
+  prefs.patch.responses['400'] = { $ref: '#/components/responses/BadRequest' };
+  prefs.patch.responses['401'] = { $ref: '#/components/responses/Unauthorized' };
+  const plan = spec.paths['/quran/khatmah/plan'];
+  plan.post.requestBody = { required: true, content: { 'application/json': { schema: { oneOf: [
+    { type: 'object', required: ['durationDays'], properties: { durationDays: { type: 'integer', minimum: 7, maximum: 365 } }, not: { required: ['juzPerMonth'] } },
+    { type: 'object', required: ['juzPerMonth'], properties: { juzPerMonth: { type: 'integer', minimum: 1, maximum: 30 } }, not: { required: ['durationDays'] } },
+  ] }, example: { durationDays: 30 } } } };
+  return spec;
+}
+
 export function getSwaggerSpec(): any {
   if (cachedSpec !== null) return cachedSpec;
   if (buildError !== null) return buildError;
   try {
-    const spec = buildSwaggerSpec();
+    const spec = completeSwaggerContracts(buildSwaggerSpec());
     cachedSpec = spec;
     return spec;
   } catch (err: any) {
@@ -1539,17 +1647,25 @@ export function setupSwagger(app: Express): void {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.send(`<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>نور | Noor API Docs</title>
+  <title>Noor Developer Portal | API Reference</title>
+  <meta name="theme-color" content="#1a1040" />
   <link rel="icon" href="/brand/logo.png" />
   <link rel="stylesheet" href="${docsPath}/swagger-ui.css" />
-  <style>${NOOR_PREMIUM_CSS}</style>
+  <style>${NOOR_PREMIUM_CSS}${NOOR_PORTAL_CSS}</style>
 </head>
 <body>
+  <header class="portal-header">
+    <div class="portal-brand"><img src="/brand/logo.png" alt="Noor" width="46" height="46" /><div><strong>Noor Developer Portal</strong><span>API reference · Integration documentation</span></div></div>
+    <nav aria-label="Developer resources"><a href="${jsonPath}">OpenAPI JSON</a><a href="${base}/health">Service health</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
+  </header>
+  <div class="portal-intro">Base path: <code>${base}</code> · Use Authorize to enter your access token. Requests execute against the selected server. Use a dedicated test account for writes.</div>
+  <noscript><p class="portal-intro">Enable JavaScript for the interactive reference, or download <a href="${jsonPath}">the OpenAPI document</a>.</p></noscript>
   <div id="swagger-ui"></div>
+  <footer class="portal-footer">Noor API · Versioned REST interface · Dates and prayer instants follow the location's resolved IANA timezone.</footer>
   <script src="${docsPath}/swagger-ui-bundle.js"></script>
   <script>
     window.onload = function () {
@@ -1557,14 +1673,20 @@ export function setupSwagger(app: Express): void {
         url: ${JSON.stringify(jsonPath)},
         dom_id: '#swagger-ui',
         deepLinking: true,
-        persistAuthorization: true,
+        persistAuthorization: false,
         docExpansion: 'list',
         filter: true,
-        tryItOutEnabled: true,
+        tryItOutEnabled: false,
+        defaultModelsExpandDepth: -1,
+        operationsSorter: 'method',
         displayRequestDuration: true,
         validatorUrl: null,
         presets: [SwaggerUIBundle.presets.apis],
-        layout: 'BaseLayout'
+        layout: 'BaseLayout',
+        onComplete: function () {
+          var input = document.querySelector('.swagger-ui .filter-container input');
+          if (input) { input.setAttribute('aria-label', 'Filter API groups'); input.setAttribute('placeholder', 'Filter API groups, for example Prayers or Quran'); }
+        }
       });
     };
   </script>

@@ -194,6 +194,8 @@ function getPrayerDateMap(prayerTimes: PrayerTimes): Record<PrayerNameEnum, Date
 }
 
 type PrayerCalcOptions = {
+  /** Explicit API calendar date, represented at UTC noon for Adhan. */
+  calendarDate?: Date;
   method?: string;
   madhab?: string;
   locationSource?: PrayerLocationSource;
@@ -484,7 +486,7 @@ export function calculateDailyPrayerSchedule(
 
   const nowInstant = referenceDate;
   // Adhan day = local calendar day in the prayer timezone (not server UTC day).
-  const adhanDay = zonedCalendarDateForAdhan(nowInstant, tz);
+  const adhanDay = options?.calendarDate ?? zonedCalendarDateForAdhan(nowInstant, tz);
   const coordinates = new Coordinates(lat, lng);
   const { params, methodKey, madhabKey, methodSource } = resolveCalculationParams(options, coordinates, adhanDay);
   const prayerTimes = new PrayerTimes(coordinates, adhanDay, params);
@@ -565,7 +567,7 @@ export function calculateDailyPrayerSchedule(
     locationSource,
   });
 
-  const localDate = getZonedYmd(nowInstant, tz).dateStr;
+  const localDate = options?.calendarDate ? adhanDay.toISOString().slice(0, 10) : getZonedYmd(nowInstant, tz).dateStr;
 
   return {
     date: localDate,
@@ -709,8 +711,19 @@ export async function getPrayerSchedule(
       ? DEFAULT_PRAYER_LOCATION.timezone
       : ''; // infer inside calculateDailyPrayerSchedule
   const refDate = dateStr ? new Date(dateStr) : new Date();
+  let calendarDate: Date | undefined;
+  if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    calendarDate = new Date(`${dateStr}T12:00:00.000Z`);
+    if (!Number.isFinite(calendarDate.getTime()) || calendarDate.toISOString().slice(0, 10) !== dateStr) {
+      throw new AppError('Invalid calendar date', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+    }
+  }
+  if (!Number.isFinite(refDate.getTime())) {
+    throw new AppError('Invalid date', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
 
   return calculateDailyPrayerSchedule(lat, lng, tz, [], refDate, {
+    calendarDate,
     method: method ?? DEFAULT_PRAYER_LOCATION.calculationMethod,
     madhab: madhab ?? DEFAULT_PRAYER_LOCATION.madhab,
     locationSource: source,
