@@ -38,6 +38,8 @@ const prayerTogglesSchema = z.object({
 export const azanPreferencesSchema = z.object({
   azanEnabled: z.boolean().default(true),
   soundEnabled: z.boolean().default(true),
+  /** Selected Azan remains the default; announcement uses the short event clip. */
+  prayerTimeSoundMode: z.enum(['azan', 'announcement']).default('azan'),
   vibrationEnabled: z.boolean().default(true),
   /** Preferred Azan sound id (legacy field name kept for Flutter compatibility). */
   voiceId: z.string().trim().min(1).max(64).default(DEFAULT_AZAN_SOUND_ID),

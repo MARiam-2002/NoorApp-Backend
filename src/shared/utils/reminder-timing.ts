@@ -68,5 +68,5 @@ export function localCoverageUntilMs(
 
 export function preReminderTtlSeconds(minutesUntilPrayer: number): number {
   const mins = Number.isFinite(minutesUntilPrayer) ? minutesUntilPrayer : 0;
-  return Math.max(60, Math.floor(mins * 60));
+  return Math.max(0, Math.floor(mins * 60));
 }

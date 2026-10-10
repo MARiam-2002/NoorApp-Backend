@@ -69,6 +69,7 @@ export const getAzanPreferencesHandler = asyncHandler(async (req: Request, res: 
       {
         azanEnabled: true,
         soundEnabled: true,
+        prayerTimeSoundMode: 'azan',
         vibrationEnabled: true,
         voiceId: defaults.voiceId,
         azanSoundId: defaults.azanSoundId,

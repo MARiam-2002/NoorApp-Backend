@@ -35,7 +35,7 @@
     "test:google-username": "tsx scripts/test-google-username-unique.ts",
     "test:auth-rate-limits": "tsx scripts/test-auth-rate-limits.ts",
     "cleanup:users-without-fcm": "tsx scripts/cleanup-users-without-fcm.ts",
-    "test:near-prayer": "tsx scripts/test-near-prayer-resolver.ts && tsx scripts/test-near-prayer-audit.ts",
+    "test:near-prayer": "tsx scripts/test-near-prayer-resolver.ts && tsx scripts/test-near-prayer-audit.ts && tsx scripts/test-prayer-delivery.ts",
     "test:prayer-global": "tsx scripts/test-prayer-global.ts",
     "test:prayer-method": "tsx scripts/test-auto-calculation-method.ts && tsx scripts/test-official-prayer-tables.ts",
     "migrate:prayer-method-auto": "tsx scripts/migrate-calculation-method-auto.ts",
@@ -101,3 +101,4 @@
     "zod": "^4.4.3"
   }
 }
+

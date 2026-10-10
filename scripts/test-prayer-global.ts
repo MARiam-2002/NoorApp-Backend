@@ -136,4 +136,30 @@ for (const loc of [
   assert.equal(sent.filter((s) => s.kind === 'prayer_time').length >= 5, true, loc.name);
 }
 
+console.log('--- 9) 2026/2027 seasons, DST boundaries and international date line ---');
+for (const loc of [
+  cairo, riyadh, london, tromso,
+  { name: 'New York', lat: 40.7128, lng: -74.006, tz: 'America/New_York', method: 'ISNA' },
+  { name: 'Sydney', lat: -33.8688, lng: 151.2093, tz: 'Australia/Sydney', method: 'MWL' },
+  { name: 'Auckland', lat: -36.8485, lng: 174.7633, tz: 'Pacific/Auckland', method: 'MWL' },
+  { name: 'Kathmandu', lat: 27.7172, lng: 85.324, tz: 'Asia/Kathmandu', method: 'KARACHI' },
+  { name: 'Kiritimati', lat: 1.87, lng: -157.4, tz: 'Pacific/Kiritimati', method: 'MWL' },
+  { name: 'Casablanca', lat: 33.5731, lng: -7.5898, tz: 'Africa/Casablanca', method: 'MOROCCO' },
+] satisfies Loc[]) {
+  for (const date of ['2026-10-25T12:00Z', '2026-11-01T12:00Z', '2027-03-14T12:00Z',
+    '2027-03-28T12:00Z', '2027-06-21T12:00Z', '2027-12-21T12:00Z']) {
+    const now = new Date(date);
+    const result = schedule(loc, date);
+    assert.equal(result.schedule.length, 5, `${loc.name} ${date}`);
+    const around = computePrayerInstantsAround({ latitude: loc.lat, longitude: loc.lng,
+      timezone: loc.tz, method: loc.method, locationSource: 'query', now });
+    assert.equal(around.instants.length, 15, `${loc.name} ${date}`);
+    for (const row of result.schedule) {
+      const instant = around.instants.find((i) => i.key === row.key && i.date === result.date);
+      assert.ok(instant, `${loc.name} ${date} ${row.key}`);
+      assert.equal(instant.timestamp.toISOString(), row.iso, 'API and reminder scheduler must agree');
+      assert.equal(instant.time, row.time);
+    }
+  }
+}
 console.log('prayer global: OK');

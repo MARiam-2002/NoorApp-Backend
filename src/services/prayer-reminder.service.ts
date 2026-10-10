@@ -247,6 +247,14 @@ export function resolvePreReminderSoundFor(
   return { sound: getNotificationSoundById('soft_chime'), autoMatched: true };
 }
 
+/** Resolve the optional short prayer-time clip, using the actual prayer date. */
+export function resolvePrayerAnnouncementSound(prayerKey: string, timezone: string, prayerAt: Date) {
+  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: resolveTimezone(timezone) }).format(prayerAt);
+  const key = prayerKey.toUpperCase() === 'DHUHR' && weekday === 'Fri' ? 'jumuah' : prayerKey.toLowerCase();
+  const sound = REMINDER_SOUND_OPTIONS.find((option) => option.id === `sc_event_${key}`);
+  return sound && isMediaFileAvailableOnDisk(sound.mediaFile) ? sound : null;
+}
+
 /**
  * Classify whether this tick should fire a Near-Prayer (pre) or prayer-time push.
  *
@@ -346,7 +354,7 @@ export function computeNearPrayerLocalHhmm(prayerHhmm: string, preReminderMinute
  * Azan FCM backup only — unchanged rules (prefs + prayer window).
  * Now injects full audio metadata (IDs, URLs, names, muezzin) into the
  * FCM data payload so Flutter can display + play the user-selected Azan /
- * notification sound in parallel with the native notification.
+ * notification sound. The OS notification owns audio; clients must not play it again.
  */
 const AZAN_USER_PAGE_SIZE = 200;
 const AZAN_USER_CONCURRENCY = 8;
@@ -427,10 +435,11 @@ export async function runAzanBackupReminders(
   return { usersScanned, pushesAttempted, pushesSent };
 }
 
-async function runAzanRemindersForUser(
+export async function runAzanRemindersForUser(
   user: AzanUserRow,
   lateToleranceMinutes: number,
   instantsMemo: PrayerInstantsMemo,
+  send: typeof sendPushToUser = sendPushToUser,
 ): Promise<{ pushesAttempted: number; pushesSent: number }> {
   let pushesAttempted = 0;
   let pushesSent = 0;
@@ -505,6 +514,7 @@ async function runAzanRemindersForUser(
       const isPre = hitKind === 'pre_reminder';
       const kind = hitKind;
       const fireAtMs = instant.timestamp.getTime() - (isPre ? pre * 60_000 : 0);
+      const expiresAtMs = isPre ? instant.timestamp.getTime() : fireAtMs + PUSH_TTL_SECONDS.AZAN * 1000;
       if (fireAtMs <= localCoveredUntilMs) continue;
       const occurrenceKey = buildAzanReminderOccurrenceKey({
         date: scheduleDate,
@@ -518,38 +528,13 @@ async function runAzanRemindersForUser(
       try {
         claimed = await claimAzanReminderOccurrence(user.id, occurrenceKey);
       } catch (claimErr) {
-        logger.warn('[Cron] Azan reminder claim failed; falling back to notification scan', {
+        logger.error('[Cron] Azan reminder claim failed; send suppressed', {
           userId: user.id,
           occurrenceKey,
           message: (claimErr as Error)?.message,
         });
-        // Fallback if migration not yet applied: soft dedup via recent notifications.
-        const since = new Date(Date.now() - Math.max(lateToleranceMinutes, pre, 30) * 60_000);
-        const recent = await prisma.notification.findMany({
-          where: {
-            userId: user.id,
-            type: 'AZAN' as any,
-            createdAt: { gte: since },
-          },
-          select: { payload: true },
-          take: 40,
-        }).catch(() => []);
-        const already = recent.some((n) => {
-          const p = (n.payload ?? {}) as Record<string, unknown>;
-          if (p.idempotencyKey && String(p.idempotencyKey) === occurrenceKey) return true;
-          if (p.kind !== kind) return false;
-          const prevKey =
-            parsePrayerKey(String(p.key ?? p.prayer ?? '')) ??
-            String(p.prayer ?? '').toUpperCase();
-          if (prevKey !== prayerEnum) return false;
-          if (isPre && p.preReminderMinutes != null && Number(p.preReminderMinutes) !== pre) {
-            return false;
-          }
-          if (p.date && scheduleDate && String(p.date) !== scheduleDate) return false;
-          return true;
-        });
-        if (already) continue;
-        claimed = true;
+        // A scan followed by send races across workers. Require the durable unique claim.
+        continue;
       }
       if (!claimed) continue;
 
@@ -559,6 +544,7 @@ async function runAzanRemindersForUser(
         isPre,
         preReminderMinutes: pre,
         evaluationTimezone: evaluationTz,
+        nowUtc: instant.timestamp,
       });
       const {
         titleEn,
@@ -601,10 +587,15 @@ async function runAzanRemindersForUser(
         locale: 'ar',
         deepLink: '/prayer-times',
         source: 'FCM_BACKUP',
+        deliveryMode: 'OS_NOTIFICATION',
+        audioOwner: 'NOTIFICATION_CHANNEL',
+        scheduledAtUtc: new Date(fireAtMs).toISOString(),
+        prayerAtUtc: instant.timestamp.toISOString(),
+        expiresAtUtc: new Date(expiresAtMs).toISOString(),
       };
 
       let nativeSound: string | null = 'default';
-      let soundType: 'NEAR_PRAYER' | 'AZAN' | 'GENERIC_NOTIFICATION' | 'DEFAULT' = 'DEFAULT';
+      let soundType: 'NEAR_PRAYER' | 'AZAN' | 'PRAYER_EVENT' | 'GENERIC_NOTIFICATION' | 'DEFAULT' = 'DEFAULT';
       let soundId = '';
       if (!soundEnabled) {
         nativeSound = null;
@@ -616,7 +607,7 @@ async function runAzanRemindersForUser(
           prefs.notificationSoundId,
           prefs.preReminderMinutes,
           evaluationTz,
-          new Date(),
+          instant.timestamp,
         );
         let effectiveNotifSound = resolved.sound;
         if ((effectiveNotifSound as any).isAutoSentinel === true) {
@@ -699,6 +690,26 @@ async function runAzanRemindersForUser(
         // Android: the per-voice channel owns the full Azan (res/raw/<soundId>).
         // iOS: APNs plays the bundled 30 s clip <soundId>.caf (iOS caps sounds at 30 s).
         nativeSound = soundEnabled ? azanSoundRaw.id : null;
+        baseData.prayerTimeSoundMode = prefs.prayerTimeSoundMode;
+        if (prefs.prayerTimeSoundMode === 'announcement') {
+          const announcement = resolvePrayerAnnouncementSound(String(prayerEnum), evaluationTz, instant.timestamp);
+          if (announcement) {
+            soundType = 'PRAYER_EVENT';
+            soundId = announcement.id;
+            nativeSound = soundEnabled ? announcement.id : null;
+            Object.assign(baseData, {
+              soundType, soundId, audioScope: 'prayer_time_announcement',
+              notificationSoundId: announcement.id,
+              notificationSoundUrl: announcement.mediaFile ? mediaAbsoluteUrl(announcement.mediaFile) : '',
+              notificationSoundMediaFile: announcement.mediaFile || '',
+              androidChannelId: azanChannelId(announcement.id, soundEnabled, vibrationEnabled),
+            });
+          } else {
+            baseData.prayerTimeSoundMode = 'azan';
+            baseData.audioFallbackReason = 'ANNOUNCEMENT_MEDIA_UNAVAILABLE';
+            logger.warn('[Cron] Prayer announcement unavailable; using selected Azan', { userId: user.id, prayer: prayerEnum });
+          }
+        }
       }
 
       Object.assign(baseData, {
@@ -708,8 +719,11 @@ async function runAzanRemindersForUser(
         bodyEn,
       });
 
+      // Claim/media lookups can take time. Never submit an already expired event.
+      const remainingSeconds = preReminderTtlSeconds((expiresAtMs - Date.now()) / 60_000);
+      if (remainingSeconds <= 0) continue;
       pushesAttempted += 1;
-      const result = await sendPushToUser(user.id, {
+      const result = await send(user.id, {
         // Prefer Arabic tray text (app locale); EN remains in data.
         title: titleAr,
         body: bodyAr,
@@ -718,7 +732,7 @@ async function runAzanRemindersForUser(
         data: baseData,
         nativeSound,
         androidChannelId: baseData.androidChannelId,
-        ttlSeconds: isPre ? preReminderTtlSeconds(mins) : PUSH_TTL_SECONDS.AZAN,
+        ttlSeconds: remainingSeconds,
         iosInterruptionLevel: 'time-sensitive',
       });
       pushesSent += result.sent;
@@ -914,3 +928,4 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
 
   return summary;
 }
+
