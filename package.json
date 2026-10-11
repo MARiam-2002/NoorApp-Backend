@@ -57,7 +57,8 @@
     "test:brevo-email": "tsx scripts/test-brevo-email.ts",
     "test:reading": "tsx scripts/test-reading-experience.ts",
     "test:travel": "tsx scripts/test-travel.ts",
-    "test:kahf": "tsx scripts/test-kahf-reminder.ts"
+    "test:kahf": "tsx scripts/test-kahf-reminder.ts",
+    "test:refresh-rotation": "tsx scripts/test-refresh-rotation.ts"
   },
   "keywords": [
     "express",

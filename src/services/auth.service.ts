@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-import { UserRole } from '@prisma/client';
+import { UserRole, type Prisma } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
@@ -136,12 +136,12 @@ async function createAuthResultForUser(user: {
   providerId: string | null;
   googleId: string | null;
   createdAt: Date;
-}): Promise<AuthResult> {
+}, db: Pick<Prisma.TransactionClient, 'refreshToken'> = prisma): Promise<AuthResult> {
   const accessToken = generateAccessToken({ userId: user.id, email: user.email });
   const refreshToken = generateRefreshToken({ userId: user.id, email: user.email });
   const expiresAt = new Date(Date.now() + parseDurationToMs(env.JWT_REFRESH_EXPIRES_IN));
 
-  await prisma.refreshToken.create({
+  await db.refreshToken.create({
     data: {
       tokenHash: hashRefreshToken(refreshToken),
       userId: user.id,
@@ -294,51 +294,33 @@ export async function refreshToken(input: { refreshToken: string }): Promise<Aut
   const payload = verifyRefreshTokenJwt(input.refreshToken);
   const tokenHash = hashRefreshToken(input.refreshToken);
 
-  const storedToken = await prisma.refreshToken.findUnique({
-    where: { tokenHash },
+  // PostgreSQL serializes concurrent conditional updates of this token row.
+  // Revocation and replacement commit together; failures preserve the old token.
+  return prisma.$transaction(async (tx) => {
+    const claimed = await tx.refreshToken.updateMany({
+      where: {
+        tokenHash,
+        userId: payload.userId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { revokedAt: new Date() },
+    });
+    if (claimed.count !== 1) {
+      throw new AppError('Invalid or expired refresh token', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
+    }
+    const user = await tx.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true, username: true, fullName: true, email: true, role: true,
+        provider: true, providerId: true, googleId: true, createdAt: true, isActive: true,
+      },
+    });
+    if (!user || !user.isActive) {
+      throw new AppError('User not found', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
+    }
+    return createAuthResultForUser(user, tx);
   });
-
-  const now = new Date();
-  const isValid =
-    storedToken &&
-    storedToken.revokedAt === null &&
-    storedToken.expiresAt.getTime() > now.getTime() &&
-    storedToken.userId === payload.userId;
-
-  if (!isValid) {
-    throw new AppError(
-      'Invalid or expired refresh token',
-      HttpStatus.UNAUTHORIZED,
-      ErrorCodes.UNAUTHORIZED,
-    );
-  }
-
-  await prisma.refreshToken.updateMany({
-    where: { tokenHash, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
-
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
-    select: {
-      id: true,
-      username: true,
-      fullName: true,
-      email: true,
-      role: true,
-      provider: true,
-      providerId: true,
-      googleId: true,
-      createdAt: true,
-      isActive: true,
-    },
-  });
-
-  if (!user || !user.isActive) {
-    throw new AppError('User not found', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
-  }
-
-  return createAuthResultForUser(user);
 }
 
 export async function logout(input: { refreshToken: string }): Promise<void> {
