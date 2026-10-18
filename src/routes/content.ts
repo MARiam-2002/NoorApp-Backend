@@ -120,9 +120,10 @@ contentRouter.get('/daily-challenge', getDailyChallengeHandler);
  *     description: |
  *       Public, static catalog (no DB). A companion of the Prophet ﷺ for the "شخصية اليوم" card and
  *       detail screen. Every figure has at least one narration quoted verbatim from Sahih al-Bukhari
- *       (Fath al-Bari numbering) or Sahih Muslim (Fuad Abd al-Baqi numbering); biographies follow
- *       al-Isabah (Ibn Hajar) and Siyar A'lam al-Nubala (al-Dhahabi). Rotates daily; every figure is
- *       shown once before any repeats.
+ *       (Fath al-Bari numbering) or Sahih Muslim (Fuad Abd al-Baqi numbering). Catalog v2 contains
+ *       original Arabic retellings in six paragraphs, grounded in specific narrations. The final
+ *       labelled reflection is an editorial lesson, not a hadith quotation. Rotates daily through
+ *       the catalog. The Home card is a short summary; render all storyAr items on the detail screen.
  *     parameters:
  *       - in: query
  *         name: day
@@ -138,22 +139,22 @@ contentRouter.get('/daily-challenge', getDailyChallengeHandler);
  *               message: Figure of the day retrieved successfully
  *               data:
  *                 dayOfYear: 272
- *                 catalogVersion: 1
+ *                 catalogVersion: 2
  *                 id: musab-ibn-umair
  *                 nameAr: مصعب بن عمير
  *                 nameEn: "Mus'ab ibn Umair"
  *                 honorificAr: رضي الله عنه
- *                 titleAr: أول سفير في الإسلام
- *                 titleEn: The first envoy of Islam
- *                 summaryAr: فتى قريش المنعَّم الذي ترك الترف من أجل الإسلام...
- *                 storyAr: ['نشأ مصعب بن عمير في مكة في نعمة وترف...', 'بعثه النبي ﷺ بعد بيعة العقبة الأولى إلى المدينة...']
- *                 lessonAr: الإيمان أغلى من كل متاع الدنيا، والدعوة بالحكمة ولين الخلق تفتح القلوب.
+ *                 titleAr: معلّم القرآن الذي سبق إلى المدينة
+ *                 titleEn: A Quran teacher who preceded the migration
+ *                 summaryAr: سبق إلى المدينة يعلّم أهلها القرآن، ثم استشهد يوم أُحد...
+ *                 storyAr: ['قبل أن يصل النبي ﷺ إلى المدينة...', 'لم يذكر البراء مجرد وصولهما...', 'وتتابع وصول الصحابة...', 'ثم تأتي نهاية الطريق في يوم أُحد...', 'كانوا إذا غطوا بالبردة رأسه...', 'للتأمل: بين المعلّم الذي سبق إلى المدينة...']
+ *                 lessonAr: يبقى أثر التعليم والبذل ولو قلّ ما يتركه الإنسان من متاع الدنيا.
  *                 evidence:
  *                   - collection: bukhari
  *                     collectionAr: صحيح البخاري
- *                     number: 3924
- *                     textAr: أَوَّلُ مَنْ قَدِمَ عَلَيْنَا مُصْعَبُ بْنُ عُمَيْرٍ
- *                     sourceAr: رواه البخاري — رقم 3924
+ *                     number: 3925
+ *                     textAr: وَكَانَا يُقْرِئَانِ النَّاسَ
+ *                     sourceAr: رواه البخاري — رقم 3925
  *                 sources:
  *                   - titleAr: صحيح البخاري
  *                     authorAr: الإمام محمد بن إسماعيل البخاري

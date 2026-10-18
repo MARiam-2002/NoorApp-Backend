@@ -4,6 +4,10 @@
  * Evidence is re-verified against the local Sahihayn files by `npx tsx scripts/build-figures-of-the-day.ts --check`.
  */
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { findSahihPhrase } from './lib/sahihayn-lookup';
 import { FIGURES_CATALOG_VERSION, FIGURES_OF_THE_DAY, FIGURE_SOURCES } from '../src/shared/data/figures-of-the-day';
 import {
   getFigureById,
@@ -32,7 +36,9 @@ for (const f of FIGURES_OF_THE_DAY) {
   for (const key of ['nameEn', 'titleEn'] as const) {
     assert.ok(f[key].trim().length > 0, `${f.id}.${key} empty`);
   }
-  assert.ok(f.storyAr.length >= 2, `${f.id} needs at least 2 story paragraphs`);
+  assert.ok(f.storyAr.length >= 6, `${f.id} needs a developed narrative`);
+  assert.ok(f.storyAr.join(' ').split(/\s+/).length >= 230, `${f.id} story regressed to a summary`);
+  assert.ok(f.storyAr.at(-1)!.startsWith('للتأمل:'), `${f.id}: separate editorial reflection from the account`);
   f.storyAr.forEach((p, i) => assert.ok(ARABIC.test(p), `${f.id}.storyAr[${i}] empty`));
 
   assert.ok(f.evidence.length >= 1, `${f.id} has no evidence`);
@@ -49,7 +55,52 @@ for (const f of FIGURES_OF_THE_DAY) {
 }
 
 assert.equal(FIGURES_OF_THE_DAY[0]!.id, 'musab-ibn-umair');
-assert.equal(FIGURES_OF_THE_DAY[0]!.titleAr, 'أول سفير في الإسلام');
+assert.equal(FIGURES_OF_THE_DAY[0]!.titleAr, 'معلّم القرآن الذي سبق إلى المدينة');
+
+// Verify paragraph provenance, the precise local narration variant, and source/catalog drift.
+// These checks protect the attribution chain; they do not certify historical interpretation.
+type StoryManifest = {
+  catalogVersion: number;
+  editionFiles: Record<string, string>;
+  references: Record<string, {
+    collection: 'bukhari' | 'muslim'; number: number; editionNumber: number;
+    phrase: string; url: string; textSha256: string;
+  }>;
+  figures: Record<string, {
+    summaryAr: string;
+    paragraphs: { text: string; kind: 'narrative' | 'reflection'; references: string[] }[];
+  }>;
+};
+const manifest = JSON.parse(readFileSync(join(process.cwd(), 'scripts/lib/figure-story-sources-2026.json'), 'utf8')) as StoryManifest;
+assert.equal(manifest.catalogVersion, FIGURES_CATALOG_VERSION);
+assert.deepEqual(Object.keys(manifest.figures).sort(), [...ids].sort(), 'source manifest must cover the exact catalog');
+const editions = new Map<string, { hadiths: { hadithnumber: number; text: string }[] }>();
+for (const [filename, expected] of Object.entries(manifest.editionFiles)) {
+  const raw = readFileSync(join(process.cwd(), 'prisma/data/hadith', filename));
+  assert.equal(createHash('sha256').update(raw).digest('hex'), expected, `${filename}: source edition changed; review citations`);
+  editions.set(filename, JSON.parse(raw.toString('utf8')));
+}
+for (const [key, ref] of Object.entries(manifest.references)) {
+  assert.match(ref.url, /^https:\/\/sunnah\.com\/(bukhari|muslim):\d+[a-z]?$/);
+  const hadith = editions.get(`ara-${ref.collection}.json`)!.hadiths.find(h => h.hadithnumber === ref.editionNumber);
+  assert.ok(hadith, `${key}: missing precise edition entry`);
+  assert.equal(createHash('sha256').update(hadith.text).digest('hex'), ref.textSha256, `${key}: narration text changed`);
+  assert.ok(findSahihPhrase(ref.collection, ref.phrase).some(m => m.number === ref.number), `${key}: anchor/number mismatch`);
+}
+for (const figure of FIGURES_OF_THE_DAY) {
+  const attribution = manifest.figures[figure.id]!;
+  assert.equal(figure.summaryAr, attribution.summaryAr, `${figure.id}: summary attribution drift`);
+  assert.deepEqual(figure.storyAr, attribution.paragraphs.map(p => p.text), `${figure.id}: narrative attribution drift`);
+  for (const [i, para] of attribution.paragraphs.entries()) {
+    assert.ok(para.references.length > 0, `${figure.id} paragraph ${i}: missing references`);
+    assert.equal(para.kind === 'reflection', para.text.startsWith('للتأمل:'));
+    for (const key of para.references) {
+      const ref = manifest.references[key];
+      assert.ok(ref, `${figure.id}: unknown reference ${key}`);
+      assert.ok(figure.evidence.some(e => e.collection === ref.collection && e.number === ref.number), `${figure.id}: reference missing from public evidence`);
+    }
+  }
+}
 
 for (const year of [2026, 2027, 2028]) {
   const window = new Set<number>();

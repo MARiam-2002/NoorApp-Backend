@@ -13,7 +13,7 @@ export type ContentCredit = {
   noteEn: string | null;
 };
 
-export const CONTENT_CREDITS_VERSION = 2;
+export const CONTENT_CREDITS_VERSION = 3;
 
 export const CONTENT_CREDITS: readonly ContentCredit[] = [
   {
@@ -60,10 +60,10 @@ export const CONTENT_CREDITS: readonly ContentCredit[] = [
     key: 'figures',
     titleAr: 'شخصية اليوم',
     titleEn: 'Figure of the Day',
-    sourceAr: 'السِّيَر من «الإصابة في تمييز الصحابة» لابن حجر و«سير أعلام النبلاء» للذهبي؛ والشواهد من الصحيحين',
-    sourceEn: "Biographies per Ibn Hajar's al-Isabah and al-Dhahabi's Siyar A'lam al-Nubala; evidence from the two Sahihs",
+    sourceAr: 'صياغة عربية لمواقف موثقة من صحيح البخاري وصحيح مسلم',
+    sourceEn: 'Original Arabic retellings of documented events in Sahih al-Bukhari and Sahih Muslim',
     url: 'https://github.com/fawazahmed0/hadith-api',
-    noteAr: 'كل شاهد منقول حرفيًا من صحيح البخاري أو صحيح مسلم مع رقمه.',
-    noteEn: 'Every evidence excerpt is quoted verbatim from Sahih al-Bukhari or Sahih Muslim with its number.',
+    noteAr: 'السرد صياغة تعليمية؛ والشواهد مقتطفات موثقة بأرقامها. فقرات «للتأمل» استنباط تربوي وليست نصوصًا من الحديث.',
+    noteEn: 'Narratives are original educational retellings; evidence excerpts retain collection and number. Labelled reflections are editorial lessons, not hadith quotations.',
   },
 ];

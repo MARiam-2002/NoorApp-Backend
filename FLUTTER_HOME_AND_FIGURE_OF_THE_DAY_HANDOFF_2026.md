@@ -1,12 +1,38 @@
 # Flutter Home Screen + Figure of the Day (“شخصية اليوم”) Handoff — 2026
 
-**Audience:** Flutter team  
-**From:** Noor Backend  
-**Production base URL:** `https://noor-app-backend-one.vercel.app/api/v1`  
-**Updated:** 2026-09-29  
-**Language:** English only  
+**Audience:** Flutter team
+**From:** Noor Backend
+**Production base URL:** `https://noorapp-backend-production.up.railway.app/api/v1`
+**Updated:** 2026-10-18
+**Language:** English only
 
-**Backend status:** Every section of the Home screen is served by a live endpoint. **Figure of the Day is new**: an additive `figureOfTheDay` object on `GET /dashboard` plus three public endpoints for the detail screen. No existing field, id, type or route was renamed or removed.
+**Current change status:** Catalog v2 is implemented and checked locally. The public Railway catalog was queried on 2026-10-18 and still returned `catalogVersion: 1`, so these story changes are NOT deployed yet. The older dated dashboard examples below are historical shape examples, not a claim of a new production audit.
+
+## October 18 update: expanded stories, same Flutter contract
+
+- The same 34 figure IDs and daily selection formula remain. Each story now has six paragraphs (roughly 260–315 Arabic words), including a clearly labelled concluding reflection. These are developed accounts of documented moments, not exhaustive cradle-to-grave biographies.
+- Home remains brief: render `nameAr`, `titleAr`, and `summaryAr`. Some titles and summaries were aligned with the documented story; do not hardcode their text.
+- On **Read the story**, fetch `/content/figures/{id}` and display **every `storyAr` paragraph in full immediately**, followed by `lessonAr`, all evidence, and sources. Do not use the Home `summaryAr` as the detail story.
+- Remove the former first-two-paragraph collapse on the detail page. No `maxLines`, ellipsis, fixed-height text box, `substring`, three-item limit, or nested scroll region clipping the story.
+- Keep one accessible vertical reader: RTL Arabic, start-aligned text, comfortable line spacing and paragraph gaps, SafeArea, text scaling and small-screen support. Retain the user's reading position on rebuild/resume.
+- Backend `storyAr` is still `List<String>`; `evidence` and `sources` retain the same fields. No new endpoint, auth requirement, request body, database migration, or Railway variable is required.
+- After deploying, re-fetch the list/daily resource and invalidate detail caches when `catalogVersion` becomes `2`. A cache keyed only by figure ID will keep the old short story. Do not read a client-only cached version as proof of the current backend version.
+- `/content/credits` becomes version `3`. Display attribution returned by the API rather than a hardcoded list of biography books.
+- Stories are original Arabic retellings grounded in specific narrations from Sahih al-Bukhari / Sahih Muslim. Hadith excerpts are in `evidence`; the narrative itself is not presented as a verbatim hadith or a copied modern biography. `للتأمل:` and `lessonAr` are editorial lessons.
+- There is no independent scholar certification in this delivery. Exact source matching and hashes establish provenance, not a blanket guarantee that all editorial interpretation is infallible.
+
+### Acceptance checks for Mahmoud
+
+1. After backend deployment, `/content/figures` returns `catalogVersion: 2`, 34 unique IDs, and lite items without `storyAr`.
+2. Open today's card by its returned ID: detail shows six complete paragraphs and every source, without a second “read more” barrier.
+3. Start with a v1 cached story, refresh metadata, and confirm it is replaced by v2. Opening another figure must not reuse the previous figure's content.
+4. Verify a long name, large system font, RTL, a small screen and both app themes. No text or source is clipped.
+5. Confirm Home still displays the short summary; it should not expand to the full story.
+6. Guest detail stays public. Protected Home login behaviour stays unchanged.
+7. Returning after a day change re-fetches the server-selected figure; no client-generated/random story, AI expansion, local 34-day hardcoding, or extra notification schedule.
+8. Offline display may show a previously downloaded story, with its real cached version; do not discard downloaded text just because a refresh failed.
+
+The detailed paragraph-to-narration map is `scripts/lib/figure-story-sources-2026.json` in the backend repository. The owner-facing reading copy is `NOOR_FIGURE_STORIES_EXPANDED_AR.md`; it is not an API payload.
 
 **Related:** [`FLUTTER_INTEGRATION_GUIDE.md`](FLUTTER_INTEGRATION_GUIDE.md) (top section, 2026-09-29) · [`FLUTTER_JOURNEY_SCREEN_HANDOFF_2026.md`](FLUTTER_JOURNEY_SCREEN_HANDOFF_2026.md) · [`FLUTTER_AZKAR_DASHBOARD_HANDOFF_2026.md`](FLUTTER_AZKAR_DASHBOARD_HANDOFF_2026.md) · [`FLUTTER_GUEST_ACCESS_HANDOFF_2026.md`](FLUTTER_GUEST_ACCESS_HANDOFF_2026.md)
 
@@ -48,8 +74,8 @@ The numbers in the Figma file (12 sajdah verses, 50 points, 5 pages, and so on) 
 | Avatar circle | none | **No portrait.** See §6.1 |
 | Name (مصعب بن عمير) | `GET /content/figures/{id}` | `nameAr` (+ optional `honorificAr`, e.g. رضي الله عنه) |
 | Subtitle (أول سفير في الإسلام) | same | `titleAr` |
-| Story paragraphs | same | `storyAr[]` (currently 3 per figure; render all) |
-| اقرأ المزيد | client | Collapse to the first 2 paragraphs; expand shows the rest + lesson + evidence |
+| Story paragraphs | same | `storyAr[]` (six expanded paragraphs in catalog v2; render all) |
+| Full story reader | client | Display all paragraphs immediately, then lesson and evidence; no collapsed story |
 | Lesson (optional block) | same | `lessonAr` |
 | Evidence quotes (optional block) | same | `evidence[]` → `textAr` + `sourceAr` |
 | Sources footer (optional) | same | `sources[]` → `titleAr` — `authorAr` |
@@ -69,7 +95,7 @@ The numbers in the Figma file (12 sajdah verses, 50 points, 5 pages, and so on) 
 | `GET` | `/content/figure-of-day?day=` | Public | **New.** Today's figure (full detail) |
 | `GET` | `/content/figures` | Public | **New.** Lite list of all figures + `catalogVersion` |
 | `GET` | `/content/figures/{id}` | Public | **New.** Full detail for one figure (opened from the Home card) |
-| `GET` | `/content/credits` | Public | Sources screen. Now `version: 2` with a `figures` item |
+| `GET` | `/content/credits` | Public | Sources screen. Now `version: 3` with a `figures` item |
 
 **Guest (no login):** `/dashboard` returns `401`. For a guest Home screen, use the public endpoints: `/content/verse-of-day`, `/content/hadith-of-day`, `/content/figure-of-day`, `/stances/today`, `/prayers/today`, `/quran/sajdah-verses`.
 
@@ -187,43 +213,55 @@ The rows are the 15 Mushaf sajdah marks in Mushaf order. For the «سجل الس
 }
 ```
 
-### 3.4 `GET /content/figure-of-day?day=` (new, public)
+### 3.4 Figure detail shape (catalog v2, generated local sample)
 
-`day` is optional (1..366). Without it, the server returns today's figure, which always equals `dashboard.figureOfTheDay.id` on the same server day.
+`GET /content/figures/musab-ibn-umair` returns this object under `data`. `GET /content/figure-of-day` adds `dayOfYear` and selects the server's figure; do not assume the example ID is today's figure.
 
 ```json
 {
-  "success": true,
-  "message": "Figure of the day retrieved successfully",
-  "data": {
-    "dayOfYear": 272,
-    "catalogVersion": 1,
-    "id": "uthman-ibn-affan",
-    "nameAr": "عثمان بن عفان",
-    "nameEn": "Uthman ibn Affan",
-    "honorificAr": "رضي الله عنه",
-    "titleAr": "ذو النورين، ثالث الخلفاء الراشدين",
-    "titleEn": "Dhu an-Nurayn, the third Caliph",
-    "summaryAr": "ذو النورين الذي تزوج ابنتي النبي ﷺ، وجهّز جيش العسرة، وجمع الأمة على مصحف واحد.",
-    "storyAr": [
-      "أسلم عثمان بن عفان مبكرًا، وتزوج رقية بنت النبي ﷺ، ثم أم كلثوم بعد وفاتها، فلُقّب بذي النورين، وهاجر إلى الحبشة ثم إلى المدينة.",
-      "كان من أكرم الصحابة وأشدهم حياءً، وجهّز جيش العسرة في غزوة تبوك، فبشّره النبي ﷺ بالجنة.",
-      "تولى الخلافة بعد عمر، وفي عهده جُمع الناس على مصحف واحد أُرسلت نسخه إلى الأمصار، واستشهد في داره سنة 35هـ."
-    ],
-    "lessonAr": "الحياء خلق يحبه الله، والمال نعمة إذا أُنفق في الخير.",
-    "evidence": [
-      { "collection": "muslim", "collectionAr": "صحيح مسلم", "number": 2401,
-        "textAr": "أَلاَ أَسْتَحِي مِنْ رَجُلٍ تَسْتَحِي مِنْهُ الْمَلاَئِكَةُ", "sourceAr": "رواه مسلم — رقم 2401" },
-      { "collection": "bukhari", "collectionAr": "صحيح البخاري", "number": 2778,
-        "textAr": "مَنْ جَهَّزَ جَيْشَ الْعُسْرَةِ فَلَهُ الْجَنَّةُ", "sourceAr": "رواه البخاري — رقم 2778" }
-    ],
-    "sources": [
-      { "titleAr": "صحيح البخاري", "authorAr": "الإمام محمد بن إسماعيل البخاري" },
-      { "titleAr": "صحيح مسلم", "authorAr": "الإمام مسلم بن الحجاج" },
-      { "titleAr": "الإصابة في تمييز الصحابة", "authorAr": "ابن حجر العسقلاني" },
-      { "titleAr": "سير أعلام النبلاء", "authorAr": "شمس الدين الذهبي" }
-    ]
-  }
+  "catalogVersion": 2,
+  "id": "musab-ibn-umair",
+  "nameAr": "مصعب بن عمير",
+  "nameEn": "Mus'ab ibn Umair",
+  "honorificAr": "رضي الله عنه",
+  "titleAr": "معلّم القرآن الذي سبق إلى المدينة",
+  "titleEn": "A Quran teacher who preceded the migration",
+  "summaryAr": "سبق إلى المدينة يعلّم أهلها القرآن، ثم استشهد يوم أُحد ولم يجد أصحابه له إلا بردة قصيرة يكفّنونه بها.",
+  "storyAr": [
+    "قبل أن يصل النبي ﷺ إلى المدينة، كانت بيوت فيها تتعرّف إلى القرآن على أيدي رجال سبقوه إليها. وفي مقدمة هؤلاء يذكر البراء بن عازب مصعب بن عمير وابن أم مكتوم. تبدأ هذه الصفحة من قصة مصعب بعمل له أثر باق: تعليم الناس كلام الله، في مرحلة كانت الجماعة المسلمة فيها تستعد للهجرة وبناء حياتها الجديدة.",
+    "لم يذكر البراء مجرد وصولهما، بل بيّن أنهما كانا يقرئان الناس. فمصعب حاضر في الرواية معلّمًا للقرآن، يصل ما يتعلمه الناس بما يحملونه معهم إلى الصلاة والحياة اليومية. ومن شواهد أثر تلك المرحلة أن البراء أخبر أنه قرأ سورة الأعلى وسورًا من المفصل قبل قدوم رسول الله ﷺ.",
+    "وتتابع وصول الصحابة إلى المدينة؛ فقدم بلال وسعد وعمار، ثم عمر بن الخطاب في جماعة من أصحاب النبي ﷺ. وبعد ذلك قدم رسول الله ﷺ، ووصف البراء فرح أهل المدينة بقدومه وصف شاهد رأى الحدث. وفي ترتيب الرواية يظهر موضع مصعب من هذه البداية: كان من السابقين إلى المدينة وتعليم أهلها، قبل مشهد الاستقبال الكبير.",
+    "ثم تأتي نهاية الطريق في يوم أُحد. كان خباب بن الأرت يذكر المهاجرين الذين خرجوا يطلبون وجه الله، فيذكر منهم مصعبًا، الذي استشهد قبل أن ينال شيئًا من متاع الدنيا بعد الهجرة. ولم يجد أصحابه لتكفينه إلا بردة قصيرة؛ فحمل مشهد وداعه من قلة المتاع مثل ما حملت حياته من بذل.",
+    "كانوا إذا غطوا بالبردة رأسه ظهرت رجلاه، وإذا غطوا رجليه ظهر رأسه. فأمر النبي ﷺ أن يغطوا رأسه، وأن يجعلوا على رجليه من الإذخر، وهو نبات. حفظت الرواية هذا المشهد بما فيه من قلة المتاع والعناية بالشهيد، فلم تصبح قيمة الرجل مرتبطة بما تركه من مال، بل بما قدمه في حياته.",
+    "للتأمل: بين المعلّم الذي سبق إلى المدينة، والمهاجر الذي استشهد ولم يجدوا له كفنًا كاملًا، تظهر قيمة الأثر الذي يصنعه الإنسان. تعلّم الناس على يديه القرآن، ثم مضى وبقي خبره في شهادة أصحابه. قد يقل ما يتركه المرء من المتاع، ويبقى من عمله ما ينتفع به آخرون ويذكرونه من أجله."
+  ],
+  "lessonAr": "يبقى أثر التعليم والبذل ولو قلّ ما يتركه الإنسان من متاع الدنيا.",
+  "evidence": [
+    {
+      "collection": "bukhari",
+      "collectionAr": "صحيح البخاري",
+      "number": 3925,
+      "textAr": "وَكَانَا يُقْرِئَانِ النَّاسَ",
+      "sourceAr": "رواه البخاري — رقم 3925"
+    },
+    {
+      "collection": "bukhari",
+      "collectionAr": "صحيح البخاري",
+      "number": 1276,
+      "textAr": "فَمِنَّا مَنْ مَاتَ لَمْ يَأْكُلْ مِنْ أَجْرِهِ شَيْئًا مِنْهُمْ مُصْعَبُ بْنُ عُمَيْرٍ",
+      "sourceAr": "رواه البخاري — رقم 1276"
+    }
+  ],
+  "sources": [
+    {
+      "titleAr": "صحيح البخاري",
+      "authorAr": "الإمام محمد بن إسماعيل البخاري"
+    },
+    {
+      "titleAr": "صحيح مسلم",
+      "authorAr": "الإمام مسلم بن الحجاج"
+    }
+  ]
 }
 ```
 
@@ -235,7 +273,7 @@ Same shape as 3.4 **without** `dayOfYear`. Example id from the Figma design: `mu
 
 ```json
 {
-  "catalogVersion": 1,
+  "catalogVersion": 2,
   "total": 34,
   "items": [
     { "id": "musab-ibn-umair", "nameAr": "مصعب بن عمير", "nameEn": "Mus'ab ibn Umair", "honorificAr": "رضي الله عنه",
@@ -371,18 +409,17 @@ figureOfTheDay = j['figureOfTheDay'] == null
 3. Detail screen, top to bottom:
    - `nameAr` + `honorificAr`
    - `titleAr`
-   - the first 2 `storyAr` paragraphs
-   - «اقرأ المزيد», which expands to show:
-     - the remaining paragraphs
-     - `lessonAr`
-     - every `evidence` item: `textAr` as a quote, `sourceAr` under it
-     - the `sources` footer
+   - every `storyAr` paragraph, fully visible in a single scrollable reader
+   - `lessonAr`
+   - every `evidence` item: `textAr` as a quote, `sourceAr` under it
+   - the `sources` footer
+   - Do not collapse the story after two paragraphs or truncate it with `maxLines`.
 4. Cache the detail by `id` + `catalogVersion`. Content only changes when `catalogVersion` changes.
 5. Guest Home: use `GET /content/figure-of-day`. It already contains the full detail, so no second call is needed.
 
 ### 5.3 Daily rollover
 
-Verse, hadith, figure, challenge and stance of the day all follow the **server day**, which rolls over at **00:00 UTC (03:00 Cairo)**. Don't compute "today's figure" on the device. Show what the API returns.
+Verse, hadith, figure, challenge and stance of the day all follow the **server day**, which rolls over at **00:00 UTC on the current UTC-configured server (03:00 Cairo in summer, 02:00 in winter)**. Don't compute "today's figure" on the device. Show what the API returns.
 
 The figure rotation shows all figures once before any repeats, and consecutive days never show the same figure.
 
@@ -406,7 +443,7 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 
 ### 6.3 Sources screen
 
-`GET /content/credits` now returns `version: 2` with a new item, `key: "figures"`. Render all items from the response; don't hardcode the list.
+`GET /content/credits` now returns `version: 3` with a new item, `key: "figures"`. Render all items from the response; don't hardcode the list.
 
 ---
 
@@ -419,7 +456,7 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 | Challenge of the day (same fields) | **Content:** new 28-challenge bank; `titleEn` / `descriptionEn` now real English for every day; every challenge is auto-checked (PRAYER target always 5, ADHKAR is done/not done). Descriptions may quote a hadith with its Sahihayn number, so let them wrap. |
 | `/quran/sajdah-verses/*` (same fields, counts 10 / 15) | **Content:** 15 Mushaf ۩ marks with verbatim text; keys `16:49` → `16:50` and `4:102` → `38:24`; `22:77` not agreed, `41:38` agreed; `sortOrder` in Mushaf order. Filter the first tab by `isIn10Muataqidah`. See `SAJDAH_VERSES_FEATURE_FINAL.md` v1.1. |
 | `/notifications/unread-count`, `/quran/khatmah/stats` | Unchanged |
-| `GET /content/credits` (`version: 1`) | `version: 2` + `figures` item |
+| `GET /content/credits` (older versions) | `version: 3` with revised `figures` attribution after deployment |
 | — | **New** `GET /content/figure-of-day`, `GET /content/figures`, `GET /content/figures/{id}` |
 
 **Not changed:** auth, Journey, Adhkar, Quran, Azan, and every existing field name and type. No database migration was needed; figures are a static catalog in the backend.
@@ -429,14 +466,16 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 ## 8. Content sourcing (for the About / review screen)
 
 - **34 Companions (رضي الله عنهم).**
-- **Biographies:** follow «الإصابة في تمييز الصحابة» (Ibn Hajar) and «سير أعلام النبلاء» (al-Dhahabi).
+- **Narratives:** original Arabic retellings of specific Sahih al-Bukhari / Sahih Muslim accounts, with paragraph-level references in the source manifest. These are selected documented moments, not exhaustive biographies.
 - **Evidence:** every figure has at least one narration quoted **verbatim** from Sahih al-Bukhari or Sahih Muslim, 52 narrations in total.
   - Each quote carries its standard hadith number.
   - The quotes are extracted by code from the full hadith collections, so the backend never paraphrases a hadith.
 
 ---
 
-## 9. Production checklist (verified 2026-09-29 on the base URL above)
+## 9. Historical production checklist — September 29, before the Railway move and catalog v2
+
+This older checklist is retained for integration history; it is NOT validation of the October 18 code or of the current Railway deployment. Use the current acceptance checklist above after deploying.
 
 Verified with `scripts/smoke-home-figure-production.ts`, using a temporary account that is deleted at the end. **56 / 56 checks passed.**
 

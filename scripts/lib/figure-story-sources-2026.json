@@ -1,0 +1,2253 @@
+{
+  "catalogVersion": 2,
+  "updatedAt": "2026-10-18",
+  "editorialStatus": "source-checked original retelling; not independently certified by a qualified scholar",
+  "method": "Narrative and reflection are distinguished. References support the adjacent factual account, not a verbatim claim for every explanatory sentence. No invented dialogue. No modern translation or biography copied.",
+  "editionFiles": {
+    "ara-bukhari.json": "e34a3402889ca378871da3c5984b7875c680920e93f1c8738ac7afe502179562",
+    "ara-muslim.json": "194073b24090c5368e4d14a3f55c9e0ef144c7437bd7e5aa83aa4d2bc54a8ea0",
+    "eng-muslim.json": "2ef51a2a1980fb91e395fbf1580cc9c9413297f54bb8cad271e1499417299488"
+  },
+  "references": {
+    "bukhari:3925": {
+      "collection": "bukhari",
+      "number": 3925,
+      "editionNumber": 3925,
+      "phrase": "وكانا يقرئان الناس",
+      "url": "https://sunnah.com/bukhari:3925",
+      "textSha256": "b5dd455c1e09d50c8d42245abc838bb205cfdb95df394e829e40c9c5ccede201"
+    },
+    "bukhari:1276": {
+      "collection": "bukhari",
+      "number": 1276,
+      "editionNumber": 1276,
+      "phrase": "فَمِنَّا مَنْ مَاتَ لَمْ يَأْكُلْ مِنْ أَجْرِهِ شَيْئًا مِنْهُمْ مُصْعَبُ بْنُ عُمَيْرٍ",
+      "url": "https://sunnah.com/bukhari:1276",
+      "textSha256": "927f0234b9c0f4e78a06bbb0e2e839a4422b5e203b5f2b04496b7a7cc635b975"
+    },
+    "bukhari:4663": {
+      "collection": "bukhari",
+      "number": 4663,
+      "editionNumber": 4663,
+      "phrase": "مَا ظَنُّكَ بِاثْنَيْنِ اللَّهُ ثَالِثُهُمَا",
+      "url": "https://sunnah.com/bukhari:4663",
+      "textSha256": "ef76281d4b7b287ada7c4d6d73a4b3289e62f4f301ac341c005c0c84ae1f9225"
+    },
+    "bukhari:466": {
+      "collection": "bukhari",
+      "number": 466,
+      "editionNumber": 466,
+      "phrase": "إِنَّ أَمَنَّ النَّاسِ عَلَىَّ فِي صُحْبَتِهِ وَمَالِهِ أَبُو بَكْرٍ",
+      "url": "https://sunnah.com/bukhari:466",
+      "textSha256": "0994c4a0b21f70db63fa1a6db0970d3209f73fc3be5a04ae5c33a3e448edc003"
+    },
+    "bukhari:3684": {
+      "collection": "bukhari",
+      "number": 3684,
+      "editionNumber": 3684,
+      "phrase": "مَا زِلْنَا أَعِزَّةً مُنْذُ أَسْلَمَ عُمَرُ",
+      "url": "https://sunnah.com/bukhari:3684",
+      "textSha256": "f930d551d7977d77b81d1873ff20acb4afbe044d6a05bc13aaace43d8dd37b4a"
+    },
+    "bukhari:3683": {
+      "collection": "bukhari",
+      "number": 3683,
+      "editionNumber": 3683,
+      "phrase": "مَا لَقِيَكَ الشَّيْطَانُ سَالِكًا فَجًّا قَطُّ إِلاَّ سَلَكَ فَجًّا غَيْرَ فَجِّكَ",
+      "url": "https://sunnah.com/bukhari:3683",
+      "textSha256": "cbe6a579222e1a3e0259da9aba9895c44e8fabde8f09136fd766649bb84d6bc0"
+    },
+    "bukhari:3700": {
+      "collection": "bukhari",
+      "number": 3700,
+      "editionNumber": 3700,
+      "phrase": "وأوصيه بذمة الله وذمة رسوله",
+      "url": "https://sunnah.com/bukhari:3700",
+      "textSha256": "98324227db519c403cf99efbb83ff62f0986aa3fa4955e2085e6d9bc88b86a4b"
+    },
+    "muslim:2401": {
+      "collection": "muslim",
+      "number": 2401,
+      "editionNumber": 6209,
+      "phrase": "أَلاَ أَسْتَحِي مِنْ رَجُلٍ تَسْتَحِي مِنْهُ الْمَلاَئِكَةُ",
+      "url": "https://sunnah.com/muslim:2401",
+      "textSha256": "f5c4f9f6609e4f4b1dbc12d1bc24d14b6afeb16c3271b5f0fe5b7eba0afa91ec"
+    },
+    "bukhari:2778": {
+      "collection": "bukhari",
+      "number": 2778,
+      "editionNumber": 2778,
+      "phrase": "مَنْ جَهَّزَ جَيْشَ الْعُسْرَةِ فَلَهُ الْجَنَّةُ",
+      "url": "https://sunnah.com/bukhari:2778",
+      "textSha256": "1a944bd1f3c4ec16c1148f3bb69a3507f7597b7ba851b13c499f33f49403621b"
+    },
+    "bukhari:4987": {
+      "collection": "bukhari",
+      "number": 4987,
+      "editionNumber": 4987,
+      "phrase": "فنسخوها في المصاحف",
+      "url": "https://sunnah.com/bukhari:4987",
+      "textSha256": "39a1f1deebd29d59130fec599199809a007072ee7e630465c88767c7deb79316"
+    },
+    "bukhari:3701": {
+      "collection": "bukhari",
+      "number": 3701,
+      "editionNumber": 3701,
+      "phrase": "لأُعْطِيَنَّ الرَّايَةَ غَدًا رَجُلاً يَفْتَحُ اللَّهُ عَلَى يَدَيْهِ",
+      "url": "https://sunnah.com/bukhari:3701",
+      "textSha256": "515ce2f26aa19a58eb754977b1804d4d5dc83259f88fce2782c4e30127944332"
+    },
+    "bukhari:4416": {
+      "collection": "bukhari",
+      "number": 4416,
+      "editionNumber": 4416,
+      "phrase": "إلا أنه ليس نبي بعدي",
+      "url": "https://sunnah.com/bukhari:4416",
+      "textSha256": "84953cf77ce2fce9f5c1b781a9c141ad07f7a63b8bf53006799f171f486e2c6f"
+    },
+    "bukhari:3707": {
+      "collection": "bukhari",
+      "number": 3707,
+      "editionNumber": 3707,
+      "phrase": "فإني أكره الاختلاف",
+      "url": "https://sunnah.com/bukhari:3707",
+      "textSha256": "b3a95e73be10a572d76ab4b05b5303741b4831b599e30f5e3ea9ab3a1d138907"
+    },
+    "bukhari:3": {
+      "collection": "bukhari",
+      "number": 3,
+      "editionNumber": 3,
+      "phrase": "كَلاَّ وَاللَّهِ مَا يُخْزِيكَ اللَّهُ أَبَدًا",
+      "url": "https://sunnah.com/bukhari:3",
+      "textSha256": "b20de2142c81ea0ec3984cd0ad768f64ec6e6bc9798127b1ca4d841fc6120c4d"
+    },
+    "bukhari:3820": {
+      "collection": "bukhari",
+      "number": 3820,
+      "editionNumber": 3820,
+      "phrase": "فَاقْرَأْ عَلَيْهَا السَّلاَمَ مِنْ رَبِّهَا وَمِنِّي، وَبَشِّرْهَا بِبَيْتٍ فِي الْجَنَّةِ مِنْ قَصَبٍ",
+      "url": "https://sunnah.com/bukhari:3820",
+      "textSha256": "08fa55b3456c54b1e0c7cb554474173447a2e9f4ad9926e9783425948c0ade39"
+    },
+    "bukhari:3623": {
+      "collection": "bukhari",
+      "number": 3623,
+      "editionNumber": 3623,
+      "phrase": "أَمَا تَرْضَيْنَ أَنْ تَكُونِي سَيِّدَةَ نِسَاءِ أَهْلِ الْجَنَّةِ",
+      "url": "https://sunnah.com/bukhari:3623",
+      "textSha256": "9a87bd4a6a9681f998ea44a069393e9be7992181fd12bef6baccd80a5170736f"
+    },
+    "bukhari:3662": {
+      "collection": "bukhari",
+      "number": 3662,
+      "editionNumber": 3662,
+      "phrase": "أَىُّ النَّاسِ أَحَبُّ إِلَيْكَ قَالَ عَائِشَةُ",
+      "url": "https://sunnah.com/bukhari:3662",
+      "textSha256": "eef33c2bd8cab9ecf2ec17868acdb858ac6e0044d474d5a8ee9bb30dc472944e"
+    },
+    "bukhari:3811": {
+      "collection": "bukhari",
+      "number": 3811,
+      "editionNumber": 3811,
+      "phrase": "نحري دون نحرك",
+      "url": "https://sunnah.com/bukhari:3811",
+      "textSha256": "051f685f09259e6e3a9616da0acf93864d77d1436508ce2a647f24fcc603c12e"
+    },
+    "bukhari:3714": {
+      "collection": "bukhari",
+      "number": 3714,
+      "editionNumber": 3714,
+      "phrase": "فَاطِمَةُ بَضْعَةٌ مِنِّي",
+      "url": "https://sunnah.com/bukhari:3714",
+      "textSha256": "7ba4d7c74e1e5ffd4114d77b60986b3a33bb28e9ad66756efa573831204eef00"
+    },
+    "bukhari:3754": {
+      "collection": "bukhari",
+      "number": 3754,
+      "editionNumber": 3754,
+      "phrase": "أَبُو بَكْرٍ سَيِّدُنَا، وَأَعْتَقَ سَيِّدَنَا",
+      "url": "https://sunnah.com/bukhari:3754",
+      "textSha256": "95999a72b979b0ee14d8e673214773c374cf90b29b8aa9b30c4255c92aff5900"
+    },
+    "bukhari:1149": {
+      "collection": "bukhari",
+      "number": 1149,
+      "editionNumber": 1149,
+      "phrase": "فَإِنِّي سَمِعْتُ دَفَّ نَعْلَيْكَ بَيْنَ يَدَىَّ فِي الْجَنَّةِ",
+      "url": "https://sunnah.com/bukhari:1149",
+      "textSha256": "8ece2ea82d533c4bfa8615d7951e058bebdcfc9762b86ff56acf42c892bf3da0"
+    },
+    "bukhari:4381": {
+      "collection": "bukhari",
+      "number": 4381,
+      "editionNumber": 4381,
+      "phrase": "لأَبْعَثَنَّ إِلَيْكُمْ رَجُلاً أَمِينًا حَقَّ أَمِينٍ",
+      "url": "https://sunnah.com/bukhari:4381",
+      "textSha256": "968082932131f9df28fad138e9a1a5188c22c6eccc5a28e795e9b6c3ba37125f"
+    },
+    "bukhari:4382": {
+      "collection": "bukhari",
+      "number": 4382,
+      "editionNumber": 4382,
+      "phrase": "وَأَمِينُ هَذِهِ الأُمَّةِ أَبُو عُبَيْدَةَ",
+      "url": "https://sunnah.com/bukhari:4382",
+      "textSha256": "b6c2044855defb821d01592456f0c3b639e6f2061f25050a13a30f06620b659d"
+    },
+    "bukhari:2483": {
+      "collection": "bukhari",
+      "number": 2483,
+      "editionNumber": 2483,
+      "phrase": "فأمر عليهم أبا عبيدة بن الجراح",
+      "url": "https://sunnah.com/bukhari:2483",
+      "textSha256": "89f54c0357a1e49952c961c3bf6c052e6f77b62b294bd8063eaa985f71166668"
+    },
+    "bukhari:3728": {
+      "collection": "bukhari",
+      "number": 3728,
+      "editionNumber": 3728,
+      "phrase": "إِنِّي لأَوَّلُ الْعَرَبِ رَمَى بِسَهْمٍ فِي سَبِيلِ اللَّهِ",
+      "url": "https://sunnah.com/bukhari:3728",
+      "textSha256": "cd6323db76a4c82ce6ecb28f8500c9dafd6572a10c2610f05a24b995443b69bf"
+    },
+    "bukhari:2905": {
+      "collection": "bukhari",
+      "number": 2905,
+      "editionNumber": 2905,
+      "phrase": "ارْمِ فِدَاكَ أَبِي وَأُمِّي",
+      "url": "https://sunnah.com/bukhari:2905",
+      "textSha256": "650c3aec74f5ec8f4fed1357ce2e107a97fde3cfa62677d66be8952188a26089"
+    },
+    "bukhari:2846": {
+      "collection": "bukhari",
+      "number": 2846,
+      "editionNumber": 2846,
+      "phrase": "لِكُلِّ نَبِيٍّ حَوَارِيًّا، وَحَوَارِيَّ الزُّبَيْرُ",
+      "url": "https://sunnah.com/bukhari:2846",
+      "textSha256": "6707354e5b17256b3a8731f0c0e091d3db63d11d3825e5944dc67ec038017acb"
+    },
+    "bukhari:4063": {
+      "collection": "bukhari",
+      "number": 4063,
+      "editionNumber": 4063,
+      "phrase": "رَأَيْتُ يَدَ طَلْحَةَ شَلاَّءَ، وَقَى بِهَا النَّبِيَّ",
+      "url": "https://sunnah.com/bukhari:4063",
+      "textSha256": "8708febc5b44d58cda3d99b4af9b78b81674fa7182ca298cca093d13f6a9a75b"
+    },
+    "bukhari:3724": {
+      "collection": "bukhari",
+      "number": 3724,
+      "editionNumber": 3724,
+      "phrase": "رأيت يد طلحة التي وقى بها النبي",
+      "url": "https://sunnah.com/bukhari:3724",
+      "textSha256": "249ee475cf781e7e1c72b3914f4dcdfecb2e282275bd92adae922a2bc4eced9e"
+    },
+    "bukhari:2049": {
+      "collection": "bukhari",
+      "number": 2049,
+      "editionNumber": 2049,
+      "phrase": "بَارَكَ اللَّهُ لَكَ فِي أَهْلِكَ وَمَالِكَ",
+      "url": "https://sunnah.com/bukhari:2049",
+      "textSha256": "5f0a73fdcd66e4e4962f3268e37164321c65b4d26bacdd6a1290a35f7e897bd9"
+    },
+    "bukhari:4261": {
+      "collection": "bukhari",
+      "number": 4261,
+      "editionNumber": 4261,
+      "phrase": "إن قتل زيد فجعفر",
+      "url": "https://sunnah.com/bukhari:4261",
+      "textSha256": "4ba6ee75453f771fed48e049ff3a1cf28ceb767f6cb1dfa1fe7f6e157e7fcb78"
+    },
+    "bukhari:4262": {
+      "collection": "bukhari",
+      "number": 4262,
+      "editionNumber": 4262,
+      "phrase": "حَتَّى أَخَذَ الرَّايَةَ سَيْفٌ مِنْ سُيُوفِ اللَّهِ حَتَّى فَتَحَ اللَّهُ عَلَيْهِمْ",
+      "url": "https://sunnah.com/bukhari:4262",
+      "textSha256": "038dbd4a029e4774139bd40ebc553eb6ae5eaaba9c4e0715b76ee30f84e553b6"
+    },
+    "bukhari:4265": {
+      "collection": "bukhari",
+      "number": 4265,
+      "editionNumber": 4265,
+      "phrase": "لقد انقطعت في يدي يوم موتة تسعة أسياف",
+      "url": "https://sunnah.com/bukhari:4265",
+      "textSha256": "69860912178d1c6a9c33517c3a89b3038f771e6bdba614228dd96d12014d4373"
+    },
+    "bukhari:5005": {
+      "collection": "bukhari",
+      "number": 5005,
+      "editionNumber": 5005,
+      "phrase": "أبى أقرؤنا",
+      "url": "https://sunnah.com/bukhari:5005",
+      "textSha256": "8d0fbd6c016add1d3adc80641d78e5493eee13d94f9af980ec5a84b767f03d80"
+    },
+    "bukhari:3809": {
+      "collection": "bukhari",
+      "number": 3809,
+      "editionNumber": 3809,
+      "phrase": "إِنَّ اللَّهَ أَمَرَنِي أَنْ أَقْرَأَ عَلَيْكَ",
+      "url": "https://sunnah.com/bukhari:3809",
+      "textSha256": "d5c0eb7843f998100aa57efb96d6a0d7533702081f4daf90c7753f808f5e541e"
+    },
+    "bukhari:3758": {
+      "collection": "bukhari",
+      "number": 3758,
+      "editionNumber": 3758,
+      "phrase": "اسْتَقْرِئُوا الْقُرْآنَ مِنْ أَرْبَعَةٍ",
+      "url": "https://sunnah.com/bukhari:3758",
+      "textSha256": "e412472c81bfe74236c11bd7f251c58282a9bdd6f48a26618bb62058a4a21509"
+    },
+    "bukhari:5000": {
+      "collection": "bukhari",
+      "number": 5000,
+      "editionNumber": 5000,
+      "phrase": "لَقَدْ أَخَذْتُ مِنْ فِي رَسُولِ اللَّهِ صلى الله عليه وسلم بِضْعًا وَسَبْعِينَ سُورَةً",
+      "url": "https://sunnah.com/bukhari:5000",
+      "textSha256": "53de2e4af91d67be84f4696cd64fd2268ab598a5e09765d81944d5e38721bda9"
+    },
+    "bukhari:4582": {
+      "collection": "bukhari",
+      "number": 4582,
+      "editionNumber": 4582,
+      "phrase": "فإني أحب أن أسمعه من غيري",
+      "url": "https://sunnah.com/bukhari:4582",
+      "textSha256": "61b46cda0d28fc003be6ae97a5b52376a3ca744b9cce49876c3058218c8bfc4b"
+    },
+    "muslim:19": {
+      "collection": "muslim",
+      "number": 19,
+      "editionNumber": 121,
+      "phrase": "إِنَّكَ تَأْتِي قَوْمًا مِنْ أَهْلِ الْكِتَابِ",
+      "url": "https://sunnah.com/muslim:19",
+      "textSha256": "5f062d533f6a8b7a864583f1d42552af0d48b3c799fdfc401dde8e45fb9c5a9e"
+    },
+    "bukhari:3038": {
+      "collection": "bukhari",
+      "number": 3038,
+      "editionNumber": 3038,
+      "phrase": "يسرا ولا تعسرا وبشرا ولا تنفرا",
+      "url": "https://sunnah.com/bukhari:3038",
+      "textSha256": "17cfda3347cef06626d370c49dbdb7af2164beb43a59a962b9f0ddf90c8d3242"
+    },
+    "bukhari:3946": {
+      "collection": "bukhari",
+      "number": 3946,
+      "editionNumber": 3946,
+      "phrase": "تَدَاوَلَهُ بِضْعَةَ عَشَرَ مِنْ رَبٍّ إِلَى رَبٍّ",
+      "url": "https://sunnah.com/bukhari:3946",
+      "textSha256": "5ee39488fe36f933572678810ba317dff340363ffcde1b523d43e16bd91988b6"
+    },
+    "bukhari:4897": {
+      "collection": "bukhari",
+      "number": 4897,
+      "editionNumber": 4897,
+      "phrase": "وَضَعَ رَسُولُ اللَّهِ صلى الله عليه وسلم يَدَهُ عَلَى سَلْمَانَ",
+      "url": "https://sunnah.com/bukhari:4897",
+      "textSha256": "233d708af76cea2daa71c975f8eecb9afb9e4e94177b7d46197febf25212eb0a"
+    },
+    "bukhari:1968": {
+      "collection": "bukhari",
+      "number": 1968,
+      "editionNumber": 1968,
+      "phrase": "إن لربك عليك حقا ولنفسك عليك حقا ولأهلك عليك حقا",
+      "url": "https://sunnah.com/bukhari:1968",
+      "textSha256": "1980bb7ea022ee155f700206f3370c3306d597efee94957b0a24fefd07c21b09"
+    },
+    "bukhari:119": {
+      "collection": "bukhari",
+      "number": 119,
+      "editionNumber": 119,
+      "phrase": "إِنِّي أَسْمَعُ مِنْكَ حَدِيثًا كَثِيرًا أَنْسَاهُ. قَالَ ابْسُطْ رِدَاءَكَ",
+      "url": "https://sunnah.com/bukhari:119",
+      "textSha256": "c46c7878333b83a86d5f6b962396026d684e0911113c59490373e35224f97a2d"
+    },
+    "bukhari:118": {
+      "collection": "bukhari",
+      "number": 118,
+      "editionNumber": 118,
+      "phrase": "كان يلزم رسول الله",
+      "url": "https://sunnah.com/bukhari:118",
+      "textSha256": "2c2c02395c997bd9e48ad1e830537e85db71daca41684dd0e573ae663505be00"
+    },
+    "bukhari:75": {
+      "collection": "bukhari",
+      "number": 75,
+      "editionNumber": 75,
+      "phrase": "اللَّهُمَّ عَلِّمْهُ الْكِتَابَ",
+      "url": "https://sunnah.com/bukhari:75",
+      "textSha256": "107e17ea322b0aceab5251c9d9d3132a5f7d6cf7a4cbfc2bd88ed3e6f4567b7a"
+    },
+    "bukhari:143": {
+      "collection": "bukhari",
+      "number": 143,
+      "editionNumber": 143,
+      "phrase": "اللَّهُمَّ فَقِّهْهُ فِي الدِّينِ",
+      "url": "https://sunnah.com/bukhari:143",
+      "textSha256": "492ac3adaf693cfa9df0e1e04dda6365897a36ac3275730b5d8559323f104531"
+    },
+    "bukhari:447": {
+      "collection": "bukhari",
+      "number": 447,
+      "editionNumber": 447,
+      "phrase": "كنا نحمل لبنة لبنة وعمار لبنتين لبنتين",
+      "url": "https://sunnah.com/bukhari:447",
+      "textSha256": "a87276b2bf03f7bbb05eb9bd07e1d12fa6f1340636d6a5520d328024d539e286"
+    },
+    "bukhari:1121": {
+      "collection": "bukhari",
+      "number": 1121,
+      "editionNumber": 1121,
+      "phrase": "نِعْمَ الرَّجُلُ عَبْدُ اللَّهِ، لَوْ كَانَ يُصَلِّي مِنَ اللَّيْلِ",
+      "url": "https://sunnah.com/bukhari:1121",
+      "textSha256": "70cae5f6272cdfa49e89617ab05d61a02ed045e87cc645873531d83a47872536"
+    },
+    "bukhari:6334": {
+      "collection": "bukhari",
+      "number": 6334,
+      "editionNumber": 6334,
+      "phrase": "اللَّهُمَّ أَكْثِرْ مَالَهُ وَوَلَدَهُ، وَبَارِكْ لَهُ فِيمَا أَعْطَيْتَهُ",
+      "url": "https://sunnah.com/bukhari:6334",
+      "textSha256": "8cf881ce4039441f32c7fbf0c842153b3921e81866c0f8a664069098bc998863"
+    },
+    "bukhari:6038": {
+      "collection": "bukhari",
+      "number": 6038,
+      "editionNumber": 6038,
+      "phrase": "خَدَمْتُ النَّبِيَّ صلى الله عليه وسلم عَشْرَ سِنِينَ، فَمَا قَالَ لِي أُفٍّ",
+      "url": "https://sunnah.com/bukhari:6038",
+      "textSha256": "08a399d61aa4ba8e7e543fc03870f54e56a38daccea849297f9de4f533f7e715"
+    },
+    "bukhari:2979": {
+      "collection": "bukhari",
+      "number": 2979,
+      "editionNumber": 2979,
+      "phrase": "فَلِذَلِكَ سُمِّيَتْ ذَاتَ النِّطَاقَيْنِ",
+      "url": "https://sunnah.com/bukhari:2979",
+      "textSha256": "01c823eae752144b5616a7094368d4c791c8280e7b477788da5ed3ecac947760"
+    },
+    "bukhari:2620": {
+      "collection": "bukhari",
+      "number": 2620,
+      "editionNumber": 2620,
+      "phrase": "نعم صلي أمك",
+      "url": "https://sunnah.com/bukhari:2620",
+      "textSha256": "17da16aaaa338d8ccd764233e62dda43d2086c2514b046625c51004da6704a50"
+    },
+    "bukhari:3802": {
+      "collection": "bukhari",
+      "number": 3802,
+      "editionNumber": 3802,
+      "phrase": "لمناديل سعد بن معاذ خير منها",
+      "url": "https://sunnah.com/bukhari:3802",
+      "textSha256": "c341e0ad1657d7008b4ae411b66766787f98a7451759ed02098171b05ac083af"
+    },
+    "bukhari:4121": {
+      "collection": "bukhari",
+      "number": 4121,
+      "editionNumber": 4121,
+      "phrase": "قوموا إلى سيدكم",
+      "url": "https://sunnah.com/bukhari:4121",
+      "textSha256": "10a2c4310bc7af2865f23041b71670b8d60944d779c457e8fd7538bcae3a87b1"
+    },
+    "bukhari:3803": {
+      "collection": "bukhari",
+      "number": 3803,
+      "editionNumber": 3803,
+      "phrase": "اهْتَزَّ الْعَرْشُ لِمَوْتِ سَعْدِ بْنِ مُعَاذٍ",
+      "url": "https://sunnah.com/bukhari:3803",
+      "textSha256": "1a082af67d85db4528016832bd64c5aaa03eeb887c93a99b0096a10ae3d1182d"
+    },
+    "bukhari:2699": {
+      "collection": "bukhari",
+      "number": 2699,
+      "editionNumber": 2699,
+      "phrase": "وَقَالَ لِجَعْفَرٍ أَشْبَهْتَ خَلْقِي وَخُلُقِي",
+      "url": "https://sunnah.com/bukhari:2699",
+      "textSha256": "553f6fb284a4cd3cf2511d5090dc6cfaaa52b138baf16880cffa975d265a83b5"
+    },
+    "bukhari:3709": {
+      "collection": "bukhari",
+      "number": 3709,
+      "editionNumber": 3709,
+      "phrase": "السَّلاَمُ عَلَيْكَ يَا ابْنَ ذِي الْجَنَاحَيْنِ",
+      "url": "https://sunnah.com/bukhari:3709",
+      "textSha256": "78035a442bad6aa856bade0f2b98a53a179c54bb5ff4b0c50d9b36f4a56e3e05"
+    },
+    "bukhari:3861": {
+      "collection": "bukhari",
+      "number": 3861,
+      "editionNumber": 3861,
+      "phrase": "ارْجِعْ إِلَى قَوْمِكَ، فَأَخْبِرْهُمْ",
+      "url": "https://sunnah.com/bukhari:3861",
+      "textSha256": "a396fd9359517e93a62b6f8207fca601e982e37da51fa97466ffe4da9d1feac5"
+    },
+    "bukhari:3213": {
+      "collection": "bukhari",
+      "number": 3213,
+      "editionNumber": 3213,
+      "phrase": "هَاجِهِمْ ـ وَجِبْرِيلُ مَعَكَ",
+      "url": "https://sunnah.com/bukhari:3213",
+      "textSha256": "2eb3900f048bee84fb8fde43d02e685cd805be3b9d2935e5b2dfab10c3b8c198"
+    },
+    "bukhari:453": {
+      "collection": "bukhari",
+      "number": 453,
+      "editionNumber": 453,
+      "phrase": "يا حسان أجب عن رسول الله",
+      "url": "https://sunnah.com/bukhari:453",
+      "textSha256": "dc2b55dec6adaadda2361eba56a20b2c3d84916b2aed453642984baf74da2d3e"
+    },
+    "bukhari:3212": {
+      "collection": "bukhari",
+      "number": 3212,
+      "editionNumber": 3212,
+      "phrase": "أجب عني اللهم أيده بروح القدس",
+      "url": "https://sunnah.com/bukhari:3212",
+      "textSha256": "89f28be8c8da7fdd88c4b83ee8f8c2bffc83415a755dcf82940ac9bef9c518e0"
+    },
+    "bukhari:5048": {
+      "collection": "bukhari",
+      "number": 5048,
+      "editionNumber": 5048,
+      "phrase": "يَا أَبَا مُوسَى لَقَدْ أُوتِيتَ مِزْمَارًا",
+      "url": "https://sunnah.com/bukhari:5048",
+      "textSha256": "d86b0a25e20d155d4420140db6ce588490894cfd90038df71451de72ce1bdc87"
+    },
+    "muslim:793e": {
+      "collection": "muslim",
+      "number": 793,
+      "editionNumber": 1852,
+      "phrase": "لو رأيتني وأنا أستمع لقراءتك البارحة",
+      "url": "https://sunnah.com/muslim:793e",
+      "textSha256": "275ea7df4cbaaebeb6b91f49517ff4b8c032af2d24b885574f5eb8c93a9b884c"
+    },
+    "bukhari:6028": {
+      "collection": "bukhari",
+      "number": 6028,
+      "editionNumber": 6028,
+      "phrase": "اشفعوا فلتؤجروا",
+      "url": "https://sunnah.com/bukhari:6028",
+      "textSha256": "6bd2ee1ceb2bd0b2bff52c4fbeca30ce8df53fcde4c9ecd8832a660cc1a9b748"
+    },
+    "bukhari:3329": {
+      "collection": "bukhari",
+      "number": 3329,
+      "editionNumber": 3329,
+      "phrase": "أشهد أنك رسول الله",
+      "url": "https://sunnah.com/bukhari:3329",
+      "textSha256": "eb628d01ccf0b3d51872e022319bbce7334aa5d130a9a8b45fa766f15ba8356c"
+    },
+    "bukhari:3813": {
+      "collection": "bukhari",
+      "number": 3813,
+      "editionNumber": 3813,
+      "phrase": "فأنت على الإسلام حتى تموت",
+      "url": "https://sunnah.com/bukhari:3813",
+      "textSha256": "f154ab75a90adce803e25743270fe3936e2ca52dc8cf9436e564380a84eec128"
+    },
+    "bukhari:3812": {
+      "collection": "bukhari",
+      "number": 3812,
+      "editionNumber": 3812,
+      "phrase": "يَمْشِي عَلَى الأَرْضِ إِنَّهُ مِنْ أَهْلِ الْجَنَّةِ. إِلاَّ لِعَبْدِ اللَّهِ بْنِ سَلاَمٍ",
+      "url": "https://sunnah.com/bukhari:3812",
+      "textSha256": "3fa93fa5d0b1ee10e725c50f5ae50275586e1e2abf5951f2fa05bf6f2fc0a729"
+    },
+    "bukhari:1461": {
+      "collection": "bukhari",
+      "number": 1461,
+      "editionNumber": 1461,
+      "phrase": "وَإِنَّ أَحَبَّ أَمْوَالِي إِلَىَّ بَيْرُحَاءَ",
+      "url": "https://sunnah.com/bukhari:1461",
+      "textSha256": "3b284e120784f208276cbdba00f480c599d469efb611c7e520b50daf378e602b"
+    },
+    "bukhari:3752": {
+      "collection": "bukhari",
+      "number": 3752,
+      "editionNumber": 3752,
+      "phrase": "لَمْ يَكُنْ أَحَدٌ أَشْبَهَ بِالنَّبِيِّ صلى الله عليه وسلم مِنَ الْحَسَنِ بْنِ عَلِيٍّ",
+      "url": "https://sunnah.com/bukhari:3752",
+      "textSha256": "a9aecf0d624d2507282e6e9e60ca5fbfed2b3c7e4e6abfe38888a2283d8b538b"
+    },
+    "bukhari:2704": {
+      "collection": "bukhari",
+      "number": 2704,
+      "editionNumber": 2704,
+      "phrase": "وَلَعَلَّ اللَّهَ أَنْ يُصْلِحَ بِهِ بَيْنَ فِئَتَيْنِ عَظِيمَتَيْنِ مِنَ الْمُسْلِمِينَ",
+      "url": "https://sunnah.com/bukhari:2704",
+      "textSha256": "97e72f09e4c6278237704a564a11314acd91b54a4c1d167076136d59cf876201"
+    },
+    "bukhari:3730": {
+      "collection": "bukhari",
+      "number": 3730,
+      "editionNumber": 3730,
+      "phrase": "إِنْ تَطْعُنُوا فِي إِمَارَتِهِ فَقَدْ كُنْتُمْ تَطْعُنُونَ فِي إِمَارَةِ أَبِيهِ مِنْ قَبْلُ، وَايْمُ اللَّهِ، إِنْ كَانَ لَخَلِيقًا لِلإِمَارَةِ",
+      "url": "https://sunnah.com/bukhari:3730",
+      "textSha256": "4bdc9c41c8592eb9c2271d76b26405097777d554be40f37ed427ede03efde8b3"
+    },
+    "bukhari:3742": {
+      "collection": "bukhari",
+      "number": 3742,
+      "editionNumber": 3742,
+      "phrase": "الَّذِي أَجَارَهُ اللَّهُ مِنَ الشَّيْطَانِ",
+      "url": "https://sunnah.com/bukhari:3742",
+      "textSha256": "1887f69195b79a391f92ae59e0f3324ab6a47068a5eb514176c5598a178b5ab5"
+    }
+  },
+  "figures": {
+    "musab-ibn-umair": {
+      "summaryAr": "سبق إلى المدينة يعلّم أهلها القرآن، ثم استشهد يوم أُحد ولم يجد أصحابه له إلا بردة قصيرة يكفّنونه بها.",
+      "paragraphs": [
+        {
+          "text": "قبل أن يصل النبي ﷺ إلى المدينة، كانت بيوت فيها تتعرّف إلى القرآن على أيدي رجال سبقوه إليها. وفي مقدمة هؤلاء يذكر البراء بن عازب مصعب بن عمير وابن أم مكتوم. تبدأ هذه الصفحة من قصة مصعب بعمل له أثر باق: تعليم الناس كلام الله، في مرحلة كانت الجماعة المسلمة فيها تستعد للهجرة وبناء حياتها الجديدة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3925"
+          ]
+        },
+        {
+          "text": "لم يذكر البراء مجرد وصولهما، بل بيّن أنهما كانا يقرئان الناس. فمصعب حاضر في الرواية معلّمًا للقرآن، يصل ما يتعلمه الناس بما يحملونه معهم إلى الصلاة والحياة اليومية. ومن شواهد أثر تلك المرحلة أن البراء أخبر أنه قرأ سورة الأعلى وسورًا من المفصل قبل قدوم رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3925"
+          ]
+        },
+        {
+          "text": "وتتابع وصول الصحابة إلى المدينة؛ فقدم بلال وسعد وعمار، ثم عمر بن الخطاب في جماعة من أصحاب النبي ﷺ. وبعد ذلك قدم رسول الله ﷺ، ووصف البراء فرح أهل المدينة بقدومه وصف شاهد رأى الحدث. وفي ترتيب الرواية يظهر موضع مصعب من هذه البداية: كان من السابقين إلى المدينة وتعليم أهلها، قبل مشهد الاستقبال الكبير.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3925"
+          ]
+        },
+        {
+          "text": "ثم تأتي نهاية الطريق في يوم أُحد. كان خباب بن الأرت يذكر المهاجرين الذين خرجوا يطلبون وجه الله، فيذكر منهم مصعبًا، الذي استشهد قبل أن ينال شيئًا من متاع الدنيا بعد الهجرة. ولم يجد أصحابه لتكفينه إلا بردة قصيرة؛ فحمل مشهد وداعه من قلة المتاع مثل ما حملت حياته من بذل.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1276"
+          ]
+        },
+        {
+          "text": "كانوا إذا غطوا بالبردة رأسه ظهرت رجلاه، وإذا غطوا رجليه ظهر رأسه. فأمر النبي ﷺ أن يغطوا رأسه، وأن يجعلوا على رجليه من الإذخر، وهو نبات. حفظت الرواية هذا المشهد بما فيه من قلة المتاع والعناية بالشهيد، فلم تصبح قيمة الرجل مرتبطة بما تركه من مال، بل بما قدمه في حياته.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1276"
+          ]
+        },
+        {
+          "text": "للتأمل: بين المعلّم الذي سبق إلى المدينة، والمهاجر الذي استشهد ولم يجدوا له كفنًا كاملًا، تظهر قيمة الأثر الذي يصنعه الإنسان. تعلّم الناس على يديه القرآن، ثم مضى وبقي خبره في شهادة أصحابه. قد يقل ما يتركه المرء من المتاع، ويبقى من عمله ما ينتفع به آخرون ويذكرونه من أجله.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3925",
+            "bukhari:1276"
+          ]
+        }
+      ]
+    },
+    "abu-bakr-as-siddiq": {
+      "summaryAr": "صحب النبي ﷺ في الغار، وشهد له رسول الله ﷺ بفضل الصحبة والبذل، وعرف أصحابه دقة فهمه لكلامه.",
+      "paragraphs": [
+        {
+          "text": "في الغار، كان أبو بكر مع النبي ﷺ حين اقترب المشركون منهما. يروي أبو بكر بنفسه أنه رأى آثارهم، وأنه نبّه رسول الله ﷺ إلى أن أحدهم لو رفع قدمه لرآهما. تحفظ الرواية لحظة شديدة من حياة الصحبة؛ رجلان في موضع خفي، والخطر قريب إلى الحد الذي وصفه أحدهما بعد ذلك للناس.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4663"
+          ]
+        },
+        {
+          "text": "جاء جواب النبي ﷺ يذكّره بمعية الله لهما. لم يتغير موضع الغار ولا قرب الباحثين عنهما، لكن الموقف حمل إلى أبي بكر كلمة تثبيت سمعها من صاحبه في ساعة الخطر. وبقي بعد ذلك يروي ما رأى وما قاله، حتى نقل أنس هذه الصفحة عنه إلى من لم يشهد الهجرة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4663"
+          ]
+        },
+        {
+          "text": "وفي موقف آخر، خطب النبي ﷺ عن عبد خيّره الله بين الدنيا وما عنده فاختار ما عند الله. بكى أبو بكر حين سمع ذلك. وكان أبو سعيد الخدري يتعجّب يومها من بكائه، قبل أن يتبين أن رسول الله ﷺ هو العبد المقصود، وأن أبا بكر فهم من الكلام ما لم يفهمه غيره في تلك اللحظة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:466"
+          ]
+        },
+        {
+          "text": "لم تذكر الرواية بكاءه وحده، بل نقلت شهادة النبي ﷺ في صحبته وماله، وما قدّمه من بذل. كما بيّن النبي ﷺ مكانته في أخوة الإسلام ومودته، وأمر بإغلاق الأبواب الباقية في المسجد إلا باب أبي بكر. هكذا تلتقي العاطفة الصادقة في المشهد مع شهادة صريحة في عظم الصحبة والعطاء.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:466"
+          ]
+        },
+        {
+          "text": "وفي ختام الخطبة، لم تكن دموع أبي بكر غائبة عن كلام رسول الله ﷺ؛ فقد خاطبه مواسيًا، ثم ذكر فضل صحبته وماله. والذي تعجّب من بكائه، أبو سعيد، صار يروي بعد ذلك أن أبا بكر كان أعلمهم بالمقصود. هكذا بقيت دقة فهمه محفوظة بشهادة من كان يظن أول الأمر أن البكاء يدعو إلى العجب.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:466"
+          ]
+        },
+        {
+          "text": "للتأمل: تتكون الصحبة من مواقف تراكمت، لا من وصف يُقال مرة واحدة. ففي الغار حضور عند الخطر، وفي الخطبة فهم ومحبة، وفي شهادة النبي ﷺ ذكر للبذل. وتدعونا هذه الصفحات إلى أن ننظر إلى الوفاء فيما يقدمه الإنسان، وإلى المعرفة العميقة التي تنمو مع طول القرب وحسن الإنصات.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:4663",
+            "bukhari:466"
+          ]
+        }
+      ]
+    },
+    "umar-ibn-al-khattab": {
+      "summaryAr": "أعزّ الله بإسلامه المسلمين، وجمعت مواقفه قوة الحضور ورعاية الحقوق ومحاسبة النفس.",
+      "paragraphs": [
+        {
+          "text": "عبّر عبد الله بن مسعود عن أثر إسلام عمر بن الخطاب بعبارة يربط فيها عز المسلمين بإسلامه. هذه شهادة من صحابي عاش تلك المرحلة، وهي مدخل إلى فهم شخصية عمر: لم يكن حضوره شأنًا فرديًا، بل رآه أصحابه قوة أضافت إلى جماعتهم ثباتًا وعزة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3684"
+          ]
+        },
+        {
+          "text": "وتظهر هيبته في خبر سعد بن أبي وقاص عن دخوله على النبي ﷺ، وقد كانت عنده نسوة من قريش. لما سمعن صوت عمر بادرن الحجاب، فضحك رسول الله ﷺ وبيّن سبب ضحكه. ثم دار الكلام في هيبته، وختمه النبي ﷺ ببيان أن الشيطان إذا لقيه في طريق سلك طريقًا غيره.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3683"
+          ]
+        },
+        {
+          "text": "أما في أيام خلافته، فينقل عمرو بن ميمون موقفًا قريبًا من وفاته: سأل عمر حذيفة وعثمان بن حنيف عن الأرض وما فُرض عليها، وخشي أن يكونا حمّلاها ما لا تطيق. وتكرّر منه التنبيه إلى ذلك. يتقدم في هذا الخبر سؤال المسؤول عن أثر قراراته، وعن طاقة الناس والأرض، قبل أن يتقدم الحديث عن تحصيل المال.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "ثم أُصيب عمر وهو في صلاة الفجر، وقد كان يسوّي الصفوف قبل أن يكبّر. وبعد إصابته قدّم عبد الرحمن بن عوف ليصلي بالناس. وتنقل الرواية ما جرى في بيته بعد ذلك، ومنه اهتمامه بالدَّين الذي عليه، وتوجيه ابنه إلى قضائه من مال أهله، ثم من قرابته إذا لم يكف المال.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "واستأذن عائشة أن يُدفن مع النبي ﷺ وأبي بكر، وأوصى أن يعاد طلب الإذن بعد وفاته؛ فإن أذنت دُفن، وإلا رُدّ إلى مقابر المسلمين. وأوصى من يتولى الأمر بعده بالمهاجرين والأنصار وأهل الأمصار والأعراب وأهل الذمة، وبالوفاء بالعهد وألا يُكلّف الناس فوق طاقتهم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "للتأمل: تجمع هذه المواقف القوة ومحاسبة النفس. فالرجل الذي عُرف بالهيبة كان يسأل عن طاقة من تحت مسؤوليته، وينشغل بالدَّين والاستئذان والحقوق في آخر أيامه. والعبرة هنا مستفادة من الوقائع المروية: المسؤولية لا تتم بالقوة وحدها، بل برعاية الحقوق والخوف من التقصير فيها.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3683",
+            "bukhari:3700"
+          ]
+        }
+      ]
+    },
+    "uthman-ibn-affan": {
+      "summaryAr": "شهد له النبي ﷺ بالحياء، وبذل ماله في الخير، وأشرف في خلافته على نسخ الصحف في المصاحف وإرسالها إلى الآفاق.",
+      "paragraphs": [
+        {
+          "text": "تُظهر الأخبار الصحيحة عثمان بن عفان في أكثر من باب من أبواب الخير: الحياء، والبذل، والعناية بالمصحف. وفي خبر عائشة أن النبي ﷺ جلس وسوّى ثيابه حين استأذن عثمان، ثم بيّن لها سبب ذلك بذكر حيائه ومنزلته. هكذا يبدأ التعريف به من خُلُق شهد له به رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "muslim:2401"
+          ]
+        },
+        {
+          "text": "ولم يكن فضله محصورًا في الخُلُق الفردي. ففي الرواية التي نقلت حديثه وقت حصاره، ناشد أصحاب النبي ﷺ أن يشهدوا له في أمر بئر رومة وتجهيز جيش العسرة. وأقروا بما ذكره. يُبرز هذا الخبر وجهًا آخر من سيرته: تحويل المال إلى نفع تتجاوز فائدته صاحبه وتصل إلى الجماعة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2778"
+          ]
+        },
+        {
+          "text": "وفي خلافته، جاءه حذيفة بن اليمان بعد أن أفزعه اختلاف الناس في القراءة أثناء اجتماع أهل الشام وأهل العراق في الغزو. طلب حذيفة تدارك الأمر قبل اتساع الاختلاف في الكتاب. عند هذه النقطة تنقل الرواية قرار عثمان العملي، ولم تكتف بعبارة عامة عن اهتمامه بالقرآن.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4987"
+          ]
+        },
+        {
+          "text": "أرسل عثمان إلى حفصة يطلب الصحف لنسخها في المصاحف على أن يعيدها إليها. ثم كلّف زيد بن ثابت وعبد الله بن الزبير وسعيد بن العاص وعبد الرحمن بن الحارث بن هشام بالنسخ، ووجّههم فيما يقع بينهم من اختلاف. وبعد إتمام العمل ردّ الصحف إلى حفصة، وبعث إلى الآفاق بمصاحف مما نُسخ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4987"
+          ]
+        },
+        {
+          "text": "واستمر العمل حتى فرغ المكلّفون من نسخ الصحف، فأعاد عثمان الأصل الذي استُعير من حفصة. ثم أرسل إلى كل أفق مصحفًا مما نُسخ. تتابعت الخطوات من سماع تحذير حذيفة، إلى طلب الصحف، واختيار من ينسخ، ثم مراجعة جهة الكتابة وإرسال المصاحف؛ وكان المقصود تدارك الاختلاف الذي خشيه حذيفة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4987"
+          ]
+        },
+        {
+          "text": "للتأمل: تتجاور في هذه الصفحات أبواب مختلفة من الخير؛ حياء في المعاملة، ومال يقدّم عند الحاجة، ومسؤولية تجاه كتاب الله. وقد تختلف وسائل الخدمة، لكن أثرها يصل إلى الناس: ماء ينتفعون به، وجيش يجد ما يحتاج، وعناية بأمر عام خشي الصحابة أن يتسع فيه الخلاف.",
+          "kind": "reflection",
+          "references": [
+            "muslim:2401",
+            "bukhari:2778",
+            "bukhari:4987"
+          ]
+        }
+      ]
+    },
+    "ali-ibn-abi-talib": {
+      "summaryAr": "حمل الراية يوم خيبر بتكليف النبي ﷺ، وتلقى منه توجيهًا إلى الدعوة والهداية، وعُرف بالحرص على جماعة الناس.",
+      "paragraphs": [
+        {
+          "text": "في خبر خيبر، أعلن النبي ﷺ أنه سيعطي الراية في الغد رجلًا يفتح الله على يديه. أمضى الصحابة ليلتهم يتحدثون فيمن تُعطى له، ثم غدوا وكل واحد يرجوها. هكذا تقدّم الرواية المشهد قبل أن تذكر اسم علي بن أبي طالب، فتبيّن أهمية المهمة وتطلع الناس إلى نيلها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3701"
+          ]
+        },
+        {
+          "text": "سأل رسول الله ﷺ عن علي، فقيل إنه يشتكي عينيه، فأمر بإحضاره. فلما جاء بصق النبي ﷺ في عينيه ودعا له، فبرأ حتى كأن لم يكن به وجع، ثم أعطاه الراية. تبدّل حاله في ذلك المجلس من شكوى الألم إلى الاستعداد لحمل المهمة، وقد اجتمع له الدعاء والتكليف.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3701"
+          ]
+        },
+        {
+          "text": "سأل علي عن القتال، فجاءه التوجيه النبوي بأن يمضي على رسله حتى ينزل بساحتهم، ثم يدعوهم إلى الإسلام ويخبرهم بما يجب عليهم من حق الله. وفي ختام التوجيه بيّن له النبي ﷺ فضل أن يهدي الله به رجلًا واحدًا. لم تكن الراية منفصلة عن البيان والدعوة، بل اقترنت بتعليم واضح قبل المواجهة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3701"
+          ]
+        },
+        {
+          "text": "وفي موقف آخر، حفظ سعد بن أبي وقاص كلمة النبي ﷺ لعلي في منزلة هارون من موسى، مع الاستثناء الصريح أنه لا نبي بعد رسول الله ﷺ. جاء هذا القول حين خلّفه النبي ﷺ في غزوة تبوك. أضافت الشهادة إلى التكليف منزلة من القرب، وبقي سعد يرويها في فضل علي.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4416"
+          ]
+        },
+        {
+          "text": "وفي أثر آخر عنه، أمر الناس أن يقضوا كما كانوا يقضون، وأظهر كراهته للاختلاف حتى يكون للناس جماعة. يضيف هذا الأثر إلى موقف الراية صورة العناية بوحدة الناس واستقرار القضاء؛ فالسيرة لا تُقرأ من مشهد شجاعة وحده، بل مما نُقل عن صاحبها من عمل وتوجيه أيضًا.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3707"
+          ]
+        },
+        {
+          "text": "للتأمل: تقترن القوة في قصة الراية بتوجيه يفتح باب الهداية، ويقترن القرب في موقف تبوك بتحمل مسؤولية البقاء. ثم يظهر الحرص على الجماعة في كلام علي عن القضاء. ومن اجتماع هذه الصفحات نتعلم أن خدمة الناس تتسع للشجاعة والتعليم ورعاية الاستقرار، ولا يقاس نفع المرء بموقف واحد.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3701",
+            "bukhari:3707"
+          ]
+        }
+      ]
+    },
+    "khadijah-bint-khuwaylid": {
+      "summaryAr": "ثبّتت النبي ﷺ عند بدء الوحي، وسعت معه إلى فهم ما وقع، وجاءتها بشارة وسلام من ربها.",
+      "paragraphs": [
+        {
+          "text": "تظهر خديجة بنت خويلد في حديث بدء الوحي عند لحظة حاسمة من حياة النبي ﷺ. كان يخلو في غار حراء للتعبد، ثم يرجع إليها فيتزود لمثل تلك الليالي. وحين جاءه الوحي ورجع يرجف فؤاده، كان بيته معها هو الموضع الذي عاد إليه، فاستُقبل وغطّوه حتى ذهب عنه الروع.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3"
+          ]
+        },
+        {
+          "text": "أخبر النبي ﷺ خديجة بما وقع له وبخشيته على نفسه. لم تجبه بكلام بعيد عن معرفتها به، بل استحضرت أخلاقه التي عرفت: صلة الرحم، وحمل الضعيف، وإعانة المحتاج، وإكرام الضيف، والمساعدة على نوائب الحق. تبني الرواية موقفها على معرفة وعشرة، وتبيّن كيف صار ذلك سببًا في تثبيته.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3"
+          ]
+        },
+        {
+          "text": "ثم انتقلت خديجة من التطمين إلى طلب العلم بالخبر، فانطلقت به إلى ابن عمها ورقة بن نوفل. كان ورقة قد تنصّر في الجاهلية، وكان شيخًا كبيرًا قد عمي. طلبت منه أن يسمع، فقصّ عليه النبي ﷺ ما رأى. حفظ الحديث هذه الخطوة العملية، فلا تقتصر صورة خديجة على عبارات المواساة وحدها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3"
+          ]
+        },
+        {
+          "text": "أخبر ورقة رسول الله ﷺ بأن الذي جاءه هو الناموس الذي نزل على موسى، وذكر ما يلقاه أصحاب الرسالات من عداوة، وتمنّى أن يدرك يوم نصرته. تنتهي هذه المرحلة من الخبر وقد كانت خديجة هي التي سمعت أولًا، وثبّتت، ثم وصلت زوجها بمن يفسر له ما وقع من جهة معرفته بالكتب السابقة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3"
+          ]
+        },
+        {
+          "text": "وفي خبر آخر، أتى جبريل النبي ﷺ وأخبره بقدوم خديجة ومعها إناء فيه إدام أو طعام أو شراب، وأمره أن يقرأ عليها السلام من ربها ومنه، وأن يبشرها ببيت في الجنة لا صخب فيه ولا نصب. وبين عنايتها بما تحمله إليه وهذه البشارة، بقي مشهد من الحياة اليومية مقرونًا بتكريم عظيم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3820"
+          ]
+        },
+        {
+          "text": "للتأمل: قد يكون أعظم العون حسن الاستماع في اللحظة التي يشتد فيها الاضطراب، ثم كلمة تستند إلى معرفة صادقة، ثم سعي لفهم ما وقع. فعلت خديجة ذلك في بدء الوحي، فكانت قربًا يطمئن ومعونة تتحرك. وتذكرنا قصتها بقيمة من يثبت إلى جانب من يحب، ويضع معرفته ووقته في خدمته.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3",
+            "bukhari:3820"
+          ]
+        }
+      ]
+    },
+    "aishah-bint-abi-bakr": {
+      "summaryAr": "حفظت أخبارًا من حياة النبي ﷺ، وحملت الماء يوم أُحد، وآثرت عمر بموضع كانت تريده لنفسها.",
+      "paragraphs": [
+        {
+          "text": "تصلنا صفحات من حياة النبي ﷺ من رواية عائشة بنت أبي بكر، فهي تنقل خبر بدء الوحي وما وقع في بيت خديجة، كما تنقل مشاهد عاشتها في بيتها. ومن هنا لا تظهر في المصادر اسمًا في سيرة غيرها فقط، بل راوية حفظت للناس أخبارًا يتعرفون بها إلى حياة رسول الله ﷺ وأخلاقه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3",
+            "bukhari:3623"
+          ]
+        },
+        {
+          "text": "وفي حديث عمرو بن العاص، بعد أن بعثه النبي ﷺ على جيش ذات السلاسل، سأل عمرو رسول الله ﷺ عن أحب الناس إليه. سمّى النبي ﷺ عائشة، ولما سأل عن الرجال سمّى أباها، ثم ذكر عمر فيمن تلا ذلك من الرجال. بقي سؤال عمرو وجوابه خبرًا محفوظًا في محبتها ومنزلتها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3662"
+          ]
+        },
+        {
+          "text": "وفي يوم أُحد، رآها أنس مع أم سليم تحملان الماء وتصبانه في أفواه القوم، ثم ترجعان لتملآ القرب وتعودان بها. تظهر عائشة في هذا الخبر عاملة في إغاثة من يحتاجون إلى الماء، تحمل القربة وتكرر الذهاب والعودة. وتضيف شهادة أنس إلى ما روته هي موقفًا رآه من خدمتها في وقت الشدة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3811"
+          ]
+        },
+        {
+          "text": "ومن دقة روايتها أنها وصفت قدوم فاطمة إلى النبي ﷺ، وقرب مشيتها من مشيته، ثم إسراره إليها وبكاءها وضحكها. سألت عائشة فاطمة عن الأمر، فلم تفش فاطمة السر في حياته. وبعد وفاته أعادت السؤال، فنقلت الجواب. تتيح لنا الرواية التمييز بين ما رأته عائشة بنفسها وما أخبرتها به فاطمة لاحقًا.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3623"
+          ]
+        },
+        {
+          "text": "وتظهر عائشة في آخر أيام عمر حين استأذن أن يُدفن إلى جوار النبي ﷺ وأبي بكر. أخبرت عبد الله بن عمر بأنها كانت تريد الموضع لنفسها، لكنها آثرت به عمر. يضيف هذا الموقف إلى أخبار المحبة والرواية فعلًا من الإيثار في أمر كانت ترجوه لنفسها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "للتأمل: تتسع خدمة الإنسان لما يحفظه من علم وما يبذله من جهد وما يؤثر به غيره. نقلت عائشة أخبارًا نتعلم منها، وحملت الماء يوم أُحد، وآثرت عمر بموضع كانت تريده لنفسها. وتجمع هذه المواقف المعرفة بالفعل، وتجعل المحبة والفضل قريبين من أعمال محسوسة في حياة الناس.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3662",
+            "bukhari:3623",
+            "bukhari:3700"
+          ]
+        }
+      ]
+    },
+    "fatimah-az-zahra": {
+      "summaryAr": "رحّب بها أبوها ﷺ وقرّبها، فحفظت سره، واجتمع لها في لقائه حزن الفراق وفرح البشارة.",
+      "paragraphs": [
+        {
+          "text": "وصفت عائشة قدوم فاطمة إلى أبيها رسول الله ﷺ، فذكرت أن مشيتها تشبه مشيته. رحّب بها وأجلسها إلى جانبه. تبدأ الرواية بلقاء أب وابنته، ثم تحمل في تفاصيلها خبرًا عن قرب الرحيل وبشارة في منزلتها؛ ولذلك يجتمع في المشهد من الحزن والفرح ما تعجبت منه عائشة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3623"
+          ]
+        },
+        {
+          "text": "أسرّ النبي ﷺ إلى فاطمة حديثًا فبكت، ثم أسرّ إليها حديثًا آخر فضحكت. تعجبت عائشة من هذا الفرح القريب من الحزن، وسألتها عن الخبر، فامتنعت فاطمة عن إفشاء سر أبيها في حياته. بقي للمجلس ما رأى من بكائها وضحكها، وبقي معنى السر محفوظًا حتى الوقت الذي أخبرت به.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3623"
+          ]
+        },
+        {
+          "text": "بعد وفاة النبي ﷺ، أخبرت فاطمة عائشة بما قال لها: كان جبريل يعارضه القرآن كل سنة مرة، وفي تلك السنة عارضه مرتين، فذكر لها ما يدل على قرب أجله، وأخبرها بأنها أول أهل بيته لحاقًا به. عندها فسّرت لعائشة سبب البكاء الذي رأته في ذلك اللقاء الأخير.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3623"
+          ]
+        },
+        {
+          "text": "ثم بشّرها النبي ﷺ بأن تكون سيدة نساء أهل الجنة، أو نساء المؤمنين، فكان ذلك سبب ضحكها. صار اللقاء يحمل خبر الفراق وبشارة الفضل معًا، وحفظت فاطمة الكلمتين حتى روت ما جرى. وبعد أن كانت عائشة لا تعرف إلا الأثر الذي رأته، عرفت من فاطمة ما وراءه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3623"
+          ]
+        },
+        {
+          "text": "وفي حديث المسور بن مخرمة، بيّن رسول الله ﷺ شدة صلته بفاطمة وأن ما يغضبها يغضبه. تلتقي هذه الكلمة مع الترحيب بها وإجلاسها إلى جانبه، فتظهر مكانة البنت عند أبيها في القول والمعاملة. وبقيت هذه المشاهد ينقلها الصحابة، تحمل إلى من بعدهم خبر القرب والرحمة بينهما.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3714"
+          ]
+        },
+        {
+          "text": "للتأمل: تجمع القصة دفء اللقاء وأمانة السر وصبر الفراق وفرح البشارة. وتذكرنا بأن الوفاء لا يكون بالكلام وحده؛ فقد حفظت فاطمة ما أسرّه إليها أبوها، ثم أخبرت به حين زال موجب كتمانه. وفي مشهدها معنى إنساني قريب: قد يحمل اللقاء الواحد حزنًا ورجاء، ويبقى أثره في القلب طويلًا.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3623",
+            "bukhari:3714"
+          ]
+        }
+      ]
+    },
+    "bilal-ibn-rabah": {
+      "summaryAr": "أعتقه أبو بكر وكرّمه عمر، وبشّره النبي ﷺ، وحدّث عن محافظته على الصلاة بعد الطهارة.",
+      "paragraphs": [
+        {
+          "text": "حفظ جابر بن عبد الله كلمة كان عمر يقولها عن أبي بكر وبلال: يصف أبا بكر بالسيادة، ويذكر أنه أعتق بلالًا ويصف بلالًا بالسيادة كذلك. من هذه الشهادة يبدأ التعرف إلى منزلته؛ فالصحابة حفظوا فضل العتق، وحفظوا للمُعتَق قدره، من غير أن يجعلوا ماضي الرق حاجزًا عن تكريمه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3754"
+          ]
+        },
+        {
+          "text": "وتذكر رواية البراء بلالًا فيمن قدموا المدينة قبل وصول النبي ﷺ، بعد ذكر مصعب وابن أم مكتوم. يضعه هذا الخبر في مشهد الهجرة وتكوّن الجماعة الجديدة، إلى جوار سعد وعمار وغيرهم. إن القصة الثابتة أوسع من صورة اسم يُسمع فقط؛ فهي تتضمن انتقالًا وصحبة ومشاركة في مرحلة مهمة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3925"
+          ]
+        },
+        {
+          "text": "ثم يروي أبو هريرة أن النبي ﷺ سأل بلالًا عند صلاة الفجر عن أرجى عمل عمله في الإسلام، وأخبره بأنه سمع حركة نعليه بين يديه في الجنة. لا تنقل الرواية استعراضًا من بلال لأعماله، بل سؤالًا جاءه من رسول الله ﷺ فكان جوابه وصفًا لعبادة اعتادها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1149"
+          ]
+        },
+        {
+          "text": "قال بلال إنه لم يتطهّر في ساعة من ليل أو نهار إلا صلى بذلك الطهور ما كتب له أن يصلي. يتكرر العمل مع تكرر الطهارة، في الليل والنهار، ويصير جزءًا من حياته. وحين سُئل عن أرجى أعماله لم يعدّد كل ما فعل، بل سمّى هذا العمل الذي كان يرجوه عند الله.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1149"
+          ]
+        },
+        {
+          "text": "بين كلمة عمر وجواب بلال يتكامل جانبان من الصورة: مكانة يعرفها له أصحابه، وعمل يتحدث عنه حين يسأله النبي ﷺ. فالصحابي الذي أعتقه أبو بكر وأكرمه عمر بلفظ السيادة، هو نفسه الذي وقف في مجلس الفجر يذكر ما اعتاده من طهارة وصلاة، فيتوصل القارئ إلى شيء من حياته اليومية.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3754",
+            "bukhari:1149"
+          ]
+        },
+        {
+          "text": "للتأمل: للأعمال المتكررة منزلة في حياة صاحبها، حتى إن بدا فعلها بسيطًا في كل مرة. وتدعونا قصة بلال إلى ألا نحتقر بابًا من الخير نستطيع المحافظة عليه، وإلى أن نعرف أقدار الناس بفضلهم وعملهم. اجتمع له في هذه الأخبار تكريم أصحابه، وبشارة سمعها من رسول الله ﷺ.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:1149",
+            "bukhari:3754"
+          ]
+        }
+      ]
+    },
+    "abu-ubaydah-ibn-al-jarrah": {
+      "summaryAr": "شهد له النبي ﷺ بالأمانة، فبعثه في مهمة إلى نجران، وحمل مسؤولية جيش قلّ زاده في رحلة الساحل.",
+      "paragraphs": [
+        {
+          "text": "جاء أهل نجران إلى النبي ﷺ بطلب محدد: أن يبعث إليهم رجلًا أمينًا. لم يكن الطلب ثناءً عامًا يُقال في مجلس، بل حاجة إلى شخص يتولى مهمة فعلية. وفي جواب النبي ﷺ تأكيد على أنه سيرسل أمينًا حق أمين، فترقّب الصحابة من سيختاره رسول الله ﷺ لهذه المسؤولية.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4381"
+          ]
+        },
+        {
+          "text": "تقول الرواية إن الناس استشرفوا لذلك؛ أي تطلعوا إلى هذا الفضل وانتظروا الاختيار. ثم بعث رسول الله ﷺ أبا عبيدة بن الجراح. هكذا يأتي اسمه بعد تمهيد يشرح قيمة الصفة التي اختير لها: أمانة تُطلب من أجل عمل، ويشهد بها النبي ﷺ عند إسناد المهمة إليه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4381"
+          ]
+        },
+        {
+          "text": "ويروي أنس بن مالك شهادة أخرى صريحة: لكل أمة أمين، وأمين هذه الأمة أبو عبيدة بن الجراح. تلتقي الروايتان في الصفة نفسها، لكن لكل واحدة موضعها؛ إحداهما تحكي طلب أهل نجران والبعث إليهم، والأخرى تنقل بيان الفضيلة بعبارة عامة في مكانة أبي عبيدة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4382",
+            "bukhari:4381"
+          ]
+        },
+        {
+          "text": "وفي بعث آخر، أمّر النبي ﷺ أبا عبيدة على ثلاثمئة رجل، وكان فيهم جابر بن عبد الله. حملوا زادهم، ثم قلّ حتى صار أبو عبيدة يقسم ما اجتمع منه، ثم انتهى إلى تمرة لكل رجل في اليوم. يظهر الأمين هنا مسؤولًا عن جماعة حين يضيق موردها، يوزع القليل حتى ينفد.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2483"
+          ]
+        },
+        {
+          "text": "وانتهى القوم إلى البحر فوجدوا حوتًا عظيمًا، فأكل الجيش منه ثماني عشرة ليلة. ثم أمر أبو عبيدة بضلعين من أضلاعه فنُصبا، وأمر براحلة فمرت تحتهما ولم تصبهما. وحفظ جابر هذه التفاصيل من ذلك البعث، بعد وصف قلة الزاد؛ فانتقلت الرحلة من تقسيم التمرات إلى رزق وجده الجيش على الساحل.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2483"
+          ]
+        },
+        {
+          "text": "للتأمل: الأمانة صفة تظهر قيمتها حين يحتاج الناس إلى من يعتمدون عليه، سواء كان مبعوثًا يطلبونه بالاسم والصفة، أو قائدًا يقسم زادًا قليلًا بين أصحابه. وفي قصة أبي عبيدة تتصل الشهادة له بمواقف مسؤولية، ويتصل التكريم بحمل حاجة الجماعة في السعة والضيق.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:4381",
+            "bukhari:2483"
+          ]
+        }
+      ]
+    },
+    "saad-ibn-abi-waqqas": {
+      "summaryAr": "سبق إلى الرمي في سبيل الله، وصبر على قلة الطعام، وشهد له النبي ﷺ وأصحابه بالفضل والثقة.",
+      "paragraphs": [
+        {
+          "text": "تحدث سعد بن أبي وقاص عن أيامه الأولى في الجهاد مع رسول الله ﷺ، فذكر أنه أول العرب رمى بسهم في سبيل الله. ثم لم يجعل حديثه عن السبق وحده، بل نقل ما كان يصيبهم من قلة الطعام. يلتقي في كلامه معنى المشاركة المبكرة مع مشقة الحياة التي عاشها الصحابة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3728"
+          ]
+        },
+        {
+          "text": "قال إنهم كانوا يغزون وليس لهم من الطعام إلا ورق الشجر، ووصف أثر ذلك في أجسادهم. هذا تفصيل شهادة عيان يردّ القارئ إلى واقع تلك الأيام، بعيدًا عن تصور تاريخ لا يضم إلا الانتصار. فالخبر يذكر الجهد والحاجة كما يذكر الرمي والمشاركة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3728"
+          ]
+        },
+        {
+          "text": "وفي رواية علي بن أبي طالب، حفظ علي لسعد موقفًا سمع فيه النبي ﷺ يحثه على الرمي ويفديه بأبيه وأمه. كان سعد يرمي ورسول الله ﷺ يشجعه بهذه الكلمات. وبقي علي يذكر شرف ذلك الموقف، فحمل إلى من بعده شهادة سمعها في فضل صاحبه، إلى جانب ما حدّث به سعد عن نفسه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2905"
+          ]
+        },
+        {
+          "text": "ومضت الأعوام حتى كان سعد من الرجال الذين سمّاهم عمر في الشورى عند وفاته. وفي الخبر نفسه بيّن عمر أنه لم يعزله عن عجز ولا خيانة، وأوصى من يلي الأمر أن يستعين به إن لم تصر الإمرة إليه. هنا تظهر شهادة أخرى تتعلق بالكفاءة والأمانة، بعد ما قرأنا عن السبق والمشقة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "ظل ما قدمه سعد في أول الطريق حاضرًا عندما عُرضت أحواله بعد سنوات. وقد ذكر عمر قدره وبيّن أن عزله لم يكن لعجز ولا خيانة، ثم أوصى بالاستعانة به. هكذا تصل القصة بين رميه مع النبي ﷺ، وما احتمله من قلة الطعام، وما بقي له من مكانة وثقة عند أصحابه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3728",
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "للتأمل: يجمع طريق سعد السبق والمشقة والثقة. لا يختفي الجوع من حياة من كان له فضل في الرمي، ولا تختفي الشهادة بقدره عندما يتغير موقعه في المسؤولية. ومن هذه المواقف نتعلم أن يُعرف الناس بأعمالهم، وأن تبقى العدالة في ذكرهم حاضرة عند الرضا وعند الاختلاف.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3728",
+            "bukhari:3700"
+          ]
+        }
+      ]
+    },
+    "az-zubayr-ibn-al-awwam": {
+      "summaryAr": "بادر إلى تلبية طلب النبي ﷺ يوم الأحزاب، فشهد له بأنه حواريه، ثم كان من أهل الشورى بعد عمر.",
+      "paragraphs": [
+        {
+          "text": "يوم الأحزاب، طلب النبي ﷺ من يأتيه بخبر القوم. يروي جابر بن عبد الله أن الزبير بن العوام بادر إلى الإجابة. تتكون هذه القصة من مهمة محددة وجواب واضح؛ فالحاجة في الموقف كانت إلى معرفة الخبر، وقد عرض الزبير نفسه للقيام بما طلبه رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2846"
+          ]
+        },
+        {
+          "text": "تكرر سؤال النبي ﷺ، فعاد الزبير يجيب بأنه يقوم بالمهمة. لم ينته استعداده عند الإجابة الأولى، بل تجدد مع الطلب. وفي موقف يحتاج فيه الجيش إلى الخبر، تقدم الزبير ليكون حامل هذه المسؤولية، حتى جاءت كلمة رسول الله ﷺ التي حفظها جابر في فضله.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2846"
+          ]
+        },
+        {
+          "text": "عند ذلك بيّن النبي ﷺ أن لكل نبي حواريًا، وأن حواريه الزبير. جاءت هذه الشهادة بعد ما سمع الصحابة من مبادرته، فصار العمل والثناء عليه متصلين في القصة. وبقي لقب الحواري معروفًا مع اسمه، يذكّر بهذا الاستعداد لنصرة رسول الله ﷺ والقيام بالمهمة التي طلبها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2846"
+          ]
+        },
+        {
+          "text": "ويظهر اسم الزبير بعد ذلك في خبر الشورى الذي رواه عمرو بن ميمون عند وفاة عمر. كان أحد الرجال الذين سمّاهم عمر للأمر، ثم جعل الزبير أمره إلى علي في الخطوات التي نقلتها الرواية. هذه صفحة أخرى ثابتة تبين حضوره في أحداث الجماعة بعد حياة النبي ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "وفي يوم الشورى الذي جاء بعد دفن عمر، جعل الزبير أمره إلى علي حين طُلب من القوم أن يردوا الأمر إلى ثلاثة منهم. كان حاضرًا في الجماعة التي عيّنها عمر، ثم شارك في تقليل عدد من ينظرون في القرار. وهكذا انتقل موضعه من حمل الخبر زمن الأحزاب إلى الإسهام في شأن المسلمين بعد ذلك.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "للتأمل: تظهر النصرة في عمل يحتاجه الناس في وقته، كما تظهر المسؤولية في المشاركة بالرأي حين يستدعي الأمر ذلك. وفي قصة الزبير مبادرة تتكرر، وشهادة نبوية تحفظ فضلها، ثم حضور في الشورى. وتدعونا هذه الصفحات إلى الاستعداد للنفع، وإلى إدراك أن خدمة الجماعة تتعدد صورها باختلاف الحاجة.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:2846"
+          ]
+        }
+      ]
+    },
+    "talhah-ibn-ubaydillah": {
+      "summaryAr": "وقى النبي ﷺ بيده يوم أُحد فبقي أثر إصابتها، وكان بعد ذلك من الرجال الذين سمّاهم عمر للشورى.",
+      "paragraphs": [
+        {
+          "text": "بقيت في يد طلحة بن عبيد الله علامة من يوم أُحد. فقد رآها قيس بن أبي حازم بعد ذلك مشلولة، وروى أنها اليد التي وقى بها طلحة النبي ﷺ. بقي أثر الوقاية ظاهرًا في جسده، يحمله بعد انقضاء المعركة، ويعرف أصحابه ما وقع له في ذلك اليوم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4063"
+          ]
+        },
+        {
+          "text": "يشير الخبر إلى فعل محدد في المعركة: حماية النبي ﷺ باليد. ثم يصل ذلك الفعل بما بقي بعده من إصابة. ومن خلال هذين الجزأين تتضح صورة التضحية؛ فاليد التي تحمل أثر العجز هي نفسها التي شهد الراوي بأنها كانت وقاية لرسول الله ﷺ يوم أُحد.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4063"
+          ]
+        },
+        {
+          "text": "وتأتي شهادة قيس أيضًا في موضع آخر من صحيح البخاري، يذكر فيه أنه رأى يد طلحة التي وقى بها النبي ﷺ وقد شلّت. بقي الأثر ظاهرًا بعد انتهاء يوم القتال، وصار من يعرف سببه ينقل إلى من بعده قصة نصرة لم تنته آثارها بانتهاء الموقف الذي وقعت فيه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3724"
+          ]
+        },
+        {
+          "text": "وفي آخر أيام عمر بن الخطاب، كان طلحة أحد الرجال الستة الذين سمّاهم عمر للشورى، وذكر أن النبي ﷺ توفي وهو عنهم راض. انتقل موضع طلحة في هذه الصفحة من حماية النبي ﷺ في المعركة إلى الحضور بين من يُرجع إليهم في أمر عام من أمور المسلمين.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "وحين اجتمع أهل الشورى بعد دفن عمر، طلب عبد الرحمن بن عوف أن يجعلوا أمرهم إلى ثلاثة منهم. فكان مما نقلته الرواية أن طلحة جعل أمره إلى عثمان. يتصل هذا الخبر بما قبله من مكانته بين الصحابة، ويبيّن مشاركته في الخطوات التي جرى بها اختيار الخليفة بعد عمر.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "للتأمل: ليست كل آثار الخير كلمات مكتوبة؛ فقد يكون أثرًا باقيًا في جسد صاحبه، يحكي عما قدّمه يوم احتاج الناس إلى ثباته. وتضيف صفحة الشورى معنى آخر: أن صاحب التضحية قد يحمل بعد ذلك مسؤولية الرأي والمشاركة، فيجتمع في سيرته البذل بالفعل والمساهمة في شأن الجماعة.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:4063",
+            "bukhari:3700"
+          ]
+        }
+      ]
+    },
+    "abdur-rahman-ibn-awf": {
+      "summaryAr": "بدأ في المدينة بالسعي في السوق، وقابل سخاء أخيه بالدعاء، ثم حمل مسؤولية في الشورى بين الصحابة.",
+      "paragraphs": [
+        {
+          "text": "قدم عبد الرحمن بن عوف إلى المدينة مهاجرًا، فآخى النبي ﷺ بينه وبين سعد بن الربيع الأنصاري. كان سعد صاحب مال، فعرض عليه أن يقاسمه ماله وأن يعينه في الزواج. تبدأ هذه الصفحة بلقاء يبين سخاء الاستقبال الذي وجده المهاجر، وما حملته المؤاخاة من مساعدة عملية.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2049"
+          ]
+        },
+        {
+          "text": "قابل عبد الرحمن ذلك العرض بالدعاء لسعد في أهله وماله، ثم طلب أن يُدلّ على السوق. لم يرفض المعروف بإساءة أو جفاء؛ جمع جوابه بين شكر صاحبه والدعاء له، وبين اختيار طريق يعمل فيه بنفسه. وهنا تنتقل القصة من عرض المشاركة في المال إلى بداية السعي في التجارة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2049"
+          ]
+        },
+        {
+          "text": "ذهب عبد الرحمن إلى السوق، ولم يرجع حتى كان معه فضل من الأقط والسمن، فأتى به أهله. يذكر الحديث هذه البداية القريبة بأسماء ما عاد به، فتغدو القصة عملًا يمكن تصور خطواته: وصول إلى بلد جديد، ومعرفة موضع السوق، ثم شراء وبيع ورزق يعود به إلى المنزل.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2049"
+          ]
+        },
+        {
+          "text": "وبعد مدة جاء إلى النبي ﷺ وعليه أثر صفرة، فسأله عن خبره، فأخبره أنه تزوج امرأة من الأنصار. سأله النبي ﷺ عما أعطاها، فذكر وزن نواة من ذهب، ثم أمره بالوليمة ولو بشاة. وهكذا يصل الخبر من أول قدومه إلى استقرار جديد وعلاقة أسرية في المدينة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2049"
+          ]
+        },
+        {
+          "text": "وبعد سنوات، كان عبد الرحمن من أهل الشورى الذين سمّاهم عمر. وفي اجتماعهم جعل سعد أمره إليه، ثم تولى عبد الرحمن الحديث مع علي وعثمان وأخذ العهد عليهما، وانتهى الأمر بمبايعة عثمان. يضيف هذا الموقف إلى قصة السوق جانبًا من الثقة به في شأن عام ومسؤولية كبيرة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "للتأمل: في البداية أخوّة تعرض المساعدة، وفي الجواب دعاء وسعي، ثم تدرّج إلى الرزق والزواج، وبعد ذلك مسؤولية بين الصحابة. ليس الدرس وعدًا بأن كل تجارة ستنجح بالطريقة نفسها، بل قيمة الجمع بين قبول المودة وحسن شكرها، وبين الأخذ بالأسباب والعمل بما يستطيع الإنسان.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:2049",
+            "bukhari:3700"
+          ]
+        }
+      ]
+    },
+    "khalid-ibn-al-walid": {
+      "summaryAr": "حمل الراية في مؤتة بعد استشهاد القادة، وحدّث عن تسعة أسياف انكسرت في يده يومئذ.",
+      "paragraphs": [
+        {
+          "text": "في غزوة مؤتة، عيّن النبي ﷺ زيد بن حارثة على الجيش، وجعل جعفر بن أبي طالب بعده إن قُتل، ثم عبد الله بن رواحة إن قُتل جعفر. يروي عبد الله بن عمر هذا الترتيب، وقد كان في تلك الغزوة. ومن خلاله نفهم الموقف الذي سبق وصول الراية إلى خالد بن الوليد.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4261"
+          ]
+        },
+        {
+          "text": "وفي المدينة، نعى النبي ﷺ زيدًا وجعفرًا وابن رواحة إلى الناس قبل أن يصلهم خبرهم. نقل أنس بن مالك وصفه لتتابع أخذ الراية: أخذها زيد فأُصيب، ثم جعفر فأُصيب، ثم ابن رواحة فأُصيب. كان رسول الله ﷺ يذكرهم وعيناه تذرفان، فحفظت الرواية الحزن مع خبر القتال.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4262"
+          ]
+        },
+        {
+          "text": "بعد سقوط القادة الثلاثة، أخبر النبي ﷺ بأن الراية أخذها سيف من سيوف الله، وأن الله فتح عليهم. ترتبط بهذه الشهادة صفحة خالد في مؤتة؛ لحظة أصبحت فيها القيادة ضرورة بعد فقد القادة الذين سُمّوا أولًا، وجاء الخبر النبوي يذكر ما وقع وما انتهى إليه أمر الجيش.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4262"
+          ]
+        },
+        {
+          "text": "وروى خالد نفسه أنه انكسرت في يده يوم مؤتة تسعة أسياف، ولم يبق في يده إلا صفيحة يمانية. ينقل هذا الخبر مقدار ما باشره من قتال في ذلك اليوم من خلال ما حملته يده وما انكسر فيها، فبقيت شهادة صاحب الموقف تضيف إلى خبر الراية صورة من ثقل ذلك اليوم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4265"
+          ]
+        },
+        {
+          "text": "يجمع مشهد مؤتة في هذه الأخبار بين ترتيب القيادة قبل خروج الجيش، واستشهاد القادة، وحزن النبي ﷺ عليهم، ثم انتقال الراية وثبات من حملها بعدهم. لا ينفصل حضور خالد عن بقية الرجال في القصة؛ فقد جاء دوره في سياق فقدهم والاستمرار بالمهمة بعدهم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4261",
+            "bukhari:4262",
+            "bukhari:4265"
+          ]
+        },
+        {
+          "text": "للتأمل: قد تأتي المسؤولية في ساعة لم يختر الإنسان توقيتها، بعد خسارة من كانوا قبله. وفي هذه الصفحة معنى للاستعداد والثبات، ومعنى آخر للوفاء: يُذكر فضل من حمل الراية، ويبقى الحزن على من سبقوه حاضرًا، فلا تمحو النهاية أسماء الذين بذلوا حياتهم قبلها.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:4261",
+            "bukhari:4262"
+          ]
+        }
+      ]
+    },
+    "ubayy-ibn-kab": {
+      "summaryAr": "شهد له الصحابة بالقراءة، وأمر الله نبيه ﷺ أن يقرأ عليه، فبكى حين علم أنه سُمّي في ذلك الأمر.",
+      "paragraphs": [
+        {
+          "text": "قال عمر بن الخطاب عن أُبيّ بن كعب إنه أقرؤهم، وحفظ ابن عباس عنه هذه الشهادة. وفيها مدخل إلى مكانة أُبيّ في القرآن بين الصحابة؛ فالحديث عنه يبدأ من علم تميّز به، ومن صحبة تلقى فيها القرآن من رسول الله ﷺ، ثم عُرف بين أصحابه بهذا الباب.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:5005"
+          ]
+        },
+        {
+          "text": "ومن أعظم المواقف التي رويت له أن النبي ﷺ أخبره بأن الله أمره أن يقرأ عليه سورة البينة. حفظ أنس بن مالك الخبر، وذكر اسم السورة بمطلعها. في هذه اللحظة انعكس المعتاد في مجلس التعلم: رسول الله ﷺ يخبر أُبيًّا بأنه مأمور أن يقرأ عليه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3809"
+          ]
+        },
+        {
+          "text": "سأل أُبيّ: هل سمّاه الله؟ فأجابه النبي ﷺ بالإثبات، فبكى. لم يكن السؤال عن اسم السورة هذه المرة، بل عن اسمه هو في ذلك الأمر. جاءه الجواب بالإثبات، فغلبه البكاء، وبقي هذا المجلس يرويه أنس شاهدًا على منزلة أُبيّ وصلته بالقرآن.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3809"
+          ]
+        },
+        {
+          "text": "ولم تكن معرفته بالقرآن مجرد منزلة عند الناس؛ فقد ذكر النبي ﷺ أُبيًّا ضمن الأربعة الذين وجّه إلى أخذ القرآن عنهم، مع عبد الله بن مسعود وسالم مولى أبي حذيفة ومعاذ بن جبل. هذه شهادة تجعل فضل العلم مرتبطًا بما ينتفع به المتعلمون، لا بما يُقال في مدح صاحبه وحده.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3758"
+          ]
+        },
+        {
+          "text": "تلتقي في هذه الصفحة شهادة عمر له بالقراءة، والتوجيه إلى الأخذ عنه، ثم ذلك المجلس الذي بكى فيه عندما علم أن اسمه ذُكر. في الأولى يعرف الناس علمه، وفي الثانية يرجعون إليه، وفي الثالثة يردّ على التكريم بدموع حفظها من روى المشهد.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:5005",
+            "bukhari:3758",
+            "bukhari:3809"
+          ]
+        },
+        {
+          "text": "للتأمل: يفتح العلم باب خدمة للناس، وقد يصحبه من التواضع ما يظهر في موقف لا يحتاج إلى كلام كثير. وفي قصة أُبيّ مثال على أن مكانة القارئ لا تنفصل عن صلته بالقرآن وتلقيه له وتعليمه، وأن أثر الكلمة الصادقة قد يبقى في الذاكرة كما بقي سؤال أُبيّ وبكاؤه.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3809",
+            "bukhari:3758"
+          ]
+        }
+      ]
+    },
+    "abdullah-ibn-masud": {
+      "summaryAr": "تلقى القرآن من النبي ﷺ، ووجّه رسول الله ﷺ إلى الأخذ عنه، وقرأ عليه سورة النساء فبكى النبي ﷺ وهو يستمع.",
+      "paragraphs": [
+        {
+          "text": "كان عبد الله بن مسعود ممن أخذوا القرآن من رسول الله ﷺ مباشرة. وقد أخبر أنه تلقى من فمه بضعًا وسبعين سورة. حين قال ذلك لم يكن يروي خبرًا بعيدًا عن صلته بالقرآن، بل يبيّن أصل العلم الذي يحمله: سماع وتلقٍّ من النبي ﷺ، ثم حفظ وتعليم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:5000"
+          ]
+        },
+        {
+          "text": "وفي كلامه نفسه ذكر أن أصحاب النبي ﷺ يعرفون أنه من أعلمهم بكتاب الله، ثم نفى أن يكون خيرهم. اجتمعت في الجملة معرفة المرء بما تعلّمه، وعدم تحويل ذلك إلى دعوى تفوق مطلق على الناس. ونقل شقيق أنه جلس في حلق القوم يسمع ما يقولون، فلم يسمع من يرد قوله.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:5000"
+          ]
+        },
+        {
+          "text": "وكان عبد الله بن عمرو يحب ابن مسعود لما سمعه من رسول الله ﷺ في شأنه. فقد وجّه النبي ﷺ إلى أخذ القرآن من أربعة، وبدأ بعبد الله بن مسعود، ثم ذكر سالمًا مولى أبي حذيفة وأُبيّ بن كعب ومعاذ بن جبل. فمكانته العلمية جاء فيها توجيه للناس إلى التعلم منه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3758"
+          ]
+        },
+        {
+          "text": "ومن مشاهد صلته بالقرآن أن النبي ﷺ طلب منه أن يقرأ عليه. تعجّب ابن مسعود من أن يقرأ على من أُنزل عليه القرآن، فبيّن له النبي ﷺ أنه يحب أن يسمعه من غيره. فقرأ من سورة النساء، حتى بلغ الآية التي فيها مجيء الرسول شهيدًا على أمته.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4582"
+          ]
+        },
+        {
+          "text": "عند ذلك طلب منه النبي ﷺ أن يتوقف، فنظر ابن مسعود فإذا عيناه تذرفان. يلتقي في المشهد القارئ والمستمع على القرآن؛ لا تنحصر التلاوة في أداء محفوظ، بل يحضر معها أثر المعنى في قلب رسول الله ﷺ، وينقله إلينا الصحابي الذي كان يقرأ بين يديه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4582"
+          ]
+        },
+        {
+          "text": "للتأمل: في هذه الصفحات علم يُعرف مصدره، وتواضع لا ينكر فضل التعلم، وقراءة تُنصت للمعنى. وهي تذكّر بأن الصلة بالقرآن تشمل التلقي والحفظ والتعليم والاستماع، وأن المعلّم نفسه قد يحب أن يسمع من تلميذه، كما سمع النبي ﷺ من عبد الله بن مسعود.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:5000",
+            "bukhari:3758",
+            "bukhari:4582"
+          ]
+        }
+      ]
+    },
+    "muadh-ibn-jabal": {
+      "summaryAr": "بُعث معلّمًا إلى اليمن، فجمع توجيه النبي ﷺ له بين ترتيب الدعوة والتيسير وصيانة حقوق الناس.",
+      "paragraphs": [
+        {
+          "text": "بعث النبي ﷺ معاذ بن جبل إلى قوم من أهل الكتاب، فكان أول ما علّمه إياه أن يعرف من سيخاطبهم. تبدأ وصيته بتحديد حال الناس الذين يقدم عليهم، ثم تبيّن له ما يدعوهم إليه على الترتيب. هذه صفحة من قصة معلّم يحمل مهمة إلى مجتمع آخر، ويأخذ توجيهه من رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "muslim:19"
+          ]
+        },
+        {
+          "text": "وجّهه النبي ﷺ إلى أن يبدأ بالشهادتين، فإذا استجابوا أخبرهم بالصلوات الخمس في اليوم والليلة، ثم بالصدقة التي تؤخذ من أغنيائهم فتُرد في فقرائهم. يسير التوجيه خطوة بعد أخرى، فيربط التعليم بالأصول ثم بما يجب من عبادة وحق مالي في حياة الناس.",
+          "kind": "narrative",
+          "references": [
+            "muslim:19"
+          ]
+        },
+        {
+          "text": "ولأن المهمة تتضمن جمع الصدقة، حذّره النبي ﷺ من أخذ كرائم أموال الناس، وختم بالتنبيه إلى دعوة المظلوم. فحامل العلم ليس معنيًا بإبلاغ الأحكام وحده؛ بل أُمر أن يراعي العدل عند تنفيذ ما وُكل إليه، وألا تتحول مسؤوليته إلى ظلم لمن يتعامل معهم.",
+          "kind": "narrative",
+          "references": [
+            "muslim:19"
+          ]
+        },
+        {
+          "text": "وفي خبر بعثه مع أبي موسى إلى اليمن، أوصى النبي ﷺ الرجلين بالتيسير والتبشير، والتعاون واجتناب الاختلاف. تظهر هنا طبيعة العمل المشترك الذي حمله معاذ؛ فإلى جانب ما يعلّمه للناس، يحتاج إلى حسن التعامل مع رفيقه، وإلى أسلوب يقرب من يخاطبهم ولا ينفّرهم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3038"
+          ]
+        },
+        {
+          "text": "وكان معاذ ممن سمّاهم النبي ﷺ في الأربعة الذين يؤخذ عنهم القرآن. فتلتقي منزلته في التعليم مع المهمة التي بعث بها؛ رجل يتعلم القرآن ويُرجع إليه فيه، ثم يخرج لتعليم غيره تحت وصايا واضحة في ترتيب الدعوة والعدل وحسن المعاملة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3758",
+            "muslim:19"
+          ]
+        },
+        {
+          "text": "للتأمل: لا يكفي أن يعرف المعلّم ما يقوله، بل يحتاج أن يعرف من يخاطب، وأن يرتب ما يعلّم، وأن يصون حقوق من صار مسؤولًا عنهم. وتجمع قصة معاذ هذه المعاني في تكليف واقعي، فتصل العلم بالرفق، وتصل العبادة بالعدل، وتصل نجاح المهمة بالتعاون.",
+          "kind": "reflection",
+          "references": [
+            "muslim:19",
+            "bukhari:3038"
+          ]
+        }
+      ]
+    },
+    "salman-al-farisi": {
+      "summaryAr": "شهد له النبي ﷺ، وعلّم أبا الدرداء مراعاة حق الله والنفس والأهل، فأقرّ رسول الله ﷺ نصيحته.",
+      "paragraphs": [
+        {
+          "text": "أخبر سلمان الفارسي عن جزء قاسٍ من ماضيه، فذكر أنه انتقل في الرق بين بضعة عشر من مالك إلى آخر. تحفظ هذه الشهادة جانبًا من الطريق الذي مر به، قبل الصفحات التي يظهر فيها بين أصحاب النبي ﷺ. وهي تذكّر القارئ بأن مكانة الإنسان اللاحقة لا تختصر ما تحمّله قبلها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3946"
+          ]
+        },
+        {
+          "text": "وفي مجلس نزلت فيه آية من سورة الجمعة، سأل أبو هريرة عن المقصود بآخرين لم يلحقوا بهم، وكان سلمان حاضرًا. وضع النبي ﷺ يده عليه، وذكر أن رجالًا من هؤلاء ينالون الإيمان ولو كان عند الثريا. يظهر سلمان هنا في مشهد يربط الفضل بالإيمان، ويجعل خبره أوسع من حدود المنشأ والقوم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4897"
+          ]
+        },
+        {
+          "text": "ومن أطول المواقف المحفوظة له زيارته أبا الدرداء، وكان النبي ﷺ قد آخى بينهما. رأى أم الدرداء على حال سأَلَها عنها، فأخبرته بإعراض أبي الدرداء عن شؤون الدنيا. ثم جاء أبو الدرداء بطعام، وأراد أن يمتنع عنه لأنه صائم، فألح سلمان أن يأكل معه حتى أكل.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1968"
+          ]
+        },
+        {
+          "text": "ولما جاء الليل أراد أبو الدرداء القيام، فطلب منه سلمان أن ينام، ثم لما كان آخر الليل قال له أن يقوم فصليا. لم يكن مقصد المشهد ترك العبادة، بل وضعها مع بقية الحقوق في توازن؛ وقد جاءت الخطوات العملية قبل الكلمة التي تلخّص ما أراد سلمان تعليمه لصاحبه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1968"
+          ]
+        },
+        {
+          "text": "بيّن سلمان لأبي الدرداء أن لربه عليه حقًا، ولنفسه عليه حقًا، ولأهله عليه حقًا، وأن يعطي كل ذي حق حقه. وحين ذُكر ذلك للنبي ﷺ أقره وصدّقه. هكذا لا تبقى النصيحة مجرد رأي لصديق، بل ينتهي الخبر بإقرار نبوي لمعنى مراعاة هذه الحقوق.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1968"
+          ]
+        },
+        {
+          "text": "للتأمل: من قصة سلمان نتعلم أن الصحبة قد تكون عونًا على تصحيح الموازنة بين أعمال الخير، لا مجرد مشاركة فيها. فحق النفس والأهل لا يُمحى بالتطوع، والعبادة تبقى حاضرة؛ قام الصاحبان في آخر الليل وصليا، بعد أن وضع سلمان لكل حق مكانه في اليوم.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:1968"
+          ]
+        }
+      ]
+    },
+    "abu-hurayrah": {
+      "summaryAr": "لازم النبي ﷺ وطلب عونه على الحفظ، ثم نقل للناس ما تهيأ له سماعه من أخباره وتوجيهاته.",
+      "paragraphs": [
+        {
+          "text": "كان أبو هريرة حريصًا على سماع حديث رسول الله ﷺ وحفظه، وواجه في ذلك مشكلة صرّح بها للنبي ﷺ: يسمع حديثًا كثيرًا ثم ينساه. تبدأ القصة بطلب المساعدة، فقد جعل صلته بالمعلّم بابًا لمعالجة ما يعوقه، وأخبره بما يجده من نسيان مع كثرة السماع.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:119"
+          ]
+        },
+        {
+          "text": "أمره النبي ﷺ أن يبسط رداءه، فبسطه. ثم فعل رسول الله ﷺ ما وصفه أبو هريرة في الرواية، وأمره أن يضم الرداء فضمه. وأخبر أبو هريرة بعد ذلك بأنه لم ينس شيئًا بعده. حفظ الصحابي ما طلبه وما فعله وما وجده، فصار ذلك من الأخبار المعروفة في حفظه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:119"
+          ]
+        },
+        {
+          "text": "وفي خبر آخر شرح للناس سبب كثرة ما يرويه: كان المهاجرون يشغلهم البيع في الأسواق، وكانت الأنصار تشغلهم أموالهم، وكان هو يلزم رسول الله ﷺ ويقنع بما يقيم به بدنه. فكان يحضر حين يغيب غيره، ويحفظ حين يفوتهم بعض السماع؛ فلكل منهم شغله وعمله، وكان ما تهيأ لأبي هريرة من الملازمة سببًا في اختلاف ما يحضره ويسمعه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:118"
+          ]
+        },
+        {
+          "text": "وكان يعرف أن الناس يتساءلون عن كثرة حديثه، فشرح لهم ما كان يتيحه له وقته وملازمته. يضيف ذلك إلى قصة الرداء جانب الاجتهاد البشري: سماع متكرر، وحضور، ووقت موجّه إلى التلقي. فالروايات تجمع خبر المعونة التي نالها مع السبب العملي الذي أتاح له كثرة السماع.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:118",
+            "bukhari:119"
+          ]
+        },
+        {
+          "text": "وتظهر ملازمته في أخبار ينقل فيها أسئلة النبي ﷺ لأصحابه، ومنها حديث سؤاله بلالًا عن أرجى عمل عمله. يصلنا هذا المشهد بفضل رواية أبي هريرة له، كما تصلنا مواقف أخرى. وبذلك ينتقل أثر حضوره من مجلس شهده إلى معرفة يتعلم منها من لم يدرك زمن الصحابة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1149"
+          ]
+        },
+        {
+          "text": "للتأمل: قد يبدأ طريق المعرفة بسؤال عن مشكلة في الحفظ، ثم يقوم على تخصيص الوقت وحسن الاستماع والملازمة. وقصة أبي هريرة تجمع هذه المعاني، وتذكّر بأن حفظ العلم لا ينفع صاحبه وحده؛ فما يتلقاه اليوم يمكن أن يكون باب معرفة وخير لمن يأتي بعده.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:118",
+            "bukhari:119"
+          ]
+        }
+      ]
+    },
+    "abdullah-ibn-abbas": {
+      "summaryAr": "دعا له النبي ﷺ بالعلم والفقه، ثم ظهر حرصه على مجالس الصحابة وإرشاد غيره إلى سماع حديثهم.",
+      "paragraphs": [
+        {
+          "text": "حفظ عبد الله بن عباس لحظة ضمه فيها النبي ﷺ ودعا له أن يعلّمه الله الكتاب. يروي ابن عباس هذا الخبر عن نفسه، فنتعرف من خلاله إلى جانب من بدايته في طلب العلم: قرب من رسول الله ﷺ، ودعوة تحمل معنى التعليم والفهم، قبل أن يعرفه الناس بما نقل بعد ذلك.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:75"
+          ]
+        },
+        {
+          "text": "وفي خبر آخر، وضع ابن عباس ماءً للنبي ﷺ ليتوضأ. سأل رسول الله ﷺ عمن وضعه، فلما أُخبر دعا له بالفقه في الدين. هنا يتصل عمل صغير في خدمة من يتعلم منه، بدعاء عظيم المعنى؛ ولم يكن ابن عباس بحاجة إلى مجلس رسمي حتى يتعلم منه وينال دعاءه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:143"
+          ]
+        },
+        {
+          "text": "ثم تظهر عنايته بالعلم في موقف يرويه عكرمة: طلب ابن عباس منه ومن ابنه علي أن يذهبا إلى أبي سعيد الخدري ليسمعا حديثه. ذهبا فوجداه يعمل في بستان، ثم جلس يحدثهما. فصاحب الدعوة النبوية بالعلم صار يحث غيره على السماع من أصحاب رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:447"
+          ]
+        },
+        {
+          "text": "وفي ذلك المجلس روى أبو سعيد ما وقع عند بناء المسجد، ومنه جهد عمار بن ياسر وما قاله له النبي ﷺ. هكذا نرى انتقال المعرفة في خطوات محددة: توجيه إلى السماع، ورحلة إلى الصحابي، وجلوس، ثم خبر محفوظ يرويه من شهد أو تلقى الحدث.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:447"
+          ]
+        },
+        {
+          "text": "وحفظ ابن عباس أيضًا ما قاله عمر عن أُبيّ بن كعب في القراءة. لا تنحصر عنايته في نقل موقف يخصه، بل تشمل حفظ معرفة الصحابة بعضهم بفضل بعض. ومن هذه الأخبار يتكون للقارئ معنى العلم بوصفه تلقيًا من أهله، ومعرفة بمن يرجع إليه في أبوابه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:5005"
+          ]
+        },
+        {
+          "text": "للتأمل: الدعاء بالعلم بداية خير، ثم يتصل به السعي إلى مجالسه وخدمة أهله وإرشاد الآخرين إليه. وتجمع هذه الصفحات ابن عباس متعلمًا في قربه من النبي ﷺ، ثم معينًا لغيره على التعلم، فتجعل المعرفة عملًا متواصلًا يصل بين الأجيال ولا يقف عند صاحبه.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:75",
+            "bukhari:143",
+            "bukhari:447"
+          ]
+        }
+      ]
+    },
+    "abdullah-ibn-umar": {
+      "summaryAr": "تلقى توجيهًا إلى قيام الليل فظهر أثره في عمله، وأدى أمانة أبيه في الاستئذان لعائشة عند وفاته.",
+      "paragraphs": [
+        {
+          "text": "كان عبد الله بن عمر شابًا، وكان ينام في المسجد على عهد النبي ﷺ. رأى أن الرجل إذا رأى رؤيا قصّها على رسول الله ﷺ، فتمنّى أن يرى رؤيا يعرضها عليه. يبدأ الخبر من رغبة شاب في أن يجد سؤالًا يصل به إلى تعليم النبي ﷺ وتوجيهه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1121"
+          ]
+        },
+        {
+          "text": "ثم رأى رؤيا فيها ملكان أخذاه إلى النار، ورأى فيها أناسًا يعرفهم، فصار يستعيذ بالله منها. ولقي في الرؤيا ملكًا آخر طمأنه. يذكر ابن عمر ما رآه بوصفه رؤيا في المنام، وقد حمل ما رآه إلى أخته حفصة، يريد أن يصل خبره إلى رسول الله ﷺ ويعرف ما يوجّهه إليه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1121"
+          ]
+        },
+        {
+          "text": "قصّ ابن عمر رؤياه على أخته حفصة، فقصّتها حفصة على رسول الله ﷺ. وجاء التعليق النبوي ثناءً عليه مع توجيه إلى قيام الليل. لم يتحول السؤال إلى حديث عن الرؤيا وحدها؛ بل صار بابًا لعمل يستطيع الشاب أن يضيفه إلى حياته.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1121"
+          ]
+        },
+        {
+          "text": "وتذكر الرواية أنه بعد ذلك صار لا ينام من الليل إلا قليلًا. اكتملت حلقة المشهد من رغبة في التعلم، إلى سؤال وصل عبر حفصة، إلى توجيه، ثم إلى أثر ظاهر في العمل. وهذه الاستجابة هي التي تجعل الخبر قصة تغير، لا مجرد خبر منام يروى.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1121"
+          ]
+        },
+        {
+          "text": "وبعد زمن، يظهر ابن عمر في آخر أيام أبيه حاملًا رسالته إلى عائشة للاستئذان في الدفن إلى جوار النبي ﷺ وأبي بكر. ذهب وسأل، ثم رجع بالجواب. وبعد وفاة عمر أعاد الاستئذان كما أوصاه أبوه. تتصل في هذه الصفحة العناية بالعمل الصالح بأداء أمانة أسرية واضحة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3700"
+          ]
+        },
+        {
+          "text": "للتأمل: من أجمل ما في القصة أن التوجيه لم يبق كلمة سمعها ابن عمر ثم مضى؛ ظهر أثره في قيامه. ويذكّر موقف الاستئذان بأن البر والأمانة أعمال عملية أيضًا، يحمل فيها الإنسان طلب غيره كما أراده، ويراعي حقوق الناس حتى في أشد أوقات الحزن.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:1121",
+            "bukhari:3700"
+          ]
+        }
+      ]
+    },
+    "anas-ibn-malik": {
+      "summaryAr": "خدم النبي ﷺ عشر سنين، وحفظ شهادة في رفقه، وروى للناس مشاهد من رحمته وفضائل أصحابه.",
+      "paragraphs": [
+        {
+          "text": "قدّمت أم سليم ابنها أنسًا إلى النبي ﷺ بصفته خادمًا له. وفي الخبر أنها ذكرت أنسًا عند رسول الله ﷺ، فدعا له بكثرة المال والولد والبركة فيما يُعطى. تبدأ هذه الصفحة بعناية أمّ بابنها، وبقرب أتاح له أن يعيش زمنًا طويلًا في خدمة النبي ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:6334"
+          ]
+        },
+        {
+          "text": "قال أنس إنه خدم رسول الله ﷺ عشر سنين. ليست المدة في شهادته تفصيلًا عابرًا؛ فهي زمن طويل من المعاملة اليومية، عرف فيه ما لا يظهر كله في لقاء قصير. وبعد هذه الصحبة وصف طريقة النبي ﷺ معه بما حفظه الناس عنه من حسن المعاملة والرفق.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:6038"
+          ]
+        },
+        {
+          "text": "ذكر أن النبي ﷺ لم يقل له كلمة تضجّر، ولم يعاتبه بالسؤال الجارح عن فعل فعله أو شيء تركه، على الوصف الذي نقله أنس. لا يتحدث هنا عن موقف لطف منفرد، بل يلخّص ما عرفه خلال تلك السنوات من الخدمة. ولهذا بقيت شهادته من أبلغ ما يعرّف بأخلاق رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:6038"
+          ]
+        },
+        {
+          "text": "ومن الأخبار التي حفظها أنس موقف أُبيّ بن كعب حين أخبره النبي ﷺ بأن الله أمره أن يقرأ عليه، فسأل أُبيّ عن تسميته ثم بكى. كما حفظ شهادة النبي ﷺ لأبي عبيدة بالأمانة. وهكذا اتسع أثر قرب أنس من مجرد خدمته إلى نقل مواقف وفضائل للناس.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3809",
+            "bukhari:4382"
+          ]
+        },
+        {
+          "text": "وروى أنس أيضًا خبر نعي قادة مؤتة، وما كان في عيني رسول الله ﷺ من دموع وهو يذكرهم. من خلال رواياته نرى الرفق في البيت، والتكريم في مجلس القرآن، والحزن على الشهداء. يجمع هذه المشاهد شاهد نقل جوانب من الحياة النبوية إلى من لم يروها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4262",
+            "bukhari:6038",
+            "bukhari:3809"
+          ]
+        },
+        {
+          "text": "للتأمل: يُعرف الخُلُق من المعاملة المتكررة، ويظهر أثر التربية فيما يحمله من عاشها إلى الآخرين. وفي قصة أنس بيت يربّي بالرفق، وأم ترجُو الخير لابنها، وخادم يحفظ بعد سنوات شهادة محبة ومعرفة، ثم تصبح شهادته بابًا نتعلم منه حسن معاملة من حولنا.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:6334",
+            "bukhari:6038"
+          ]
+        }
+      ]
+    },
+    "asma-bint-abi-bakr": {
+      "summaryAr": "جهّزت زاد الهجرة وشقّت نطاقها لربطه فعُرفت بذات النطاقين، وسألت النبي ﷺ عن صلة أمها.",
+      "paragraphs": [
+        {
+          "text": "عندما أراد النبي ﷺ أن يهاجر إلى المدينة، صنعت أسماء بنت أبي بكر طعام سفره في بيت أبيها. تروي أسماء هذا الخبر عن نفسها، فتبدأ القصة من عمل قامت به في الاستعداد للهجرة: إعداد ما يحتاجه المسافر، والعناية بما سيحمله معه في الطريق.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2979"
+          ]
+        },
+        {
+          "text": "وبعد إعداد الطعام، ظهرت حاجة عملية: لم يجدوا ما يربطون به الطعام وسقاء الماء. ليست هذه تفصيلة بعيدة عن الحدث؛ فالزاد لا يكفي أن يكون جاهزًا، بل يحتاج إلى ما يحفظه ويجعله قابلًا للحمل. وعند هذه الحاجة بحثت أسماء فيما عندها عما يمكن أن ينفع.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2979"
+          ]
+        },
+        {
+          "text": "أخبرت أباها أنها لا تجد شيئًا تربط به إلا نطاقها، وهو ما تشد به لباسها. طلب منها أن تشقه نصفين، فتربط بأحدهما السقاء وبالآخر الطعام. وفعلت أسماء ذلك. تحولت قطعة مما تملكه إلى وسيلة تسند الاستعداد للسفر، في خطوة صغيرة واضحة من خطوات خدمة المهاجرين.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2979"
+          ]
+        },
+        {
+          "text": "ومن هذا العمل عُرفت بذات النطاقين. فاللقب المتداول في كتب السيرة له في حديثها تفسير تحكيه بنفسها: حاجتهم إلى رباطين، واقتراح استخدام نطاقها، وشقه قسمين، ثم استعمالهما. وصار اسمها يذكّر بفعل أدته، لا بلقب منفصل عن قصة صاحبه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2979"
+          ]
+        },
+        {
+          "text": "وفي خبر آخر لها، جاءت أمها وهي على غير الإسلام، فسألت أسماء النبي ﷺ عن صلتها بها، فأمرها أن تصل أمها. يضيف هذا الموقف إلى قصة الخدمة يوم الهجرة بابًا من البر؛ فقد حرصت أن تعرف ما تصنع في علاقتها بأمها، ثم تلقت توجيهًا واضحًا في صلتها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2620"
+          ]
+        },
+        {
+          "text": "للتأمل: لا تتكون الأحداث الكبيرة من الأدوار الظاهرة وحدها؛ فيها طعام يُعد، وماء يُربط، وحل لحاجة في وقتها. وفي قصة أسماء خدمة بما تملك، ثم حرص على البر بأمها. وهما صورتان لقيمة العمل القريب الذي يستطيع الإنسان أن يقوم به، ويظل أثره محفوظًا بعد زمن طويل.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:2979",
+            "bukhari:2620"
+          ]
+        }
+      ]
+    },
+    "saad-ibn-muadh": {
+      "summaryAr": "شهد له النبي ﷺ بفضل عظيم، وائتمنه على حكم في بني قريظة، وأخبر باهتزاز العرش لموته.",
+      "paragraphs": [
+        {
+          "text": "دخل سعد بن معاذ في خبر من أخبار الصحابة يوم أُتي بثوب حرير إلى النبي ﷺ، فجعل أصحابه يلمسونه ويعجبون من لينه. كان المشهد متعلقًا بشيء يرونه بين أيديهم، فجاءت كلمة رسول الله ﷺ لتنقل أبصارهم من نعومة ذلك الثوب إلى ذكر فضل سعد.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3802"
+          ]
+        },
+        {
+          "text": "أخبر النبي ﷺ أن مناديل سعد خير من ذلك أو ألين، كما نقل البراء بن عازب. تبقى البشارة مرتبطة باسمه في المجلس، ويصبح الشيء الذي أعجب الناس سببًا لتذكيرهم بما هو أعظم منه. وتظهر في هذا الخبر منزلة سعد في شهادة رسول الله ﷺ له.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3802"
+          ]
+        },
+        {
+          "text": "وفي شأن بني قريظة، أُرسل إلى سعد ليأتي ويحكم فيمن نزلوا على حكمه. جاء راكبًا، فلما اقترب قال النبي ﷺ للأنصار أن يقوموا إلى سيدهم أو خيرهم. قبل أن يبدأ الكلام في الحكم، حفظ الحديث هذا الاستقبال الذي يبيّن معرفة قومه بقدره وإقرار النبي ﷺ لمكانته بينهم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4121"
+          ]
+        },
+        {
+          "text": "عرض النبي ﷺ على سعد أن القوم نزلوا على حكمه، فحكم فيهم بما نقلته الرواية، وأقره رسول الله ﷺ. كان سعد قد حكم بقتل المقاتلة وسبي الذرية في تلك الواقعة، فأقر النبي ﷺ حكمه. تكشف هذه الصفحة ثقل المسؤولية التي أُسندت إليه في حادثة بني قريظة بعد الأحزاب.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4121"
+          ]
+        },
+        {
+          "text": "وحين توفي سعد، سمع جابر بن عبد الله النبي ﷺ يقول إن عرش الرحمن اهتز لموته. وحفظ جابر هذا اللفظ وأكده عندما ذُكرت له رواية بلفظ آخر. يجتمع في سيرته هنا تكريم في حياته، ومسؤولية أُسندت إليه، ثم خبر عظيم في فضله عند موته.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3803"
+          ]
+        },
+        {
+          "text": "للتأمل: تُظهر هذه الصفحات أن منزلة المرء قد يعرفها أصحابه في المعاملة والثقة والتكليف، ثم تبقى بعده فيما شهد له به النبي ﷺ. وفي قصة سعد دعوة إلى تقدير أهل الخير من خلال ما ثبت من فضلهم وأعمالهم، مع إدراك أن هذه المواقف صفحات من حياة أوسع.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3802",
+            "bukhari:4121",
+            "bukhari:3803"
+          ]
+        }
+      ]
+    },
+    "jafar-ibn-abi-talib": {
+      "summaryAr": "شهد له النبي ﷺ بالشبه به خَلقًا وخُلُقًا، وحرص على رعاية ابنة حمزة، ثم حمل الراية واستشهد في مؤتة.",
+      "paragraphs": [
+        {
+          "text": "ظهر جعفر بن أبي طالب في موقف اجتمع فيه الاهتمام بطفلة مع تكريم عدد من الصحابة. كانت ابنة حمزة قد تبعت المسلمين عند خروجهم من مكة، فتناولها علي وأعان على حملها. ثم تكلم علي وجعفر وزيد فيمن يتولى رعايتها، وكل واحد منهم يذكر صلته بها.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2699"
+          ]
+        },
+        {
+          "text": "قال جعفر إنها ابنة عمه، وإن خالتها زوجته. فقضى النبي ﷺ بها لخالتها، وبيّن أن الخالة بمنزلة الأم. لم تكن المنافسة في هذا المشهد على مال أو جاه، بل على رعاية ابنة قريبهم؛ وجاء الحكم مبيّنًا اعتبار صلتها بخالتها في هذا الموضع.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2699"
+          ]
+        },
+        {
+          "text": "وخاطب النبي ﷺ جعفر بما يفيد شبهه به في الخَلْق والخُلُق. جاءت الشهادة في مجلس رعاية وقرابة، فثبت لجعفر من التكريم ما حفظه من شهد الخبر. وفي المجلس نفسه خاطب النبي ﷺ عليًا وزيدًا بعبارات تكريم أيضًا، فاجتمع الفصل في الأمر مع مراعاة قلوبهم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2699"
+          ]
+        },
+        {
+          "text": "ثم كان جعفر ثاني القادة الذين سمّاهم النبي ﷺ لغزوة مؤتة: إن قُتل زيد حمل جعفر الراية، وإن قُتل جعفر حملها عبد الله بن رواحة. وكان عبد الله بن عمر في الجيش، وروى أنهم وجدوا جعفرًا بين القتلى وفي جسده جراح كثيرة من طعن ورمي.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4261"
+          ]
+        },
+        {
+          "text": "ونقل أنس أن النبي ﷺ نعى القادة الثلاثة قبل وصول خبرهم، وعيناه تذرفان. وبعد ذلك بقي جعفر مذكورًا في تحية ابن عمر لابنه، إذ كان يسلم عليه بوصفه ابن ذي الجناحين. تصل هذه الأخبار بين تكريمه في حياته، وبذله في مؤتة، وبقاء ذكره بين أصحابه وأهله.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4262",
+            "bukhari:3709"
+          ]
+        },
+        {
+          "text": "للتأمل: تلتقي في قصة جعفر الرعاية والشجاعة؛ اهتمام بطفلة في مجلس، وحمل للمسؤولية في جيش. وتبقى كلمة النبي ﷺ في شبهه به خلقًا وخُلُقًا من أجمل ما يُذكر في فضله، إلى جانب خبر استشهاده والحزن عليه، من غير أن تطغى صفحة على بقية ما عرفه أصحابه عنه.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:2699",
+            "bukhari:4261",
+            "bukhari:4262"
+          ]
+        }
+      ]
+    },
+    "abu-dharr-al-ghifari": {
+      "summaryAr": "خرج إلى مكة ليتثبت من خبر النبوة، فدلّه علي على النبي ﷺ، فسمع وأسلم، وأُمر بالرجوع إلى قومه وإخبارهم.",
+      "paragraphs": [
+        {
+          "text": "لما بلغ أبا ذر خبر مبعث النبي ﷺ، أرسل أخاه إلى مكة ليتعرف إلى أمره ويسمع كلامه. عاد الأخ يخبره بأنه يأمر بمكارم الأخلاق، وأن كلامه ليس شعرًا. لكن أبا ذر أراد معرفة أتم، فتزوّد وحمل ماءه وخرج بنفسه إلى مكة، يبدأ رحلة بحث عن خبر سمع به ولم يكتف فيه بالنقل المختصر.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3861"
+          ]
+        },
+        {
+          "text": "وصل أبو ذر إلى المسجد وهو لا يعرف النبي ﷺ، وكره أن يسأل عنه. أدركه الليل، فرآه علي بن أبي طالب فعرف أنه غريب، فاستضافه. مضى اللقاء الأول من غير أن يسأل أحدهما الآخر عن شأنه، ثم تكررت استضافة علي له وهو ما يزال يبحث عمن قدم للقائه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3861"
+          ]
+        },
+        {
+          "text": "وفي اليوم الثالث سأله علي عما جاء به. طلب أبو ذر منه عهدًا أن يرشده، ثم أخبره بما يريد. أكد له علي أن الذي يطلبه رسول الله حقًا، واتفق معه على أن يتبعه في الصباح، وجعل له علامة إن خشي عليه شيئًا في الطريق. تحوّلت الضيافة إلى عون مباشر للوصول إلى المقصود.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3861"
+          ]
+        },
+        {
+          "text": "اتبع أبو ذر عليًا حتى دخل على النبي ﷺ، فسمع منه وأسلم في موضعه. أمره النبي ﷺ أن يرجع إلى قومه ويخبرهم حتى يأتيه أمره. هكذا وصل البحث إلى اللقاء والسماع، ثم إلى مهمة يحملها إلى أهله، بعد أن كان قد خرج وحده يريد التأكد من الخبر.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3861"
+          ]
+        },
+        {
+          "text": "لكن أبا ذر أعلن الشهادتين عند المسجد بصوت مرتفع، فقام عليه قوم فضربوه حتى أضجعوه. جاء العباس فحماه، وذكّرهم بأنه من غفار وأن طريق تجارتهم إلى الشام يمر بهم، فأنقذه. ثم عاد أبو ذر في اليوم التالي إلى مثل فعله، فعاد الاعتداء وتدخل العباس لحمايته.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3861"
+          ]
+        },
+        {
+          "text": "للتأمل: تتدرج القصة من سؤال أرسله مع أخيه إلى رحلة قام بها بنفسه، ثم ضيافة ودلالة ولقاء. وفيها قيمة البحث والتثبت، وقيمة من يعين الغريب حتى يبلغ حاجته. كما أن حماس أبي ذر لا يُنسينا الوصية التي تلقاها؛ فقد وجّهه النبي ﷺ إلى الرجوع إلى قومه وإبلاغهم.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3861"
+          ]
+        }
+      ]
+    },
+    "hassan-ibn-thabit": {
+      "summaryAr": "وضع بيانه في الرد عن رسول الله ﷺ، وحفظ الصحابة توجيه النبي ﷺ له ودعاءه بتأييده بروح القدس.",
+      "paragraphs": [
+        {
+          "text": "كانت الكلمة من ميادين نصرة رسول الله ﷺ، وفي هذا الباب يظهر حسان بن ثابت. فقد نقل البراء بن عازب أن النبي ﷺ وجّهه إلى الرد على من يهجونه، وأخبره بأن جبريل معه. تبدأ القصة من مهمة تتعلق باللسان والبيان، لا من مشهد قتال، لتكشف تنوع الأدوار في خدمة الحق.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3213"
+          ]
+        },
+        {
+          "text": "وتحفظ رواية أبي سلمة خبرًا سمع فيه حسانًا يستشهد أبا هريرة على ما سمعه من النبي ﷺ. سأله عن توجيه رسول الله ﷺ له أن يجيب عنه، وعن دعائه له بالتأييد بروح القدس. فأجابه أبو هريرة بأنه سمع ذلك. ظل الموقف معروفًا بين من شهدوا الكلام ونقلوه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:453"
+          ]
+        },
+        {
+          "text": "وفي خبر آخر، مر عمر بحسان وهو ينشد الشعر في المسجد، فذكر حسان أنه كان ينشد فيه وفيه من هو خير من عمر، ثم استشهد أبا هريرة بالخبر نفسه. لا يظهر هنا الشعر مجرد موهبة شخصية، بل عملًا كان حسان يعرف الإذن الذي قام عليه، ويطلب شهادة من حفظه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3212"
+          ]
+        },
+        {
+          "text": "يجمع الموقف بين القدرة على الرد والتثبت مما يُنسب إلى النبي ﷺ. لم يكتف حسان بأن يقول إنه كان يقول الشعر، بل استدعى شهادة أبي هريرة على التوجيه والدعاء. وصارت شهادة صاحبه جزءًا من الخبر الذي يربط نشاطه في المجلس بأصل معروف عند الصحابة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3212",
+            "bukhari:453"
+          ]
+        },
+        {
+          "text": "ومن خلال هذين المجلسين نرى الأثر العام للموهبة حين توضع في موضعها: قول يرد به حسان عن رسول الله ﷺ، وتأييد دعا به النبي ﷺ له. ظل الدعاء محفوظًا عند حسان، وظلت شهادة أبي هريرة حاضرة حين سأل عنه، فاجتمع في مجلس الشعر عمل باللسان ووفاء بما سمعه الصحابة من رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3213",
+            "bukhari:453"
+          ]
+        },
+        {
+          "text": "للتأمل: قد ينفع الإنسان الناس بما يحسن من بيان، كما ينفعهم غيره بماله أو علمه أو جهده. وقصة حسان تذكّر بقيمة الكلمة المسؤولة، وبأن الموهبة لا تُغني عن معرفة ما يصح قوله، وعن الأمانة في نقل الكلام والشهادة عليه.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3213",
+            "bukhari:3212"
+          ]
+        }
+      ]
+    },
+    "abu-musa-al-ashari": {
+      "summaryAr": "أثنى النبي ﷺ على حسن تلاوته، وبعثه مع معاذ إلى اليمن موصيًا بالتيسير والتبشير والتعاون.",
+      "paragraphs": [
+        {
+          "text": "عرف أبو موسى الأشعري في خبر صحيح بجمال قراءته، فقد قال له النبي ﷺ ما يشبّه حسن صوته بمزمار من مزامير آل داود. جاءت الشهادة موجهة إليه، فحفظها أبو موسى ورويت من بعده. من هذا الباب يبدأ التعرف إليه قارئًا يتلو القرآن فيسمعه رسول الله ﷺ ويثني على صوته.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:5048"
+          ]
+        },
+        {
+          "text": "وتشرح رواية أخرى المناسبة: أخبره النبي ﷺ أنه سمع قراءته في الليلة السابقة. فليست الفضيلة وصفًا بعيدًا عن عمل، بل ثناء على تلاوة وقعت واستمع إليها النبي ﷺ. وفي هذا المشهد قارئ ومستمع، ولفت إلى حسن الأداء مع بقاء القرآن هو محور اللقاء.",
+          "kind": "narrative",
+          "references": [
+            "muslim:793e"
+          ]
+        },
+        {
+          "text": "ولم تقتصر مهمته على القراءة؛ بعثه النبي ﷺ مع معاذ بن جبل إلى اليمن، وأوصاهما بالتيسير والتبشير، وأن يتعاونا ولا يختلفا. يحمل هذا الخبر جانبًا من عمله مع الناس، ويضيف إلى حسن الصوت مسؤولية تعليم تحتاج إلى أسلوب رفيق وتعاون مع من يشاركه المهمة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3038"
+          ]
+        },
+        {
+          "text": "تنتظم الوصية في أكثر من اتجاه: ما يقدمانه إلى الناس من تيسير وبشارة، وما يقوم بينهما من تطاوع واجتناب للاختلاف. فنجاح المهمة لا يتوقف على معرفة يحملها كل واحد منفردًا؛ بل يتصل أيضًا بطريقة العمل المشترك، وبالأثر الذي يتركه أسلوبهما فيمن يخاطبانه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3038"
+          ]
+        },
+        {
+          "text": "ومن مرويات أبي موسى أن النبي ﷺ كان يدعو أصحابه إلى الشفاعة عنده لأصحاب الحاجات، ويذكر لهم أجر السعي. يظهر في هذا الخبر باب آخر تعلمه وحفظه: أن القرب من مجلس القرار يمكن أن يصبح طريقًا لإيصال حاجة إنسان يحتاج إلى من يتكلم معه أو يعينه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:6028"
+          ]
+        },
+        {
+          "text": "للتأمل: جمال الصوت نعمة، ويزداد نفعها حين تصاحبها خدمة وتعليم ورفق. وتجمع هذه المواقف أبا موسى قارئًا، ومبعوثًا يعمل مع معاذ، وراويًا لتوجيه في قضاء الحاجات؛ فتتسع صورته من موهبة محبوبة إلى أبواب مختلفة من النفع للناس.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:5048",
+            "bukhari:3038",
+            "bukhari:6028"
+          ]
+        }
+      ]
+    },
+    "abdullah-ibn-salam": {
+      "summaryAr": "سأل عن علامات النبوة ثم أسلم، وحفظ بشارة تلقاها، ونبّه إلى ألا يقول الناس ما لا يعلمون.",
+      "paragraphs": [
+        {
+          "text": "لما سمع عبد الله بن سلام بقدوم النبي ﷺ إلى المدينة، جاءه يريد أن يسأله عن أمور يختبر بها ما عرفه من علامات النبوة. طرح أسئلته، وأجابه رسول الله ﷺ، فأعلن شهادته بأنه رسول الله. تبدأ قصته هنا بلقاء وسؤال وجواب، ثم قرار أعلن فيه ما انتهى إليه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3329"
+          ]
+        },
+        {
+          "text": "وبعد إسلامه، نبّه عبد الله النبي ﷺ إلى أن من يعرفونه قد يغيّرون قولهم فيه إذا علموا بإسلامه. فسألهم رسول الله ﷺ عن منزلته بينهم قبل أن يخرج إليهم، فأثنوا على علمه وخيريته. وعندما أعلن أمامهم إسلامه بدّلوا كلامهم وطعنوا فيه، كما نقل أنس خبر المجلس.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3329"
+          ]
+        },
+        {
+          "text": "وفي خبر لاحق، رأى قيس بن عباد عبد الله يدخل المسجد وعليه أثر الخشوع، وسمع من يذكر أنه من أهل الجنة. تبعه بعد الصلاة وأخبره بما سمع. بدأ عبد الله جوابه بالتنبيه إلى ألا يقول الإنسان ما لا يعلم، ثم شرح أصل ما يتصل به من خبر.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3813"
+          ]
+        },
+        {
+          "text": "ذكر عبد الله رؤيا رآها، فيها روضة وعمود وعروة، وعرضها على النبي ﷺ. ففسر له رسول الله ﷺ الروضة بالإسلام، وذكر له معنى العمود والعروة، وأخبره أنه على الإسلام حتى يموت. عرض عبد الله الرؤيا بوصفها رؤيا، ثم نقل تفسير النبي ﷺ لها، فلم يفصل البشارة عن أصلها الذي تلقاه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3813"
+          ]
+        },
+        {
+          "text": "وتحفظ رواية سعد بن أبي وقاص شهادة بأنه سمع النبي ﷺ يبشر عبد الله بن سلام بالجنة. تتصل هذه الشهادة بما رواه عبد الله عن الرؤيا، وتضيف إلى قصة إسلامه خبرًا عن فضله بعده. ويبقى في جوابه لقيس حرص ظاهر على أن يتكلم الناس بعلم، حتى إذا كان الكلام في مدحه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3812",
+            "bukhari:3813"
+          ]
+        },
+        {
+          "text": "للتأمل: لا يثبت صدق البحث بموافقة الناس دائمًا، وقد يتغير ثناؤهم إذا اختار المرء ما يعتقده حقًا. وفي قصة عبد الله سؤال متثبت، وإعلان للنتيجة، ثم أمانة في شرح البشارة وعدم قبول الكلام بغير علم؛ وهي معانٍ تتصل بالعلم قبل الإسلام وبعده.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:3329",
+            "bukhari:3813"
+          ]
+        }
+      ]
+    },
+    "abu-talhah-al-ansari": {
+      "summaryAr": "تصدّق بأحب ماله حين سمع الآية، وجعله في أقاربه بتوجيه النبي ﷺ، ووقاه بنفسه يوم أُحد.",
+      "paragraphs": [
+        {
+          "text": "كان أبو طلحة من أكثر الأنصار مالًا من النخل في المدينة، وكان أحب أمواله إليه بستان بيرحاء، قريبًا من المسجد. وكان رسول الله ﷺ يدخل ذلك البستان ويشرب من مائه الطيب. بهذه التفاصيل يعرّفنا أنس إلى المال الذي ستدور حوله القصة؛ شيء محبوب معلوم المكان والمنفعة لصاحبه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1461"
+          ]
+        },
+        {
+          "text": "لما نزلت الآية في أن البر لا يُنال حتى ينفق الإنسان مما يحب، جاء أبو طلحة إلى النبي ﷺ. سمّى أحب ماله، وأعلن أنه يجعله صدقة لله يرجو برها وذخرها، ثم طلب من رسول الله ﷺ أن يضعه حيث يرى. انتقل من سماع الآية إلى اختيار عملي يمس ما يحبه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1461"
+          ]
+        },
+        {
+          "text": "أثنى النبي ﷺ على المال الذي بذله، وأشار عليه أن يجعله في الأقربين. فاستجاب أبو طلحة وقسمه في أقاربه وبني عمه. لا تنتهي القصة عند إعلان التبرع؛ تحفظ الرواية جهة الإنفاق وتنفيذ أبي طلحة للتوجيه، فيجتمع البذل مع صلة الرحم في العمل نفسه.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:1461"
+          ]
+        },
+        {
+          "text": "وفي أُحد، كان أبو طلحة يحمي النبي ﷺ بترسه، وكان راميًا شديدًا. يروي أنس أن قوسين أو ثلاثًا انكسرت منه يومئذ، وأن النبي ﷺ كان يأمر من معه السهام أن يضعها له. تظهر هنا صفحة أخرى من البذل، بعد ما قرأنا عن البستان؛ جهد ووقاية في وقت الشدة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3811"
+          ]
+        },
+        {
+          "text": "وكان إذا أشرف رسول الله ﷺ ينظر إلى القوم خشي أبو طلحة أن يصيبه سهم، فيطلب منه ألا يُشرف ويؤكد أنه يفديه بنفسه. يحفظ الخبر فعل الحماية وكلامه في الموقف، فتتضح صلته برسول الله ﷺ في صورتين: مال يحبه يجعله صدقة، وجسد يجعله وقاية عند الخطر.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3811",
+            "bukhari:1461"
+          ]
+        },
+        {
+          "text": "للتأمل: قد يتنوع البذل عند الشخص نفسه بحسب الحاجة؛ مرة في مال نافع محبوب، ومرة في جهد وثبات. وفي موقف بيرحاء أيضًا معنى مهم: الحماسة للعطاء لا تمنع سؤال من يعلم عن موضعه الأنفع، ثم اتباع توجيهه حتى يصل الخير إلى من يُرجى نفعهم به.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:1461",
+            "bukhari:3811"
+          ]
+        }
+      ]
+    },
+    "al-hasan-ibn-ali": {
+      "summaryAr": "ذكر النبي ﷺ ما يرجى على يديه من الإصلاح، ثم انتهت المواجهة بينه وبين معاوية إلى صلح بين المسلمين.",
+      "paragraphs": [
+        {
+          "text": "حفظ أنس بن مالك أن الحسن بن علي كان شديد الشبه بالنبي ﷺ. وفي خبر آخر رآه أبو بكرة إلى جوار رسول الله ﷺ على المنبر، والنبي يقبل على الناس مرة وعليه مرة، ويذكر سيادته وما يرجى أن يجري الله على يديه من إصلاح بين المسلمين.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3752",
+            "bukhari:2704"
+          ]
+        },
+        {
+          "text": "مضت الأعوام، ثم وقف الحسن ومعاوية وبينهما جموع عظيمة. تصف الرواية الكتائب بما يدل على كثرتها وقوتها، وتنقل خشية عمرو بن العاص من قتال لا ينتهي إلا بقتل الأقران. عند هذه النقطة لا يكون الحديث عن خصومة صغيرة، بل عن مواجهة يخشى أن تجر دماء كثيرة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2704"
+          ]
+        },
+        {
+          "text": "وفي الحوار المنقول تساءل معاوية عمن يتولى أمور الناس ونساءهم إذا اقتتل الفريقان، ثم بعث إلى الحسن رجلين، عبد الرحمن بن سمرة وعبد الله بن عامر بن كريز، يعرضان عليه ويكلمانه. بدأت محاولة الصلح بمبعوثين وكلام في مطالب وضمانات، بعد ما وُصف من استعداد الجموع.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2704"
+          ]
+        },
+        {
+          "text": "دخل الرجلان على الحسن وتحدثا معه، وذكّر بما وقع في دماء الأمة. وسأل عمن يضمن ما يُعرض عليه، فالتزما له بما طلب. وانتهى الأمر بالصلح. تحفظ الرواية طريقًا من الكلام والضمان إلى الاتفاق، فتبيّن أن الإصلاح لم يكن شعارًا مجردًا، بل مسارًا احتاج إلى أخذ ورد.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2704"
+          ]
+        },
+        {
+          "text": "وعند نقل هذا الخبر ذُكرت كلمة النبي ﷺ القديمة عن الحسن، ورجاؤه أن يصلح الله به بين فئتين عظيمتين من المسلمين. يلتقي مشهد الطفل إلى جوار المنبر مع مشهد الرجل في موضع القرار؛ فما سمعه الصحابي يومًا عاد يظهر معناه في اتفاق جنب الناس استمرار المواجهة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2704"
+          ]
+        },
+        {
+          "text": "للتأمل: قد تكون القدرة على إنهاء القتال باب سيادة، كما تكون الشجاعة في مواجهته عند الحاجة. وفي قصة الحسن مكان للتفاوض والضمان والنظر إلى عواقب الدماء على الناس وأهليهم؛ وهي معانٍ تجعل الإصلاح عملًا ثقيلًا له خطوات، لا كلمة تقال بعيدًا عن المسؤولية.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:2704"
+          ]
+        }
+      ]
+    },
+    "zayd-ibn-harithah": {
+      "summaryAr": "أمّره النبي ﷺ على جيش مؤتة، وبقي بعد استشهاده يذكر محبته له ويشهد بأنه كان أهلًا للإمارة.",
+      "paragraphs": [
+        {
+          "text": "في غزوة مؤتة، جعل النبي ﷺ زيد بن حارثة قائدًا للجيش، وذكر من يحمل الراية بعده إن قُتل. كان جعفر بن أبي طالب بعد زيد، ثم عبد الله بن رواحة بعد جعفر. يبدأ هذا الخبر من ثقة عُهد بها إلى زيد في مهمة عسكرية، وخطة بيّنها رسول الله ﷺ قبل وقوع ما وقع.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4261"
+          ]
+        },
+        {
+          "text": "ثم نقل أنس أن النبي ﷺ أخبر الناس بمقتل القادة قبل أن يأتيهم خبرهم: أخذ زيد الراية فأصيب، ثم أخذها جعفر فأصيب، ثم ابن رواحة فأصيب. وكانت عينا النبي ﷺ تذرفان. تحفظ هذه الشهادة التكليف والوفاء؛ فقد قام زيد بما أُسند إليه، وبقي حزنه حاضرًا في مجلس رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:4262"
+          ]
+        },
+        {
+          "text": "وبعد زمن، بعث النبي ﷺ جيشًا وأمّر عليه أسامة بن زيد، فاعترض بعض الناس على إمارته. عندها ذكّرهم رسول الله ﷺ بأنهم اعترضوا من قبل على إمارة أبيه أيضًا، وشهد أن زيدًا كان أهلًا للإمارة، وأنه كان من أحب الناس إليه. صار الدفاع عن الابن مناسبة لذكر فضل الأب.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3730"
+          ]
+        },
+        {
+          "text": "لم يقف الكلام عند الكفاءة، بل اتصل بالمحبة كذلك، إذ بيّن النبي ﷺ محبته لزيد ثم لأسامة من بعده. يضيف هذا الخبر إلى مشهد الجيش قربًا إنسانيًا محفوظًا في النص؛ فالقائد الذي حمل مسؤولية مؤتة كان أيضًا صاحب منزلة ومحبة عند رسول الله ﷺ.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3730"
+          ]
+        },
+        {
+          "text": "وفي مجلس رعاية ابنة حمزة، تكلم زيد فيمن يتولاها، ثم خاطبه النبي ﷺ بما يدل على أخوته وولائه. كان المجلس يضم عليًا وجعفرًا، وسمع كل واحد كلمة تكريم. يظهر زيد هنا بين أصحابه في شأن رعاية وقرابة، إلى جانب ظهوره في أخبار القيادة.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:2699"
+          ]
+        },
+        {
+          "text": "للتأمل: يجتمع في هذه الصفحات الاعتماد على الكفاءة، وحفظ فضل الإنسان بعد موته، والتصريح بالمحبة له. وقصة زيد لا تختزل في نهاية مؤتة وحدها؛ فالتكليف سبقتها، والشهادة بأهليته بقيت بعدها، وصار ذكره دفاعًا عن عدل الحكم على الناس حين ثار الاعتراض على إمارة ابنه.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:4261",
+            "bukhari:3730"
+          ]
+        }
+      ]
+    },
+    "ammar-ibn-yasir": {
+      "summaryAr": "هاجر إلى المدينة وعمل في بناء المسجد، فنفض النبي ﷺ عنه التراب، وبقي فضله معروفًا بين أصحابه.",
+      "paragraphs": [
+        {
+          "text": "ذكر البراء بن عازب عمار بن ياسر ضمن الذين قدموا المدينة قبل قدوم النبي ﷺ. جاء اسمه مع بلال وسعد في خبر يجمع أخبار المهاجرين وتعليم القرآن وفرح أهل المدينة بوصول رسول الله ﷺ. من هنا يدخل عمار في هذه القصة مشاركًا في بناء الحياة الجديدة للمسلمين.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3925"
+          ]
+        },
+        {
+          "text": "ثم يصف أبو سعيد الخدري العمل في بناء المسجد: كان الصحابة يحملون اللبن، وكان عمار يحمل لبنتين في المرة التي يحمل فيها غيره لبنة. ليس المشهد موقفًا من القتال، بل عمل جماعي في البناء، يشارك فيه الصحابي بيده وجهده ويزيد من حمله.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:447"
+          ]
+        },
+        {
+          "text": "رآه النبي ﷺ فنفض عنه التراب، وقال فيه خبرًا حفظه أبو سعيد. يجمع المشهد عناية رسول الله ﷺ بمن يعمل أمامه، وما تحمله كلمات النبي ﷺ من إخبار عن عمار وما سيواجهه. أما عمار فكان يستعيذ بالله من الفتن، كما نقلت الرواية.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:447"
+          ]
+        },
+        {
+          "text": "وبعد زمن، جاء علقمة إلى الشام ودعا الله أن ييسر له جليسًا صالحًا، ثم جلس إلى أبي الدرداء. سأله أبو الدرداء عن بلده، ولما عرف أنه من أهل الكوفة ذكّره بأصحاب فضل عندهم، وذكر فيهم من أجاره الله من الشيطان على لسان نبيه ﷺ، وهي الفضيلة المذكورة لعمار.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:3742"
+          ]
+        },
+        {
+          "text": "تصل هذه الشهادة مشهد العمل قرب النبي ﷺ بذكر الصحابة بعضهم لبعض بعده. ظل فضل عمار معروفًا، يُذكّر به أبو الدرداء رجلًا جاء يطلب الجليس الصالح والعلم. فالسيرة هنا جهد في البناء، وعناية نبوية، ثم منزلة يحفظها له أصحابه وينقلونها إلى من بعدهم.",
+          "kind": "narrative",
+          "references": [
+            "bukhari:447",
+            "bukhari:3742"
+          ]
+        },
+        {
+          "text": "للتأمل: من أبواب الخير أن يضع الإنسان يده في عمل جماعي، وأن يظل مع ذلك مفتقرًا إلى حفظ الله من الفتن. وفي قصة عمار لا يغيب الجهد البسيط تحت ثقل الأحداث الكبرى؛ فقد حفظ لنا أبو سعيد اللبن الذي حمله والتراب الذي نفضه النبي ﷺ عنه، كما حفظ كلامه ودعاء عمار.",
+          "kind": "reflection",
+          "references": [
+            "bukhari:447"
+          ]
+        }
+      ]
+    }
+  }
+}
