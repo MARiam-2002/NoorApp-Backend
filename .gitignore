@@ -95,3 +95,5 @@ prisma/data/hadith/_audit.txt
 prisma/data/hadith/verified-sahih-hadith-bank.json
 
 .firebase-sa*.json
+NOOR_DATABASE_BACKUP_RECOVERY_KEY_PRIVATE.txt
+*.enc
