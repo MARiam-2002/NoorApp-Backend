@@ -13,7 +13,7 @@ export type ContentCredit = {
   noteEn: string | null;
 };
 
-export const CONTENT_CREDITS_VERSION = 3;
+export const CONTENT_CREDITS_VERSION = 4;
 
 export const CONTENT_CREDITS: readonly ContentCredit[] = [
   {
@@ -60,8 +60,8 @@ export const CONTENT_CREDITS: readonly ContentCredit[] = [
     key: 'figures',
     titleAr: 'شخصية اليوم',
     titleEn: 'Figure of the Day',
-    sourceAr: 'صياغة عربية لمواقف موثقة من صحيح البخاري وصحيح مسلم',
-    sourceEn: 'Original Arabic retellings of documented events in Sahih al-Bukhari and Sahih Muslim',
+    sourceAr: 'قصص صحابة وصحابيات بصياغة عربية لمواقف موثقة من صحيح البخاري وصحيح مسلم',
+    sourceEn: 'Original Arabic accounts of male and female Companions, grounded in Sahih al-Bukhari and Sahih Muslim',
     url: 'https://github.com/fawazahmed0/hadith-api',
     noteAr: 'السرد صياغة تعليمية؛ والشواهد مقتطفات موثقة بأرقامها. فقرات «للتأمل» استنباط تربوي وليست نصوصًا من الحديث.',
     noteEn: 'Narratives are original educational retellings; evidence excerpts retain collection and number. Labelled reflections are editorial lessons, not hadith quotations.',

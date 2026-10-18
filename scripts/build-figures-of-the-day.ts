@@ -9,8 +9,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { findSahihPhrase, type SahihCollection } from './lib/sahihayn-lookup';
 import { FIGURE_DEFINITIONS, FIGURE_SOURCES, FIGURES_CATALOG_VERSION } from './lib/figures-of-the-day-2026';
+import { validateFigureContentPolicy, type FigureStoryPolicyManifest } from './lib/figure-content-policy';
 
 const OUT = join(process.cwd(), 'src', 'shared', 'data', 'figures-of-the-day.ts');
+const sourceManifest = JSON.parse(readFileSync(join(process.cwd(), 'scripts/lib/figure-story-sources-2026.json'), 'utf8')) as FigureStoryPolicyManifest;
+validateFigureContentPolicy(FIGURE_DEFINITIONS, sourceManifest, FIGURES_CATALOG_VERSION);
 
 const COLLECTION_AR: Record<SahihCollection, string> = { bukhari: 'صحيح البخاري', muslim: 'صحيح مسلم' };
 const RAWAHU: Record<SahihCollection, string> = { bukhari: 'رواه البخاري', muslim: 'رواه مسلم' };

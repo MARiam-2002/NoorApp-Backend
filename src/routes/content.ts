@@ -120,10 +120,11 @@ contentRouter.get('/daily-challenge', getDailyChallengeHandler);
  *     description: |
  *       Public, static catalog (no DB). A companion of the Prophet ﷺ for the "شخصية اليوم" card and
  *       detail screen. Every figure has at least one narration quoted verbatim from Sahih al-Bukhari
- *       (Fath al-Bari numbering) or Sahih Muslim (Fuad Abd al-Baqi numbering). Catalog v2 contains
+ *       (Fath al-Bari numbering) or Sahih Muslim (Fuad Abd al-Baqi numbering). Catalog v3 contains
  *       original Arabic retellings in six paragraphs, grounded in specific narrations. The final
- *       labelled reflection is an editorial lesson, not a hadith quotation. Rotates daily through
- *       the catalog. The Home card is a short summary; render all storyAr items on the detail screen.
+ *       labelled reflection is an editorial lesson, not a hadith quotation. Scope is male and female
+ *       Companions only; no Tabiun or later figures. Rotates daily through the current catalog; use
+ *       /content/figures total, not a fixed count. Render all storyAr items on the detail screen.
  *     parameters:
  *       - in: query
  *         name: day
@@ -139,7 +140,7 @@ contentRouter.get('/daily-challenge', getDailyChallengeHandler);
  *               message: Figure of the day retrieved successfully
  *               data:
  *                 dayOfYear: 272
- *                 catalogVersion: 2
+ *                 catalogVersion: 3
  *                 id: musab-ibn-umair
  *                 nameAr: مصعب بن عمير
  *                 nameEn: "Mus'ab ibn Umair"

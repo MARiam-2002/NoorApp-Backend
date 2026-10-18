@@ -8,6 +8,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { findSahihPhrase } from './lib/sahihayn-lookup';
+import { FIGURE_DEFINITIONS } from './lib/figures-of-the-day-2026';
+import { validateFigureContentPolicy } from './lib/figure-content-policy';
 import { FIGURES_CATALOG_VERSION, FIGURES_OF_THE_DAY, FIGURE_SOURCES } from '../src/shared/data/figures-of-the-day';
 import {
   getFigureById,
@@ -21,7 +23,7 @@ import { CONTENT_CREDITS } from '../src/shared/constants/content-credits';
 const ARABIC = /[\u0621-\u064A]/;
 const n = FIGURES_OF_THE_DAY.length;
 
-assert.ok(n >= 30, `catalog too small: ${n}`);
+assert.ok(n >= 46, `catalog lost a reviewed story: ${n}`);
 assert.ok(Number.isInteger(FIGURES_CATALOG_VERSION) && FIGURES_CATALOG_VERSION >= 1);
 assert.ok(FIGURE_SOURCES.length >= 2);
 
@@ -61,17 +63,29 @@ assert.equal(FIGURES_OF_THE_DAY[0]!.titleAr, 'معلّم القرآن الذي �
 // These checks protect the attribution chain; they do not certify historical interpretation.
 type StoryManifest = {
   catalogVersion: number;
+  scope: { sectionNameAr: string; allowedCompanionTypes: string[]; sourceCollectionPolicy: string[] };
   editionFiles: Record<string, string>;
   references: Record<string, {
     collection: 'bukhari' | 'muslim'; number: number; editionNumber: number;
     phrase: string; url: string; textSha256: string;
   }>;
   figures: Record<string, {
+    companionType: string;
     summaryAr: string;
     paragraphs: { text: string; kind: 'narrative' | 'reflection'; references: string[] }[];
   }>;
 };
 const manifest = JSON.parse(readFileSync(join(process.cwd(), 'scripts/lib/figure-story-sources-2026.json'), 'utf8')) as StoryManifest;
+validateFigureContentPolicy(FIGURE_DEFINITIONS, manifest, FIGURES_CATALOG_VERSION);
+const outsideScope = structuredClone(manifest);
+outsideScope.figures['musab-ibn-umair']!.companionType = 'tabii';
+assert.throws(() => validateFigureContentPolicy(FIGURE_DEFINITIONS, outsideScope, FIGURES_CATALOG_VERSION), /only companions/);
+const missingProvenance = structuredClone(manifest);
+missingProvenance.figures['umm-sulaym-bint-milhan']!.paragraphs[0]!.references = [];
+assert.throws(() => validateFigureContentPolicy(FIGURE_DEFINITIONS, missingProvenance, FIGURES_CATALOG_VERSION), /missing sources/);
+const changedNarrative = structuredClone(manifest);
+changedNarrative.figures['musab-ibn-umair']!.paragraphs[0]!.text += ' changed';
+assert.throws(() => validateFigureContentPolicy(FIGURE_DEFINITIONS, changedNarrative, FIGURES_CATALOG_VERSION), /narrative\/source drift/);
 assert.equal(manifest.catalogVersion, FIGURES_CATALOG_VERSION);
 assert.deepEqual(Object.keys(manifest.figures).sort(), [...ids].sort(), 'source manifest must cover the exact catalog');
 const editions = new Map<string, { hadiths: { hadithnumber: number; text: string }[] }>();

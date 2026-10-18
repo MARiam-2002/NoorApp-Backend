@@ -6,30 +6,60 @@
 **Updated:** 2026-10-18
 **Language:** English only
 
-**Current change status:** Catalog v2 is implemented and checked locally. The public Railway catalog was queried on 2026-10-18 and still returned `catalogVersion: 1`, so these story changes are NOT deployed yet. The older dated dashboard examples below are historical shape examples, not a claim of a new production audit.
+**Current change status:** Catalog v3 is implemented and checked locally. The latest public Railway check on 2026-10-18 returned `catalogVersion: 2`, `total: 34`. The expanded v2 stories are live; the new v3 companion batch is NOT deployed yet. The older dated dashboard examples below are historical shape examples, not a claim of a new production audit.
 
-## October 18 update: expanded stories, same Flutter contract
+## October 18 update: Companions only, 12 new stories, same Flutter contract
 
-- The same 34 figure IDs and daily selection formula remain. Each story now has six paragraphs (roughly 260–315 Arabic words), including a clearly labelled concluding reflection. These are developed accounts of documented moments, not exhaustive cradle-to-grave biographies.
+- All 34 existing IDs, stories and their relative order remain. Twelve stories have been appended, giving 46 male/female Companions (34 men and 12 women). The daily selection formula is unchanged and uses the current catalog size. Each story has six paragraphs (roughly 260–315 Arabic words), including a clearly labelled concluding reflection. These are developed accounts of documented moments, not exhaustive cradle-to-grave biographies.
 - Home remains brief: render `nameAr`, `titleAr`, and `summaryAr`. Some titles and summaries were aligned with the documented story; do not hardcode their text.
 - On **Read the story**, fetch `/content/figures/{id}` and display **every `storyAr` paragraph in full immediately**, followed by `lessonAr`, all evidence, and sources. Do not use the Home `summaryAr` as the detail story.
 - Remove the former first-two-paragraph collapse on the detail page. No `maxLines`, ellipsis, fixed-height text box, `substring`, three-item limit, or nested scroll region clipping the story.
 - Keep one accessible vertical reader: RTL Arabic, start-aligned text, comfortable line spacing and paragraph gaps, SafeArea, text scaling and small-screen support. Retain the user's reading position on rebuild/resume.
 - Backend `storyAr` is still `List<String>`; `evidence` and `sources` retain the same fields. No new endpoint, auth requirement, request body, database migration, or Railway variable is required.
-- After deploying, re-fetch the list/daily resource and invalidate detail caches when `catalogVersion` becomes `2`. A cache keyed only by figure ID will keep the old short story. Do not read a client-only cached version as proof of the current backend version.
-- `/content/credits` becomes version `3`. Display attribution returned by the API rather than a hardcoded list of biography books.
+- After deploying, re-fetch the list/daily resource and invalidate detail caches when `catalogVersion` becomes `3`. A cache keyed only by figure ID will keep the old short story. Do not read a client-only cached version as proof of the current backend version.
+- `/content/credits` becomes version `4`. Display attribution returned by the API rather than a hardcoded list of biography books.
 - Stories are original Arabic retellings grounded in specific narrations from Sahih al-Bukhari / Sahih Muslim. Hadith excerpts are in `evidence`; the narrative itself is not presented as a verbatim hadith or a copied modern biography. `للتأمل:` and `lessonAr` are editorial lessons.
 - There is no independent scholar certification in this delivery. Exact source matching and hashes establish provenance, not a blanket guarantee that all editorial interpretation is infallible.
 
+### Section scope and release behaviour
+
+- Visible section name: **شخصية اليوم**. Do not call all entries “forgotten”: the catalog intentionally includes well-known and less widely known Companions.
+- Include male and female Companions only. Do not introduce Tabiun, later scholars, modern personalities or biographies generated on demand.
+- The current 46-story catalog is a bounded release batch, NOT all Companions and NOT 365 unique daily stories. It cycles through the catalog. Future additions need sourcing and a version bump; no yearly content promise is made.
+- With a fixed catalog/year the daily formula shows every entry before wrapping. Increasing the catalog size can change today's selection at deployment. Do not calculate it locally; use the returned figure ID, and retain that ID while its reader is open.
+- Existing saved/favourite IDs remain valid. Fetch details by ID, never by a stored list index. New IDs must be parsed as ordinary strings, not a closed enum of 34 values.
+- At app start/resume/day rollover, refresh catalog metadata as appropriate and invalidate stale list/detail caches by `catalogVersion`. Do not perform 46 detail requests on every launch.
+- Read `total` and `items.length`. No new environment variables, notification channel, database migration, or paid API is introduced.
+- The internal provenance manifest records `sahabi` / `sahabiyah`; these classifications are editorial metadata and are NOT new fields in the Flutter response.
+
+### New IDs in catalog v3
+
+1. `umm-sulaym-bint-milhan` — Umm Sulaym bint Milhan.
+2. `khabbab-ibn-al-aratt` — Khabbab ibn al-Aratt.
+3. `umm-haram-bint-milhan` — Umm Haram bint Milhan.
+4. `ibn-umm-maktum` — Ibn Umm Maktum (displayed without a disputed given-name expansion).
+5. `umm-atiyyah-al-ansariyyah` — Umm Atiyyah al-Ansariyyah.
+6. `kab-ibn-malik` — Kab ibn Malik.
+7. `umm-salamah` — Umm Salamah.
+8. `abu-masud-al-ansari` — Abu Masud al-Ansari.
+9. `asma-bint-umays` — Asma bint Umays; distinct from existing Asma bint Abi Bakr.
+10. `zaynab-bint-jahsh` — Zaynab bint Jahsh.
+11. `umm-al-ala-al-ansariyyah` — Umm al-Ala al-Ansariyyah.
+12. `ar-rubayyi-bint-muawwidh` — Ar-Rubayyi bint Muawwidh.
+
+### Local validation and deployment check
+
+The figure checks cover all stories, paragraph provenance and source-edition hashes, allowed scope, unsupported/missing provenance rejection, daily selection, and lite/detail separation. Production verification of v3 must be done AFTER its deployment. First fetch `/content/figures` and confirm version 3 and total 46; then open several new IDs and an existing saved ID. A v2/34 response means the old deployment is still active, not a missing Flutter asset.
+
 ### Acceptance checks for Mahmoud
 
-1. After backend deployment, `/content/figures` returns `catalogVersion: 2`, 34 unique IDs, and lite items without `storyAr`.
+1. After backend deployment, `/content/figures` returns `catalogVersion: 3`, 46 unique IDs, and lite items without `storyAr`.
 2. Open today's card by its returned ID: detail shows six complete paragraphs and every source, without a second “read more” barrier.
-3. Start with a v1 cached story, refresh metadata, and confirm it is replaced by v2. Opening another figure must not reuse the previous figure's content.
+3. Start with a v1 or v2 cached catalog, refresh metadata, and confirm the active catalog becomes v3 while the current opened story retains its correct ID. Opening another figure must not reuse the previous figure's content.
 4. Verify a long name, large system font, RTL, a small screen and both app themes. No text or source is clipped.
 5. Confirm Home still displays the short summary; it should not expand to the full story.
 6. Guest detail stays public. Protected Home login behaviour stays unchanged.
-7. Returning after a day change re-fetches the server-selected figure; no client-generated/random story, AI expansion, local 34-day hardcoding, or extra notification schedule.
+7. Returning after a day change re-fetches the server-selected figure; no client-generated/random story, AI expansion, local catalog-size hardcoding, or extra notification schedule.
 8. Offline display may show a previously downloaded story, with its real cached version; do not discard downloaded text just because a refresh failed.
 
 The detailed paragraph-to-narration map is `scripts/lib/figure-story-sources-2026.json` in the backend repository. The owner-facing reading copy is `NOOR_FIGURE_STORIES_EXPANDED_AR.md`; it is not an API payload.
@@ -74,7 +104,7 @@ The numbers in the Figma file (12 sajdah verses, 50 points, 5 pages, and so on) 
 | Avatar circle | none | **No portrait.** See §6.1 |
 | Name (مصعب بن عمير) | `GET /content/figures/{id}` | `nameAr` (+ optional `honorificAr`, e.g. رضي الله عنه) |
 | Subtitle (أول سفير في الإسلام) | same | `titleAr` |
-| Story paragraphs | same | `storyAr[]` (six expanded paragraphs in catalog v2; render all) |
+| Story paragraphs | same | `storyAr[]` (six expanded paragraphs in catalog v3; render all) |
 | Full story reader | client | Display all paragraphs immediately, then lesson and evidence; no collapsed story |
 | Lesson (optional block) | same | `lessonAr` |
 | Evidence quotes (optional block) | same | `evidence[]` → `textAr` + `sourceAr` |
@@ -95,7 +125,7 @@ The numbers in the Figma file (12 sajdah verses, 50 points, 5 pages, and so on) 
 | `GET` | `/content/figure-of-day?day=` | Public | **New.** Today's figure (full detail) |
 | `GET` | `/content/figures` | Public | **New.** Lite list of all figures + `catalogVersion` |
 | `GET` | `/content/figures/{id}` | Public | **New.** Full detail for one figure (opened from the Home card) |
-| `GET` | `/content/credits` | Public | Sources screen. Now `version: 3` with a `figures` item |
+| `GET` | `/content/credits` | Public | Sources screen. Now `version: 4` with a `figures` item |
 
 **Guest (no login):** `/dashboard` returns `401`. For a guest Home screen, use the public endpoints: `/content/verse-of-day`, `/content/hadith-of-day`, `/content/figure-of-day`, `/stances/today`, `/prayers/today`, `/quran/sajdah-verses`.
 
@@ -213,13 +243,13 @@ The rows are the 15 Mushaf sajdah marks in Mushaf order. For the «سجل الس
 }
 ```
 
-### 3.4 Figure detail shape (catalog v2, generated local sample)
+### 3.4 Figure detail shape (catalog v3, generated local sample)
 
 `GET /content/figures/musab-ibn-umair` returns this object under `data`. `GET /content/figure-of-day` adds `dayOfYear` and selects the server's figure; do not assume the example ID is today's figure.
 
 ```json
 {
-  "catalogVersion": 2,
+  "catalogVersion": 3,
   "id": "musab-ibn-umair",
   "nameAr": "مصعب بن عمير",
   "nameEn": "Mus'ab ibn Umair",
@@ -273,8 +303,8 @@ Same shape as 3.4 **without** `dayOfYear`. Example id from the Figma design: `mu
 
 ```json
 {
-  "catalogVersion": 2,
-  "total": 34,
+  "catalogVersion": 3,
+  "total": 46,
   "items": [
     { "id": "musab-ibn-umair", "nameAr": "مصعب بن عمير", "nameEn": "Mus'ab ibn Umair", "honorificAr": "رضي الله عنه",
       "titleAr": "أول سفير في الإسلام", "titleEn": "The first envoy of Islam",
@@ -283,7 +313,7 @@ Same shape as 3.4 **without** `dayOfYear`. Example id from the Figma design: `mu
 }
 ```
 
-Items have the same 7 keys as `dashboard.figureOfTheDay`. Use `total` / `items.length`; never hardcode 34.
+Items have the same 7 keys as `dashboard.figureOfTheDay`. Use `total` / `items.length`; never hardcode the catalog size.
 
 ### 3.7 Field reference (figures)
 
@@ -443,7 +473,7 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 
 ### 6.3 Sources screen
 
-`GET /content/credits` now returns `version: 3` with a new item, `key: "figures"`. Render all items from the response; don't hardcode the list.
+`GET /content/credits` now returns `version: 4` with a new item, `key: "figures"`. Render all items from the response; don't hardcode the list.
 
 ---
 
@@ -456,7 +486,7 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 | Challenge of the day (same fields) | **Content:** new 28-challenge bank; `titleEn` / `descriptionEn` now real English for every day; every challenge is auto-checked (PRAYER target always 5, ADHKAR is done/not done). Descriptions may quote a hadith with its Sahihayn number, so let them wrap. |
 | `/quran/sajdah-verses/*` (same fields, counts 10 / 15) | **Content:** 15 Mushaf ۩ marks with verbatim text; keys `16:49` → `16:50` and `4:102` → `38:24`; `22:77` not agreed, `41:38` agreed; `sortOrder` in Mushaf order. Filter the first tab by `isIn10Muataqidah`. See `SAJDAH_VERSES_FEATURE_FINAL.md` v1.1. |
 | `/notifications/unread-count`, `/quran/khatmah/stats` | Unchanged |
-| `GET /content/credits` (older versions) | `version: 3` with revised `figures` attribution after deployment |
+| `GET /content/credits` (older versions) | `version: 4` with revised `figures` attribution after deployment |
 | — | **New** `GET /content/figure-of-day`, `GET /content/figures`, `GET /content/figures/{id}` |
 
 **Not changed:** auth, Journey, Adhkar, Quran, Azan, and every existing field name and type. No database migration was needed; figures are a static catalog in the backend.
@@ -465,7 +495,7 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 
 ## 8. Content sourcing (for the About / review screen)
 
-- **34 Companions (رضي الله عنهم).**
+- **46 male/female Companions (رضي الله عنهم).**
 - **Narratives:** original Arabic retellings of specific Sahih al-Bukhari / Sahih Muslim accounts, with paragraph-level references in the source manifest. These are selected documented moments, not exhaustive biographies.
 - **Evidence:** every figure has at least one narration quoted **verbatim** from Sahih al-Bukhari or Sahih Muslim, 52 narrations in total.
   - Each quote carries its standard hadith number.
@@ -473,7 +503,7 @@ There is no server endpoint for figure favorites. Store favorite ids on the devi
 
 ---
 
-## 9. Historical production checklist — September 29, before the Railway move and catalog v2
+## 9. Historical production checklist — September 29, before the Railway move and catalog v3
 
 This older checklist is retained for integration history; it is NOT validation of the October 18 code or of the current Railway deployment. Use the current acceptance checklist above after deploying.
 
