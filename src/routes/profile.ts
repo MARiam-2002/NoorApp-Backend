@@ -1,4 +1,5 @@
 import { getKahfPreferences, updateKahfPreferences } from '../services/kahf-reminder.service';
+import { getFajrAlarmPreferences, updateFajrAlarmPreferences } from '../services/fajr-alarm.service';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
 import { Router } from 'express';
@@ -351,6 +352,12 @@ const updateLocationSchema = z.object({
  *         $ref: '#/components/responses/Unauthorized'
  */
 export const profileRouter = Router();
+profileRouter.get('/fajr-alarm-preferences', privateNawafelCache, authenticate, asyncHandler(async (req, res) => {
+  sendSuccess(res, await getFajrAlarmPreferences(req.user!.sub), 'Fajr alarm settings', req);
+}));
+profileRouter.patch('/fajr-alarm-preferences', privateNawafelCache, authenticate, asyncHandler(async (req, res) => {
+  sendSuccess(res, await updateFajrAlarmPreferences(req.user!.sub, req.body), 'Fajr alarm settings saved', req);
+}));
 profileRouter.get('/nawafel-preferences', privateNawafelCache, authenticate, getNawafelPreferencesHandler);
 profileRouter.patch('/nawafel-preferences', privateNawafelCache, authenticate, validate(nawafelPreferencesPatchSchema), patchNawafelPreferencesHandler);
 

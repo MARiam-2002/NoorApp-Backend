@@ -9,6 +9,7 @@ datasource db {
 }
 
 model User {
+  fajrAlarmPreference FajrAlarmPreference?
   kahfPreference KahfPreference?
   kahfSendLogs KahfSendLog[]
   travelPreferences Json?
@@ -980,6 +981,15 @@ model TravelOperation {
  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
  @@id([userId,requestKey])
  @@map("travel_operations")
+}
+
+model FajrAlarmPreference {
+ userId String @id
+ preferences Json
+ revision Int @default(0)
+ updatedAt DateTime @default(now()) @updatedAt
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@map("fajr_alarm_preferences")
 }
 
 model KahfPreference {
