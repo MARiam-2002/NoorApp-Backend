@@ -1,4 +1,5 @@
 import { getReadingGoal } from './reading-goal.service';
+import { creditContinuityDay, prepareReadingContinuity } from './continuity.service';
 import type { ChallengeType } from '@prisma/client';
 
 import { ErrorCodes, HttpStatus } from '../config';
@@ -602,13 +603,14 @@ export async function updateQuranPages(userId: string, pages: number) {
   }
 
   const { date } = await getUserLocalCalendarDay(userId);
-  const progress = await prisma.dailyProgress.upsert({
-    where: { userId_date: { userId, date } },
-    create: { userId, date, quranPagesRead: pages },
-    update: { quranPagesRead: pages },
+  return prisma.$transaction(async tx => {
+    const day = await prepareReadingContinuity(tx, userId, date.toISOString().slice(0, 10));
+    const progress = await tx.dailyProgress.upsert({
+      where: { userId_date: { userId, date } }, create: { userId, date, quranPagesRead: pages }, update: { quranPagesRead: pages },
+    });
+    if (pages > 0 && day) await creditContinuityDay(tx, userId, day, 'QURAN');
+    return { quranPagesRead: progress.quranPagesRead };
   });
-
-  return { quranPagesRead: progress.quranPagesRead };
 }
 
 export async function incrementQuranPages(userId: string, pages: number) {
@@ -621,14 +623,14 @@ export async function incrementQuranPages(userId: string, pages: number) {
   }
 
   const { date } = await getUserLocalCalendarDay(userId);
-  const current = await getOrCreateToday(userId, date);
-
-  const progress = await prisma.dailyProgress.update({
-    where: { id: current.id },
-    data: { quranPagesRead: current.quranPagesRead + pages },
+  return prisma.$transaction(async tx => {
+    const day = await prepareReadingContinuity(tx, userId, date.toISOString().slice(0, 10));
+    const progress = await tx.dailyProgress.upsert({
+      where: { userId_date: { userId, date } }, create: { userId, date, quranPagesRead: pages }, update: { quranPagesRead: { increment: pages } },
+    });
+    if (day) await creditContinuityDay(tx, userId, day, 'QURAN');
+    return { quranPagesRead: progress.quranPagesRead };
   });
-
-  return { quranPagesRead: progress.quranPagesRead };
 }
 
 export async function updateAdhkar(

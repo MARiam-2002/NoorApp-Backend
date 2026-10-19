@@ -1,4 +1,5 @@
 import { runKahfReminders } from './kahf-reminder.service';
+import { runContinuityReminders } from './continuity-reminder.service';
 import { prayerScheduleKey, isPrayerSnapshotCurrent } from './travel.service';
 import { prisma } from '../lib/prisma';
 import { runCharityReminders } from './charity-reminder.service';
@@ -851,6 +852,7 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
   const salawat = await runSalawatReminders();
   const mulk = await runMulkReminders();
   await runKahfReminders().catch(error => logger.error('[KahfReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
+  await runContinuityReminders().catch(error => logger.error('[ContinuityReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   const duha = await runDuhaReminders();
   const qiyam = await runQiyamReminders();
   const khatmah = await runKhatmahReminders();

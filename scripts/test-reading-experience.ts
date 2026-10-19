@@ -40,10 +40,13 @@ async function main() {
         await originals.transaction(async (tx) => {
             await tx.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
             await tx.$executeRawUnsafe(`SET LOCAL search_path TO "${schema}"`);
-            await tx.$executeRawUnsafe('CREATE TABLE "users"("id" TEXT PRIMARY KEY)');
+            await tx.$executeRawUnsafe('CREATE TABLE "users"("id" TEXT PRIMARY KEY,"timezone" TEXT NOT NULL DEFAULT \'Africa/Cairo\')');
+            await tx.$executeRawUnsafe('CREATE TABLE "daily_progress"("id" TEXT PRIMARY KEY,"userId" TEXT,"date" DATE,"quranPagesRead" INTEGER NOT NULL DEFAULT 0,"morningAdhkarCompleted" BOOLEAN NOT NULL DEFAULT false,"eveningAdhkarCompleted" BOOLEAN NOT NULL DEFAULT false,"adhkarCompleted" BOOLEAN NOT NULL DEFAULT false,"updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,UNIQUE("userId","date"))');
             await tx.$executeRawUnsafe('CREATE TABLE "khatmah"("id" TEXT,"userId" TEXT PRIMARY KEY,"totalPagesRead" INTEGER NOT NULL DEFAULT 0,"planMode" TEXT,"planJuzPerMonth" INTEGER,"planStartedAt" TIMESTAMP(3),"planPagesAtStart" INTEGER,"planTargetEndAt" TIMESTAMP(3),"planDurationDays" INTEGER,"dailyWardPages" INTEGER,"updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)');
             await tx.$executeRaw `INSERT INTO "users"("id") VALUES('owner'),('other')`;
             for (const statement of readFileSync('prisma/migrations/20261010140000_reading_experience/migration.sql', 'utf8').split(';').map(s => s.trim()).filter(Boolean))
+                await tx.$executeRawUnsafe(statement);
+            for (const statement of readFileSync('prisma/migrations/20261019090000_noor_continuity/migration.sql', 'utf8').split(';').map(s => s.trim()).filter(Boolean))
                 await tx.$executeRawUnsafe(statement);
             (prisma as any).$queryRaw = tx.$queryRaw.bind(tx);
             (prisma as any).$executeRaw = tx.$executeRaw.bind(tx);
@@ -159,7 +162,6 @@ async function main() {
             env.WARSH_TEXT_APPROVED = false;
             assert.equal((await getReadingGoal('other')).source, 'UNAVAILABLE');
             env.WARSH_TEXT_APPROVED = true;
-            await tx.$executeRawUnsafe('CREATE TABLE "daily_progress"("id" TEXT PRIMARY KEY,"userId" TEXT,"date" DATE,"quranPagesRead" INTEGER NOT NULL DEFAULT 0,"updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,UNIQUE("userId","date"))');
             await tx.$executeRaw `INSERT INTO "khatmah"("id","userId") VALUES('legacy-other','other')`;
             (prisma.khatmah as any).findUnique = async (args: any) => { const rows: any[] = await tx.$queryRaw `SELECT * FROM "khatmah" WHERE "userId"=${args.where.userId}`; return rows[0] ?? null; };
             (prisma.dailyProgress as any).findUnique = async (args: any) => { const rows: any[] = await tx.$queryRaw `SELECT * FROM "daily_progress" WHERE "userId"=${args.where.userId_date.userId} AND "date"=${args.where.userId_date.date}::date`; return rows[0] ?? null; };

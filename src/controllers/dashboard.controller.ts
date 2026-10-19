@@ -5,6 +5,7 @@ import { sendSuccess } from '../shared/utils/response';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import * as dashboardService from '../services/dashboard.service';
+import { getContinuitySummaryForHome } from '../services/continuity.service';
 
 export const getDashboard = asyncHandler(async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'private, no-store');
@@ -20,5 +21,6 @@ export const getDashboard = asyncHandler(async (req: Request, res: Response) => 
 
   const data = await dashboardService.getDashboard(userId);
 
-  sendSuccess(res, data, 'Dashboard loaded successfully', req);
+  const continuity = await getContinuitySummaryForHome(userId);
+  sendSuccess(res, { ...data, continuity }, 'Dashboard loaded successfully', req);
 });

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { continuityRouter } from './continuity';
 import { fajrAlarmRouter } from './fajr-alarm';
 
 import { healthRouter } from './health';
@@ -31,6 +32,7 @@ import { travelRouter } from './travel';
 import { readingRouter } from './reading';
 
 export const v1Router = Router();
+v1Router.use('/continuity', continuityRouter);
 v1Router.use('/fajr-alarm', fajrAlarmRouter);
 v1Router.use('/travel', travelRouter);
 v1Router.use('/reading', readingRouter);

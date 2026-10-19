@@ -1,4 +1,6 @@
 import { prisma } from '../lib/prisma';
+import { recordCompletedAdhkarForContinuity } from './continuity.service';
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { logger } from '../lib/logger';
@@ -384,10 +386,7 @@ export async function getAdhkarStaticMeta() {
 //  Adhkar Progress — resume mark + tap counts per user per day
 // ============================================================
 
-function getTodayDate(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-}
+async function getTodayDate(userId: string): Promise<Date> { return (await getUserLocalCalendarDay(userId)).date; }
 
 /**
  * Whether every item in a category (or first `limit` items) is completed today
@@ -550,7 +549,7 @@ export async function applyJourneyAdhkarToDhikrLedger(
     wirdCompleted?: boolean;
   },
 ): Promise<AdhkarJourneyFlags> {
-  const date = getTodayDate();
+  const date = await getTodayDate(userId);
 
   if (input.wirdCompleted) {
     await markCategoryItemsCompleteInLedger(
@@ -567,7 +566,7 @@ export async function applyJourneyAdhkarToDhikrLedger(
     await markCategoryItemsCompleteInLedger(userId, 'EVENING', date);
   }
 
-  return syncJourneyAdhkarFromDhikr(userId, date);
+  return syncJourneyAdhkarFromDhikr(userId, date, true);
 }
 
 /**
@@ -633,9 +632,11 @@ export function deriveAdhkarJourneyFlags(input: {
  */
 export async function syncJourneyAdhkarFromDhikr(
   userId: string,
-  date = getTodayDate(),
+  requestedDate?: Date,
+  creditContinuity = false,
 ): Promise<AdhkarJourneyFlags> {
   return withPerfTiming('adhkar.syncJourneyAdhkarFromDhikr', async () => {
+    const date = requestedDate ?? await getTodayDate(userId);
     const syncKeys = ['MORNING', 'EVENING', 'GENERAL_WIRD'] as const;
 
     type CatRow = {
@@ -765,6 +766,11 @@ export async function syncJourneyAdhkarFromDhikr(
       });
     }
 
+    // Only actual complete categories qualify; never the cosmetic fallback percentage.
+    if (creditContinuity && (resultFlags.morningAdhkarCompleted || resultFlags.eveningAdhkarCompleted || resultFlags.adhkarCompleted)) {
+      const today = await getTodayDate(userId);
+      if (date.getTime() === today.getTime()) await recordCompletedAdhkarForContinuity(userId);
+    }
     return resultFlags;
   });
 }
@@ -779,7 +785,7 @@ export async function getAdhkarProgress(userId: string, categoryKey: string) {
     );
   }
 
-  const date = getTodayDate();
+  const date = await getTodayDate(userId);
 
   // Find the category (DB or fallback)
   let category: { id: string; key: string; totalItems: number } | null = null;
@@ -889,7 +895,7 @@ export async function saveAdhkarProgress(
     );
   }
 
-  const date = getTodayDate();
+  const date = await getTodayDate(userId);
 
   // Resolve categoryId
   let categoryId: string | null = null;
@@ -931,7 +937,7 @@ export async function saveAdhkarProgress(
   }
 
   // Keep Dashboard / Journey DailyProgress in sync with item completions (same day).
-  await syncJourneyAdhkarFromDhikr(userId, date).catch((err) => {
+  await syncJourneyAdhkarFromDhikr(userId, date, true).catch((err) => {
     logger.warn('[Adhkar] journey sync after progress save failed', {
       userId,
       message: err instanceof Error ? err.message : String(err),
@@ -1397,7 +1403,7 @@ export async function getDailyWirdForUser(userId: string) {
   const baseWird = await getDailyWird();
 
   // Calculate real progress from user's completions
-  const date = getTodayDate();
+  const date = await getTodayDate(userId);
 
   try {
     const wirdCategory = await prisma.dhikrCategory.findFirst({

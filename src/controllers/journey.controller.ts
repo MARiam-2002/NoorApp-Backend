@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { getContinuitySummaryForHome } from '../services/continuity.service';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { asyncHandler } from '../middleware/common';
@@ -29,7 +30,8 @@ export const getJourneyToday = asyncHandler(async (req: Request, res: Response) 
   }
 
   const data = await getTodayJourney(userId);
-  sendSuccess(res, data, 'Daily journey retrieved successfully', req);
+  const continuity = await getContinuitySummaryForHome(userId);
+  sendSuccess(res, { ...data, continuity }, 'Daily journey retrieved successfully', req);
 });
 
 export const getJourneyBadges = asyncHandler(async (req: Request, res: Response) => {

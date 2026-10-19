@@ -1,4 +1,5 @@
 import { creditReadingUnits } from './reading-progress.service';
+import { offlineCompletionSchema } from './continuity-core';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
@@ -11,7 +12,7 @@ import { requireWarsh } from './warsh-content.service';
 import { getDailyWird } from './adhkar.service';
 import { dateOnlyFromDayKey } from '../shared/utils/user-local-date';
 export const sessionStartSchema = z.object({ editionId: editionIdSchema, minutes: z.union([z.literal(5), z.literal(10), z.literal(20)]), includeAdhkar: z.boolean().default(true), includeReflection: z.boolean().default(true), requestKey: z.string().uuid() }).strict();
-export const sessionUpdateSchema = z.object({ requestKey: z.string().uuid(), revision: z.number().int().min(0), completedUnits: z.array(z.string().max(20)).max(60).default([]), doneTasks: z.array(z.string().max(40)).max(3).default([]), skippedTasks: z.array(z.literal('reflection')).max(1).default([]), status: z.enum(['ACTIVE', 'PAUSED']).default('ACTIVE') }).strict().refine(v => new Set(v.completedUnits).size === v.completedUnits.length && new Set(v.doneTasks).size === v.doneTasks.length, 'Duplicate confirmations');
+export const sessionUpdateSchema = z.object({ requestKey: z.string().uuid(), revision: z.number().int().min(0), completedUnits: z.array(z.string().max(20)).max(60).default([]), doneTasks: z.array(z.string().max(40)).max(3).default([]), skippedTasks: z.array(z.literal('reflection')).max(1).default([]), status: z.enum(['ACTIVE', 'PAUSED']).default('ACTIVE'), continuity: offlineCompletionSchema.optional() }).strict().refine(v => new Set(v.completedUnits).size === v.completedUnits.length && new Set(v.doneTasks).size === v.doneTasks.length, 'Duplicate confirmations');
 type Session = {
     id: string;
     userId: string;
@@ -28,6 +29,7 @@ type Session = {
     status: string;
     revision: number;
     expiresAt: Date;
+    createdAt: Date;
 };
 function dto(row: Session) { return { sessionId: row.id, editionId: row.editionId, contentVersion: row.contentVersion, date: dayString(row.day), timezone: row.timezone, minutes: row.minutes, expiresAt: row.expiresAt.toISOString(), revision: row.revision, status: row.status, ...row.payload, confirmedUnits: row.confirmedUnits, doneTasks: row.doneTasks, skippedTasks: row.skippedTasks }; }
 export async function getReadingSession(userId: string, id: string) {
@@ -137,7 +139,7 @@ export async function updateReadingSession(userId: string, id: string, input: z.
         const doneTasks = [...new Set([...row.doneTasks, ...input.doneTasks])];
         if (quran && quran.units.every((key: string) => confirmedUnits.includes(key)))
             doneTasks.push('quran');
-        await creditReadingUnits(tx, userId, { ...row, source: current.source }, input.completedUnits);
+        await creditReadingUnits(tx, userId, { ...row, source: current.source, continuity: input.continuity, continuityBounds: { offeredAt: row.createdAt } }, input.completedUnits);
         const uniqueDone = [...new Set(doneTasks)];
         const status = row.payload.tasks.every((t: any) => uniqueDone.includes(t.id) || skippedTasks.includes(t.id)) ? 'COMPLETED' : input.status;
         await tx.$executeRaw `UPDATE "reading_sessions" SET "confirmedUnits"=${JSON.stringify(confirmedUnits)}::jsonb,"doneTasks"=${JSON.stringify(uniqueDone)}::jsonb,"skippedTasks"=${JSON.stringify(skippedTasks)}::jsonb,"status"=${status},"revision"="revision"+1,"updatedAt"=CURRENT_TIMESTAMP WHERE "id"=${id}`;
