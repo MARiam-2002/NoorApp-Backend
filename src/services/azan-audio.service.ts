@@ -6,6 +6,8 @@ import {
   AZAN_MEDIA_FILES,
   AZAN_SOUND_OPTIONS,
   NOTIFICATION_SOUND_OPTIONS,
+  NEAR_PRAYER_SOUND_OPTIONS,
+  PRAYER_EVENT_SOUND_OPTIONS,
   DEFAULT_AZAN_SOUND_ID,
   DEFAULT_NOTIFICATION_SOUND_ID,
   AUDIO_SOURCE_POLICY,
@@ -71,6 +73,27 @@ export function listAzanSounds(req?: Request): AzanSoundOption[] {
 
 export function listNotificationSounds(req?: Request): NotificationSoundOption[] {
   return NOTIFICATION_SOUND_OPTIONS.map((o) => withAbsoluteUrls(o, req));
+}
+
+/** Separate spoken-voice discovery; the existing generic-tone catalog stays unchanged. */
+export function listPrayerVoiceSounds(req?: Request) {
+  const decorate = (option: NotificationSoundOption) => ({
+    ...withAbsoluteUrls(option, req),
+    nativeSound: option.mediaFile?.replace(/\.mp3$/i, '') ?? null,
+    available: option.mediaFile ? resolveMediaFile(option.mediaFile) !== null : false,
+  });
+  const near = NEAR_PRAYER_SOUND_OPTIONS.map(decorate);
+  const selector = near.find(option => option.id === 'sc_near_auto');
+  if (selector) selector.available = near.filter(option => option.mediaFile).every(option => option.available);
+  return {
+    requiresNativeBundling: true,
+    nearPrayer: { autoSelectionId: 'sc_near_auto', sounds: near },
+    prayerTime: {
+      preferenceValue: 'announcement',
+      sounds: PRAYER_EVENT_SOUND_OPTIONS.filter(option => option.matchesPrayer != null).map(decorate),
+    },
+    note: 'Server availability is not proof of client bundling. Preview URLs do not configure native notification sounds. Save notificationSoundId for pre-prayer selection and prayerTimeSoundMode for at-time announcements. Existing user choices/defaults remain unchanged.',
+  };
 }
 
 export function getAudioDefaults(req?: Request) {

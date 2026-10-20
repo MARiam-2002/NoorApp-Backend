@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { buildFcmMulticastMessage } from '../src/lib/fcm';
 import { prisma } from '../src/lib/prisma';
 import { runAzanRemindersForUser, resolvePrayerAnnouncementSound } from '../src/services/prayer-reminder.service';
 import { pickExplicitAzanPatch } from '../src/services/azan.service';
@@ -64,6 +65,10 @@ async function main() {
     assert.equal(payloads[0].data.eventType, 'PRE_PRAYER');
     assert.equal(payloads[0].data.deliveryMode, 'OS_NOTIFICATION');
     assert.equal(payloads[0].nativeSound, 'sc_near_jumuah');
+    const nearWire = buildFcmMulticastMessage(['fake-token'], payloads[0], now.getTime());
+    assert.equal(nearWire.data.nativeSound, 'sc_near_jumuah');
+    assert.equal(nearWire.android.notification.sound, nearWire.data.nativeSound);
+    assert.equal(nearWire.data.androidChannelId, nearWire.android.notification.channelId);
     assert.equal(payloads[0].ttlSeconds, 897);
     assert.equal(payloads[0].data.expiresAtUtc, prayer.toISOString());
     assert.equal(payloads[0].data.scheduledAtUtc, '2026-10-08T20:55:00.000Z');
@@ -75,12 +80,20 @@ async function main() {
     assert.equal(payloads[1].data.eventType, 'JUMUAH');
     assert.equal(payloads[1].data.soundType, 'PRAYER_EVENT');
     assert.equal(payloads[1].nativeSound, 'sc_event_jumuah');
+    const eventWire = buildFcmMulticastMessage(['fake-token'], payloads[1], prayer.getTime());
+    assert.equal(eventWire.data.nativeSound, 'sc_event_jumuah');
+    assert.equal(eventWire.apns.payload.aps.sound, 'sc_event_jumuah.caf');
     assert.equal(payloads[1].androidChannelId, 'azan_sc_event_jumuah');
     assert.equal(payloads[1].ttlSeconds, 898, 'at-time TTL also respects its absolute expiry');
     claimedKeys.clear();
     user.azanPreferences.soundEnabled = false;
     await runAzanRemindersForUser(user, 10, memo, send);
     assert.equal(payloads[2].nativeSound, null);
+    const silentWire = buildFcmMulticastMessage(['fake-token'], payloads[2]);
+    assert.equal(silentWire.data.nativeSound, '');
+    assert.equal(silentWire.data.soundEnabled, 'false');
+    assert.ok(!('sound' in silentWire.apns.payload.aps));
+    assert.ok(!('sound' in silentWire.android.notification));
     assert.equal(payloads[2].androidChannelId, 'azan_silent');
     claimedKeys.clear();
     user.azanPreferences.soundEnabled = true;

@@ -3,6 +3,7 @@ import {
   getAudioDefaultsHandler,
   listAzanSoundsHandler,
   listNotificationSoundsHandler,
+  listPrayerVoiceSoundsHandler,
   streamAzanMediaHandler,
 } from '../controllers/azan-audio.controller';
 import {
@@ -79,6 +80,19 @@ azanRouter.get('/sounds', listAzanSoundsHandler);
  *         description: Notification sound list
  */
 azanRouter.get('/notification-sounds', listNotificationSoundsHandler);
+
+/**
+ * @openapi
+ * /azan/prayer-voice-sounds:
+ *   get:
+ *     tags: ['Azan Audio']
+ *     summary: Discover approaching-prayer and short prayer-time spoken recordings
+ *     description: Public additive catalog. Data contains nearPrayer.autoSelectionId and nearPrayer.sounds, prayerTime.preferenceValue and prayerTime.sounds, and requiresNativeBundling. Sound entries expose nativeSound, available, mediaFile and previewUrl. Server availability does not prove app bundling. The existing notification-sounds tone list and saved defaults remain unchanged.
+ *     responses:
+ *       200:
+ *         description: Noor success envelope containing separate spoken-voice catalogs
+ */
+azanRouter.get('/prayer-voice-sounds', listPrayerVoiceSoundsHandler);
 
 /**
  * @openapi

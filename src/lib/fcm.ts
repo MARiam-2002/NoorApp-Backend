@@ -1,14 +1,14 @@
 import { env } from '../config';
 import { logger } from './logger';
 
-type FcmPayload = {
+export type FcmPayload = {
   title: string;
   body: string;
   data?: Record<string, string>;
   /**
    * Android notification channel sound resource name (without extension) or file path.
    * APNs: name of the sound file in the app bundle / Library/Sounds.
-   * Pass 'default' for OS default. Pass null/undefined for silent notification.
+   * Pass 'default' or undefined for OS default. Pass null for silent notification.
    */
   nativeSound?: string | null;
   /** Android notification channel ID (must exist on the device). Defaults to `general`. */
@@ -99,25 +99,8 @@ async function getMessaging(): Promise<any | null> {
   }
 }
 
-export async function sendFcmToTokens(
-  tokens: string[],
-  payload: FcmPayload,
-): Promise<SendResult> {
-  const unique = [...new Set(tokens.filter(Boolean))];
-  if (unique.length === 0) {
-    return { successCount: 0, failureCount: 0, invalidTokens: [], configured: isFcmConfigured() };
-  }
-
-  const msg = await getMessaging();
-  if (!msg) {
-    return {
-      successCount: 0,
-      failureCount: unique.length,
-      invalidTokens: [],
-      configured: false,
-    };
-  }
-
+/** Pure transport builder: test platform audio without sending to real devices. */
+export function buildFcmMulticastMessage(tokens: string[], payload: FcmPayload, nowMs = Date.now()) {
   const nativeSound =
     payload.nativeSound === undefined || payload.nativeSound === null
       ? 'default'
@@ -158,20 +141,27 @@ export async function sendFcmToTokens(
     'apns-push-type': 'alert',
   };
   if (ttlSeconds != null) {
-    apnsHeaders['apns-expiration'] = String(Math.floor(Date.now() / 1000) + ttlSeconds);
+    apnsHeaders['apns-expiration'] = String(Math.floor(nowMs / 1000) + ttlSeconds);
   }
   if (occurrenceKey && Buffer.byteLength(occurrenceKey, 'utf8') <= APNS_COLLAPSE_ID_MAX_BYTES) {
     apnsHeaders['apns-collapse-id'] = occurrenceKey;
   }
 
-  const response = await msg.sendEachForMulticast({
-    tokens: unique,
+  return {
+    tokens,
     notification: {
       title: payload.title,
       body: payload.body,
     },
     data: Object.fromEntries(
-      Object.entries(payload.data ?? {}).map(([k, v]) => [k, String(v ?? '')]),
+      Object.entries({
+        ...(payload.data ?? {}),
+        // OS background delivery and Flutter foreground rendering share one audio contract.
+        // Empty basename means silent; never send the string 'null' as a raw resource.
+        nativeSound: soundExplicitlyDisabled ? '' : nativeSound,
+        androidChannelId: androidNotif.channelId,
+        ...(soundExplicitlyDisabled ? { soundEnabled: 'false' } : {}),
+      }).map(([k, v]) => [k, String(v ?? '')]),
     ),
     android: {
       priority: 'high',
@@ -184,7 +174,35 @@ export async function sendFcmToTokens(
         aps,
       },
     },
-  });
+  };
+}
+
+/** A payload validation error does not prove that a device token is invalid. */
+export function isDefinitivelyInvalidFcmToken(code: string): boolean {
+  return code === 'messaging/registration-token-not-registered' ||
+    code === 'messaging/invalid-registration-token';
+}
+
+export async function sendFcmToTokens(
+  tokens: string[],
+  payload: FcmPayload,
+): Promise<SendResult> {
+  const unique = [...new Set(tokens.filter(Boolean))];
+  if (unique.length === 0) {
+    return { successCount: 0, failureCount: 0, invalidTokens: [], configured: isFcmConfigured() };
+  }
+
+  const msg = await getMessaging();
+  if (!msg) {
+    return {
+      successCount: 0,
+      failureCount: unique.length,
+      invalidTokens: [],
+      configured: false,
+    };
+  }
+
+  const response = await msg.sendEachForMulticast(buildFcmMulticastMessage(unique, payload));
 
   const invalidTokens: string[] = [];
   const errorCodes: string[] = [];
@@ -192,11 +210,7 @@ export async function sendFcmToTokens(
     if (r.success) return;
     const code = String(r.error?.code || 'unknown');
     if (errorCodes.length < 5 && !errorCodes.includes(code)) errorCodes.push(code);
-    if (
-      code.includes('registration-token-not-registered') ||
-      code.includes('invalid-registration-token') ||
-      code.includes('invalid-argument')
-    ) {
+    if (isDefinitivelyInvalidFcmToken(code)) {
       invalidTokens.push(unique[idx]!);
     }
   });

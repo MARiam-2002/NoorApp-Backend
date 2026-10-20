@@ -9,6 +9,7 @@ import {
   getAudioDefaults,
   listAzanSounds,
   listNotificationSounds,
+  listPrayerVoiceSounds,
   resolveMediaFile,
 } from '../services/azan-audio.service';
 import {
@@ -46,6 +47,10 @@ export const listNotificationSoundsHandler = asyncHandler(async (req: Request, r
     },
   };
   sendSuccess(res, data, 'Notification sounds retrieved successfully', req);
+});
+
+export const listPrayerVoiceSoundsHandler = asyncHandler(async (req: Request, res: Response) => {
+  sendSuccess(res, listPrayerVoiceSounds(req), 'Prayer voice sounds retrieved successfully', req);
 });
 
 export const getAudioDefaultsHandler = asyncHandler(async (req: Request, res: Response) => {
