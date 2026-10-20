@@ -9,6 +9,8 @@ datasource db {
 }
 
 model User {
+  adhkarReminderPreference AdhkarReminderPreference?
+  adhkarReminderSendLogs AdhkarReminderSendLog[]
   continuityPreference ContinuityPreference?
   continuityDays ContinuityDay[]
   continuityOperations ContinuityOperation[]
@@ -985,6 +987,32 @@ model TravelOperation {
  user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
  @@id([userId,requestKey])
  @@map("travel_operations")
+}
+
+model AdhkarReminderPreference {
+ userId String @id
+ morningEnabled Boolean @default(false)
+ morningTime String @default("07:00")
+ eveningEnabled Boolean @default(false)
+ eveningTime String @default("17:00")
+ bedtimeEnabled Boolean @default(false)
+ bedtimeTime String @default("22:00")
+ soundEnabled Boolean @default(false)
+ revision Int @default(0)
+ updatedAt DateTime @default(now()) @updatedAt
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@map("adhkar_reminder_preferences")
+}
+model AdhkarReminderSendLog {
+ userId String
+ date DateTime @db.Date
+ kind String
+ status String @default("CLAIMED")
+ sent Int @default(0)
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@id([userId,date,kind])
+ @@map("adhkar_reminder_send_logs")
 }
 
 model ContinuityPreference {

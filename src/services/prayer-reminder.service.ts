@@ -1,5 +1,6 @@
 import { runKahfReminders } from './kahf-reminder.service';
 import { runContinuityReminders } from './continuity-reminder.service';
+import { runAdhkarReminders } from './adhkar-reminder.service';
 import { prayerScheduleKey, isPrayerSnapshotCurrent } from './travel.service';
 import { prisma } from '../lib/prisma';
 import { runCharityReminders } from './charity-reminder.service';
@@ -790,6 +791,7 @@ export async function runAzanRemindersForUser(
 export type ReminderCronTrigger = 'scheduler' | 'http';
 
 type ReminderCronSummary = {
+  adhkar: { usersScanned: number; pushesAttempted: number; pushesSent: number; skipped: Record<string, number> };
   usersScanned: number;
   pushesAttempted: number;
   pushesSent: number;
@@ -853,6 +855,10 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
   const mulk = await runMulkReminders();
   await runKahfReminders().catch(error => logger.error('[KahfReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   await runContinuityReminders().catch(error => logger.error('[ContinuityReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
+  const adhkar = await runAdhkarReminders().catch(error => {
+    logger.error('[AdhkarReminder] Pass failed', { code: (error as any)?.code ?? 'UNAVAILABLE' });
+    return { usersScanned: 0, pushesAttempted: 0, pushesSent: 0, skipped: { pass_failed: 1 } };
+  });
   const duha = await runDuhaReminders();
   const qiyam = await runQiyamReminders();
   const khatmah = await runKhatmahReminders();
@@ -868,21 +874,21 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
       mulk.usersScanned +
       duha.usersScanned +
       qiyam.usersScanned +
-      khatmah.usersScanned + charity.usersScanned,
+      khatmah.usersScanned + charity.usersScanned + adhkar.usersScanned,
     pushesAttempted:
       azan.pushesAttempted +
       salawat.pushesAttempted +
       mulk.pushesAttempted +
       duha.pushesAttempted +
       qiyam.pushesAttempted +
-      khatmah.pushesAttempted + charity.pushesAttempted,
+      khatmah.pushesAttempted + charity.pushesAttempted + adhkar.pushesAttempted,
     pushesSent:
       azan.pushesSent +
       salawat.pushesSent +
       mulk.pushesSent +
       duha.pushesSent +
       qiyam.pushesSent +
-      khatmah.pushesSent + charity.pushesSent,
+      khatmah.pushesSent + charity.pushesSent + adhkar.pushesSent,
     azan,
     salawat,
     mulk,
@@ -890,6 +896,7 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
     qiyam,
     khatmah,
     charity,
+    adhkar,
     trigger,
     durationMs: Date.now() - startedAt,
   };
@@ -900,6 +907,7 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
   }
 
   logPushCronSummary({
+    adhkar,
     job: 'prayer_reminders',
     trigger,
     durationMs: summary.durationMs,

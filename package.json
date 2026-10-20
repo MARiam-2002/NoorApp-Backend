@@ -4,6 +4,7 @@
   "description": "Noor - Islamic Lifestyle REST API",
   "main": "dist/server.js",
   "scripts": {
+    "test:adhkar-reminders": "tsx scripts/test-adhkar-reminders.ts",
     "test:continuity": "tsx scripts/test-continuity.ts",
     "test:fajr-alarm": "tsx scripts/test-fajr-alarm.ts",
     "dev": "tsx watch src/server.ts",
@@ -44,7 +45,7 @@
     "migrate:prayer-method-auto": "tsx scripts/migrate-calculation-method-auto.ts",
     "test:ai-foundation": "tsx scripts/test-ai-foundation.ts",
     "test:ai-quran": "tsx scripts/test-ai-arabic-normalize.ts && tsx scripts/test-ai-quran-tools.ts && tsx scripts/test-ai-quran-eval.ts && tsx scripts/test-ai-quran-discovery-http.ts",
-    "test": "npm run test:continuity && npm run test:fajr-alarm && npm run test:production-fixes && npm run test:phase1-perf && npm run test:salawat && npm run test:mulk && npm run test:nawafel && npm run test:adhkar-catalog && npm run test:figures && npm run test:sajdah && npm run test:challenges && npm run test:sadaqah-goal && npm run test:near-prayer && npm run test:prayer-global && npm run test:prayer-method && npm run test:cleanup-no-fcm && npm run test:ai-foundation && npm run test:ai-quran",
+    "test": "npm run test:adhkar-reminders && npm run test:continuity && npm run test:fajr-alarm && npm run test:production-fixes && npm run test:phase1-perf && npm run test:salawat && npm run test:mulk && npm run test:nawafel && npm run test:adhkar-catalog && npm run test:figures && npm run test:sajdah && npm run test:challenges && npm run test:sadaqah-goal && npm run test:near-prayer && npm run test:prayer-global && npm run test:prayer-method && npm run test:cleanup-no-fcm && npm run test:ai-foundation && npm run test:ai-quran",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

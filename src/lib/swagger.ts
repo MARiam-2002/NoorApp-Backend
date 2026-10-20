@@ -1,4 +1,5 @@
 import { addKahfOpenApi } from '../shared/data/kahf-openapi';
+import { addAdhkarReminderOpenApi } from '../shared/data/adhkar-reminder-openapi';
 import { addTravelOpenApi } from '../shared/data/travel-openapi';
 import { addReadingOpenApi } from '../shared/data/reading-openapi';
 import { addContinuityOpenApi } from '../shared/data/continuity-openapi';
@@ -1368,6 +1369,7 @@ export function getSwaggerSpec(): any {
     addFajrAlarmOpenApi(spec);
     addTravelOpenApi(spec);
     addKahfOpenApi(spec);
+    addAdhkarReminderOpenApi(spec);
     cachedSpec = spec;
     return spec;
   } catch (err: any) {

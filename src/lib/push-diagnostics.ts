@@ -127,6 +127,7 @@ function safeHost(url: string): string | undefined {
 
 /** Cron / batch summary — one line per job. */
 export function logPushCronSummary(input: {
+  adhkar?: { usersScanned: number; pushesAttempted: number; pushesSent: number; skipped?: Record<string, number> };
   job: 'prayer_reminders';
   trigger?: 'scheduler' | 'http';
   durationMs?: number;

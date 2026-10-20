@@ -1,4 +1,5 @@
 import { getKahfPreferences, updateKahfPreferences } from '../services/kahf-reminder.service';
+import { getAdhkarReminderPreferences, updateAdhkarReminderPreferences } from '../services/adhkar-reminder.service';
 import { getFajrAlarmPreferences, updateFajrAlarmPreferences } from '../services/fajr-alarm.service';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
@@ -352,6 +353,12 @@ const updateLocationSchema = z.object({
  *         $ref: '#/components/responses/Unauthorized'
  */
 export const profileRouter = Router();
+profileRouter.get('/adhkar-reminder-preferences', privateNawafelCache, authenticate, asyncHandler(async (req, res) => {
+  sendSuccess(res, await getAdhkarReminderPreferences(req.user!.sub), 'Adhkar reminder settings', req);
+}));
+profileRouter.patch('/adhkar-reminder-preferences', privateNawafelCache, authenticate, asyncHandler(async (req, res) => {
+  sendSuccess(res, await updateAdhkarReminderPreferences(req.user!.sub, req.body), 'Adhkar reminder settings saved', req);
+}));
 profileRouter.get('/fajr-alarm-preferences', privateNawafelCache, authenticate, asyncHandler(async (req, res) => {
   sendSuccess(res, await getFajrAlarmPreferences(req.user!.sub), 'Fajr alarm settings', req);
 }));
