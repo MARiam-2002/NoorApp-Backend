@@ -1,0 +1,9 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": { "buildCommand": "npm run build" },
+  "deploy": {
+    "startCommand": "node scripts/run-reminder-cron.cjs",
+    "cronSchedule": "*/10 * * * *",
+    "restartPolicyType": "NEVER"
+  }
+}
