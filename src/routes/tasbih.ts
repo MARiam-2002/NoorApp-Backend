@@ -23,7 +23,7 @@ const DhikrEnum = z.enum([
 ]);
 
 const incrementTasbihSchema = z.object({
-  amount: z.coerce.number().int().min(1).default(1).optional(),
+  amount: z.coerce.number().int().min(1).max(1000).default(1).optional(),
 });
 
 const changeDhikrSchema = z.object({

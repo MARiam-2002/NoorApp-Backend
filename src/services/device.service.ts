@@ -4,13 +4,78 @@ import { ErrorCodes, HttpStatus } from '../config';
 import { sendFcmToTokens, isFcmConfigured } from '../lib/fcm';
 import { logger } from '../lib/logger';
 import { logPushDelivery } from '../lib/push-diagnostics';
+import { REPAIRED_CHANNEL_IDS } from '../shared/utils/notification-channel-manifest';
+
+/** Declared by the app on token registration (see GET /devices/notification-channels). */
+export type DeviceCapabilities = {
+  channelSchemaVersion?: number;
+  bundledSounds?: string[];
+  supportedTypes?: string[];
+  notificationsEnabled?: boolean;
+  exactAlarmsAllowed?: boolean;
+};
 
 export type RegisterDeviceInput = {
   token: string;
   platform?: string;
   appVersion?: string;
   locale?: string;
+  capabilities?: DeviceCapabilities;
 };
+
+function normalizeCapabilities(raw: DeviceCapabilities | undefined) {
+  if (!raw) return undefined;
+  return {
+    ...(raw.channelSchemaVersion != null ? { channelSchemaVersion: raw.channelSchemaVersion } : {}),
+    ...(raw.bundledSounds ? { bundledSounds: [...new Set(raw.bundledSounds)].sort() } : {}),
+    ...(raw.supportedTypes ? { supportedTypes: [...new Set(raw.supportedTypes)].sort() } : {}),
+    ...(raw.notificationsEnabled != null ? { notificationsEnabled: raw.notificationsEnabled } : {}),
+    ...(raw.exactAlarmsAllowed != null ? { exactAlarmsAllowed: raw.exactAlarmsAllowed } : {}),
+    reportedAt: new Date().toISOString(),
+  };
+}
+
+function deviceChannelSchemaVersion(capabilities: unknown): number {
+  const v = (capabilities as { channelSchemaVersion?: unknown } | null | undefined)?.channelSchemaVersion;
+  return typeof v === 'number' && Number.isFinite(v) ? v : 1;
+}
+
+/**
+ * Android un-deletes a deleted channel WITH its old (silent) settings when the same id is
+ * created again, so channels that shipped silent can only be repaired under a new id.
+ * Devices declaring channelSchemaVersion >= 2 created the `_v2` channels with sound.
+ */
+export function resolveDeviceChannelId(channelId: string | undefined, schemaVersion: number): string | undefined {
+  const base = channelId || 'general';
+  if (schemaVersion >= 2 && REPAIRED_CHANNEL_IDS.has(base)) return `${base}_v2`;
+  return channelId;
+}
+
+/**
+ * True only when the user has at least one device and EVERY device declared that it bundles
+ * `sound`. One multicast reaches all devices, so an optional sound is used only when no
+ * device would fall back to a missing raw resource / channel. Old clients never declare.
+ */
+export async function allUserDevicesBundleSound(userId: string, sound: string): Promise<boolean> {
+  let rows: Array<{ capabilities: unknown }>;
+  try {
+    rows = await prisma.deviceToken.findMany({
+      where: { userId },
+      select: { capabilities: true },
+    });
+  } catch (err) {
+    // Column missing (migration not applied yet) → behave like an old client: no optional sounds.
+    logger.warn('[Push] capabilities lookup failed; treating devices as legacy', {
+      code: (err as { code?: string })?.code,
+    });
+    return false;
+  }
+  if (rows.length === 0) return false;
+  return rows.every((row) => {
+    const caps = row.capabilities as { bundledSounds?: unknown } | null;
+    return Array.isArray(caps?.bundledSounds) && caps!.bundledSounds.includes(sound);
+  });
+}
 
 export async function registerDeviceToken(userId: string, input: RegisterDeviceInput) {
   const token = input.token?.trim();
@@ -18,6 +83,7 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
     throw new AppError('Valid FCM token is required', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
   const platform = (input.platform ?? 'unknown').toLowerCase().slice(0, 32);
+  const capabilities = normalizeCapabilities(input.capabilities);
 
   const row = await prisma.deviceToken.upsert({
     where: { token },
@@ -27,13 +93,16 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
       platform,
       appVersion: input.appVersion?.slice(0, 64),
       locale: input.locale?.slice(0, 32),
+      ...(capabilities ? { capabilities } : {}),
       lastSeenAt: new Date(),
     },
     update: {
       userId,
-      platform,
+      // Never downgrade a known platform to "unknown" when an older call omits it.
+      ...(input.platform ? { platform } : {}),
       appVersion: input.appVersion?.slice(0, 64),
       locale: input.locale?.slice(0, 32),
+      ...(capabilities ? { capabilities } : {}),
       lastSeenAt: new Date(),
     },
   });
@@ -46,6 +115,8 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
     appVersion: input.appVersion?.slice(0, 64),
     locale: input.locale?.slice(0, 32),
     tokenFingerprint: `${token.slice(0, 8)}…`,
+    channelSchemaVersion: capabilities?.channelSchemaVersion ?? null,
+    bundledSoundCount: capabilities?.bundledSounds?.length ?? null,
   });
 
   return {
@@ -54,6 +125,7 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
     platform: row.platform,
     registered: true,
     fcmConfigured: isFcmConfigured(),
+    capabilitiesStored: Boolean(capabilities),
   };
 }
 
@@ -70,7 +142,7 @@ export async function unregisterDeviceToken(userId: string, token: string) {
 export async function listUserDeviceTokens(userId: string) {
   const rows = await prisma.deviceToken.findMany({
     where: { userId },
-    select: { id: true, platform: true, appVersion: true, locale: true, lastSeenAt: true, createdAt: true },
+    select: { id: true, platform: true, appVersion: true, locale: true, capabilities: true, lastSeenAt: true, createdAt: true },
     orderBy: { updatedAt: 'desc' },
   });
   return { devices: rows, fcmConfigured: isFcmConfigured() };
@@ -92,10 +164,16 @@ export async function sendPushToUser(
     iosInterruptionLevel?: 'active' | 'time-sensitive';
   },
 ) {
-  const tokens = await prisma.deviceToken.findMany({
-    where: { userId },
-    select: { token: true },
-  });
+  let tokens: Array<{ token: string; capabilities?: unknown }>;
+  try {
+    tokens = await prisma.deviceToken.findMany({
+      where: { userId },
+      select: { token: true, capabilities: true },
+    });
+  } catch {
+    // capabilities column not migrated yet → legacy channel ids for everyone.
+    tokens = await prisma.deviceToken.findMany({ where: { userId }, select: { token: true } });
+  }
   const dataForLog = {
     ...(payload.data ?? {}),
     titleAr: payload.titleAr ?? '',
@@ -116,18 +194,31 @@ export async function sendPushToUser(
     return out;
   }
 
-  const result = await sendFcmToTokens(
-    tokens.map((t) => t.token),
-    {
+  // Devices that synced channel schema v2 get the re-created (audible) reminder channels;
+  // older installs keep the ids they already have. One multicast per group.
+  const groups = new Map<string, string[]>();
+  for (const t of tokens) {
+    const channel = resolveDeviceChannelId(payload.androidChannelId, deviceChannelSchemaVersion(t.capabilities));
+    const key = channel ?? '';
+    groups.set(key, [...(groups.get(key) ?? []), t.token]);
+  }
+  const result = { successCount: 0, failureCount: 0, invalidTokens: [] as string[], configured: true, errorCodes: [] as string[] };
+  for (const [channel, groupTokens] of groups) {
+    const r = await sendFcmToTokens(groupTokens, {
       title: payload.title,
       body: payload.body,
       data: dataForLog,
       nativeSound: payload.nativeSound,
-      androidChannelId: payload.androidChannelId,
+      androidChannelId: channel || undefined,
       ttlSeconds: payload.ttlSeconds,
       iosInterruptionLevel: payload.iosInterruptionLevel,
-    },
-  );
+    });
+    result.successCount += r.successCount;
+    result.failureCount += r.failureCount;
+    result.invalidTokens.push(...r.invalidTokens);
+    result.configured = result.configured && r.configured;
+    for (const code of r.errorCodes ?? []) if (!result.errorCodes.includes(code)) result.errorCodes.push(code);
+  }
 
   // Drop invalid tokens
   if (result.invalidTokens.length > 0) {

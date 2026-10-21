@@ -10,7 +10,7 @@ import { calculateDailyPrayerSchedule } from './prayer.service';
 import { buildAzanPreferencesFromUser } from './azan.service';
 import type { DailyPrayerSchedule } from './prayer.service';
 import { formatArabicDateInfo, getDayOfYear } from '../utils/date';
-import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
+import { calendarDayOfYear, getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import {
   DEFAULT_LATITUDE,
@@ -215,8 +215,9 @@ async function getSurah(surahId: number) {
 }
 
 async function getChallengeCompletion(userId: string, dayOfYear: number) {
+  const year = (await getUserLocalCalendarDay(userId)).date.getUTCFullYear();
   return prisma.challengeCompletion.findUnique({
-    where: { userId_dayOfYear: { userId, dayOfYear } },
+    where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
   });
 }
 
@@ -391,7 +392,7 @@ async function buildDashboardPayload(
   },
 ): Promise<DashboardData> {
 
-  const dayOfYear = getDayOfYear();
+  const dayOfYear = calendarDayOfYear((await getUserLocalCalendarDay(userId)).date);
   const todayInfo = formatArabicDateInfo();
 
   // Keep Dashboard Adhkar tile aligned with Azkar screen completions (same day ledger).

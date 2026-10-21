@@ -8,27 +8,36 @@ import {
   unregisterDeviceToken,
   listUserDeviceTokens,
   sendPushToUser,
+  type DeviceCapabilities,
 } from '../services/device.service';
+import { buildNotificationChannelManifest } from '../shared/utils/notification-channel-manifest';
 
 export const registerFcmTokenHandler = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;
   if (!userId) {
     throw new AppError('Authentication required', HttpStatus.UNAUTHORIZED, ErrorCodes.UNAUTHORIZED);
   }
-  const { token, fcmToken, platform, appVersion, locale } = req.body as {
+  const { token, fcmToken, platform, appVersion, locale, capabilities } = req.body as {
     token?: string;
     fcmToken?: string;
     platform?: string;
     appVersion?: string;
     locale?: string;
+    capabilities?: DeviceCapabilities;
   };
   const data = await registerDeviceToken(userId, {
     token: token ?? fcmToken ?? '',
     platform,
     appVersion,
     locale,
+    capabilities,
   });
   sendSuccess(res, data, 'FCM device token registered successfully', req);
+});
+
+export const notificationChannelsHandler = asyncHandler(async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  sendSuccess(res, buildNotificationChannelManifest(), 'Notification channel manifest', req);
 });
 
 export const unregisterFcmTokenHandler = asyncHandler(async (req: Request, res: Response) => {

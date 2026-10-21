@@ -75,7 +75,9 @@ async function main() {
     // At prayer time the separate occurrence must use the announcement, never the pre clip.
     Date.now = () => prayer.getTime() + 1500;
     user.azanPreferences.prayerTimeSoundMode = 'announcement';
-    await runAzanRemindersForUser(user, 10, memo, send);
+    // Every device of the user declared the clip in capabilities.bundledSounds.
+    const bundled: any = async () => true;
+    await runAzanRemindersForUser(user, 10, memo, send, bundled);
     assert.equal(payloads.length, 2);
     assert.equal(payloads[1].data.eventType, 'JUMUAH');
     assert.equal(payloads[1].data.soundType, 'PRAYER_EVENT');
@@ -87,7 +89,7 @@ async function main() {
     assert.equal(payloads[1].ttlSeconds, 898, 'at-time TTL also respects its absolute expiry');
     claimedKeys.clear();
     user.azanPreferences.soundEnabled = false;
-    await runAzanRemindersForUser(user, 10, memo, send);
+    await runAzanRemindersForUser(user, 10, memo, send, bundled);
     assert.equal(payloads[2].nativeSound, null);
     const silentWire = buildFcmMulticastMessage(['fake-token'], payloads[2]);
     assert.equal(silentWire.data.nativeSound, '');
@@ -101,6 +103,16 @@ async function main() {
     await runAzanRemindersForUser(user, 10, memo, send);
     assert.equal(payloads[3].data.soundType, 'AZAN');
     assert.equal(payloads[3].nativeSound, built.azanSoundId);
+    // Announcement chosen, but a device never declared the clip → fall back to the Azan voice
+    // (never target a raw resource / channel the device does not have).
+    claimedKeys.clear();
+    user.azanPreferences.prayerTimeSoundMode = 'announcement';
+    const notBundled: any = async () => false;
+    await runAzanRemindersForUser(user, 10, memo, send, notBundled);
+    assert.equal(payloads[4].data.soundType, 'AZAN');
+    assert.equal(payloads[4].data.audioFallbackReason, 'ANNOUNCEMENT_NOT_BUNDLED_ON_DEVICE');
+    assert.equal(payloads[4].nativeSound, built.azanSoundId);
+    assert.equal(payloads[4].androidChannelId, `azan_${built.azanSoundId}`);
   } finally {
     prisma.azanReminderSendLog.createMany = original;
     Date.now = originalNow;

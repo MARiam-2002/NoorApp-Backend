@@ -88,6 +88,8 @@ const envSchema = z.object({
   /** Railway Redis / Key Value URL (redis://… or rediss://…). Empty = unused. */
   REDIS_URL: z.string().default(''),
   GOOGLE_CLIENT_ID: z.string().default(''),
+  GOOGLE_SERVER_CLIENT_ID: z.string().default(''),
+  GOOGLE_CLIENT_IDS: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   GOOGLE_CALLBACK_URL: z.string().default('http://localhost:3000/api/v1/auth/google/callback'),
   // Quran Foundation Content API (OAuth2 client credentials). Optional —

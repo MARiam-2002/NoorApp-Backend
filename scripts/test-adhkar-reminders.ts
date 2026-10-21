@@ -1,3 +1,4 @@
+import { assertSafeDatabaseTarget } from '../src/lib/database-safety';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
@@ -32,6 +33,7 @@ async function main() {
   assert.ok(getSwaggerSpec().paths['/profile/adhkar-reminder-preferences'].patch.security);
   console.log('Adhkar reminders: defaults, strict partial edits, worldwide local clocks, DST repeated/missing hours, no midnight catch-up and OpenAPI passed.');
   if (process.env.ADHKAR_REMINDER_TEST_DB !== 'true') return;
+  assertSafeDatabaseTarget(process.env.DATABASE_URL ?? '', 'test');
 
   const schema = 'adhkar_reminder_test_' + randomUUID().replaceAll('-','');
   const db = new PrismaClient();

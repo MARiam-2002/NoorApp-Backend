@@ -1,3 +1,4 @@
+import { verifyAccessToken } from '../lib/auth';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -16,13 +17,13 @@ import { buildError } from '../shared/utils/response';
  * Per-user when Bearer is present (shared Wi‑Fi / CGNAT must not share one bucket).
  * Falls back to IP for anonymous traffic.
  */
-function apiClientKey(req: Request): string {
+export function apiClientKey(req: Request): string {
   const auth = req.headers.authorization;
-  if (typeof auth === 'string' && auth.startsWith('Bearer ') && auth.length > 20) {
-    const token = auth.slice(7).trim();
-    if (token) {
-      return `tok:${crypto.createHash('sha256').update(token).digest('hex').slice(0, 32)}`;
-    }
+  if (typeof auth === 'string' && /^Bearer /i.test(auth)) {
+    try {
+      const payload = verifyAccessToken(auth.slice(7).trim());
+      if (payload.userId) return hashedKey('user', payload.userId);
+    } catch { /* Invalid/expired/untrusted tokens must share the IP bucket. */ }
   }
   return ipKeyGenerator(req.ip ?? 'unknown');
 }
@@ -229,4 +230,11 @@ export const deleteAccountRateLimiter = authLimiter({
   max: 5,
   keyGenerator: apiClientKey,
   message: 'Too many account deletion attempts, please try again in an hour',
+});
+
+export const changePasswordRateLimiter = authLimiter({
+  windowMs: 15 * MINUTE, max: 5,
+  keyGenerator: req => req.user?.sub ? hashedKey('password-change', req.user.sub) : ipKey(req),
+  skipSuccessfulRequests: true,
+  message: 'Too many password change attempts, please retry later',
 });

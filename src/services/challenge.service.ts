@@ -2,9 +2,11 @@ import type { ChallengeType, PrayerName } from '@prisma/client';
 import { ErrorCodes, HttpStatus } from '../config';
 import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
-import { getDayOfYear, getTodayDateOnly } from '../utils/date';
+import { getTodayDateOnly } from '../utils/date';
+import { calendarDayOfYear, getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import {
+  assertValidDayOfYear,
   getOrCreateTodayJourney,
   getDailyChallengeTemplateWithFallback,
 } from './daily-content.service';
@@ -30,13 +32,16 @@ async function findCompletedPrayers(userId: string, date = getTodayDateOnly()): 
 }
 
 export async function getChallengeByDay(userId: string, dayOfYear: number) {
+  assertValidDayOfYear(dayOfYear);
+  const { date } = await getUserLocalCalendarDay(userId);
+  const year = date.getUTCFullYear();
   const template = await getDailyChallengeTemplateWithFallback(dayOfYear);
   const completion = await prisma.challengeCompletion.findUnique({
-    where: { userId_dayOfYear: { userId, dayOfYear } },
+    where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
   });
 
-  const journey = await getOrCreateToday(userId);
-  const completedPrayers = await findCompletedPrayers(userId);
+  const journey = await getOrCreateToday(userId, date);
+  const completedPrayers = await findCompletedPrayers(userId, date);
 
   return {
     id: String(dayOfYear),
@@ -59,11 +64,11 @@ export async function getChallengeByDay(userId: string, dayOfYear: number) {
 }
 
 export async function getTodayChallenge(userId: string) {
-  return getChallengeByDay(userId, getDayOfYear());
+  return getChallengeByDay(userId, calendarDayOfYear((await getUserLocalCalendarDay(userId)).date));
 }
 
 export async function getAllChallenges(userId: string) {
-  const todayDay = getDayOfYear();
+  const todayDay = calendarDayOfYear((await getUserLocalCalendarDay(userId)).date);
   const today = await getChallengeByDay(userId, todayDay);
 
   return {
@@ -74,10 +79,16 @@ export async function getAllChallenges(userId: string) {
 
 export async function claimChallenge(userId: string, dayOfYearStr: string) {
   const dayOfYear = Number(dayOfYearStr);
+  const { date } = await getUserLocalCalendarDay(userId);
+  const year = date.getUTCFullYear();
+  if (!/^\d{1,3}$/.test(dayOfYearStr) || dayOfYear !== calendarDayOfYear(date)) {
+    throw new AppError("Only today's challenge can be claimed", HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+
   const template = await getDailyChallengeTemplateWithFallback(dayOfYear);
 
-  const journey = await getOrCreateToday(userId);
-  const completedPrayers = await findCompletedPrayers(userId);
+  const journey = await getOrCreateToday(userId, date);
+  const completedPrayers = await findCompletedPrayers(userId, date);
   const isCompleted = isDailyChallengeCompleted(
     template.type,
     template.targetValue,
@@ -93,38 +104,25 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
     );
   }
 
-  const existingCompletion = await prisma.challengeCompletion.findUnique({
-    where: { userId_dayOfYear: { userId, dayOfYear } },
+  const [updatedCompletion, updatedUser] = await prisma.$transaction(async tx => {
+    // Serialize per account; the unique annual key also prevents duplicate rows.
+    await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
+    const existing = await tx.challengeCompletion.findUnique({
+      where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
+    });
+    if (existing?.claimedAt) {
+      throw new AppError('Challenge reward already claimed', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
+    }
+    const claimedAt = new Date();
+    const completion = await tx.challengeCompletion.upsert({
+      where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
+      create: { userId, year, dayOfYear, completedAt: claimedAt, claimedAt },
+      update: { completedAt: claimedAt, claimedAt },
+    });
+    const user = await tx.user.update({ where: { id: userId },
+      data: { points: { increment: template.rewardPoints } }, select: { points: true, level: true } });
+    return [completion, user] as const;
   });
-
-  if (existingCompletion?.claimedAt) {
-    throw new AppError(
-      'Challenge reward already claimed',
-      HttpStatus.CONFLICT,
-      ErrorCodes.CONFLICT,
-    );
-  }
-
-  const [updatedCompletion, updatedUser] = await prisma.$transaction([
-    prisma.challengeCompletion.upsert({
-      where: { userId_dayOfYear: { userId, dayOfYear } },
-      create: {
-        userId,
-        dayOfYear,
-        completedAt: new Date(),
-        claimedAt: new Date(),
-      },
-      update: {
-        completedAt: new Date(),
-        claimedAt: new Date(),
-      },
-    }),
-    prisma.user.update({
-      where: { id: userId },
-      data: { points: { increment: template.rewardPoints } },
-      select: { points: true, level: true },
-    }),
-  ]);
 
   // Keep User.level aligned with the Journey points ladder (same helper as /journey/today).
   const levelProgress = getJourneyLevelProgress(updatedUser.points);

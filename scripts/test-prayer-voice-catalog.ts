@@ -33,7 +33,16 @@ async function main() {
     const body = await response.json() as any;
     assert.equal(body.success, true);
     assert.equal(body.data.prayerTime.sounds.length, 6);
-    assert.ok(body.data.nearPrayer.sounds[1].previewUrl.startsWith('http://127.0.0.1:'));
+    assert.ok(body.data.nearPrayer.sounds[1].previewUrl.endsWith('/azan/media/sc_near_fajr.mp3'));
+    const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const spoof = await fetch(origin + '/api/v1/azan/prayer-voice-sounds', { headers: { 'X-Forwarded-Host': 'attacker.invalid' } });
+    assert.ok(!JSON.stringify(await spoof.json()).includes('attacker.invalid'));
+    const suffix = await fetch(origin + '/api/v1/azan/media/sc_near_asr.mp3', { headers: { Range: 'bytes=-128' } });
+    assert.equal(suffix.status, 206);
+    assert.equal((await suffix.arrayBuffer()).byteLength, 128);
+    assert.ok(suffix.headers.get('content-range')?.startsWith('bytes 58957-59084/59085'));
+    const invalid = await fetch(origin + '/api/v1/azan/media/sc_near_asr.mp3', { headers: { Range: 'bytes=-0' } });
+    assert.equal(invalid.status, 416);
   } finally {
     await new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve()));
   }

@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: noor_test
+      POSTGRES_PASSWORD: local_test_only
+      POSTGRES_DB: noor_test
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - noor_development_postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noor_test -d noor_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  noor_development_postgres:

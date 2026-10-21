@@ -84,9 +84,12 @@ export const streamAzanMediaHandler = asyncHandler(async (req: Request, res: Res
       res.status(416).setHeader('Content-Range', `bytes */${total}`).end();
       return;
     }
-    const start = match[1] ? parseInt(match[1], 10) : 0;
-    const end = match[2] ? parseInt(match[2], 10) : total - 1;
-    if (Number.isNaN(start) || Number.isNaN(end) || start > end || end >= total) {
+    const suffix = !match[1];
+    const suffixLength = match[2] ? Number(match[2]) : NaN;
+    const start = suffix ? Math.max(0, total - suffixLength) : Number(match[1]);
+    const end = suffix || !match[2] ? total - 1 : Math.min(Number(match[2]), total - 1);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 ||
+        start >= total || start > end || (suffix && (!Number.isSafeInteger(suffixLength) || suffixLength <= 0))) {
       res.status(416).setHeader('Content-Range', `bytes */${total}`).end();
       return;
     }

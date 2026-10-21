@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { appConfig } from '../config';
+import { appConfig, env } from '../config';
+import { assertSafeDatabaseTarget } from './database-safety';
 import { logger } from './logger';
 
 declare global {
@@ -7,7 +8,7 @@ declare global {
 }
 
 function createPrismaClient(): PrismaClient {
-  return new PrismaClient({
+  const base = new PrismaClient({
     log: appConfig.isDevelopment
       ? [
           { emit: 'event', level: 'query' },
@@ -16,6 +17,12 @@ function createPrismaClient(): PrismaClient {
         ]
       : [{ emit: 'stdout', level: 'error' }],
   });
+  return base.$extends({ query: {
+    async $allOperations({ args, query }) {
+      assertSafeDatabaseTarget(env.DATABASE_URL, env.NODE_ENV);
+      return query(args);
+    },
+  } }) as unknown as PrismaClient;
 }
 
 export const prisma = globalThis.__prisma ?? createPrismaClient();
@@ -26,6 +33,7 @@ if (!appConfig.isProduction) {
 
 export async function connectDatabase(): Promise<void> {
   try {
+    assertSafeDatabaseTarget(env.DATABASE_URL, env.NODE_ENV);
     await prisma.$connect();
     logger.info('Database connected successfully');
   } catch (error) {

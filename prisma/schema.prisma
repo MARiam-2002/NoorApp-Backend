@@ -355,6 +355,8 @@ model DeviceToken {
   platform   String   @default("unknown") // ios | android | web | unknown
   appVersion String?
   locale     String?
+  /// Declared by the app: { channelSchemaVersion, bundledSounds[], supportedTypes[], ... }.
+  capabilities Json?
   lastSeenAt DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -597,13 +599,14 @@ model DailyChallengeTemplate {
 model ChallengeCompletion {
   id          String    @id @default(uuid())
   userId      String
+  year        Int       @default(dbgenerated("EXTRACT(year FROM CURRENT_DATE)::integer"))
   dayOfYear   Int
   completedAt DateTime  @default(now())
   claimedAt   DateTime?
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, dayOfYear])
-  @@index([userId, dayOfYear])
+  @@unique([userId, year, dayOfYear])
+  @@index([userId, year, dayOfYear])
   @@map("challenge_completions")
 }
 

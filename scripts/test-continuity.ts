@@ -1,3 +1,4 @@
+import { assertSafeDatabaseTarget } from '../src/lib/database-safety';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
@@ -62,6 +63,7 @@ async function main() {
   assert.ok(!spec.components.schemas.ReadingConfirmationInput.required.includes('continuity'));
   console.log('Continuity unit checks passed: no premature midnight reset, gap reset, retained totals/best, leap/year dates, signed offline constraints, global/DST boundaries, opt-in validation and additive OpenAPI.');
   if (process.env.CONTINUITY_TEST_DB !== 'true') return;
+  assertSafeDatabaseTarget(process.env.DATABASE_URL ?? '', 'test');
 
   // A unique committed TEST schema allows actual independent-transaction race tests.
   // No public app table is edited. The entire test schema is removed in finally.

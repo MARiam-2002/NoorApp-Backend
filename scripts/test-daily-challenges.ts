@@ -58,21 +58,24 @@ DAILY_CHALLENGE_BANK.forEach((c, i) => {
   assert.equal(isDailyChallengeCompleted(c.type, c.targetValue, empty, []), false, `${label} not done on an empty day`);
   const done = { quranPagesRead: c.targetValue, adhkarCompleted: true, sadaqahAmount: c.targetValue };
   const prayers = ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB', 'ISHA'] as const;
-  assert.equal(isDailyChallengeCompleted(c.type, c.targetValue, done, [...prayers]), true, `${label} achievable`);
+  assert.equal(isDailyChallengeCompleted(c.type, c.targetValue, done, [...prayers]), c.type !== 'SADAQAH', `${label} only non-monetary challenges award completion`);
 });
 
 const rows = buildDailyChallengeTemplates();
 assert.equal(rows.length, 366);
 rows.forEach((r, i) => {
   assert.equal(r.dayOfYear, i + 1);
-  assert.equal(r.titleEn, DAILY_CHALLENGE_BANK[i % 28]!.titleEn);
+  const original = DAILY_CHALLENGE_BANK[i % 28]!;
+  if (original.type === 'SADAQAH') {
+    assert.equal(r.type, 'QURAN_PAGES');
+    assert.equal(r.targetValue, 2);
+    assert.equal(r.rewardPoints, 50);
+  } else assert.equal(r.titleEn, original.titleEn);
 });
 assert.equal(getDailyChallengeDefinition(1), DAILY_CHALLENGE_BANK[0]);
 assert.equal(getDailyChallengeDefinition(29), DAILY_CHALLENGE_BANK[0]);
 assert.equal(getDailyChallengeDefinition(366), DAILY_CHALLENGE_BANK[365 % 28]);
-for (let d = 2; d <= 366; d++) {
-  assert.notEqual(getDailyChallengeDefinition(d).type, getDailyChallengeDefinition(d - 1).type, `day ${d} repeats type`);
-}
+assert.ok(rows.every(row => row.type !== 'SADAQAH'), 'Monetary charity is not a scored challenge');
 
 const b0 = DAILY_CHALLENGE_BANK[0]!;
 assert.deepEqual(

@@ -1,3 +1,5 @@
+import { passwordFieldSchema } from '../lib/validation';
+import { changePasswordRateLimiter } from '../middleware/http';
 import { getKahfPreferences, updateKahfPreferences } from '../services/kahf-reminder.service';
 import { getAdhkarReminderPreferences, updateAdhkarReminderPreferences } from '../services/adhkar-reminder.service';
 import { getFajrAlarmPreferences, updateFajrAlarmPreferences } from '../services/fajr-alarm.service';
@@ -69,10 +71,7 @@ const updateProfileSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z
-    .string()
-    .min(6, 'New password must be at least 6 characters')
-    .max(128, 'New password must be at most 128 characters'),
+  newPassword: passwordFieldSchema,
 });
 
 const updateLocationSchema = z.object({
@@ -384,6 +383,7 @@ profileRouter.patch(
 profileRouter.patch(
   '/change-password',
   authenticate,
+  changePasswordRateLimiter,
   validate(changePasswordSchema),
   profileController.changePassword,
 );

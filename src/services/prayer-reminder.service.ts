@@ -10,7 +10,7 @@ import {
   buildAzanPreferencesFromUser,
   type AzanPreferencesUserRow,
 } from './azan.service';
-import { sendPushToUser } from './device.service';
+import { allUserDevicesBundleSound, sendPushToUser } from './device.service';
 import { logPushCronSummary } from '../lib/push-diagnostics';
 import { computePrayerInstantsAround, formatClock12 } from './prayer.service';
 import { createNotification } from './notification.service';
@@ -445,6 +445,7 @@ export async function runAzanRemindersForUser(
   lateToleranceMinutes: number,
   instantsMemo: PrayerInstantsMemo,
   send: typeof sendPushToUser = sendPushToUser,
+  devicesBundleSound: typeof allUserDevicesBundleSound = allUserDevicesBundleSound,
 ): Promise<{ pushesAttempted: number; pushesSent: number }> {
   let pushesAttempted = 0;
   let pushesSent = 0;
@@ -701,7 +702,15 @@ export async function runAzanRemindersForUser(
         baseData.prayerTimeSoundMode = prefs.prayerTimeSoundMode;
         if (prefs.prayerTimeSoundMode === 'announcement') {
           const announcement = resolvePrayerAnnouncementSound(String(prayerEnum), evaluationTz, instant.timestamp);
-          if (announcement) {
+          // The clip exists on the server, but the OS plays it from the APP bundle. Only target it
+          // when every device of this user declared it (capabilities.bundledSounds); otherwise the
+          // push would land on a channel/sound the device never had and play nothing.
+          const bundledOnDevices =
+            announcement != null && (await devicesBundleSound(user.id, announcement.id));
+          if (announcement && !bundledOnDevices) {
+            baseData.prayerTimeSoundMode = 'azan';
+            baseData.audioFallbackReason = 'ANNOUNCEMENT_NOT_BUNDLED_ON_DEVICE';
+          } else if (announcement) {
             soundType = 'PRAYER_EVENT';
             soundId = announcement.id;
             nativeSound = soundEnabled ? announcement.id : null;
@@ -848,20 +857,28 @@ export function runPrayerReminderCron(
   return inFlightRun;
 }
 
+export async function isolatedReminderStage<T>(name: string, run: () => Promise<T>) {
+  try { return await run(); }
+  catch {
+    logger.error('[ReminderScheduler] Stage failed', { stage: name });
+    return { usersScanned: 0, pushesAttempted: 0, pushesSent: 0, skipped: { pass_failed: 1 } };
+  }
+}
+
 async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCronSummary> {
   const startedAt = Date.now();
-  const azan = await runAzanBackupReminders();
-  const salawat = await runSalawatReminders();
-  const mulk = await runMulkReminders();
+  const azan = await isolatedReminderStage('azan', () => runAzanBackupReminders());
+  const salawat = await isolatedReminderStage('salawat', () => runSalawatReminders());
+  const mulk = await isolatedReminderStage('mulk', () => runMulkReminders());
   await runKahfReminders().catch(error => logger.error('[KahfReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   await runContinuityReminders().catch(error => logger.error('[ContinuityReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   const adhkar = await runAdhkarReminders().catch(error => {
     logger.error('[AdhkarReminder] Pass failed', { code: (error as any)?.code ?? 'UNAVAILABLE' });
     return { usersScanned: 0, pushesAttempted: 0, pushesSent: 0, skipped: { pass_failed: 1 } };
   });
-  const duha = await runDuhaReminders();
-  const qiyam = await runQiyamReminders();
-  const khatmah = await runKhatmahReminders();
+  const duha = await isolatedReminderStage('duha', () => runDuhaReminders());
+  const qiyam = await isolatedReminderStage('qiyam', () => runQiyamReminders());
+  const khatmah = await isolatedReminderStage('khatmah', () => runKhatmahReminders());
   const charity = await runCharityReminders().catch((error: unknown) => {
     logger.error('[CharityReminder] Pass failed', { message: error instanceof Error ? error.message : 'unknown' });
     return { usersScanned: 0, pushesAttempted: 0, pushesSent: 0, skipped: { pass_failed: 1 } };

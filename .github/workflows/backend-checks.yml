@@ -1,0 +1,44 @@
+name: Backend checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: noor_test
+          POSTGRES_PASSWORD: ci_test_only
+          POSTGRES_DB: noor_test
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U noor_test -d noor_test" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://noor_test:ci_test_only@localhost:5432/noor_test
+      DIRECT_URL: postgresql://noor_test:ci_test_only@localhost:5432/noor_test
+      JWT_SECRET: ci_only_access_secret_at_least_32_characters
+      JWT_REFRESH_SECRET: ci_only_refresh_secret_at_least_32_characters
+      REMINDER_SCHEDULER_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:deploy
+      - run: npm run typecheck
+      - run: npm run test:security-hardening
+      - run: npm run test:near-prayer
+      - run: npm run test:challenge-claim-db
+        env:
+          SECURITY_DB_TEST: "true"
+      - run: npm run test:challenges
+      - run: npm run test:adhkar-reminders
+        env:
+          ADHKAR_REMINDER_TEST_DB: "true"
+      - run: npm run build

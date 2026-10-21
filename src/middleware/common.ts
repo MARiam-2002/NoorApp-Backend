@@ -81,7 +81,7 @@ function mapPrismaError(err: any): { statusCode: number; code: string; message: 
   if (!err || typeof err !== 'object' || !('code' in err)) return null;
   const mapped = PRISMA_ERROR_MAP[err.code];
   if (!mapped) return null;
-  return { ...mapped, details: err.meta };
+  return { ...mapped, details: appConfig.isProduction ? undefined : err.meta };
 }
 
 function respondError(

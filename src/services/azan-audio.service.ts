@@ -33,18 +33,20 @@ function assetsRoot(): string {
 }
 
 export function resolvePublicOrigin(req?: Request): string {
-  if (req) {
-    const proto = (req.get('x-forwarded-proto') || req.protocol || 'https')
-      .split(',')[0]
-      ?.trim();
-    const host = (req.get('x-forwarded-host') || req.get('host') || '')
-      .split(',')[0]
-      ?.trim();
-    if (proto && host) return `${proto}://${host}`;
+  const configured = process.env.PUBLIC_APP_ORIGIN?.trim();
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return parsed.origin;
+    } catch { /* Use the canonical production origin on invalid configuration. */ }
   }
-  const fromEnv = process.env.PUBLIC_APP_ORIGIN?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, '');
-  // Legacy Vercel fallback only when PUBLIC_APP_ORIGIN is unset (keeps existing media URLs working).
+  // Only localhost may derive its origin from a request; forwarded hosts are untrusted.
+  if (process.env.NODE_ENV !== 'production' && req) {
+    const host = req.get('host') ?? '';
+    if (/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(host)) {
+      return `${req.protocol === 'https' ? 'https' : 'http'}://${host}`;
+    }
+  }
   return PRODUCTION_PUBLIC_ORIGIN;
 }
 

@@ -44,3 +44,8 @@ export async function getUserLocalCalendarDay(
   const dayKey = localDayKeyForTimezone(timezone, now);
   return { dayKey, date: dateOnlyFromDayKey(dayKey), timezone };
 }
+
+/** Calendar dates are encoded as UTC midnight, so DST cannot change the ordinal. */
+export function calendarDayOfYear(date: Date): number {
+  return Math.floor((date.getTime() - Date.UTC(date.getUTCFullYear(), 0, 1)) / 86_400_000) + 1;
+}

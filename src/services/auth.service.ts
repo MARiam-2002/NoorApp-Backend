@@ -1,3 +1,4 @@
+import { verifyGoogleIdentity } from '../lib/google-identity';
 import { createHash, randomBytes } from 'node:crypto';
 
 import { UserRole, type Prisma } from '@prisma/client';
@@ -597,67 +598,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
     );
   }
 
-  // Verify Google ID token against Google's public tokeninfo endpoint.
-  // This flow works WITHOUT GOOGLE_CLIENT_ID being set on the server:
-  // Flutter (using google_sign_in SDK) obtains a token whose `aud` already matches
-  // the OAuth client ID registered on Google Cloud. For extra strictness you can
-  // additionally check `aud === env.GOOGLE_CLIENT_ID` below, but it is not required.
-  let googlePayload: {
-    email: string;
-    sub: string;
-    name: string;
-    picture?: string;
-  };
-
-  try {
-    const response = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
-
-    if (!response.ok) {
-      throw new AppError(
-        'Invalid Google ID token',
-        HttpStatus.UNAUTHORIZED,
-        ErrorCodes.UNAUTHORIZED,
-      );
-    }
-
-    const payload = (await response.json()) as Record<string, unknown>;
-    googlePayload = {
-      email: (payload.email as string) || '',
-      sub: (payload.sub as string) || '',
-      name: (payload.name as string) || '',
-      picture: payload.picture as string | undefined,
-    };
-
-    if (!googlePayload.sub || !googlePayload.email || (payload.email_verified !== true && payload.email_verified !== 'true')) {
-      throw new AppError(
-        'Invalid Google token response',
-        HttpStatus.BAD_REQUEST,
-        ErrorCodes.VALIDATION_ERROR,
-      );
-    }
-
-    // Optional strict audience check. If GOOGLE_CLIENT_ID is set on the server,
-    // we verify the token was indeed issued for our app. When unset we skip
-    // (google_sign_in SDK already enforces this client-side via project settings).
-    if (env.GOOGLE_CLIENT_ID && payload.aud) {
-      const aud = String(payload.aud);
-      if (aud !== env.GOOGLE_CLIENT_ID) {
-        throw new AppError(
-          'Google ID token audience does not match this server',
-          HttpStatus.UNAUTHORIZED,
-          ErrorCodes.UNAUTHORIZED,
-        );
-      }
-    }
-  } catch (error: any) {
-    if (error instanceof AppError) throw error;
-    logger.error('Google token verification failed', { error: error.message });
-    throw new AppError(
-      'Failed to verify Google token',
-      HttpStatus.UNAUTHORIZED,
-      ErrorCodes.UNAUTHORIZED,
-    );
-  }
+  const googlePayload = await verifyGoogleIdentity(idToken);
 
   const emailLower = googlePayload.email.toLowerCase();
 
@@ -683,6 +624,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
           googleId: true,
           createdAt: true,
           isActive: true,
+          emailVerifiedAt: true,
         },
       })
       : null) ??
@@ -699,8 +641,17 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
         googleId: true,
         createdAt: true,
         isActive: true,
+        emailVerifiedAt: true,
       },
     }));
+
+  if (user?.googleId && user.googleId !== googlePayload.sub) {
+    throw new AppError('Google identity does not match the linked account', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
+  }
+
+  if (user?.provider === 'LOCAL' && !user.emailVerifiedAt) {
+    throw new AppError('Verify the existing account email before linking Google sign-in', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
+  }
 
   if (user && user.provider !== 'GOOGLE' && user.provider !== 'LOCAL') {
     throw new AppError(
@@ -724,6 +675,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
         username,
         fullName: googlePayload.name || null,
         provider: 'GOOGLE',
+        emailVerifiedAt: new Date(),
         providerId: googlePayload.sub || null,
         googleId: googlePayload.sub || null,
         role: UserRole.USER,
@@ -739,6 +691,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
         googleId: true,
         createdAt: true,
         isActive: true,
+        emailVerifiedAt: true,
       },
     });
   } else {
@@ -772,6 +725,7 @@ export async function googleSignIn(idToken: string): Promise<AuthResult> {
           googleId: true,
           createdAt: true,
           isActive: true,
+          emailVerifiedAt: true,
         },
       });
     }

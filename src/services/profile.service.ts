@@ -394,9 +394,14 @@ export async function changePassword(
   }
 
   const newPasswordHash = await hashPassword(data.newPassword);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { password: newPasswordHash },
+  await prisma.$transaction(async tx => {
+    const changed = await tx.user.updateMany({
+      where: { id: userId, password: user.password }, data: { password: newPasswordHash },
+    });
+    if (changed.count !== 1) {
+      throw new AppError('Password changed; retry with the current password', HttpStatus.CONFLICT, ErrorCodes.CONFLICT);
+    }
+    await tx.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
   });
 
   return true;

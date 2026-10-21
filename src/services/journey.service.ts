@@ -7,8 +7,7 @@ import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
 import { charityExperience, getZakatHomeTile } from './zakat.service';
 import { getDailyQuranGoal } from './quran-daily-goal.service';
-import { getDayOfYear } from '../utils/date';
-import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
+import { calendarDayOfYear, getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { isDailyChallengeCompleted } from '../utils/challenge';
 import {
   FALLBACK_CHALLENGE,
@@ -292,7 +291,9 @@ async function getTodayJourneyLegacy(userId: string) {
     earnedAt: string | null;
   }> = [];
   try {
-    const dayOfYear = getDayOfYear();
+    const challengeDate = (await getUserLocalCalendarDay(userId)).date;
+    const dayOfYear = calendarDayOfYear(challengeDate);
+    const year = challengeDate.getUTCFullYear();
     const [user, last30Progress, challengeTemplate, challengeCompletion] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { points: true, level: true, createdAt: true } }),
       prisma.dailyProgress.findMany({
@@ -301,7 +302,7 @@ async function getTodayJourneyLegacy(userId: string) {
       }),
       getDailyChallengeTemplate(dayOfYear).catch(() => null),
       prisma.challengeCompletion.findUnique({
-        where: { userId_dayOfYear: { userId, dayOfYear } },
+        where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
       }).catch(() => null),
     ]);
     points = user?.points ?? 0;
