@@ -12,8 +12,12 @@ async function main() {
     console.log('SKIP challenge DB integration: set SECURITY_DB_TEST=true on an isolated *_test database.'); return;
   }
   assertSafeDatabaseTarget(process.env.DATABASE_URL ?? '', 'test');
-  const db = new PrismaClient();
   const schema = `challenge_security_${randomUUID().replaceAll('-', '')}`;
+  // Prisma qualifies model tables with the datasource schema. SET search_path
+  // alone only scopes raw SQL and would accidentally test against public tables.
+  const testUrl = new URL(process.env.DATABASE_URL!);
+  testUrl.searchParams.set('schema', schema);
+  const db = new PrismaClient({ datasources: { db: { url: testUrl.toString() } } });
   let created = false;
   const original = { tx: prisma.$transaction, find: prisma.user.findUnique, update: prisma.user.update,
     template: prisma.dailyChallengeTemplate.findFirst, journey: prisma.dailyProgress.upsert,
@@ -25,7 +29,7 @@ async function main() {
   try {
     await db.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`); created = true;
     await scoped(async (tx: any) => {
-      await tx.$executeRawUnsafe('CREATE TABLE users(id TEXT PRIMARY KEY, timezone TEXT, points INTEGER DEFAULT 0, level INTEGER DEFAULT 1)');
+      await tx.$executeRawUnsafe('CREATE TABLE users(id TEXT PRIMARY KEY, timezone TEXT, points INTEGER DEFAULT 0, level INTEGER DEFAULT 1,"updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)');
       await tx.$executeRawUnsafe('CREATE TABLE challenge_completions(id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,"userId" TEXT REFERENCES users(id) ON DELETE CASCADE,"dayOfYear" INTEGER,"completedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,"claimedAt" TIMESTAMP(3))');
       await tx.$executeRawUnsafe('CREATE UNIQUE INDEX "challenge_completions_userId_dayOfYear_key" ON challenge_completions("userId","dayOfYear")');
       await tx.$executeRaw`INSERT INTO users(id,timezone) VALUES ('qa','Africa/Cairo'),('legacy','Africa/Cairo')`;
@@ -46,7 +50,8 @@ async function main() {
     const date = dateOnlyFromDayKey(localDayKeyForTimezone('Africa/Cairo'));
     const day = calendarDayOfYear(date);
     const results = await Promise.allSettled(Array.from({ length: 8 }, () => claimChallenge('qa', String(day))));
-    assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+    assert.equal(results.filter(r => r.status === 'fulfilled').length, 1,
+      `Exactly one claim must succeed; result codes: ${results.map(r => r.status === 'fulfilled' ? 'ok' : String(r.reason.code ?? r.reason.statusCode ?? r.reason.name)).join(',')}`);
     assert.ok(results.filter(r => r.status === 'rejected').every((r: any) => r.reason.statusCode === 409));
     const points = await scoped((tx: any) => tx.$queryRaw`SELECT points FROM users WHERE id='qa'`);
     assert.equal(points[0].points, 50);

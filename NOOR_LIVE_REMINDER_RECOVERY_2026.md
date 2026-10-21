@@ -19,13 +19,13 @@
 - Optional `REMINDER_CRON_URL` and `REMINDER_CRON_FALLBACK_URL` allow verified Railway private networking plus public HTTPS fallback. Keep the public default until private DNS/port connectivity has actually been checked from the cron service.
 - The existing per-minute scheduler, in-flight gate and persisted notification claims remain authoritative. This runner never invents or replays old prayer occurrences.
 
-`railway.cron.json` is a separate configuration for **refreshing-endurance only**. It runs the script every ten minutes with restart policy NEVER. Do not apply this file to the API service. Do not run database migrations from the cron service.
+`railway.cron.json` documents a separate configuration for **refreshing-endurance only**: every ten minutes, restart policy NEVER. Do not apply this file to the API service. Do not run database migrations from the cron service. Railway rejected selecting a new JSON configuration file because it now requires Infrastructure as Code for that operation. The existing cron service's start command was instead successfully updated through the supported API to `node scripts/run-reminder-cron.cjs`; its current schedule was already `*/10 * * * *`. This setting needs a new source deployment before it can take effect. The running API configuration was not changed.
 
 ## Activation after Railway recovers
 
 1. Verify a sufficiently recent completed backup and its restore result; run a fresh backup before the API migrations if data changed materially.
 2. Push the tested commits and require the Backend checks workflow to pass, including the disposable PostgreSQL migration/concurrency tests.
-3. Set the cron service's Railway configuration file to `/railway.cron.json` (service ID `4d0a11b0-45db-4508-a65c-c60b8fb4bb30`, production environment). Keep the API on its existing `/railway.json` file.
+3. Verify the cron service's already-saved start command is `node scripts/run-reminder-cron.cjs` (service ID `4d0a11b0-45db-4508-a65c-c60b8fb4bb30`, production environment), schedule is every ten minutes, and restart policy NEVER. Inspect the resolved deployment manifest: it must run this script, not the API server, and must not inherit the API health check or database migration command. Do not attempt to select a new JSON config file through the API; that operation is rejected. Keep the API's existing configuration unchanged. A future IaC migration should be separately scoped and reviewed.
 4. Deploy the API and confirm migrations, connected health and channel manifest schema version 2. Deploy the cron from the latest source; redeploying an old image cannot include the new script.
 5. Confirm `reminder_trigger_completed` from a real scheduled invocation, then another invocation. Inspect API reminder summaries as well. Avoid repeatedly invoking the authenticated reminder route for testing: it sends genuinely due notifications.
 6. Test Google login and notification audio on the actual published Flutter build. This operational change does not bundle missing native sound files or repair channels on old clients; the existing Flutter handoff remains required.
