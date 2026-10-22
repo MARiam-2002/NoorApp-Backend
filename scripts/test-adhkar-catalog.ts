@@ -8,6 +8,7 @@ import {
   ADHKAR_CATALOG_ITEMS,
   ADHKAR_CATALOG_TOTAL_ITEMS,
   AYAT_AL_KURSI,
+  MUAWIDHAT,
   type AdhkarCategoryKey,
 } from '../src/shared/data/adhkar-catalog';
 import { ADHKAR_STATIC_CATALOG_VERSION } from '../src/shared/constants/static-catalog';
@@ -59,10 +60,11 @@ assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 2, 'catalog version bumped after the 
 // Compare the letters of the complete verse to the checked-in Quran source.
 // Normalize only orthographic marks/alef forms; never remove actual base letters.
 const normalizeVerse = (value: string) => value
-  .replace(/\u0670/g, 'ا').replace(/ئ|\u0654/g, 'ء').replace(/ى/g, 'ي')
+  .replace(/ى\u0670/g, 'ى').replace(/\u0670/g, 'ا').replace(/ئ|\u0654/g, 'ء').replace(/ى/g, 'ي')
   .normalize('NFD')
   .replace(/[\u064b-\u065f\u0670\u06d6-\u06ed\u0640\u200c-\u200f\ufeff]/g, '')
-  .replace(/\u0671/g, 'ا').replace(/[^\u0621-\u064a ]/g, '').replace(/\s+/g, ' ').trim();
+  .replace(/\u0671/g, 'ا').replace(/\s+/g, ' ').replace(/[^\u0621-\u064a ]/g, '').replace(/\s+/g, ' ').trim()
+  .replace(/(^| )هاذا(?= |$)/g, '$1هذا');
 const source = JSON.parse(readFileSync('prisma/data/quran-uthmani.json', 'utf8'));
 const canonical = source.surahs.find((s: any) => s.number === 2).ayahs.find((a: any) => a.numberInSurah === 255).text;
 const withoutIntroduction = AYAT_AL_KURSI.slice(AYAT_AL_KURSI.indexOf('. ') + 2);
@@ -72,6 +74,29 @@ assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 4, 'corrected text must invalidate th
 const kursiCopies = Object.values(ADHKAR_CATALOG_ITEMS).flat().filter(i => i.textAr.includes('كُرْسِيُّهُ'));
 assert.equal(kursiCopies.length, 6);
 assert.ok(kursiCopies.every(i => i.textAr === AYAT_AL_KURSI));
+
+const verseText = (surah: number, ayah: number): string => source.surahs.find((s: any) => s.number === surah)
+  .ayahs.find((a: any) => a.numberInSurah === ayah).text;
+const surahText = (number: number): string => {
+  const text = source.surahs.find((s: any) => s.number === number).ayahs.map((a: any) => a.text).join(' ');
+  return normalizeVerse(text).replace(/^بسم الله الرحمان الرحيم /, '').replace(/^بسم الله الرحمن الرحيم /, '');
+};
+assert.equal(normalizeVerse(MUAWIDHAT), [112, 113, 114].map(surahText).join(' '),
+  'The three protection surahs must match their complete Quran source');
+const excerpts: Array<[string, number, number[]]> = [
+  ['سورة طه', 20, [114]], ['سورة المؤمنون', 23, [29]], ['سورة الزخرف', 43, [13, 14]],
+];
+for (const [reference, surah, ayahs] of excerpts) {
+  const items = Object.values(ADHKAR_CATALOG_ITEMS).flat().filter(i => i.referenceAr.startsWith(reference));
+  assert.equal(items.length, 1, `${reference}: exactly one expected excerpt`);
+  const full = normalizeVerse(ayahs.map(ayah => verseText(surah, ayah)).join(' '));
+  assert.ok(` ${full} `.includes(` ${normalizeVerse(items[0].textAr)} `), `${reference}: ${normalizeVerse(items[0].textAr)} must occur in ${full}`);
+}
+const referenceQuote = Object.values(ADHKAR_CATALOG_ITEMS).flat()
+  .find(i => i.referenceAr.includes('سورة محمد 19'))?.referenceAr.match(/﴿([^﴾]+)﴾/u)?.[1];
+assert.ok(referenceQuote, 'Quran quotation in the reference must remain explicitly identified');
+assert.ok(` ${normalizeVerse(verseText(47, 19))} `.includes(` ${normalizeVerse(referenceQuote)} `),
+  'Quran quotation in the reference matches Muhammad 47:19');
 
 const removals = ADHKAR_CORRECTIONS_2026.filter((rule) => rule.remove).length;
 assert.equal(removals, 22);
