@@ -39,6 +39,7 @@ jobs:
         env:
           SECURITY_DB_TEST: "true"
       - run: npm run test:challenges
+      - run: npm run test:adhkar-catalog
       - run: npm run test:adhkar-reminders
         env:
           ADHKAR_REMINDER_TEST_DB: "true"

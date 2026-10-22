@@ -3,9 +3,11 @@
  * Run: npx tsx scripts/test-adhkar-catalog.ts
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   ADHKAR_CATALOG_ITEMS,
   ADHKAR_CATALOG_TOTAL_ITEMS,
+  AYAT_AL_KURSI,
   type AdhkarCategoryKey,
 } from '../src/shared/data/adhkar-catalog';
 import { ADHKAR_STATIC_CATALOG_VERSION } from '../src/shared/constants/static-catalog';
@@ -53,6 +55,23 @@ assert.equal(total, 93);
 assert.equal(ADHKAR_CATALOG_TOTAL_ITEMS, total);
 assert.ok(ADHKAR_CATALOG_ITEMS.GENERAL_WIRD.length >= DAILY_WIRD_ITEM_GOAL, 'daily wird goal is reachable');
 assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 2, 'catalog version bumped after the 2026 review');
+
+// Compare the letters of the complete verse to the checked-in Quran source.
+// Normalize only orthographic marks/alef forms; never remove actual base letters.
+const normalizeVerse = (value: string) => value
+  .replace(/\u0670/g, 'ا').replace(/ئ|\u0654/g, 'ء').replace(/ى/g, 'ي')
+  .normalize('NFD')
+  .replace(/[\u064b-\u065f\u0670\u06d6-\u06ed\u0640\u200c-\u200f\ufeff]/g, '')
+  .replace(/\u0671/g, 'ا').replace(/[^\u0621-\u064a ]/g, '').replace(/\s+/g, ' ').trim();
+const source = JSON.parse(readFileSync('prisma/data/quran-uthmani.json', 'utf8'));
+const canonical = source.surahs.find((s: any) => s.number === 2).ayahs.find((a: any) => a.numberInSurah === 255).text;
+const withoutIntroduction = AYAT_AL_KURSI.slice(AYAT_AL_KURSI.indexOf('. ') + 2);
+assert.equal(normalizeVerse(withoutIntroduction), normalizeVerse(canonical), 'Ayat al-Kursi letters must match Quran 2:255');
+assert.ok(AYAT_AL_KURSI.includes('يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ'));
+assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 4, 'corrected text must invalidate the older offline pack');
+const kursiCopies = Object.values(ADHKAR_CATALOG_ITEMS).flat().filter(i => i.textAr.includes('كُرْسِيُّهُ'));
+assert.equal(kursiCopies.length, 6);
+assert.ok(kursiCopies.every(i => i.textAr === AYAT_AL_KURSI));
 
 const removals = ADHKAR_CORRECTIONS_2026.filter((rule) => rule.remove).length;
 assert.equal(removals, 22);
