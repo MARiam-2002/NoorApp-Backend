@@ -5,7 +5,7 @@
  * Journey adhkar 50%/100% comes from MORNING/EVENING flags:
  *   progress = ((morning?1:0)+(evening?1:0))/2
  * GENERAL_WIRD (first 8) drives hub progressItems* when DB-backed.
- * Missing DB GENERAL_WIRD restores cosmetic progressItems* (Option 1).
+ * Missing DB GENERAL_WIRD returns zero unverified progress.
  */
 import {
   deriveAdhkarJourneyFlags,
@@ -179,20 +179,20 @@ assert(
   ) === 100,
 );
 
-// --- Case 2: GENERAL_WIRD missing — restore OLD cosmetic progressItems* ---
+// --- Case 2: GENERAL_WIRD missing — never fabricate progress ---
 const cosmetic = getCosmeticWirdProgress(12); // typical fallback catalog length
-assert('cosmetic: progressItemsTotal is min(8, count)', cosmetic.progressItemsTotal === 8);
+assert('fallback: progressItemsTotal is min(8, count)', cosmetic.progressItemsTotal === 8);
 assert(
-  'cosmetic: progressItemsDone in 1..goal',
-  cosmetic.progressItemsDone >= 1 && cosmetic.progressItemsDone <= cosmetic.progressItemsTotal,
+  'fallback: no fabricated completions',
+  cosmetic.progressItemsDone === 0 && cosmetic.progressPercent === 0,
 );
 assert(
-  'cosmetic: percent matches formula',
+  'fallback: percent matches formula',
   cosmetic.progressPercent ===
     Math.round((cosmetic.progressItemsDone / cosmetic.progressItemsTotal) * 100),
 );
 
-// Simulate sync merge: flags from ledger fallback, progress from cosmetic (Option 1)
+// Simulate sync merge: real flags from ledger, conservative unverified counters
 const missingDbFlags = deriveAdhkarJourneyFlags({
   morningItems,
   eveningItems,
@@ -217,12 +217,12 @@ assert(
 );
 assert('missing-DB: adhkarCompleted still false', missingDbMerged.adhkarCompleted === false);
 assert(
-  'missing-DB: progressItemsDone is cosmetic (not 0 from empty wird ledger)',
+  'missing-DB: unverified progress stays zero',
   missingDbMerged.progressItemsDone === cosmetic.progressItemsDone &&
-    missingDbMerged.progressItemsDone !== 0,
+    missingDbMerged.progressItemsDone === 0,
 );
 assert(
-  'missing-DB: progressItemsTotal/Percent are cosmetic',
+  'missing-DB: progressItemsTotal/Percent are conservative fallback values',
   missingDbMerged.progressItemsTotal === cosmetic.progressItemsTotal &&
     missingDbMerged.progressPercent === cosmetic.progressPercent,
 );
@@ -253,7 +253,7 @@ assert(
   ) === 100,
 );
 assert(
-  'missing-DB: completed true still keeps cosmetic progress fields',
+  'missing-DB: completed true still keeps unverified progress at zero',
   missingDbBoth.progressItemsDone === cosmetic.progressItemsDone,
 );
 
@@ -261,4 +261,4 @@ if (failed > 0) {
   console.error(`\n${failed} check(s) failed`);
   process.exit(1);
 }
-console.log('\nAll GENERAL_WIRD Option-1 behavior checks passed.');
+console.log('\nAll GENERAL_WIRD progress checks passed.');

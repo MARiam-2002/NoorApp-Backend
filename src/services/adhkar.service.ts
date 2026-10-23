@@ -5,7 +5,6 @@ import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { logger } from '../lib/logger';
 import { withPerfTiming } from '../lib/perf';
-import { getDayOfYear } from '../utils/date';
 import {
   ADHKAR_DHIKR_CATEGORIES_FALLBACK,
 } from '../shared/constants/fallbacks';
@@ -94,14 +93,6 @@ function buildCategoryFallback(key: CategoryKey): FallbackCategory {
 }
 
 const ALL_FALLBACK_CATEGORIES: FallbackCategory[] = CATEGORY_KEYS.map(buildCategoryFallback);
-
-function getDayOfYearSafe(): number {
-  try {
-    return getDayOfYear();
-  } catch {
-    return Math.max(1, new Date().getDate());
-  }
-}
 
 export async function getAllCategories() {
   try {
@@ -218,10 +209,9 @@ export async function getDailyWird() {
     });
   }
 
-  const day = getDayOfYearSafe();
   const totalItems = wirdItems.length || 8;
   const goal = Math.min(8, totalItems);
-  const progress = (((day * 37) % Math.max(1, goal)) + 1);
+  const progress = 0; // No verified ledger: never fabricate completed worship.
 
   const slice = wirdItems.slice(0, goal);
 
@@ -515,8 +505,8 @@ export type AdhkarJourneyFlags = {
 };
 
 /**
- * Cosmetic "وردك اليوم" counters used when GENERAL_WIRD is missing/empty in DB.
- * Must match getDailyWird() / getDailyWirdForUser() degraded-path formula exactly.
+ * Conservative counters used when GENERAL_WIRD progress cannot be verified.
+ * Legacy export name retained for compatibility; unverified completion is always zero.
  */
 export function getCosmeticWirdProgress(fallbackItemCount?: number): {
   progressItemsDone: number;
@@ -528,8 +518,7 @@ export function getCosmeticWirdProgress(fallbackItemCount?: number): {
       ? fallbackItemCount
       : FALLBACK_ITEMS.GENERAL_WIRD?.length || 8;
   const goal = Math.min(8, totalItems);
-  const day = getDayOfYearSafe();
-  const progress = (((day * 37) % Math.max(1, goal)) + 1);
+  const progress = 0; // No verified ledger: never fabricate completed worship.
   return {
     progressItemsDone: progress,
     progressItemsTotal: goal,
@@ -1417,7 +1406,7 @@ export async function getDailyWirdForUser(userId: string) {
     });
 
     if (!wirdCategory || wirdCategory.items.length === 0) {
-      return baseWird; // Fallback to cosmetic progress
+      return baseWird; // Fallback to unverified zero progress
     }
 
     const itemIds = wirdCategory.items.map((it) => it.id);
@@ -1455,7 +1444,7 @@ export async function getDailyWirdForUser(userId: string) {
       progressPercent: percent,
     };
   } catch (err: any) {
-    logger.warn('[Adhkar] Failed to calculate real wird progress, using cosmetic', {
+    logger.warn('[Adhkar] Failed to calculate real wird progress, using unverified zero progress', {
       userId,
       code: err?.code,
       message: err?.message,
