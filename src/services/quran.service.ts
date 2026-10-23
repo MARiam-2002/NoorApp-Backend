@@ -1479,8 +1479,8 @@ type ReciterOption = {
   style?: string;
   isDefault?: boolean;
   serverUrl?: string;
-  /** Quran Foundation ayah-recitation resource id (required for /quran/audio). */
-  resourceId: number;
+  /** Quran Foundation resource id, when available. EveryAyah-only readers use their string id. */
+  resourceId?: number;
 };
 
 const QURAN_RECITERS: ReciterOption[] = [
@@ -1491,6 +1491,7 @@ const QURAN_RECITERS: ReciterOption[] = [
   { id: 'Saud_Ash_Shuraym', code: 'Saud_Ash_Shuraym', name: "Sa'ud ash-Shuraym", nameAr: 'سعود الشريم', nameEn: "Sa'ud ash-Shuraym", style: 'Murattal', resourceId: 10, serverUrl: 'https://everyayah.com/data/Saood_ash-Shuraym_128kbps' },
   { id: 'Muhammad_Siddiq_Al_Minshawi', code: 'Muhammad_Siddiq_Al_Minshawi', name: 'Muhammad Siddiq Al-Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Muhammad Siddiq Al-Minshawi', style: 'Murattal', resourceId: 9, serverUrl: 'https://everyayah.com/data/Minshawy_Murattal_128kbps' },
   { id: 'Minshawi_Mujawwad', code: 'Minshawi_Mujawwad', name: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', nameAr: 'محمد صديق المنشاوي (مجود)', nameEn: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', style: 'Mujawwad', resourceId: 8, serverUrl: 'https://everyayah.com/data/Minshawy_Mujawwad_192kbps' },
+  { id: 'Mahmoud_Ali_Al_Banna', code: 'Mahmoud_Ali_Al_Banna', name: 'Mahmoud Ali Al-Banna', nameAr: 'محمود علي البنا', nameEn: 'Mahmoud Ali Al-Banna', style: 'Murattal', serverUrl: 'https://everyayah.com/data/mahmoud_ali_al_banna_32kbps' },
 ];
 
 export async function listReciters(): Promise<ReciterOption[]> {
