@@ -41,7 +41,7 @@ const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
-const logoutSchema = refreshTokenSchema;
+const logoutSchema = refreshTokenSchema.extend({ fcmToken: z.string().trim().min(1).max(4096).optional() });
 
 const forgotPasswordSchema = z.object({
   email: z.string().trim().email('Invalid email'),
@@ -199,6 +199,7 @@ const googleSignInSchema = z.object({
  *             required: [refreshToken]
  *             properties:
  *               refreshToken: { type: string }
+ *               fcmToken: { type: string, description: Optional device token to unregister for the signed refresh-token owner only, maxLength: 4096 }
  *           examples:
  *             default:
  *               summary: مثال لتسجيل الخروج

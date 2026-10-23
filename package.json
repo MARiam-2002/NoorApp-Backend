@@ -49,7 +49,7 @@
     "migrate:prayer-method-auto": "tsx scripts/migrate-calculation-method-auto.ts",
     "test:ai-foundation": "tsx scripts/test-ai-foundation.ts",
     "test:ai-quran": "tsx scripts/test-ai-arabic-normalize.ts && tsx scripts/test-ai-quran-tools.ts && tsx scripts/test-ai-quran-eval.ts && tsx scripts/test-ai-quran-discovery-http.ts",
-    "test": "npm run test:security-hardening && npm run test:adhkar-reminders && npm run test:continuity && npm run test:fajr-alarm && npm run test:production-fixes && npm run test:phase1-perf && npm run test:salawat && npm run test:mulk && npm run test:nawafel && npm run test:adhkar-catalog && npm run test:figures && npm run test:sajdah && npm run test:challenges && npm run test:sadaqah-goal && npm run test:near-prayer && npm run test:prayer-global && npm run test:prayer-method && npm run test:cleanup-no-fcm && npm run test:ai-foundation && npm run test:ai-quran",
+    "test": "npm run test:security-hardening && npm run test:adhkar-reminders && npm run test:continuity && npm run test:fajr-alarm && npm run test:production-fixes && npm run test:phase1-perf && npm run test:salawat && npm run test:mulk && npm run test:nawafel && npm run test:adhkar-catalog && npm run test:figures && npm run test:sajdah && npm run test:challenges && npm run test:sadaqah-goal && npm run test:near-prayer && npm run test:prayer-global && npm run test:prayer-method && npm run test:cleanup-no-fcm && npm run test:ai-foundation && npm run test:ai-quran && npm run test:cross-feature-audit && npm run test:takbir && npm run test:logout-device",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -65,7 +65,9 @@
     "test:travel": "tsx scripts/test-travel.ts",
     "test:kahf": "tsx scripts/test-kahf-reminder.ts",
     "test:refresh-rotation": "tsx scripts/test-refresh-rotation.ts",
-    "test:takbir": "tsx scripts/test-takbir.ts && tsx scripts/test-prayer-delivery.ts"
+    "test:takbir": "tsx scripts/test-takbir.ts && tsx scripts/test-prayer-delivery.ts",
+    "test:cross-feature-audit": "tsx scripts/test-cross-feature-audit.ts",
+    "test:logout-device": "tsx scripts/test-logout-device.ts"
   },
   "keywords": [
     "express",

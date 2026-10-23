@@ -1,11 +1,8 @@
+import { getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import type { TasbihDhikr } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
-
-function getTodayDateOnly(date = new Date()): Date {
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-}
 
 export enum Dhikr {
   SUBHAN_ALLAH = 'SUBHAN_ALLAH',
@@ -306,7 +303,8 @@ function toContractTasbih(log: {
   };
 }
 
-async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
+async function getOrCreateToday(userId: string, date?: Date) {
+  date ??= (await getUserLocalCalendarDay(userId)).date;
   return prisma.tasbihLog.upsert({
     where: { userId_date: { userId, date } },
     create: { userId, date },
@@ -314,9 +312,15 @@ async function getOrCreateToday(userId: string, date = getTodayDateOnly()) {
   });
 }
 
+/** Each daily row stores that day's lifetime contribution (reset does not erase it). */
+async function withLifetimeTotal(userId: string, log: Parameters<typeof toContractTasbih>[0]) {
+  const totals = await prisma.tasbihLog.aggregate({ where: { userId }, _sum: { totalAllTime: true } });
+  return toContractTasbih({ ...log, totalAllTime: totals._sum.totalAllTime ?? 0 });
+}
+
 export async function getTodayTasbih(userId: string): Promise<ContractTasbih> {
   const tasbihLog = await getOrCreateToday(userId);
-  return toContractTasbih(tasbihLog);
+  return withLifetimeTotal(userId, tasbihLog);
 }
 
 export async function incrementTasbih(userId: string, amount = 1): Promise<ContractTasbih> {
@@ -328,7 +332,7 @@ export async function incrementTasbih(userId: string, amount = 1): Promise<Contr
     );
   }
 
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const current = await getOrCreateToday(userId, date);
 
   const tasbihLog = await prisma.tasbihLog.update({
@@ -339,11 +343,11 @@ export async function incrementTasbih(userId: string, amount = 1): Promise<Contr
     },
   });
 
-  return toContractTasbih(tasbihLog);
+  return withLifetimeTotal(userId, tasbihLog);
 }
 
 export async function resetTasbih(userId: string): Promise<ContractTasbih> {
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const current = await getOrCreateToday(userId, date);
 
   const tasbihLog = await prisma.tasbihLog.update({
@@ -351,18 +355,18 @@ export async function resetTasbih(userId: string): Promise<ContractTasbih> {
     data: { count: 0 },
   });
 
-  return toContractTasbih(tasbihLog);
+  return withLifetimeTotal(userId, tasbihLog);
 }
 
 export async function changeDhikr(userId: string, dhikr: TasbihDhikr): Promise<ContractTasbih> {
-  const date = getTodayDateOnly();
+  const { date } = await getUserLocalCalendarDay(userId);
   const tasbihLog = await prisma.tasbihLog.upsert({
     where: { userId_date: { userId, date } },
     create: { userId, date, dhikr },
     update: { dhikr },
   });
 
-  return toContractTasbih(tasbihLog);
+  return withLifetimeTotal(userId, tasbihLog);
 }
 
 export async function getTasbihHistory(userId: string, limit = 30) {

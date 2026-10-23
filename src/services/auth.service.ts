@@ -324,10 +324,11 @@ export async function refreshToken(input: { refreshToken: string }): Promise<Aut
   });
 }
 
-export async function logout(input: { refreshToken: string }): Promise<void> {
+export async function logout(input: { refreshToken: string; fcmToken?: string }): Promise<void> {
   let tokenHash: string | null = null;
+  let userId: string | null = null;
   try {
-    verifyRefreshTokenJwt(input.refreshToken);
+    userId = verifyRefreshTokenJwt(input.refreshToken).userId;
     tokenHash = hashRefreshToken(input.refreshToken);
   } catch {
     // Token is already invalid / expired — treat as already-logged-out.
@@ -335,6 +336,13 @@ export async function logout(input: { refreshToken: string }): Promise<void> {
     return;
   }
 
+  if (tokenHash && input.fcmToken && userId) {
+    await prisma.$transaction(async tx => {
+      await tx.refreshToken.updateMany({ where: { tokenHash, userId, revokedAt: null }, data: { revokedAt: new Date() } });
+      await tx.deviceToken.deleteMany({ where: { token: input.fcmToken, userId } });
+    });
+    return;
+  }
   if (tokenHash) {
     await prisma.refreshToken.updateMany({
       where: { tokenHash, revokedAt: null },

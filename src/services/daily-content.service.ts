@@ -135,8 +135,7 @@ export async function getHadithOfTheDay(dayOfYear = getDayOfYear()) {
   }
 }
 
-export async function getHadithOfTheDayLite(dayOfYear = getDayOfYear()) {
-  const year = new Date().getFullYear();
+export async function getHadithOfTheDayLite(dayOfYear = getDayOfYear(), year = new Date().getFullYear()) {
   // Deterministic verified selection — stable same day; no unverified static fallback.
   return getCuratedHadithForDay(dayOfYear, year);
 }

@@ -39,8 +39,8 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken: token } = req.body as { refreshToken: string };
-  await authService.logout({ refreshToken: token });
+  const { refreshToken: token, fcmToken } = req.body as { refreshToken: string; fcmToken?: string };
+  await authService.logout({ refreshToken: token, fcmToken });
 
   sendSuccess(res, null, 'Logged out successfully', req);
 });

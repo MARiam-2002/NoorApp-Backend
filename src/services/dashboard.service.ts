@@ -37,7 +37,7 @@ import {
   getTodayJourneyWithFallback,
   getVerseOfTheDayLite,
   getHadithOfTheDayLite,
-  getDailyChallengeTemplate,
+  getDailyChallengeTemplateWithFallback,
 } from './daily-content.service';
 import { syncJourneyAdhkarFromDhikr } from './adhkar.service';
 import { getNawafelDashboardTile } from './nawafel.service';
@@ -46,6 +46,7 @@ import { getFigureOfTheDayLite, type FigureOfTheDayLite } from './figure-of-day.
 const TOTAL_QURAN_PAGES = 604;
 
 export type DashboardData = {
+  dataStatus?: 'degraded';
   readingJourney?: {percent:number;completedCategories:number;totalCategories:number};
   readingGoal?: Awaited<ReturnType<typeof getReadingGoal>>;
   charityExperience?: typeof charityExperience;
@@ -60,6 +61,7 @@ export type DashboardData = {
     gregorianDate?: string;
   };
   prayers: {
+    available?: boolean;
     nextPrayer: {
       name: string;
       nameAr: string;
@@ -163,6 +165,8 @@ export type DashboardData = {
     surahNameEn?: string;
   };
   dailyChallenge: {
+    type: ChallengeType;
+    dayOfYear?: number;
     titleAr: string;
     titleEn: string;
     descriptionAr: string;
@@ -280,6 +284,7 @@ async function getDashboardLegacy(userId: string): Promise<DashboardData> {
       message: err?.message,
     });
     return {
+      dataStatus: 'degraded',
       greeting: {
         displayName: user.fullName?.trim() || user.username,
         weekdayName: todayInfo.weekdayName,
@@ -291,29 +296,8 @@ async function getDashboardLegacy(userId: string): Promise<DashboardData> {
       },
       prayers: {
         nextPrayer: null,
-        schedule: PrayerOrder.map((key) => {
-          const name = prayerEnumToTitle(key);
-          const nameAr =
-            key === PrayerNameEnum.FAJR
-              ? 'الفجر'
-              : key === PrayerNameEnum.DHUHR
-                ? 'الظهر'
-                : key === PrayerNameEnum.ASR
-                  ? 'العصر'
-                  : key === PrayerNameEnum.MAGHRIB
-                    ? 'المغرب'
-                    : 'العشاء';
-          return {
-            name,
-            nameAr,
-            time: '00:00',
-            displayAr: nameAr,
-            displayEn: name,
-            iso: new Date().toISOString(),
-            completed: false,
-            key,
-          };
-        }),
+        available: false,
+        schedule: [],
         date: new Date().toISOString().slice(0, 10),
         timezone: user.timezone ?? DefaultTimezone,
         completedCount: 0,
@@ -358,6 +342,7 @@ async function getDashboardLegacy(userId: string): Promise<DashboardData> {
         surahNameEn: 'Al-Baqarah',
       },
       dailyChallenge: {
+        type: FALLBACK_CHALLENGE.type as ChallengeType,
         titleAr: FALLBACK_CHALLENGE.titleAr,
         titleEn: FALLBACK_CHALLENGE.titleEn ?? 'Daily Challenge',
         descriptionAr: FALLBACK_CHALLENGE.descriptionAr,
@@ -392,7 +377,9 @@ async function buildDashboardPayload(
   },
 ): Promise<DashboardData> {
 
-  const dayOfYear = calendarDayOfYear((await getUserLocalCalendarDay(userId)).date);
+  const localDay = await getUserLocalCalendarDay(userId);
+  const dayOfYear = calendarDayOfYear(localDay.date);
+  const calendarYear = localDay.date.getUTCFullYear();
   const todayInfo = formatArabicDateInfo();
 
   // Keep Dashboard Adhkar tile aligned with Azkar screen completions (same day ledger).
@@ -412,8 +399,8 @@ async function buildDashboardPayload(
     getTodayJourneyWithFallback(userId),
     getOrCreateKhatmah(userId),
     getVerseOfTheDayLite(dayOfYear).catch(() => FALLBACK_VERSE),
-    getHadithOfTheDayLite(dayOfYear).catch(() => getCuratedHadithForDay(dayOfYear)),
-    getDailyChallengeTemplate(dayOfYear).catch(() => null),
+    getHadithOfTheDayLite(dayOfYear, calendarYear).catch(() => getCuratedHadithForDay(dayOfYear, calendarYear)),
+    getDailyChallengeTemplateWithFallback(dayOfYear).catch(() => null),
     getChallengeCompletion(userId, dayOfYear).catch(() => null),
     getNawafelDashboardTile(userId).catch(() => ({
       completed: 0,
@@ -631,7 +618,7 @@ async function buildDashboardPayload(
       textAr: hadith.textAr,
       sourceAr: hadith.sourceAr,
     },
-    figureOfTheDay: getFigureOfTheDayLite(dayOfYear),
+    figureOfTheDay: getFigureOfTheDayLite(dayOfYear, calendarYear),
     dailyJourney: {
       prayer: {
         completed: prayers.completedCount,
@@ -696,6 +683,8 @@ async function buildDashboardPayload(
       surahNameEn: resolveSurahNameEn(surah?.id ?? 2, surah?.nameEn) || 'Al-Baqarah',
     },
     dailyChallenge: {
+      type: (challengeTemplate?.type ?? FALLBACK_CHALLENGE.type) as ChallengeType,
+      dayOfYear,
       titleAr: challengeTemplate?.titleAr ?? FALLBACK_CHALLENGE.titleAr,
       titleEn: challengeTemplate?.titleEn ?? FALLBACK_CHALLENGE.titleEn ?? 'Daily Challenge',
       descriptionAr: challengeTemplate?.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,

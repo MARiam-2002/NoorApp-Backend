@@ -4,6 +4,8 @@ Flutter reviewed: MahmoudAbuelazm/noor, main commit 7dd857e323c703faaf74b6d6e910
 
 ## Required Flutter changes
 
+**Authenticated home request:** `azkar_remote_datasource.dart:getHome()` currently passes `skipAuth:true` to `/adhkar`. For logged-in users, send the Bearer session so the backend can identify their progress. Keep an explicitly public request for guests. Fix this together with the offline-catalog early return below.
+
 1. In `lib/features/azkar/data/repositories/azkar_repository_impl.dart`, `getHome()` returns immediately when the static offline catalog is complete. It therefore never refreshes personal progress from the API. Separate static content readiness from user progress freshness. Read current local progress for immediate display, then reconcile authenticated remote progress when online and notify the home state. Saving taps must update/invalidate the home progress cache too.
 2. Select `GENERAL_WIRD` explicitly. The current `where(GENERAL_WIRD || MORNING).first` selects whichever category appears first. Do not label morning items as the server's eight-item general wird. Items, category key, goal and completion ledger must belong to the same category and item IDs.
 3. In `azkar_local_datasource.dart`, `_progressKey` only includes category. Scope progress by authenticated account (or separate guest identity), authoritative local calendar day and category. Audit logout/session cleanup before relying on it. Never merge yesterday's or another account's counts with today's remote counts using max. On midnight, account switch or timezone change, reload the appropriate day. Do not delete favorites, bookmarks or unrelated reading history.

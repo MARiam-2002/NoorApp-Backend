@@ -34,6 +34,8 @@ jobs:
       - run: npm run typecheck
       - run: node scripts/test-reminder-cron.cjs
       - run: npm run test:security-hardening
+      - run: npm run test:logout-device
+      - run: npm run test:cross-feature-audit
       - run: npm run test:takbir
       - run: npm run test:near-prayer
       - run: npm run test:challenge-claim-db

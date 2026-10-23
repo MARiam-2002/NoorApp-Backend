@@ -1,3 +1,4 @@
+import { localMidnight } from './reading-plan.service';
 import { getReadingGoal } from './reading-goal.service';
 import { creditContinuityDay, prepareReadingContinuity } from './continuity.service';
 import type { ChallengeType } from '@prisma/client';
@@ -893,11 +894,24 @@ export async function getJourneyProgress(userId: string, days = 7) {
     prayersByDate.set(key, (prayersByDate.get(key) ?? 0) + 1);
   }
 
-  const QURAN_GOAL = 4;
+  const quranGoal = await getDailyQuranGoal(userId, progress.find(row => row.date.getTime() === today.getTime())?.quranPagesRead ?? 0);
+  const QURAN_GOAL = quranGoal.pagesTarget;
 
   const TOTAL_PRAYERS = 5;
 
-  const daily = progress.map((p) => {
+  const dailyRows = progress.map(p => ({ date: p.date, quranPagesRead: p.quranPagesRead,
+    morningAdhkarCompleted: p.morningAdhkarCompleted, eveningAdhkarCompleted: p.eveningAdhkarCompleted,
+    adhkarCompleted: p.adhkarCompleted, sadaqahAmount: Number(p.sadaqahAmount) }));
+  const knownDays = new Set(dailyRows.map(p => p.date.toISOString().slice(0, 10)));
+  for (const prayer of prayerCompletions) {
+    const key = prayer.date.toISOString().slice(0, 10);
+    if (!knownDays.has(key)) {
+      knownDays.add(key);
+      dailyRows.push({ date: prayer.date, quranPagesRead: 0, morningAdhkarCompleted: false,
+        eveningAdhkarCompleted: false, adhkarCompleted: false, sadaqahAmount: 0 });
+    }
+  }
+  const daily = dailyRows.sort((a, b) => a.date.getTime() - b.date.getTime()).map((p) => {
     const dateStr = p.date.toISOString().slice(0, 10);
     const prayersCompleted = prayersByDate.get(dateStr) ?? 0;
     const quranProgress = QURAN_GOAL > 0 ? Math.min(1, p.quranPagesRead / QURAN_GOAL) : 0;
@@ -926,7 +940,7 @@ export async function getJourneyProgress(userId: string, days = 7) {
   });
 
   const totalPrayersCompleted = prayerCompletions.length;
-  const daysStreak = computeDaysStreak(progress, today);
+  const daysStreak = computeDaysStreak(dailyRows, today);
 
   const summary = {
     totalQuranPages: progress.reduce((sum, p) => sum + p.quranPagesRead, 0),
@@ -945,6 +959,7 @@ export async function getJourneyProgress(userId: string, days = 7) {
 
   return {
     periodDays: days,
+    quranGoal: { pagesTarget: QURAN_GOAL, source: quranGoal.source, basis: 'current_goal' },
     daily,
     records: daily,
     summary,
@@ -1052,7 +1067,7 @@ export async function getJourneyOverview(userId: string) {
 export async function getWeeklyStats(userId: string) {
   const { date: today } = await getUserLocalCalendarDay(userId);
   const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
 
   const [dailyProgressList, prayerCompletions] = await Promise.all([
     prisma.dailyProgress.findMany({
@@ -1101,9 +1116,9 @@ export async function getWeeklyStats(userId: string) {
 }
 
 export async function getMonthlyStats(userId: string) {
-  const { date: today } = await getUserLocalCalendarDay(userId);
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const { date: today, timezone } = await getUserLocalCalendarDay(userId);
+  const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0));
 
   const [dailyProgressList, challengeCompletions] = await Promise.all([
     prisma.dailyProgress.findMany({
@@ -1118,6 +1133,7 @@ export async function getMonthlyStats(userId: string) {
     prisma.challengeCompletion.findMany({
       where: {
         userId,
+        claimedAt: { gte: localMidnight(monthStart.toISOString().slice(0, 10), timezone), lt: localMidnight(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)).toISOString().slice(0, 10), timezone) },
       },
     }),
   ]);
@@ -1128,8 +1144,8 @@ export async function getMonthlyStats(userId: string) {
 
   return {
     month: {
-      month: today.getMonth() + 1,
-      year: today.getFullYear(),
+      month: today.getUTCMonth() + 1,
+      year: today.getUTCFullYear(),
     },
     summary: {
       quranPagesRead: totalQuran,
@@ -1152,7 +1168,6 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
   const startDate = new Date(today);
   startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
 
-  const QURAN_PAGES_GOAL_PER_DAY = 4;
   const PRAYERS_PER_DAY = 5;
 
 
@@ -1164,6 +1179,9 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
       where: { userId, date: { gte: startDate, lte: today } },
     }),
   ]);
+
+  const quranGoal = await getDailyQuranGoal(userId, progressRows.find(row => row.date.getTime() === today.getTime())?.quranPagesRead ?? 0);
+  const QURAN_PAGES_GOAL_PER_DAY = quranGoal.pagesTarget;
 
   // --- Prayers % ---
   const maxPossiblePrayers = days * PRAYERS_PER_DAY;
@@ -1189,6 +1207,7 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
     maxAdhkarHalves > 0 ? Math.round((adhkarHalves / maxAdhkarHalves) * 100) : 0;
 
   return {
+    quranGoal: { pagesTarget: QURAN_PAGES_GOAL_PER_DAY, source: quranGoal.source, basis: 'current_goal' },
     period: {
       from: startDate.toISOString().slice(0, 10),
       to: today.toISOString().slice(0, 10),
@@ -1248,7 +1267,6 @@ export async function getMonthlyCalendarHeatmap(
   const todayStr = today.toISOString().slice(0, 10);
   const daysInMonth = monthEnd.getUTCDate();
 
-  const QURAN_GOAL = 4;
   const PRAYERS_PER_DAY = 5;
 
 
@@ -1260,6 +1278,10 @@ export async function getMonthlyCalendarHeatmap(
       where: { userId, date: { gte: monthStart, lte: monthEnd } },
     }),
   ]);
+  const todayProgress = progressRows.find(row => row.date.getTime() === today.getTime())
+    ?? await prisma.dailyProgress.findUnique({ where: { userId_date: { userId, date: today } }, select: { quranPagesRead: true } });
+  const quranGoal = await getDailyQuranGoal(userId, todayProgress?.quranPagesRead ?? 0);
+  const QURAN_GOAL = quranGoal.pagesTarget;
   const prayersByDate = new Map<string, number>();
   for (const p of prayerRows) {
     const k = p.date.toISOString().slice(0, 10);
@@ -1317,11 +1339,11 @@ export async function getMonthlyCalendarHeatmap(
     let sadaqahAmount = 0;
     let adhkarCompleted = false;
     let quranPages = 0;
-    if (row) {
-      quranPages = row.quranPagesRead ?? 0;
-      sadaqahAmount = Number(row.sadaqahAmount) || 0;
-      const morning = (row.morningAdhkarCompleted ?? row.adhkarCompleted) === true;
-      const evening = (row.eveningAdhkarCompleted ?? row.adhkarCompleted) === true;
+    if (row || prayersDone > 0) {
+      quranPages = row?.quranPagesRead ?? 0;
+      sadaqahAmount = Number(row?.sadaqahAmount) || 0;
+      const morning = (row?.morningAdhkarCompleted ?? row?.adhkarCompleted) === true;
+      const evening = (row?.eveningAdhkarCompleted ?? row?.adhkarCompleted) === true;
       adhkarCompleted = morning && evening;
       const q = QURAN_GOAL > 0 ? Math.min(1, quranPages / QURAN_GOAL) : 0;
       const p = prayersDone / PRAYERS_PER_DAY;
@@ -1352,6 +1374,7 @@ export async function getMonthlyCalendarHeatmap(
   }
 
   return {
+    quranGoal: { pagesTarget: QURAN_GOAL, source: quranGoal.source, basis: 'current_goal' },
     month: {
       number: month,
       year,
