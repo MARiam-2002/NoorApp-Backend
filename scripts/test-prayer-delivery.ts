@@ -113,6 +113,23 @@ async function main() {
     assert.equal(payloads[4].data.audioFallbackReason, 'ANNOUNCEMENT_NOT_BUNDLED_ON_DEVICE');
     assert.equal(payloads[4].nativeSound, built.azanSoundId);
     assert.equal(payloads[4].androidChannelId, `azan_${built.azanSoundId}`);
+
+    // Short takbir uses its own file and never the selected full Adhan URL.
+    claimedKeys.clear();
+    user.azanPreferences.prayerTimeSoundMode = 'takbir';
+    await runAzanRemindersForUser(user, 10, memo, send);
+    const takbir = payloads.at(-1);
+    assert.equal(takbir.nativeSound, 'takbir_nasser_al_qatami_v1');
+    assert.equal(takbir.data.audioScope, 'prayer_time_takbir');
+    assert.equal(takbir.data.prayerTimeSoundMode, 'takbir');
+    assert.ok(takbir.data.azanSoundUrl.endsWith('/takbir_nasser_al_qatami_v1.mp3'));
+    assert.equal(takbir.data.azanSoundId, takbir.data.soundId);
+    // Dhuhr on Friday still honors the Dhuhr override.
+    claimedKeys.clear();
+    user.azanPreferences.prayerTimeSoundOverrides = { dhuhr: 'azan' };
+    await runAzanRemindersForUser(user, 10, memo, send);
+    assert.equal(payloads.at(-1).nativeSound, built.azanSoundId);
+    assert.equal(payloads.at(-1).data.prayerTimeSoundMode, 'azan');
   } finally {
     prisma.azanReminderSendLog.createMany = original;
     Date.now = originalNow;

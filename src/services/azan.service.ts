@@ -1,3 +1,4 @@
+import { DEFAULT_TAKBIR_SOUND_ID, getTakbirSoundById } from '../shared/constants/takbir-sounds';
 import { inferTimezoneFromCoordinates } from '../shared/utils/prayer-location';
 import { z } from 'zod';
 
@@ -36,11 +37,20 @@ const prayerTogglesSchema = z.object({
   isha: z.boolean(),
 });
 
+export const prayerTimeSoundModeSchema = z.enum(['azan', 'announcement', 'takbir']);
+const prayerSoundOverridesSchema = z.object({
+  fajr: prayerTimeSoundModeSchema.optional(), dhuhr: prayerTimeSoundModeSchema.optional(),
+  asr: prayerTimeSoundModeSchema.optional(), maghrib: prayerTimeSoundModeSchema.optional(),
+  isha: prayerTimeSoundModeSchema.optional(),
+}).strict();
 export const azanPreferencesSchema = z.object({
   azanEnabled: z.boolean().default(true),
   soundEnabled: z.boolean().default(true),
   /** Selected Azan remains the default; announcement uses the short event clip. */
-  prayerTimeSoundMode: z.enum(['azan', 'announcement']).default('azan'),
+  prayerTimeSoundMode: prayerTimeSoundModeSchema.default('azan'),
+  takbirSoundId: z.string().refine(id => Boolean(getTakbirSoundById(id)), 'Unknown takbir sound').default(DEFAULT_TAKBIR_SOUND_ID),
+  /** Full replacement map; absent keys inherit prayerTimeSoundMode. Send {} to clear. */
+  prayerTimeSoundOverrides: prayerSoundOverridesSchema.default({}),
   vibrationEnabled: z.boolean().default(true),
   /** Preferred Azan sound id (legacy field name kept for Flutter compatibility). */
   voiceId: z.string().trim().min(1).max(64).default(DEFAULT_AZAN_SOUND_ID),
@@ -366,4 +376,10 @@ export async function updateAzanPreferences(
 
     return buildAzanPreferencesFromUser(updated);
   });
+}
+
+/** Per-prayer override, otherwise the account default. Pre-reminders do not use this. */
+export function effectivePrayerTimeSoundMode(prefs: AzanPreferences, prayer: string) {
+  const key = prayer.toLowerCase() as keyof AzanPreferences['prayerTimeSoundOverrides'];
+  return prefs.prayerTimeSoundOverrides[key] ?? prefs.prayerTimeSoundMode;
 }

@@ -28,7 +28,7 @@ export function prayerScheduleKey(user: any): string {
  const p = buildAzanPreferencesFromUser(user);
  return hash([user.latitude ?? null, user.longitude ?? null, user.timezone, p.lastLat, p.lastLng, p.calculationMethod, p.madhab,
   p.azanEnabled, p.soundEnabled, p.vibrationEnabled, p.azanSoundId ?? p.voiceId, p.notificationSoundId,
-  p.prayerTimeSoundMode, p.preReminderEnabled, p.preReminderMinutes,
+  p.prayerTimeSoundMode, p.takbirSoundId, ...['fajr','dhuhr','asr','maghrib','isha'].map(k => (p.prayerTimeSoundOverrides as any)[k] ?? null), p.preReminderEnabled, p.preReminderMinutes,
   ...['fajr','dhuhr','asr','maghrib','isha'].map(k => (p.prayers as any)[k]), p.fcmPrayerBackupEnabled]);
 }
 async function row(db: any, userId: string, lock = false): Promise<Row> {

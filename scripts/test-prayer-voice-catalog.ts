@@ -35,6 +35,19 @@ async function main() {
     assert.equal(body.data.prayerTime.sounds.length, 6);
     assert.ok(body.data.nearPrayer.sounds[1].previewUrl.endsWith('/azan/media/sc_near_fajr.mp3'));
     const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const shortResponse = await fetch(origin + '/api/v1/azan/takbir-sounds');
+    assert.equal(shortResponse.status, 200);
+    const shorts = (await shortResponse.json() as any).data;
+    assert.equal(shorts.count, 14);
+    assert.equal(shorts.minimumChannelSchemaVersion, 3);
+    const nasser = shorts.sounds.find((s: any) => s.id === 'takbir_nasser_al_qatami_v1');
+    assert.ok(nasser.durationSeconds < 15, 'must serve approved short Nasser, not the older 27-second candidate');
+    for (const [file, type] of [[nasser.mediaFile, 'audio/mpeg'], [nasser.iosSoundFile, 'audio/x-caf']]) {
+      const media = await fetch(origin + '/api/v1/azan/media/' + file, { headers: { Range: 'bytes=0-127' } });
+      assert.equal(media.status, 206);
+      assert.equal(media.headers.get('content-type'), type);
+      assert.equal((await media.arrayBuffer()).byteLength, 128);
+    }
     const spoof = await fetch(origin + '/api/v1/azan/prayer-voice-sounds', { headers: { 'X-Forwarded-Host': 'attacker.invalid' } });
     assert.ok(!JSON.stringify(await spoof.json()).includes('attacker.invalid'));
     const suffix = await fetch(origin + '/api/v1/azan/media/sc_near_asr.mp3', { headers: { Range: 'bytes=-128' } });

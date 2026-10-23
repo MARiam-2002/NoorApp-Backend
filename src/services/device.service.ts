@@ -1,3 +1,4 @@
+import { azanChannelId } from '../shared/utils/notification-channels';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
@@ -196,20 +197,23 @@ export async function sendPushToUser(
 
   // Devices that synced channel schema v2 get the re-created (audible) reminder channels;
   // older installs keep the ids they already have. One multicast per group.
-  const groups = new Map<string, string[]>();
+  const groups = new Map<string, { tokens: string[]; channel: string | undefined; nativeSound: string | null | undefined; data: Record<string, string> }>();
   for (const t of tokens) {
     const channel = resolveDeviceChannelId(payload.androidChannelId, deviceChannelSchemaVersion(t.capabilities));
-    const key = channel ?? '';
-    groups.set(key, [...(groups.get(key) ?? []), t.token]);
+    const audio = resolveTakbirDeviceAudio(t.capabilities, { ...payload, androidChannelId: channel, data: dataForLog });
+    const key = JSON.stringify([audio.androidChannelId ?? '', audio.nativeSound, audio.data.audioFallbackReason ?? '']);
+    const group = groups.get(key) ?? { tokens: [], channel: audio.androidChannelId, nativeSound: audio.nativeSound, data: audio.data };
+    group.tokens.push(t.token);
+    groups.set(key, group);
   }
   const result = { successCount: 0, failureCount: 0, invalidTokens: [] as string[], configured: true, errorCodes: [] as string[] };
-  for (const [channel, groupTokens] of groups) {
-    const r = await sendFcmToTokens(groupTokens, {
+  for (const group of groups.values()) {
+    const r = await sendFcmToTokens(group.tokens, {
       title: payload.title,
       body: payload.body,
-      data: dataForLog,
-      nativeSound: payload.nativeSound,
-      androidChannelId: channel || undefined,
+      data: group.data,
+      nativeSound: group.nativeSound,
+      androidChannelId: group.channel || undefined,
       ttlSeconds: payload.ttlSeconds,
       iosInterruptionLevel: payload.iosInterruptionLevel,
     });
@@ -247,4 +251,19 @@ export async function sendPushToUser(
   });
 
   return out;
+}
+
+/** Old installs must never turn a requested short takbir into full Adhan. */
+export function resolveTakbirDeviceAudio(capabilities: unknown, payload: {
+  data?: Record<string, string>; nativeSound?: string | null; androidChannelId?: string;
+}) {
+  const data = { ...(payload.data ?? {}) };
+  if (data.audioScope !== 'prayer_time_takbir' || payload.nativeSound === null)
+    return { data, nativeSound: payload.nativeSound, androidChannelId: payload.androidChannelId };
+  const caps = capabilities as { channelSchemaVersion?: number; bundledSounds?: unknown } | null;
+  const ready = Number(caps?.channelSchemaVersion ?? 0) >= 3 && Array.isArray(caps?.bundledSounds)
+    && caps.bundledSounds.includes(payload.nativeSound);
+  if (ready) return { data, nativeSound: payload.nativeSound, androidChannelId: payload.androidChannelId };
+  return { data: { ...data, soundEnabled: 'false', nativeSound: '', androidChannelId: azanChannelId('silent', false, data.vibrationEnabled !== 'false'), audioFallbackReason: 'TAKBIR_NOT_BUNDLED_ON_DEVICE' },
+    nativeSound: null, androidChannelId: azanChannelId('silent', false, data.vibrationEnabled !== 'false') };
 }

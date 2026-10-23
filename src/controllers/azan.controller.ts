@@ -1,3 +1,4 @@
+import { DEFAULT_TAKBIR_SOUND_ID } from '../shared/constants/takbir-sounds';
 import type { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
@@ -70,6 +71,8 @@ export const getAzanPreferencesHandler = asyncHandler(async (req: Request, res: 
         azanEnabled: true,
         soundEnabled: true,
         prayerTimeSoundMode: 'azan',
+        takbirSoundId: DEFAULT_TAKBIR_SOUND_ID,
+        prayerTimeSoundOverrides: {},
         vibrationEnabled: true,
         voiceId: defaults.voiceId,
         azanSoundId: defaults.azanSoundId,

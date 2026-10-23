@@ -1318,7 +1318,9 @@ function completeSwaggerContracts(spec: any): any {
     type: 'object', description: 'Partial update: only supplied fields change. FCM data flags are strings; API settings are booleans.',
     properties: {
       azanEnabled: { type: 'boolean' }, soundEnabled: { type: 'boolean' }, vibrationEnabled: { type: 'boolean' },
-      prayerTimeSoundMode: { type: 'string', enum: ['azan', 'announcement'], default: 'azan', description: 'Selected full Azan or a short prayer-event clip; one audio owner only.' },
+      takbirSoundId: { type: 'string', default: 'takbir_nasser_al_qatami_v1', description: 'Reviewed sound ID from GET /azan/takbir-sounds; independent of full Azan voice.' },
+      prayerTimeSoundOverrides: { type: 'object', additionalProperties: false, description: 'Replacement map. Missing prayer keys inherit prayerTimeSoundMode; {} clears overrides.', properties: Object.fromEntries(['fajr','dhuhr','asr','maghrib','isha'].map(key => [key, { type: 'string', enum: ['azan','announcement','takbir'] }])) },
+      prayerTimeSoundMode: { type: 'string', enum: ['azan', 'announcement', 'takbir'], default: 'azan', description: 'Full Azan, short prayer-event announcement, or reviewed opening takbir excerpt; one audio owner only.' },
       azanSoundId: { type: 'string', example: 'mishary_alafasy' },
       notificationSoundId: { type: 'string', example: 'sc_near_auto', description: 'Auto resolves the prayer-specific approaching clip. soft_chime is a tone.' },
       preReminderEnabled: { type: 'boolean' }, preReminderMinutes: { type: 'integer', minimum: 0, maximum: 120 },

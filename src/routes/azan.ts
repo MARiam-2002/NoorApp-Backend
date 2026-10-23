@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getAudioDefaultsHandler,
   listAzanSoundsHandler,
+  listTakbirSoundsHandler,
   listNotificationSoundsHandler,
   listPrayerVoiceSoundsHandler,
   streamAzanMediaHandler,
@@ -127,3 +128,15 @@ azanRouter.get('/audio-defaults', getAudioDefaultsHandler);
  *         description: Unknown file
  */
 azanRouter.get('/media/:file', streamAzanMediaHandler);
+
+/**
+ * @openapi
+ * /azan/takbir-sounds:
+ *   get:
+ *     tags: ['Azan Audio']
+ *     summary: Reviewed short opening Adhan excerpts, native asset metadata and previews
+ *     responses:
+ *       200:
+ *         description: Catalog with 14 reviewed voices; requires native channel schema 3
+ */
+azanRouter.get('/takbir-sounds', listTakbirSoundsHandler);

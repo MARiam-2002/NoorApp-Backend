@@ -1,3 +1,4 @@
+import { TAKBIR_SOUND_OPTIONS, DEFAULT_TAKBIR_SOUND_ID } from '../shared/constants/takbir-sounds';
 import path from 'node:path';
 import fs from 'node:fs';
 import type { Request } from 'express';
@@ -71,6 +72,14 @@ function withAbsoluteUrls<T extends AzanSoundOption | NotificationSoundOption>(
 
 export function listAzanSounds(req?: Request): AzanSoundOption[] {
   return AZAN_SOUND_OPTIONS.map((o) => withAbsoluteUrls(o, req));
+}
+
+export function listTakbirSounds(req?: Request) {
+  return { catalogVersion: 1, preferenceValue: 'takbir', defaultId: DEFAULT_TAKBIR_SOUND_ID,
+    minimumChannelSchemaVersion: 3, requiresNativeBundling: true,
+    count: TAKBIR_SOUND_OPTIONS.length,
+    sounds: TAKBIR_SOUND_OPTIONS.map(s => ({ ...withAbsoluteUrls(s, req), iosAudioUrl: mediaAbsoluteUrl(s.iosSoundFile, req), available: resolveMediaFile(s.mediaFile) !== null })),
+    unsupportedDevicePolicy: 'SILENT_NOTIFICATION_NEVER_FULL_ADHAN' };
 }
 
 export function listNotificationSounds(req?: Request): NotificationSoundOption[] {

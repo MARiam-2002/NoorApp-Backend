@@ -8,6 +8,7 @@ import { ErrorCodes, HttpStatus } from '../config';
 import {
   getAudioDefaults,
   listAzanSounds,
+  listTakbirSounds,
   listNotificationSounds,
   listPrayerVoiceSounds,
   resolveMediaFile,
@@ -103,4 +104,8 @@ export const streamAzanMediaHandler = asyncHandler(async (req: Request, res: Res
   res.status(200);
   res.setHeader('Content-Length', String(total));
   createReadStream(absolutePath).pipe(res);
+});
+
+export const listTakbirSoundsHandler = asyncHandler(async (req: Request, res: Response) => {
+  sendSuccess(res, listTakbirSounds(req), 'Takbir sounds retrieved successfully', req);
 });

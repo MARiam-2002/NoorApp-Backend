@@ -1,3 +1,4 @@
+import { TAKBIR_SOUND_OPTIONS } from '../constants/takbir-sounds';
 /**
  * Single source of truth for every Android notification channel the backend may target
  * and every iOS sound file it may name (GET /devices/notification-channels).
@@ -19,7 +20,7 @@ import {
 import { DEFAULT_SALAWAT_NATIVE_SOUND } from '../constants/salawat-audio';
 import { azanChannelId, nearPrayerChannelId } from './notification-channels';
 
-export const CHANNEL_SCHEMA_VERSION = 2;
+export const CHANNEL_SCHEMA_VERSION = 3;
 
 /**
  * Channels that older app builds created WITHOUT sound (playSound=false). Android restores a
@@ -112,6 +113,11 @@ export function buildNotificationChannelManifest(): {
           vibration,
         }),
       );
+    }
+    for (const clip of TAKBIR_SOUND_OPTIONS) {
+      channels.push(spec({ id: azanChannelId(clip.id, true, vibration), group: 'azan',
+        nameEn: clip.nameEn, nameAr: clip.nameAr, nativeSound: clip.id,
+        importance: 'max', usage: 'alarm', vibration }));
     }
     // Prayer time "announcement" mode (short clip per prayer).
     for (const clip of PRAYER_EVENT_SOUND_OPTIONS) {

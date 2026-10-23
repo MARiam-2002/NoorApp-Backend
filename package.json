@@ -64,7 +64,8 @@
     "test:reading": "tsx scripts/test-reading-experience.ts",
     "test:travel": "tsx scripts/test-travel.ts",
     "test:kahf": "tsx scripts/test-kahf-reminder.ts",
-    "test:refresh-rotation": "tsx scripts/test-refresh-rotation.ts"
+    "test:refresh-rotation": "tsx scripts/test-refresh-rotation.ts",
+    "test:takbir": "tsx scripts/test-takbir.ts && tsx scripts/test-prayer-delivery.ts"
   },
   "keywords": [
     "express",

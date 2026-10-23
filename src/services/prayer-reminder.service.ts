@@ -1,3 +1,4 @@
+import { getTakbirSoundById } from '../shared/constants/takbir-sounds';
 import { runKahfReminders } from './kahf-reminder.service';
 import { runContinuityReminders } from './continuity-reminder.service';
 import { runAdhkarReminders } from './adhkar-reminder.service';
@@ -8,6 +9,7 @@ import { logger } from '../lib/logger';
 import {
   AZAN_PREFERENCES_USER_SELECT,
   buildAzanPreferencesFromUser,
+  effectivePrayerTimeSoundMode,
   type AzanPreferencesUserRow,
 } from './azan.service';
 import { allUserDevicesBundleSound, sendPushToUser } from './device.service';
@@ -699,8 +701,22 @@ export async function runAzanRemindersForUser(
         // Android: the per-voice channel owns the full Azan (res/raw/<soundId>).
         // iOS: APNs plays the bundled 30 s clip <soundId>.caf (iOS caps sounds at 30 s).
         nativeSound = soundEnabled ? azanSoundRaw.id : null;
-        baseData.prayerTimeSoundMode = prefs.prayerTimeSoundMode;
-        if (prefs.prayerTimeSoundMode === 'announcement') {
+        const effectiveMode = effectivePrayerTimeSoundMode(prefs, String(prayerEnum));
+        baseData.prayerTimeSoundMode = effectiveMode;
+        if (effectiveMode === 'takbir') {
+          const clip = getTakbirSoundById(prefs.takbirSoundId)!;
+          soundId = clip.id;
+          nativeSound = soundEnabled ? clip.nativeSound : null;
+          Object.assign(baseData, {
+            soundType: 'AZAN', soundId: clip.id, audioScope: 'prayer_time_takbir',
+            takbirSoundId: clip.id, sourceAzanSoundId: clip.sourceAzanSoundId,
+            azanSoundId: clip.id, azanSoundNameAr: clip.nameAr, azanSoundNameEn: clip.nameEn,
+            azanSoundUrl: mediaAbsoluteUrl(clip.mediaFile), azanSoundPreviewUrl: mediaAbsoluteUrl(clip.mediaFile),
+            azanSoundMediaFile: clip.mediaFile, azanSoundDurationSeconds: String(clip.durationSeconds),
+            androidChannelId: azanChannelId(clip.id, soundEnabled, vibrationEnabled),
+          });
+        }
+        if (effectiveMode === 'announcement') {
           const announcement = resolvePrayerAnnouncementSound(String(prayerEnum), evaluationTz, instant.timestamp);
           // The clip exists on the server, but the OS plays it from the APP bundle. Only target it
           // when every device of this user declared it (capabilities.bundledSounds); otherwise the
@@ -779,6 +795,9 @@ export async function runAzanRemindersForUser(
           preReminderMinutes: isPre ? pre : undefined,
           nearPrayerLocalTime: isPre ? nearPrayerLocalTime : undefined,
           audioScope: baseData.audioScope,
+          prayerTimeSoundMode: baseData.prayerTimeSoundMode,
+          takbirSoundId: baseData.takbirSoundId,
+          sourceAzanSoundId: baseData.sourceAzanSoundId,
           azanSoundId: baseData.azanSoundId,
           azanSoundUrl: baseData.azanSoundUrl,
           notificationSoundId: baseData.notificationSoundId,
