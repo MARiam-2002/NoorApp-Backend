@@ -33,6 +33,7 @@ jobs:
       - run: npm run prisma:deploy
       - run: npm run typecheck
       - run: npm run test:support
+      - run: npm run test:quran-audio
       - run: node scripts/test-reminder-cron.cjs
       - run: npm run test:security-hardening
       - run: npm run test:logout-device

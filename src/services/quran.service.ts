@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { CATALOG_SURAHS } from '../data/surahs';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
@@ -1498,6 +1499,21 @@ export async function listReciters(): Promise<ReciterOption[]> {
   return QURAN_RECITERS;
 }
 
+/** Reject incorrect coordinates and unknown readers instead of mislabelling another voice. */
+export function validateQuranAudioSelection(surahId: number, ayahNumber: number, reciterId?: string) {
+  const surah = CATALOG_SURAHS.find(s => s.id === surahId);
+  if (!surah || !Number.isInteger(ayahNumber) || ayahNumber < 1 || ayahNumber > surah.totalAyahs) {
+    throw new AppError('Invalid Quran verse coordinates', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  const reader = reciterId == null || reciterId === ''
+    ? QURAN_RECITERS[0]
+    : QURAN_RECITERS.find(r => matchesCatalogId(r, reciterId));
+  if (!reader) {
+    throw new AppError('Unknown Quran reciter', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  return { surah, reader };
+}
+
 type TafsirOption = {
   id: string;
   code: string;
@@ -1588,10 +1604,7 @@ export async function getAyahAudio(
   ayahNumber: number;
   provider: 'quran_foundation' | 'everyayah';
 }> {
-  const reciter =
-    QURAN_RECITERS.find((r) => matchesCatalogId(r, reciterId)) ??
-    QURAN_RECITERS[0] ??
-    { id: 'Mishary_Alafasy', serverUrl: 'https://everyayah.com/data/Alafasy_128kbps' };
+  const { reader: reciter } = validateQuranAudioSelection(surahId, ayahNumber, reciterId);
 
   const paddedSurah = String(surahId).padStart(3, '0');
   const paddedAyah = String(ayahNumber).padStart(3, '0');

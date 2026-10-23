@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../lib/validation';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
+import { getQuranAudioCatalog, getQuranAudioPlaylist } from '../services/quran-audio-playlist.service';
 import {
   listSurahsHandler,
   getSurahHandler,
@@ -132,6 +135,60 @@ const getAyahTranslationQuerySchema = z.object({
 });
 
 export const quranRouter = Router();
+
+const audioPlaylistQuerySchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
+  reciterId: z.string().min(1).max(100).optional(),
+  fromAyah: z.coerce.number().int().min(1).max(286).optional(),
+  toAyah: z.coerce.number().int().min(1).max(286).optional(),
+  qualityKbps: z.coerce.number().int().positive().optional(),
+});
+
+/**
+ * @openapi
+ * /quran/audio/catalog:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: Public versioned Quran audio catalog with configured qualities
+ *     responses:
+ *       200:
+ *         description: Standard Noor envelope containing schemaVersion, catalogVersion and reciters
+ * /quran/audio/playlist:
+ *   get:
+ *     tags: ['Quran']
+ *     summary: Ordered verse audio URLs for a surah or inclusive verse range
+ *     parameters:
+ *       - in: query
+ *         name: surahId
+ *         required: true
+ *         schema: { type: integer, minimum: 1, maximum: 114 }
+ *       - in: query
+ *         name: reciterId
+ *         schema: { type: string }
+ *       - in: query
+ *         name: fromAyah
+ *         schema: { type: integer, minimum: 1, maximum: 286 }
+ *       - in: query
+ *         name: toAyah
+ *         schema: { type: integer, minimum: 1, maximum: 286 }
+ *       - in: query
+ *         name: qualityKbps
+ *         schema: { type: integer, minimum: 1 }
+ *     responses:
+ *       200:
+ *         description: Standard Noor envelope containing reader metadata and ordered verse items
+ *       400:
+ *         description: Invalid verse coordinates, reader or quality
+ */
+quranRouter.get('/audio/catalog', asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  sendSuccess(res, await getQuranAudioCatalog(), 'Quran audio catalog retrieved', req);
+}));
+quranRouter.get('/audio/playlist', validate(audioPlaylistQuerySchema, 'query'), asyncHandler(async (req, res) => {
+  const query = audioPlaylistQuerySchema.parse(req.query);
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  sendSuccess(res, getQuranAudioPlaylist(query), 'Quran audio playlist retrieved', req);
+}));
 
 // ===== Ayat as-Sajdah (آيات السجود) — 3 new additive-only routes =====
 

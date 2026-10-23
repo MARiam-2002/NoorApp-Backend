@@ -68,7 +68,8 @@
     "test:takbir": "tsx scripts/test-takbir.ts && tsx scripts/test-prayer-delivery.ts",
     "test:cross-feature-audit": "tsx scripts/test-cross-feature-audit.ts",
     "test:logout-device": "tsx scripts/test-logout-device.ts",
-    "test:support": "tsx scripts/test-support.ts"
+    "test:support": "tsx scripts/test-support.ts",
+    "test:quran-audio": "tsx scripts/test-banna-reciter.ts && tsx scripts/test-quran-audio-playlist.ts"
   },
   "keywords": [
     "express",
