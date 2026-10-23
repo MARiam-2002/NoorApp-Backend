@@ -67,7 +67,8 @@
     "test:refresh-rotation": "tsx scripts/test-refresh-rotation.ts",
     "test:takbir": "tsx scripts/test-takbir.ts && tsx scripts/test-prayer-delivery.ts",
     "test:cross-feature-audit": "tsx scripts/test-cross-feature-audit.ts",
-    "test:logout-device": "tsx scripts/test-logout-device.ts"
+    "test:logout-device": "tsx scripts/test-logout-device.ts",
+    "test:support": "tsx scripts/test-support.ts"
   },
   "keywords": [
     "express",
