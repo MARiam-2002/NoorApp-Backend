@@ -22,6 +22,7 @@ model User {
   fastingQadaEvents FastingQadaEvent[]
   fastingQadaSendLogs FastingQadaSendLog[]
   prayerExcusePeriods PrayerExcusePeriod[]
+  learningProgress LearningProgress[]
   travelPreferences Json?
   travelOperations TravelOperation[]
   readingPlans ReadingPlan[]
@@ -1155,4 +1156,22 @@ model PrayerExcusePeriod {
 
   @@index([userId, startDate], map: "prayer_excuse_periods_user_idx")
   @@map("prayer_excuse_periods")
+}
+
+/// Learning hub progress per user and item. Item content is static (src/shared/data/learning-content.ts).
+model LearningProgress {
+  userId           String
+  itemId           String
+  collectionId     String
+  lastSectionIndex Int       @default(0)
+  completedAt      DateTime?
+  quizBestScore    Int?
+  quizTotal        Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, itemId])
+  @@index([userId, updatedAt(sort: Desc)], map: "learning_progress_user_updated_idx")
+  @@map("learning_progress")
 }

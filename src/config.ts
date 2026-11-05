@@ -117,6 +117,8 @@ const envSchema = z.object({
   FIDYA_PER_DAY_AMOUNT: z.string().trim().default('').refine(v => v === '' || (Number.isFinite(Number(v)) && Number(v) > 0), 'FIDYA_PER_DAY_AMOUNT must be a positive number'),
   FIDYA_CURRENCY: z.string().trim().default('EGP'),
   FIDYA_SOURCE_NOTE: z.string().trim().default(''),
+  // Learning hub: serve DRAFT (not yet scholar-approved) items. Set true on Staging only, never on production.
+  LEARNING_SHOW_DRAFTS: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
 }).extend(aiEnvSchema.shape);
 
 type Env = z.infer<typeof envSchema>;
