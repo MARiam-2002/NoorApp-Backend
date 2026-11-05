@@ -112,6 +112,11 @@ const envSchema = z.object({
   LEGAL_CONTACT_EMAIL: z.string().default(''),
   LEGAL_COUNTRY: z.string().default(''),
   LEGAL_WEBSITE: z.string().default(''),
+  // Fasting qada fidya per missed day (feeding one poor person). Set yearly from the official figure
+  // (Egypt: Dar al-Ifta announcement). Empty = the app shows no amount and asks the user to check locally.
+  FIDYA_PER_DAY_AMOUNT: z.string().trim().default('').refine(v => v === '' || (Number.isFinite(Number(v)) && Number(v) > 0), 'FIDYA_PER_DAY_AMOUNT must be a positive number'),
+  FIDYA_CURRENCY: z.string().trim().default('EGP'),
+  FIDYA_SOURCE_NOTE: z.string().trim().default(''),
 }).extend(aiEnvSchema.shape);
 
 type Env = z.infer<typeof envSchema>;

@@ -1,6 +1,8 @@
 import { getTakbirSoundById } from '../shared/constants/takbir-sounds';
 import { runKahfReminders } from './kahf-reminder.service';
 import { runContinuityReminders } from './continuity-reminder.service';
+import { mutedPrayerReminderUserIds } from './prayer-excuse.service';
+import { runFastingQadaReminders } from './fasting-qada.service';
 import { runAdhkarReminders } from './adhkar-reminder.service';
 import { prayerScheduleKey, isPrayerSnapshotCurrent } from './travel.service';
 import { prisma } from '../lib/prisma';
@@ -432,8 +434,10 @@ export async function runAzanBackupReminders(
     if (users.length === 0) break;
     cursor = users[users.length - 1]?.id;
     usersScanned += users.length;
+    // Excuse mode with "mute reminders": no Azan backup or pre-prayer push while it is on.
+    const muted = await mutedPrayerReminderUserIds(users.map(u => u.id));
 
-    await forEachWithConcurrency(users, AZAN_USER_CONCURRENCY, async (user) => {
+    await forEachWithConcurrency(users.filter(u => !muted.has(u.id)), AZAN_USER_CONCURRENCY, async (user) => {
       const result = await runAzanRemindersForUser(user, lateToleranceMinutes, instantsMemo);
       pushesAttempted += result.pushesAttempted;
       pushesSent += result.pushesSent;
@@ -913,6 +917,7 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
   const mulk = await isolatedReminderStage('mulk', () => runMulkReminders());
   await runKahfReminders().catch(error => logger.error('[KahfReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   await runContinuityReminders().catch(error => logger.error('[ContinuityReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
+  await runFastingQadaReminders().catch(error => logger.error('[FastingQadaReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   const adhkar = await runAdhkarReminders().catch(error => {
     logger.error('[AdhkarReminder] Pass failed', { code: (error as any)?.code ?? 'UNAVAILABLE' });
     return { usersScanned: 0, pushesAttempted: 0, pushesSent: 0, skipped: { pass_failed: 1 } };

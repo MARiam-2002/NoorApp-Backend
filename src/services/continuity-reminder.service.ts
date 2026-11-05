@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { sendPushToUser } from './device.service';
 import { getLocalClock } from './salawat-reminder.service';
-import { continuityDayEndsAt, shiftContinuityDay } from './continuity-core';
+import { calculateContinuity, continuityDayEndsAt, shiftContinuityDay } from './continuity-core';
 import { reconcileContinuityToday } from './continuity.service';
 
 const endsCache = new Map<string, number>();
@@ -17,6 +17,18 @@ export function evaluateContinuityReminder(now: Date, timezone: string, beforeMi
   const due = ends - beforeMinutes * 60000;
   return { day, eligible: now.getTime() >= due && now.getTime() < Math.min(ends, due + 10 * 60000),
     expiresAtUtc: new Date(ends).toISOString(), dueAtUtc: new Date(due).toISOString() };
+}
+const arabicDigits = (n: number) => String(n).replace(/[0-9]/g, d => String.fromCharCode(0x0660 + Number(d)));
+/** Reminder copy that names the streak at risk (Arabic counting: 2 dual; x03-x10 plural; x11-x99 singular accusative; 100, 101, 102 singular genitive). */
+export function continuityReminderCopy(streakDays: number) {
+  const tail = 'خطوة بسيطة اليوم تكمل استمرارك 🌱';
+  if (streakDays < 2) return { bodyAr: tail, bodyEn: 'One small activity today keeps your consistency going.' };
+  const r = streakDays % 100, n = arabicDigits(streakDays);
+  const countAr = streakDays === 2 ? 'يومان متتاليان'
+    : r >= 3 && r <= 10 ? `${n} أيام متتالية`
+      : r >= 11 ? `${n} يومًا متتاليًا`
+        : `${n} يوم متتالٍ`;
+  return { bodyAr: `${countAr} مع نور — ${tail}`, bodyEn: `${streakDays} days in a row with Noor. One small activity today keeps it going.` };
 }
 export const continuityReminderDelivery = { send: sendPushToUser };
 
@@ -59,13 +71,19 @@ export async function runContinuityReminders(now = new Date()) {
           continue;
         }
         const occurrenceKey = `CONTINUITY|${decision.day}`;
+        let streakDays = 1;
+        try {
+          const recent: any[] = await prisma.$queryRaw`SELECT date::text AS date FROM continuity_days WHERE "userId" = ${user.userId} AND date >= (${decision.day}::date - 400) AND date < ${decision.day}::date`;
+          streakDays = calculateContinuity(recent.map(r => r.date), decision.day).currentStreak;
+        } catch { /* generic copy */ }
+        const copy = continuityReminderCopy(streakDays);
         const result = await continuityReminderDelivery.send(user.userId, {
-          title: 'استمرارك مع نور', body: 'خطوة بسيطة اليوم تكمل استمرارك 🌱',
-          titleAr: 'استمرارك مع نور', bodyAr: 'خطوة بسيطة اليوم تكمل استمرارك 🌱',
+          title: 'استمرارك مع نور', body: copy.bodyAr,
+          titleAr: 'استمرارك مع نور', bodyAr: copy.bodyAr,
           nativeSound: null, androidChannelId: 'continuity_silent_v1',
           ttlSeconds: Math.max(1, Math.min(3600, Math.floor((Date.parse(decision.expiresAtUtc) - attemptNow.getTime()) / 1000))),
           data: { type: 'CONTINUITY', eventType: 'CONTINUITY', kind: 'continuity_reminder', deepLink: '/continuity',
-            titleAr: 'استمرارك مع نور', titleEn: 'Your consistency with Noor', bodyAr: 'خطوة بسيطة اليوم تكمل استمرارك 🌱', bodyEn: 'One small activity today keeps your consistency going.',
+            titleAr: 'استمرارك مع نور', titleEn: 'Your consistency with Noor', bodyAr: copy.bodyAr, bodyEn: copy.bodyEn, streakDays: String(streakDays),
             dayKey: decision.day, timezone: user.timezone, occurrenceKey, idempotencyKey: occurrenceKey,
             dedupeKey: user.userId + '|' + occurrenceKey, source: 'SERVER', deliveryMode: 'OS_NOTIFICATION',
             soundEnabled: 'false', vibrationEnabled: 'false', androidChannelId: 'continuity_silent_v1',

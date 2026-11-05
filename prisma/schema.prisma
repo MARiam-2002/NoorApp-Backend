@@ -18,6 +18,10 @@ model User {
   fajrAlarmPreference FajrAlarmPreference?
   kahfPreference KahfPreference?
   kahfSendLogs KahfSendLog[]
+  fastingQadaPreference FastingQadaPreference?
+  fastingQadaEvents FastingQadaEvent[]
+  fastingQadaSendLogs FastingQadaSendLog[]
+  prayerExcusePeriods PrayerExcusePeriod[]
   travelPreferences Json?
   travelOperations TravelOperation[]
   readingPlans ReadingPlan[]
@@ -1084,4 +1088,71 @@ model KahfSendLog {
  @@id([userId,occurrenceKey])
  @@index([createdAt],map:"kahf_send_logs_createdAt_idx")
  @@map("kahf_send_logs")
+}
+
+/// Fasting qada ledger settings. Privacy: the reason for a missed fast is never stored.
+model FastingQadaPreference {
+  userId           String   @id
+  remindersEnabled Boolean  @default(false)
+  reminderTime     String   @default("21:00")
+  /// Days of the week the user plans to fast (0 = Sunday ... 6 = Saturday). Default Monday and Thursday.
+  fastingWeekdays  Int[]    @default([1, 4])
+  /// Local moon-sighting correction against Umm al-Qura, -2..2.
+  hijriOffsetDays  Int      @default(0)
+  revision         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("fasting_qada_preferences")
+}
+
+/// One row per ledger change. Partial unique indexes (see migration): one RAMADAN_MISSED per
+/// (user, hijriYear, ramadanDay), one MADE_UP per (user, date), one row per (user, requestKey).
+model FastingQadaEvent {
+  id         String    @id
+  userId     String
+  /// RAMADAN_MISSED | MADE_UP | ADJUSTMENT | FIDYA
+  kind       String
+  hijriYear  Int?
+  ramadanDay Int?
+  date       DateTime? @db.Date
+  days       Int
+  /// ADJUSTMENT only: MANUAL | ESTIMATE
+  source     String?
+  requestKey String?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, createdAt], map: "fasting_qada_events_user_idx")
+  @@map("fasting_qada_events")
+}
+
+model FastingQadaSendLog {
+  userId    String
+  fastDate  DateTime @db.Date
+  status    String   @default("CLAIMED")
+  sent      Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, fastDate])
+  @@index([createdAt], map: "fasting_qada_send_logs_createdAt_idx")
+  @@map("fasting_qada_send_logs")
+}
+
+/// Excuse mode: a neutral pause of prayer tracking. No reason is stored. At most one open period per user.
+model PrayerExcusePeriod {
+  id            String    @id
+  userId        String
+  startDate     DateTime  @db.Date
+  /// Last excused day (inclusive). Null while the period is open.
+  endDate       DateTime? @db.Date
+  muteReminders Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, startDate], map: "prayer_excuse_periods_user_idx")
+  @@map("prayer_excuse_periods")
 }

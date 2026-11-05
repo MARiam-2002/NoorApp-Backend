@@ -1,3 +1,4 @@
+import { mutedPrayerReminderUserIds } from './prayer-excuse.service';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { AppError } from '../lib/errors';
@@ -303,8 +304,10 @@ async function runKindReminders(
     if (users.length === 0) break;
     cursor = users[users.length - 1]?.id;
     usersScanned += users.length;
+    const muted = await mutedPrayerReminderUserIds(users.map(u => u.id));
 
     for (const user of users) {
+      if (muted.has(user.id)) { skipped.excuse_mode_muted = (skipped.excuse_mode_muted ?? 0) + 1; continue; }
       try {
         const timeZone = resolveTimezone(user.timezone);
         const enabled = kind === 'DUHA' ? user.duhaReminderEnabled : user.qiyamReminderEnabled;

@@ -1,4 +1,5 @@
 import { addKahfOpenApi } from '../shared/data/kahf-openapi';
+import { addFastingOpenApi } from '../shared/data/fasting-openapi';
 import { addAdhkarReminderOpenApi } from '../shared/data/adhkar-reminder-openapi';
 import { addTravelOpenApi } from '../shared/data/travel-openapi';
 import { addReadingOpenApi } from '../shared/data/reading-openapi';
@@ -1262,6 +1263,7 @@ function buildSwaggerSpec() {
       { name: 'Auth', description: 'المصادقة وتسجيل الدخول والاشتراك' },
       { name: 'Dashboard', description: 'الشاشة الرئيسية' },
       { name: 'Prayers', description: 'أوقات الصلاة' },
+      { name: 'Fasting', description: 'دفتر القضاء' },
       { name: 'Tasbih', description: 'المسبحة الإلكترونية' },
       { name: 'Qibla', description: 'اتجاه القبلة' },
       { name: 'Journey', description: 'رحلتي اليومية' },
@@ -1372,6 +1374,7 @@ export function getSwaggerSpec(): any {
     addTravelOpenApi(spec);
     addKahfOpenApi(spec);
     addAdhkarReminderOpenApi(spec);
+    addFastingOpenApi(spec);
     cachedSpec = spec;
     return spec;
   } catch (err: any) {

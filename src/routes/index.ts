@@ -31,6 +31,8 @@ import { zakatRouter, charityRouter } from './zakat';
 
 import { travelRouter } from './travel';
 import { readingRouter } from './reading';
+import { fastingRouter } from './fasting';
+import { prayerExcuseRouter } from './prayer-excuse';
 
 export const v1Router = Router();
 v1Router.use('/support', supportRouter);
@@ -38,11 +40,13 @@ v1Router.use('/continuity', continuityRouter);
 v1Router.use('/fajr-alarm', fajrAlarmRouter);
 v1Router.use('/travel', travelRouter);
 v1Router.use('/reading', readingRouter);
+v1Router.use('/fasting', fastingRouter);
 
 v1Router.use('/health', healthRouter);
 v1Router.use('/auth', authRouter);
 v1Router.use('/profile', profileRouter);
 v1Router.use('/dashboard', dashboardRouter);
+v1Router.use('/prayers/excuse', prayerExcuseRouter);
 v1Router.use('/prayers', prayerRouter);
 v1Router.use('/azan', azanRouter);
 v1Router.use('/salawat', salawatRouter);

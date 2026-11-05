@@ -1,3 +1,4 @@
+import { getExcusedDayKeys } from './prayer-excuse.service';
 import { localMidnight } from './reading-plan.service';
 import { getReadingGoal } from './reading-goal.service';
 import { creditContinuityDay, prepareReadingContinuity } from './continuity.service';
@@ -142,7 +143,7 @@ async function getOrCreateToday(userId: string, date?: Date) {
 export async function getTodayJourney(userId: string) {
   const [today, readingGoal] = await Promise.all([getTodayJourneyLegacy(userId), getReadingGoal(userId)]);
   const readingTasks=today.tasks.map(t=>t.key==='quran'?{...t,captionAr:`${readingGoal.completed} / ${readingGoal.target} ${readingGoal.unit==='VERSE'?'آية':'صفحة'}`,captionEn:`${readingGoal.completed} / ${readingGoal.target} ${readingGoal.unit==='VERSE'?'verses':'pages'}`,done:readingGoal.done,progress:readingGoal.percent/100}:t);
-  const readingJourney={percent:Math.round((readingGoal.percent+today.prayers.percent+today.adhkar.percent)/3),completedCategories:readingTasks.filter(t=>t.done).length,totalCategories:3};
+  const readingJourney={percent:today.prayers.excused?Math.round((readingGoal.percent+today.adhkar.percent)/2):Math.round((readingGoal.percent+today.prayers.percent+today.adhkar.percent)/3),completedCategories:readingTasks.filter(t=>t.done).length,totalCategories:3};
   return { ...today, readingGoal,readingTasks,readingJourney };
 }
 async function getTodayJourneyLegacy(userId: string) {
@@ -268,9 +269,15 @@ async function getTodayJourneyLegacy(userId: string) {
     },
   ];
 
-  const overallPercent = Math.round(
-    ((quranProgress + prayerProgress + ((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2 ) / 3) * 100,
-  );
+  // Excuse mode: prayers are paused today, so the day's overall percent uses Quran + Adhkar only.
+  const todayKey = date.toISOString().slice(0, 10);
+  const prayersExcused = (await getExcusedDayKeys(userId, todayKey, todayKey, todayKey)).has(todayKey);
+  const adhkarHalfProgress = ((morningCompleted ? 1 : 0) + (eveningCompleted ? 1 : 0)) / 2;
+  const overallPercent = prayersExcused
+    ? Math.round(((quranProgress + adhkarHalfProgress) / 2) * 100)
+    : Math.round(((quranProgress + prayerProgress + adhkarHalfProgress) / 3) * 100);
+  const prayerTask = tasks.find(t => t.key === 'prayer') as Record<string, unknown> | undefined;
+  if (prayerTask) prayerTask.excused = prayersExcused;
 
   let points = 0;
   let streakDays = 0;
@@ -485,6 +492,8 @@ async function getTodayJourneyLegacy(userId: string) {
       total: totalPrayers,
       percent: prayerPercent,
       detailedPrayers,
+      /** Excuse mode is on for today: show prayers as paused, not missed. */
+      excused: prayersExcused,
     },
     quranPagesRead: progress.quranPagesRead,
     adhkarCompleted: overallAdhkar,
@@ -911,6 +920,8 @@ export async function getJourneyProgress(userId: string, days = 7) {
         eveningAdhkarCompleted: false, adhkarCompleted: false, sadaqahAmount: 0 });
     }
   }
+  const todayStr = today.toISOString().slice(0, 10);
+  const excusedDays = await getExcusedDayKeys(userId, startDate.toISOString().slice(0, 10), todayStr, todayStr);
   const daily = dailyRows.sort((a, b) => a.date.getTime() - b.date.getTime()).map((p) => {
     const dateStr = p.date.toISOString().slice(0, 10);
     const prayersCompleted = prayersByDate.get(dateStr) ?? 0;
@@ -920,10 +931,11 @@ export async function getJourneyProgress(userId: string, days = 7) {
     const eveningDone = p.eveningAdhkarCompleted ?? p.adhkarCompleted;
     const adhkarCompleted = morningDone && eveningDone;
     const adhkarProgress = ((morningDone ? 1 : 0) + (eveningDone ? 1 : 0)) / 2;
+    const prayersExcused = excusedDays.has(dateStr);
 
-    const overallPercent = Math.round(
-      ((quranProgress + prayerProgress + adhkarProgress ) / 3) * 100,
-    );
+    const overallPercent = prayersExcused
+      ? Math.round(((quranProgress + adhkarProgress) / 2) * 100)
+      : Math.round(((quranProgress + prayerProgress + adhkarProgress ) / 3) * 100);
 
     return {
       date: dateStr,
@@ -935,6 +947,7 @@ export async function getJourneyProgress(userId: string, days = 7) {
       sadaqah: Number(p.sadaqahAmount),
       sadaqahAmount: Number(p.sadaqahAmount),
       prayersCompleted,
+      prayersExcused,
       overallPercent,
     };
   });
@@ -1183,11 +1196,14 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
   const quranGoal = await getDailyQuranGoal(userId, progressRows.find(row => row.date.getTime() === today.getTime())?.quranPagesRead ?? 0);
   const QURAN_PAGES_GOAL_PER_DAY = quranGoal.pagesTarget;
 
-  // --- Prayers % ---
-  const maxPossiblePrayers = days * PRAYERS_PER_DAY;
+  // --- Prayers % --- excused days (excuse mode) leave the denominator and their completions are not counted.
+  const todayKey = today.toISOString().slice(0, 10);
+  const excusedDays = await getExcusedDayKeys(userId, startDate.toISOString().slice(0, 10), todayKey, todayKey);
+  const countedPrayers = prayerCompletions.filter(pc => !excusedDays.has(pc.date.toISOString().slice(0, 10))).length;
+  const maxPossiblePrayers = (days - excusedDays.size) * PRAYERS_PER_DAY;
   const prayerPercent =
     maxPossiblePrayers > 0
-      ? Math.round(Math.min(1, prayerCompletions.length / maxPossiblePrayers) * 100)
+      ? Math.round(Math.min(1, countedPrayers / maxPossiblePrayers) * 100)
       : 0;
 
   // --- Quran pages % ---
@@ -1220,6 +1236,7 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
         keyAr: 'الصلاة',
         keyEn: 'Prayers',
         percent: prayerPercent,
+        excusedDays: excusedDays.size,
         color: 'emerald', // green in screenshot
         descriptionAr: 'إتمام الصلوات الخمس خلال الأسبوع',
         descriptionEn: 'Completion of 5 daily prayers throughout the week',
@@ -1290,6 +1307,7 @@ export async function getMonthlyCalendarHeatmap(
   const progressByDate = new Map(
     progressRows.map((r) => [r.date.toISOString().slice(0, 10), r]),
   );
+  const excusedDays = await getExcusedDayKeys(userId, monthStart.toISOString().slice(0, 10), monthEnd.toISOString().slice(0, 10), todayStr);
 
   // Weekday header — 0 = Sunday (اليوم)… 6 = Saturday) — but Flutter expects Arabic order (Sat-Thu visible in screenshot:
   const weekdayHeaders = [
@@ -1320,6 +1338,8 @@ export async function getMonthlyCalendarHeatmap(
     status: HeatmapDayStatus;
     overallPercent: number; // 0..100
     prayersCompleted: number; // 0..5
+    /** Excuse mode covered this day: prayers paused, not missed. */
+    prayersExcused: boolean;
     quranPages: number;
     adhkarCompleted: boolean;
     sadaqahAmount: number;
@@ -1339,6 +1359,7 @@ export async function getMonthlyCalendarHeatmap(
     let sadaqahAmount = 0;
     let adhkarCompleted = false;
     let quranPages = 0;
+    const prayersExcused = excusedDays.has(dateStr);
     if (row || prayersDone > 0) {
       quranPages = row?.quranPagesRead ?? 0;
       sadaqahAmount = Number(row?.sadaqahAmount) || 0;
@@ -1349,7 +1370,7 @@ export async function getMonthlyCalendarHeatmap(
       const p = prayersDone / PRAYERS_PER_DAY;
       const a = ((morning ? 1 : 0) + (evening ? 1 : 0)) / 2;
 
-      overallPercent = Math.round(((q + p + a) / 3) * 100);
+      overallPercent = prayersExcused ? Math.round(((q + a) / 2) * 100) : Math.round(((q + p + a) / 3) * 100);
     }
 
     let status: HeatmapDayStatus;
@@ -1366,6 +1387,7 @@ export async function getMonthlyCalendarHeatmap(
       status,
       overallPercent: Math.min(100, Math.max(0, overallPercent)),
       prayersCompleted: Math.min(PRAYERS_PER_DAY, prayersDone),
+      prayersExcused,
       quranPages,
       adhkarCompleted,
       sadaqahAmount,

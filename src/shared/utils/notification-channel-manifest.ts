@@ -78,6 +78,7 @@ export const FCM_NOTIFICATION_TYPES = [
   'CONTINUITY',
   'CHARITY_REMINDER',
   'ADHKAR_REMINDER',
+  'FASTING_REMINDER',
   'TEST',
 ] as const;
 
@@ -216,6 +217,8 @@ export function buildNotificationChannelManifest(): {
     spec({ id: 'adhkar_reminders_silent_v1', group: 'silent', nameEn: 'Adhkar reminders (silent)', nameAr: 'تذكير الأذكار (صامت)', nativeSound: null, importance: 'default', usage: 'notification', vibration: false }),
     spec({ id: 'kahf_silent_v1', group: 'silent', nameEn: 'Surat Al-Kahf', nameAr: 'سورة الكهف', nativeSound: null, importance: 'default', usage: 'notification', vibration: false }),
     spec({ id: 'continuity_silent_v1', group: 'silent', nameEn: 'Continuity', nameAr: 'الاستمرارية', nativeSound: null, importance: 'default', usage: 'notification', vibration: false }),
+    // Neutral name on purpose: the channel is visible in Android settings.
+    spec({ id: 'fasting_reminder_v1', group: 'reminder', nameEn: 'Fasting reminder', nameAr: 'تذكير الصيام', nativeSound: 'default', importance: 'default', usage: 'notification', vibration: true }),
   );
 
   const requiredBundledSounds = [

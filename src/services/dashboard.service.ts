@@ -1,3 +1,4 @@
+import { getExcusedDayKeys } from './prayer-excuse.service';
 import { getReadingGoal } from './reading-goal.service';
 import type { ChallengeType, PrayerName } from '@prisma/client';
 
@@ -118,7 +119,7 @@ export type DashboardData = {
   hadithOfTheDay: { textAr: string; sourceAr: string };
   figureOfTheDay: FigureOfTheDayLite;
   dailyJourney: {
-    prayer: { completed: number; total: number; progress: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
+    prayer: { completed: number; total: number; progress: number; excused?: boolean; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     quran: { pagesRead: number; target: number; labelAr: string; labelEn: string; captionAr: string; captionEn: string };
     adhkar: {
       completed: boolean;
@@ -229,7 +230,7 @@ export async function getDashboard(userId: string): Promise<DashboardData> {
   const [data, zakat, readingGoal] = await Promise.all([getDashboardLegacy(userId), getZakatHomeTile(userId), getReadingGoal(userId)]);
   const prayer=data.dailyJourney.prayer;const adhkar=data.dailyJourney.adhkar;
   const completedCategories=Number(prayer.completed>=prayer.total)+Number(adhkar.completed)+Number(readingGoal.done);
-  const percent=Math.round(((prayer.total?prayer.completed/prayer.total:0)+(adhkar.completed?1:0)+readingGoal.percent/100)/3*100);
+  const percent=prayer.excused?Math.round(((adhkar.completed?1:0)+readingGoal.percent/100)/2*100):Math.round(((prayer.total?prayer.completed/prayer.total:0)+(adhkar.completed?1:0)+readingGoal.percent/100)/3*100);
   return { ...data, charityExperience, zakat, readingGoal,readingJourney:{percent,completedCategories,totalCategories:3} };
 }
 
@@ -530,6 +531,8 @@ async function buildDashboardPayload(
     };
   }
 
+  const dashboardDayKey = localDay.date.toISOString().slice(0, 10);
+  const prayersExcused = (await getExcusedDayKeys(userId, dashboardDayKey, dashboardDayKey, dashboardDayKey)).has(dashboardDayKey);
   const prayerProgress =
     prayers.totalCount > 0
       ? Math.round((prayers.completedCount / prayers.totalCount) * 100) / 100
@@ -624,6 +627,8 @@ async function buildDashboardPayload(
         completed: prayers.completedCount,
         total: prayers.totalCount,
         progress: prayerProgress,
+        /** Excuse mode is on today: show prayers as paused, not missed. */
+        excused: prayersExcused,
         labelAr: 'الصلوات',
         labelEn: 'Prayers',
         captionAr: `${prayers.completedCount} صلاة مكتملة اليوم`,

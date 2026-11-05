@@ -41,13 +41,13 @@ async function main() {
     nearPrayerChannelId('soft_chime', false),
     azanChannelId('sc_event_fajr', true, true),
     'general_v2', 'salawat', 'mulk_v2', 'khatmah_v2', 'duha', 'qiyam', 'noor_charity_v1',
-    'adhkar_reminders_default_v1', 'adhkar_reminders_silent_v1', 'kahf_silent_v1', 'continuity_silent_v1',
+    'adhkar_reminders_default_v1', 'adhkar_reminders_silent_v1', 'kahf_silent_v1', 'continuity_silent_v1', 'fasting_reminder_v1',
   ]) {
     assert.ok(ids.includes(id), `manifest missing ${id}`);
   }
 
   // "default" means sound ON with the OS tone — these channels must never be created silent.
-  for (const id of ['general_v2', 'mulk_v2', 'khatmah_v2', 'noor_charity_v1', 'adhkar_reminders_default_v1']) {
+  for (const id of ['general_v2', 'mulk_v2', 'khatmah_v2', 'noor_charity_v1', 'adhkar_reminders_default_v1', 'fasting_reminder_v1']) {
     assert.equal(manifest.channels.find((c) => c.id === id)!.nativeSound, 'default', `${id} must play the default tone`);
   }
   for (const c of manifest.channels) {
@@ -82,7 +82,7 @@ async function main() {
   assert.deepEqual(manifest.legacyChannelIds.sort(), ['general', 'khatmah', 'mulk']);
   for (const legacy of manifest.legacyChannelIds) assert.ok(!ids.includes(legacy), `${legacy} must not be re-created`);
 
-  for (const t of ['AZAN', 'ADHKAR_REMINDER', 'KAHF', 'CONTINUITY', 'CHARITY_REMINDER', 'TEST']) {
+  for (const t of ['AZAN', 'ADHKAR_REMINDER', 'KAHF', 'CONTINUITY', 'CHARITY_REMINDER', 'FASTING_REMINDER', 'TEST']) {
     assert.ok(manifest.fcmTypes.includes(t as never), `fcmTypes missing ${t}`);
   }
 
