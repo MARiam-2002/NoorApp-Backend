@@ -14,7 +14,13 @@ const definitions = [
   { id: 'indopak-hafs', nameEn: 'Indo-Pak · Hafs (604 pages)', nameAr: 'الهندي الباكستاني · حفص (٦٠٤ صفحات)', riwayah: 'hafs', script: 'indopak', pages: 604, mushafId: 3, field: 'text_indopak' },
   { id: 'warsh-nafi', nameEn: 'Warsh · Nafi', nameAr: 'ورش · نافع', riwayah: 'warsh', script: 'uthmani-warsh', pages: null, mushafId: null, field: null },
 ] as const;
-const verseSchema = z.object({ key: z.string().regex(/^\d{1,3}:\d{1,3}$/), text: z.string().min(1), surah: z.number().int().min(1).max(114), ayah: z.number().int().min(1).max(300) }).strict();
+const verseSchema = z.object({ key: z.string().regex(/^\d{1,3}:\d{1,3}$/), text: z.string().min(1), surah: z.number().int().min(1).max(114), ayah: z.number().int().min(1).max(300),
+  /** Page-header data for the reader (surah · juz · hizb). Present on Quran Foundation page editions. */
+  juz: z.number().int().min(1).max(30).optional(), hizb: z.number().int().min(1).max(60).optional(), rubElHizb: z.number().int().min(1).max(240).optional() }).strict();
+/** Keep only valid numbers from the provider; a missing or odd value never breaks the page. */
+function optionalIndex(value: unknown, max: number): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= max ? value : undefined;
+}
 export const warshBundleSchema = z.object({
   editionId: z.literal('warsh-nafi'), version: z.string().min(1).max(80),
   sourceUrl: z.string().url().refine(v => { const h = new URL(v).hostname; return h === 'qurancomplex.gov.sa' || h.endsWith('.qurancomplex.gov.sa') || h === 'qul.tarteel.ai'; }),
@@ -79,7 +85,7 @@ function edition(id: EditionId) {
   if (id === 'warsh-nafi' && !d.pageReadingAvailable) throw new AppError('Warsh uses surah/ayah routes; matching printed pages are not installed', 409, ErrorCodes.VALIDATION_ERROR);
   return d;
 }
-type QfVerse = { verse_key: string; verse_number: number; text_uthmani?: string; text_indopak?: string };
+type QfVerse = { verse_key: string; verse_number: number; text_uthmani?: string; text_indopak?: string; juz_number?: unknown; hizb_number?: unknown; rub_el_hizb_number?: unknown };
 type QfPage = { verses: QfVerse[]; pagination: { next_page: number | null; total_records: number } };
 // Bounded process cache for public content only. Never persist API responses as an offline corpus.
 const pageCache = new Map<string, { expires: number; data: unknown }>();
@@ -105,7 +111,8 @@ export async function getMushafPage(id: EditionId, page: number): Promise<any> {
         for (const v of response.verses) {
           const [surah, ayah] = v.verse_key.split(':').map(Number);
           if (v.verse_number !== ayah) throw new Error('Invalid verse identifier');
-          verses.push(verseSchema.parse({ key: v.verse_key, surah, ayah, text: d.field === 'text_indopak' ? v.text_indopak : v.text_uthmani }));
+          verses.push(verseSchema.parse({ key: v.verse_key, surah, ayah, text: d.field === 'text_indopak' ? v.text_indopak : v.text_uthmani,
+          juz: optionalIndex(v.juz_number, 30), hizb: optionalIndex(v.hizb_number, 60), rubElHizb: optionalIndex(v.rub_el_hizb_number, 240) }));
         }
         const next: number | null = response.pagination.next_page;
         if (next !== null && (!Number.isInteger(next) || next <= cursor)) throw new Error('Invalid pagination');
