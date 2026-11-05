@@ -43,6 +43,7 @@ import {
   REMINDER_LATE_TOLERANCE_MINUTES,
 } from '../shared/utils/reminder-timing';
 import { azanChannelId, nearPrayerChannelId } from '../shared/utils/notification-channels';
+import { announceAzanIosSoundId } from '../shared/utils/notification-channel-manifest';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -715,6 +716,27 @@ export async function runAzanRemindersForUser(
             azanSoundMediaFile: clip.mediaFile, azanSoundDurationSeconds: String(clip.durationSeconds),
             androidChannelId: azanChannelId(clip.id, soundEnabled, vibrationEnabled),
           });
+        }
+        if (effectiveMode === 'announcement_azan') {
+          // Android: Azan channel (old builds keep hearing the Azan; new builds play the
+          // announcement first in their foreground service from the data below).
+          // iOS: the combined clip replaces the Azan clip per device, only when that device
+          // declared it in capabilities.bundledSounds (device.service resolveAnnouncementAzanDeviceAudio).
+          const announcement = resolvePrayerAnnouncementSound(String(prayerEnum), evaluationTz, instant.timestamp);
+          if (announcement) {
+            Object.assign(baseData, {
+              audioScope: 'prayer_time_announcement_azan',
+              announcementSoundId: announcement.id,
+              announcementNativeSound: announcement.id,
+              announcementSoundUrl: announcement.mediaFile ? mediaAbsoluteUrl(announcement.mediaFile) : '',
+              announcementSoundMediaFile: announcement.mediaFile || '',
+              iosCombinedSound: announceAzanIosSoundId(announcement.id.replace(/^sc_event_/, ''), azanSoundRaw.id),
+            });
+          } else {
+            baseData.prayerTimeSoundMode = 'azan';
+            baseData.audioFallbackReason = 'ANNOUNCEMENT_MEDIA_UNAVAILABLE';
+            logger.warn('[Cron] Prayer announcement unavailable; using selected Azan only', { userId: user.id, prayer: prayerEnum });
+          }
         }
         if (effectiveMode === 'announcement') {
           const announcement = resolvePrayerAnnouncementSound(String(prayerEnum), evaluationTz, instant.timestamp);

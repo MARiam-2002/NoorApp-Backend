@@ -57,6 +57,8 @@ export type ExtraPrayerPreferencesDto = {
   bodyEn: string;
   /** Soft/default tones for other reminders — Duha/Qiyam are the voice exceptions. */
   usesCustomVoice: true;
+  /** Local coverage the app reported for this reminder; null = none reported or cleared. */
+  localScheduledUntil: string | null;
 };
 
 function meta(kind: ExtraPrayerKind) {
@@ -86,7 +88,12 @@ function meta(kind: ExtraPrayerKind) {
   };
 }
 
-function toDto(kind: ExtraPrayerKind, enabled: boolean, time: string): ExtraPrayerPreferencesDto {
+function toDto(
+  kind: ExtraPrayerKind,
+  enabled: boolean,
+  time: string,
+  localScheduledUntil: string | null = null,
+): ExtraPrayerPreferencesDto {
   const m = meta(kind);
   return {
     enabled: Boolean(enabled),
@@ -102,63 +109,136 @@ function toDto(kind: ExtraPrayerKind, enabled: boolean, time: string): ExtraPray
     titleEn: m.titleEn,
     bodyEn: m.bodyEn,
     usesCustomVoice: true,
+    localScheduledUntil,
   };
 }
 
-export async function getDuhaPreferences(userId: string): Promise<ExtraPrayerPreferencesDto> {
+/** Key inside users.azanPreferences JSON (no extra column / migration). */
+const EXTRA_COVERAGE_KEY = 'extraPrayerLocalScheduledUntil';
+
+function coverageSlot(kind: ExtraPrayerKind): 'duha' | 'qiyam' {
+  return kind === 'DUHA' ? 'duha' : 'qiyam';
+}
+
+/**
+ * Coverage the app reported for this kind.
+ * `reported: false` = this app build never reported it (old builds): callers keep the legacy
+ * rule and reuse the Azan `localScheduledUntil`.
+ */
+export function readExtraPrayerCoverage(
+  azanPreferences: unknown,
+  kind: ExtraPrayerKind,
+): { reported: boolean; until: string | null } {
+  const prefs = azanPreferences as Record<string, unknown> | null;
+  const map = prefs?.[EXTRA_COVERAGE_KEY] as Record<string, unknown> | null | undefined;
+  const slot = coverageSlot(kind);
+  if (!map || typeof map !== 'object' || !Object.prototype.hasOwnProperty.call(map, slot)) {
+    return { reported: false, until: null };
+  }
+  const value = map[slot];
+  return { reported: true, until: typeof value === 'string' ? value : null };
+}
+
+/** Instant (ISO) the cron compares against for the FCM backup of this kind. */
+export function extraPrayerCoverageInstant(azanPreferences: unknown, kind: ExtraPrayerKind): string | null {
+  const own = readExtraPrayerCoverage(azanPreferences, kind);
+  if (own.reported) return own.until;
+  const legacy = (azanPreferences as { localScheduledUntil?: unknown } | null)?.localScheduledUntil;
+  return typeof legacy === 'string' ? legacy : null;
+}
+
+/**
+ * New azanPreferences JSON after a Duha/Qiyam PATCH.
+ * - `localScheduledUntil` in the patch → store it for this kind (null = app could not schedule).
+ * - `enabled`/`time` changed without it → the old local schedule no longer matches: clear this
+ *   kind, but only if the app already reports this kind (old builds keep the legacy rule).
+ * Returns null when nothing changes.
+ */
+export function nextExtraPrayerCoverage(
+  azanPreferences: unknown,
+  kind: ExtraPrayerKind,
+  patch: { enabled?: boolean; time?: string; localScheduledUntil?: string | null },
+): Record<string, unknown> | null {
+  const prefs = { ...((azanPreferences as Record<string, unknown> | null) ?? {}) };
+  const current = readExtraPrayerCoverage(prefs, kind);
+  const slot = coverageSlot(kind);
+  const map = { ...((prefs[EXTRA_COVERAGE_KEY] as Record<string, unknown> | undefined) ?? {}) };
+  if (patch.localScheduledUntil !== undefined) {
+    map[slot] = patch.localScheduledUntil;
+  } else if ((patch.enabled !== undefined || patch.time !== undefined) && current.reported) {
+    map[slot] = null;
+  } else {
+    return null;
+  }
+  return { ...prefs, [EXTRA_COVERAGE_KEY]: map };
+}
+
+async function readExtraPrayerPreferences(userId: string, kind: ExtraPrayerKind): Promise<ExtraPrayerPreferencesDto> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { duhaReminderEnabled: true, duhaReminderTime: true },
+    select: {
+      duhaReminderEnabled: true,
+      duhaReminderTime: true,
+      qiyamReminderEnabled: true,
+      qiyamReminderTime: true,
+      azanPreferences: true,
+    },
   });
   if (!user) throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
-  return toDto('DUHA', user.duhaReminderEnabled, user.duhaReminderTime);
+  const coverage = readExtraPrayerCoverage(user.azanPreferences, kind).until;
+  return kind === 'DUHA'
+    ? toDto('DUHA', user.duhaReminderEnabled, user.duhaReminderTime, coverage)
+    : toDto('QIYAM', user.qiyamReminderEnabled, user.qiyamReminderTime, coverage);
+}
+
+export async function getDuhaPreferences(userId: string): Promise<ExtraPrayerPreferencesDto> {
+  return readExtraPrayerPreferences(userId, 'DUHA');
 }
 
 export async function getQiyamPreferences(userId: string): Promise<ExtraPrayerPreferencesDto> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { qiyamReminderEnabled: true, qiyamReminderTime: true },
+  return readExtraPrayerPreferences(userId, 'QIYAM');
+}
+
+type ExtraPrayerPatch = { enabled?: boolean; time?: string; localScheduledUntil?: string | null };
+
+async function updateExtraPrayerPreferences(
+  userId: string,
+  kind: ExtraPrayerKind,
+  patch: ExtraPrayerPatch,
+): Promise<ExtraPrayerPreferencesDto> {
+  const data: Record<string, unknown> = {};
+  const enabledField = kind === 'DUHA' ? 'duhaReminderEnabled' : 'qiyamReminderEnabled';
+  const timeField = kind === 'DUHA' ? 'duhaReminderTime' : 'qiyamReminderTime';
+  if (typeof patch.enabled === 'boolean') data[enabledField] = patch.enabled;
+  if (patch.time != null) {
+    if (!parseHhmm(patch.time)) {
+      throw new AppError('time must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+    }
+    data[timeField] = patch.time;
+  }
+  if (Object.keys(data).length === 0 && patch.localScheduledUntil === undefined) {
+    throw new AppError('No preference fields to update', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  await prisma.$transaction(async (db) => {
+    // Lock the row: azanPreferences JSON is also written by PATCH /profile/azan-preferences.
+    const rows: Array<{ azanPreferences: unknown }> =
+      await db.$queryRaw`SELECT "azanPreferences" FROM "users" WHERE "id"=${userId} FOR UPDATE`;
+    if (!rows.length) throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+    const nextPrefs = nextExtraPrayerCoverage(rows[0]!.azanPreferences, kind, patch);
+    await db.user.update({
+      where: { id: userId },
+      data: { ...data, ...(nextPrefs ? { azanPreferences: nextPrefs as any } : {}) },
+    });
   });
-  if (!user) throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
-  return toDto('QIYAM', user.qiyamReminderEnabled, user.qiyamReminderTime);
+  return readExtraPrayerPreferences(userId, kind);
 }
 
-export async function updateDuhaPreferences(
-  userId: string,
-  patch: { enabled?: boolean; time?: string },
-): Promise<ExtraPrayerPreferencesDto> {
-  const data: { duhaReminderEnabled?: boolean; duhaReminderTime?: string } = {};
-  if (typeof patch.enabled === 'boolean') data.duhaReminderEnabled = patch.enabled;
-  if (patch.time != null) {
-    if (!parseHhmm(patch.time)) {
-      throw new AppError('time must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
-    }
-    data.duhaReminderTime = patch.time;
-  }
-  if (Object.keys(data).length === 0) {
-    throw new AppError('No preference fields to update', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
-  }
-  await prisma.user.update({ where: { id: userId }, data });
-  return getDuhaPreferences(userId);
+export async function updateDuhaPreferences(userId: string, patch: ExtraPrayerPatch): Promise<ExtraPrayerPreferencesDto> {
+  return updateExtraPrayerPreferences(userId, 'DUHA', patch);
 }
 
-export async function updateQiyamPreferences(
-  userId: string,
-  patch: { enabled?: boolean; time?: string },
-): Promise<ExtraPrayerPreferencesDto> {
-  const data: { qiyamReminderEnabled?: boolean; qiyamReminderTime?: string } = {};
-  if (typeof patch.enabled === 'boolean') data.qiyamReminderEnabled = patch.enabled;
-  if (patch.time != null) {
-    if (!parseHhmm(patch.time)) {
-      throw new AppError('time must be HH:mm', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
-    }
-    data.qiyamReminderTime = patch.time;
-  }
-  if (Object.keys(data).length === 0) {
-    throw new AppError('No preference fields to update', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
-  }
-  await prisma.user.update({ where: { id: userId }, data });
-  return getQiyamPreferences(userId);
+export async function updateQiyamPreferences(userId: string, patch: ExtraPrayerPatch): Promise<ExtraPrayerPreferencesDto> {
+  return updateExtraPrayerPreferences(userId, 'QIYAM', patch);
 }
 
 async function claimDuha(userId: string, key: string): Promise<boolean> {
@@ -251,15 +331,8 @@ async function runKindReminders(
 
         const fireAtMs =
           Math.floor(now.getTime() / 60_000) * 60_000 - (decision.minutesFromTarget ?? 0) * 60_000;
-        const localScheduledUntil = (user.azanPreferences as { localScheduledUntil?: unknown } | null)
-          ?.localScheduledUntil;
-        if (
-          fireAtMs <=
-          localCoverageUntilMs(
-            typeof localScheduledUntil === 'string' ? localScheduledUntil : null,
-            now.getTime(),
-          )
-        ) {
+        // Duha/Qiyam coverage reported by the app for this kind; old builds: the Azan coverage.
+        if (fireAtMs <= localCoverageUntilMs(extraPrayerCoverageInstant(user.azanPreferences, kind), now.getTime())) {
           skipped.LOCAL_SCHEDULED = (skipped.LOCAL_SCHEDULED ?? 0) + 1;
           continue;
         }

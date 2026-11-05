@@ -19,10 +19,16 @@ export const extraPrayerPreferencesPatchSchema = z
   .object({
     enabled: z.boolean().optional(),
     time: hhmmSchema.optional(),
+    /**
+     * Last instant up to which the app scheduled THIS reminder locally (ISO-8601 with offset),
+     * or null when it could not schedule it. The server skips its FCM backup up to this instant.
+     */
+    localScheduledUntil: z.string().datetime({ offset: true }).nullable().optional(),
   })
-  .refine((body) => body.enabled !== undefined || body.time !== undefined, {
-    message: 'At least one of enabled, time is required',
-  });
+  .refine(
+    (body) => body.enabled !== undefined || body.time !== undefined || body.localScheduledUntil !== undefined,
+    { message: 'At least one of enabled, time, localScheduledUntil is required' },
+  );
 
 export const getDuhaPreferencesHandler = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.sub;

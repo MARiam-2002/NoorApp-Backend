@@ -496,9 +496,10 @@ export const NOTIFICATION_SOUND_OPTIONS: NotificationSoundOption[] = [
     id: 'soft_chime',
     nameEn: 'Soft Chime',
     nameAr: 'نغمة ناعمة',
-    descriptionEn: 'Short soft reminder — recommended default.',
-    descriptionAr: 'تنبيه ناعم قصير — الخيار الافتراضي.',
+    descriptionEn: 'Short soft reminder tone.',
+    descriptionAr: 'تنبيه ناعم قصير.',
     mediaFile: 'soft_chime.mp3',
+    /** Fallback tone when a stored id is unknown; the account default is sc_near_auto. */
     isDefault: true,
     mood: 'calm',
     license: freesoundCc0(
@@ -713,8 +714,8 @@ export const NEAR_PRAYER_SOUND_OPTIONS: NotificationSoundOption[] = [
     id: 'sc_near_auto',
     nameEn: 'Auto — Prayer-Specific Arabic Voice',
     nameAr: 'تلقائي — صوت عربي لكل صلاة',
-    descriptionEn: 'Sentinel: backend picks sc_near_* for the upcoming prayer.',
-    descriptionAr: 'مفتاح تلقائي يختار مقطع اقترب الصلاة المناسب.',
+    descriptionEn: 'Default. Plays the Arabic voice "the prayer is near" for the upcoming prayer (sc_near_*).',
+    descriptionAr: 'الخيار الافتراضي: صوت «اقتربت صلاة …» المناسب لكل صلاة.',
     audioUrl: null,
     previewUrl: null,
     mediaFile: null,
@@ -821,7 +822,11 @@ export const REMINDER_SOUND_OPTIONS: NotificationSoundOption[] = [
 ];
 
 export const DEFAULT_AZAN_SOUND_ID = 'nasser_al_qatami';
-export const DEFAULT_NOTIFICATION_SOUND_ID = 'soft_chime';
+/**
+ * Pre-prayer default: the spoken "the prayer is near" clip for each prayer (since Nov 2026).
+ * Applies to accounts with no saved notificationSoundId; saved choices never change.
+ */
+export const DEFAULT_NOTIFICATION_SOUND_ID = 'sc_near_auto';
 /** Near-prayer auto sentinel (not part of assets/notification list). */
 export const RECOMMENDED_NOTIFICATION_SOUND_ID_2026 = 'sc_near_auto';
 

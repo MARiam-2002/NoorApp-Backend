@@ -14,6 +14,7 @@ import {
   updateAzanPreferences,
   pickExplicitAzanPatch,
   DEFAULT_PRE_REMINDER_MINUTES,
+  DEFAULT_PRAYER_TIME_SOUND_MODE,
 } from '../services/azan.service';
 import { getAudioDefaults } from '../services/azan-audio.service';
 
@@ -70,7 +71,7 @@ export const getAzanPreferencesHandler = asyncHandler(async (req: Request, res: 
       {
         azanEnabled: true,
         soundEnabled: true,
-        prayerTimeSoundMode: 'azan',
+        prayerTimeSoundMode: DEFAULT_PRAYER_TIME_SOUND_MODE,
         takbirSoundId: DEFAULT_TAKBIR_SOUND_ID,
         prayerTimeSoundOverrides: {},
         vibrationEnabled: true,

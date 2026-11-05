@@ -200,7 +200,10 @@ export async function sendPushToUser(
   const groups = new Map<string, { tokens: string[]; channel: string | undefined; nativeSound: string | null | undefined; data: Record<string, string> }>();
   for (const t of tokens) {
     const channel = resolveDeviceChannelId(payload.androidChannelId, deviceChannelSchemaVersion(t.capabilities));
-    const audio = resolveTakbirDeviceAudio(t.capabilities, { ...payload, androidChannelId: channel, data: dataForLog });
+    const audio = resolveAnnouncementAzanDeviceAudio(
+      t.capabilities,
+      resolveTakbirDeviceAudio(t.capabilities, { ...payload, androidChannelId: channel, data: dataForLog }),
+    );
     const key = JSON.stringify([audio.androidChannelId ?? '', audio.nativeSound, audio.data.audioFallbackReason ?? '']);
     const group = groups.get(key) ?? { tokens: [], channel: audio.androidChannelId, nativeSound: audio.nativeSound, data: audio.data };
     group.tokens.push(t.token);
@@ -251,6 +254,22 @@ export async function sendPushToUser(
   });
 
   return out;
+}
+
+/**
+ * prayerTimeSoundMode `announcement_azan`: the payload carries the Azan voice (right for Android
+ * and for any device that did not ship the combined clip). A device that declared the iOS
+ * combined clip `announce_azan_<prayer>_<voice>` in capabilities.bundledSounds gets that clip as
+ * its notification sound instead. Android never declares these clips, so its channel is unchanged.
+ */
+export function resolveAnnouncementAzanDeviceAudio(capabilities: unknown, audio: {
+  data: Record<string, string>; nativeSound?: string | null; androidChannelId?: string;
+}) {
+  const combined = audio.data.iosCombinedSound;
+  if (audio.data.audioScope !== 'prayer_time_announcement_azan' || !combined || audio.nativeSound === null) return audio;
+  const caps = capabilities as { bundledSounds?: unknown } | null;
+  const declared = Array.isArray(caps?.bundledSounds) && caps!.bundledSounds.includes(combined);
+  return declared ? { ...audio, nativeSound: combined } : audio;
 }
 
 /** Old installs must never turn a requested short takbir into full Adhan. */

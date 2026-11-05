@@ -37,7 +37,28 @@ const prayerTogglesSchema = z.object({
   isha: z.boolean(),
 });
 
-export const prayerTimeSoundModeSchema = z.enum(['azan', 'announcement', 'takbir']);
+/**
+ * Prayer-time sound:
+ * - azan: the selected full Azan.
+ * - announcement: the short "حان الآن موعد أذان …" clip only.
+ * - announcement_azan: the announcement clip, then the selected Azan (default since Nov 2026).
+ *   Old app builds do not know this value and treat it as `azan`; the FCM backup still targets
+ *   the Azan channel, so they keep hearing the Azan.
+ * - takbir: a short takbir clip.
+ */
+export const PRAYER_TIME_SOUND_MODES = ['azan', 'announcement', 'announcement_azan', 'takbir'] as const;
+export const DEFAULT_PRAYER_TIME_SOUND_MODE = 'announcement_azan' as const;
+export const prayerTimeSoundModeSchema = z.enum(PRAYER_TIME_SOUND_MODES);
+const coverageInstantSchema = z.string().datetime({ offset: true }).nullable();
+/**
+ * Duha / Qiyam local coverage, reported by the app per kind
+ * (PATCH /profile/duha-preferences or /profile/qiyam-preferences with `localScheduledUntil`).
+ * A present key (even null) means the app reports this kind itself; an absent key keeps the
+ * legacy behaviour of reusing the Azan `localScheduledUntil`.
+ */
+export const extraPrayerCoverageSchema = z
+  .object({ duha: coverageInstantSchema.optional(), qiyam: coverageInstantSchema.optional() })
+  .strict();
 const prayerSoundOverridesSchema = z.object({
   fajr: prayerTimeSoundModeSchema.optional(), dhuhr: prayerTimeSoundModeSchema.optional(),
   asr: prayerTimeSoundModeSchema.optional(), maghrib: prayerTimeSoundModeSchema.optional(),
@@ -46,8 +67,8 @@ const prayerSoundOverridesSchema = z.object({
 export const azanPreferencesSchema = z.object({
   azanEnabled: z.boolean().default(true),
   soundEnabled: z.boolean().default(true),
-  /** Selected Azan remains the default; announcement uses the short event clip. */
-  prayerTimeSoundMode: prayerTimeSoundModeSchema.default('azan'),
+  /** Default: announcement clip then the selected Azan. See prayerTimeSoundModeSchema. */
+  prayerTimeSoundMode: prayerTimeSoundModeSchema.default(DEFAULT_PRAYER_TIME_SOUND_MODE),
   takbirSoundId: z.string().refine(id => Boolean(getTakbirSoundById(id)), 'Unknown takbir sound').default(DEFAULT_TAKBIR_SOUND_ID),
   /** Full replacement map; absent keys inherit prayerTimeSoundMode. Send {} to clear. */
   prayerTimeSoundOverrides: prayerSoundOverridesSchema.default({}),
@@ -99,6 +120,8 @@ export const azanPreferencesSchema = z.object({
    * the user never gets the same reminder twice. `null` = no local coverage.
    */
   localScheduledUntil: z.string().datetime({ offset: true }).nullable().optional(),
+  /** Duha / Qiyam coverage reported separately from the Azan. Written by the Duha/Qiyam PATCH endpoints. */
+  extraPrayerLocalScheduledUntil: extraPrayerCoverageSchema.optional(),
   /** Present on GET responses when Backend filled Cairo defaults. */
   isDefaultLocation: z.boolean().optional(),
   locationSource: z.enum(['default_cairo', 'profile', 'query']).optional(),
@@ -350,7 +373,8 @@ export async function updateAzanPreferences(
     };
 
     // Coverage certifies one concrete schedule, not arbitrary later settings.
-    if (patch.localScheduledUntil === undefined && Object.keys(patch).some(k => k !== 'localScheduledUntil')) {
+    const coverageKeys = new Set(['localScheduledUntil', 'extraPrayerLocalScheduledUntil']);
+    if (patch.localScheduledUntil === undefined && Object.keys(patch).some(k => !coverageKeys.has(k))) {
       persistable.localScheduledUntil = null;
     }
 
@@ -366,7 +390,7 @@ export async function updateAzanPreferences(
         azanPreferences: persistable as any,
         prayerCalculationMethod: next.calculationMethod,
         ...(explicitLocation
-          ? { latitude: patch.lastLat, longitude: patch.lastLng, timezone: inferTimezoneFromCoordinates(patch.lastLat!, patch.lastLng!), azanPreferences: { ...persistable, localScheduledUntil: null } }
+          ? { latitude: patch.lastLat, longitude: patch.lastLng, timezone: inferTimezoneFromCoordinates(patch.lastLat!, patch.lastLng!), azanPreferences: { ...persistable, localScheduledUntil: null, ...clearedExtraPrayerCoverage(persistable.extraPrayerLocalScheduledUntil) } }
           : {}),
         ...(patch.lastLocationLabel != null
           ? { city: patch.lastLocationLabel || null }
@@ -376,6 +400,12 @@ export async function updateAzanPreferences(
 
     return buildAzanPreferencesFromUser(updated);
   });
+}
+
+/** A new location moves local clock times: every kind the app reported loses its coverage. */
+function clearedExtraPrayerCoverage(current: AzanPreferences['extraPrayerLocalScheduledUntil']) {
+  if (!current) return {};
+  return { extraPrayerLocalScheduledUntil: Object.fromEntries(Object.keys(current).map(k => [k, null])) };
 }
 
 /** Per-prayer override, otherwise the account default. Pre-reminders do not use this. */

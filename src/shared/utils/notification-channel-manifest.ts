@@ -30,6 +30,22 @@ export const CHANNEL_SCHEMA_VERSION = 3;
  */
 export const REPAIRED_CHANNEL_IDS: ReadonlySet<string> = new Set(['general', 'mulk', 'khatmah']);
 
+/** Prayers that have an at-time announcement clip (`sc_event_<prayer>`); `jumuah` = Friday Dhuhr. */
+export const ANNOUNCEMENT_PRAYER_SLUGS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah'] as const;
+
+/**
+ * iOS-only combined clip for prayerTimeSoundMode `announcement_azan`: the announcement, then the
+ * first seconds of the selected Azan, <= 29.5 s (iOS stops notification sounds at 30 s).
+ * Android never uses these: it plays the announcement and the Azan in a foreground service.
+ */
+export function announceAzanIosSoundId(prayerSlug: string, azanSoundId: string): string {
+  return `announce_azan_${prayerSlug}_${azanSoundId}`;
+}
+
+export function iosAnnouncementAzanSounds(): string[] {
+  return ANNOUNCEMENT_PRAYER_SLUGS.flatMap((slug) => AZAN_SOUND_OPTIONS.map((o) => announceAzanIosSoundId(slug, o.id)));
+}
+
 export type ChannelUsage = 'alarm' | 'notification';
 export type ChannelImportance = 'max' | 'high' | 'default' | 'low';
 
@@ -95,6 +111,7 @@ export function buildNotificationChannelManifest(): {
   defaultFcmChannelId: string;
   channels: NotificationChannelSpec[];
   requiredBundledSounds: string[];
+  iosAnnouncementAzanSounds: string[];
 } {
   const channels: NotificationChannelSpec[] = [];
 
@@ -216,5 +233,7 @@ export function buildNotificationChannelManifest(): {
     defaultFcmChannelId: 'general_v2',
     channels,
     requiredBundledSounds,
+    /** iOS bundle only (`<id>.caf`). Declare in capabilities.bundledSounds only the ones shipped. */
+    iosAnnouncementAzanSounds: iosAnnouncementAzanSounds(),
   };
 }

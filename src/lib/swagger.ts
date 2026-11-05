@@ -1319,8 +1319,8 @@ function completeSwaggerContracts(spec: any): any {
     properties: {
       azanEnabled: { type: 'boolean' }, soundEnabled: { type: 'boolean' }, vibrationEnabled: { type: 'boolean' },
       takbirSoundId: { type: 'string', default: 'takbir_nasser_al_qatami_v1', description: 'Reviewed sound ID from GET /azan/takbir-sounds; independent of full Azan voice.' },
-      prayerTimeSoundOverrides: { type: 'object', additionalProperties: false, description: 'Replacement map. Missing prayer keys inherit prayerTimeSoundMode; {} clears overrides.', properties: Object.fromEntries(['fajr','dhuhr','asr','maghrib','isha'].map(key => [key, { type: 'string', enum: ['azan','announcement','takbir'] }])) },
-      prayerTimeSoundMode: { type: 'string', enum: ['azan', 'announcement', 'takbir'], default: 'azan', description: 'Full Azan, short prayer-event announcement, or reviewed opening takbir excerpt; one audio owner only.' },
+      prayerTimeSoundOverrides: { type: 'object', additionalProperties: false, description: 'Replacement map. Missing prayer keys inherit prayerTimeSoundMode; {} clears overrides.', properties: Object.fromEntries(['fajr','dhuhr','asr','maghrib','isha'].map(key => [key, { type: 'string', enum: ['azan','announcement','announcement_azan','takbir'] }])) },
+      prayerTimeSoundMode: { type: 'string', enum: ['azan', 'announcement', 'announcement_azan', 'takbir'], default: 'announcement_azan', description: 'azan = full Azan; announcement = short "حان الآن موعد أذان …" clip only; announcement_azan (default) = the announcement, then the selected Azan (Android: foreground service; iOS: combined announce_azan_<prayer>_<voice>.caf when the device declared it, else the Azan clip); takbir = reviewed opening takbir excerpt.' },
       azanSoundId: { type: 'string', example: 'mishary_alafasy' },
       notificationSoundId: { type: 'string', example: 'sc_near_auto', description: 'Auto resolves the prayer-specific approaching clip. soft_chime is a tone.' },
       preReminderEnabled: { type: 'boolean' }, preReminderMinutes: { type: 'integer', minimum: 0, maximum: 120 },

@@ -637,6 +637,11 @@ profileRouter.put(
  *     tags: ['Profile']
  *     summary: Enable/disable Duha reminder and set local time
  *     security: [ { bearerAuth: [] } ]
+ *     description: |
+ *       Body: `enabled`, `time` (HH:mm) and/or `localScheduledUntil` (ISO-8601 with offset, or null).
+ *       The app sends `localScheduledUntil` after it schedules this reminder locally (null when it
+ *       could not). The server skips its FCM backup up to that instant. Changing `enabled`/`time`
+ *       without it clears the reported coverage.
  */
 profileRouter.get('/duha-preferences', authenticate, getDuhaPreferencesHandler);
 profileRouter.patch(
@@ -663,6 +668,11 @@ profileRouter.put(
  *     tags: ['Profile']
  *     summary: Enable/disable Qiyam reminder and set local time
  *     security: [ { bearerAuth: [] } ]
+ *     description: |
+ *       Body: `enabled`, `time` (HH:mm) and/or `localScheduledUntil` (ISO-8601 with offset, or null).
+ *       The app sends `localScheduledUntil` after it schedules this reminder locally (null when it
+ *       could not). The server skips its FCM backup up to that instant. Changing `enabled`/`time`
+ *       without it clears the reported coverage.
  */
 profileRouter.get('/qiyam-preferences', authenticate, getQiyamPreferencesHandler);
 profileRouter.patch(

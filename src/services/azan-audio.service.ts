@@ -103,7 +103,7 @@ export function listPrayerVoiceSounds(req?: Request) {
       preferenceValue: 'announcement',
       sounds: PRAYER_EVENT_SOUND_OPTIONS.filter(option => option.matchesPrayer != null).map(decorate),
     },
-    note: 'Server availability is not proof of client bundling. Preview URLs do not configure native notification sounds. Save notificationSoundId for pre-prayer selection and prayerTimeSoundMode for at-time announcements. Existing user choices/defaults remain unchanged.',
+    note: 'Server availability is not proof of client bundling. Preview URLs do not configure native notification sounds. Save notificationSoundId for pre-prayer selection and prayerTimeSoundMode for at-time sound. Defaults: notificationSoundId sc_near_auto, prayerTimeSoundMode announcement_azan (announcement, then the Azan). Saved choices never change.',
   };
 }
 

@@ -11,7 +11,8 @@ import { prisma } from '../src/lib/prisma';
 import { updateAzanPreferences } from '../src/services/azan.service';
 
 const defaults = defaultAzanPreferences();
-assert.equal(defaults.prayerTimeSoundMode, 'azan');
+// Default since Nov 2026: announcement, then the selected Azan (see test-prayer-sound-flow.ts).
+assert.equal(defaults.prayerTimeSoundMode, 'announcement_azan');
 assert.equal(defaults.takbirSoundId, DEFAULT_TAKBIR_SOUND_ID);
 assert.deepEqual(defaults.prayerTimeSoundOverrides, {});
 assert.deepEqual(pickExplicitAzanPatch({ soundEnabled: false }), { soundEnabled: false });
@@ -25,7 +26,7 @@ assert.equal(effectivePrayerTimeSoundMode(prefs, 'DHUHR'), 'announcement');
 assert.equal(effectivePrayerTimeSoundMode(prefs, 'MAGHRIB'), 'azan');
 const user = { latitude: 30, longitude: 31, timezone: 'Africa/Cairo', city: 'Cairo', prayerCalculationMethod: 'EGYPT', azanPreferences: {} };
 assert.notEqual(prayerScheduleKey(user), prayerScheduleKey({ ...user, azanPreferences: prefs }));
-assert.equal(buildAzanPreferencesFromUser(user).prayerTimeSoundMode, 'azan');
+assert.equal(buildAzanPreferencesFromUser(user).prayerTimeSoundMode, 'announcement_azan');
 assert.equal(TAKBIR_SOUND_OPTIONS.length, 14);
 const manifest = buildNotificationChannelManifest();
 assert.equal(manifest.channelSchemaVersion, 3);
