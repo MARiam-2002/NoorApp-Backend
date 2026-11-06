@@ -13,7 +13,18 @@ import { join } from 'node:path';
 import { ayahCount, ayahText } from './lib/quran-lookup';
 import { findSahihPhrase, type SahihCollection } from './lib/sahihayn-lookup';
 import { LEARNING_CATALOG_VERSION, LEARNING_COLLECTIONS } from './lib/learning/catalog';
-import type { ItemDef, SectionDef } from './lib/learning/types';
+import type { ItemDef, QuizDef, SectionDef } from './lib/learning/types';
+
+/**
+ * Authors write the correct option first. The build shuffles the options with a permutation derived from the item id
+ * and question index, so the right answer is not always first and the output stays the same on every build.
+ */
+function shuffledQuestion(q: QuizDef, seed: string): QuizDef {
+  const order = q.optionsAr.map((_, i) => i)
+    .map(i => ({ i, key: createHash('sha256').update(`${seed}:${i}`).digest('hex') }))
+    .sort((a, b) => (a.key < b.key ? -1 : 1)).map(x => x.i);
+  return { ...q, optionsAr: order.map(i => q.optionsAr[i]!), correctIndex: order.indexOf(q.correctIndex) };
+}
 import { CATALOG_SURAHS } from '../src/data/surahs';
 
 const OUT = join(process.cwd(), 'src', 'shared', 'data', 'learning-content.ts');
@@ -101,7 +112,7 @@ function buildItem(collectionId: string, item: ItemDef) {
     id: item.id, collectionId, order: item.order, titleAr: item.titleAr, titleEn: item.titleEn,
     personAr: item.personAr ?? null, honorificAr: item.honorificAr ?? null, summaryAr: item.summaryAr,
     readingMinutes: Math.max(1, Math.round(words / 150)),
-    sections, keyPointsAr: item.keyPointsAr, quiz: item.quiz,
+    sections, keyPointsAr: item.keyPointsAr, quiz: item.quiz.map((q, i) => shuffledQuestion(q, `${item.id}:${i}`)),
     review: item.review.status === 'APPROVED'
       ? { status: 'APPROVED' as const, reviewerAr: item.review.reviewerAr, approvedAt: item.review.approvedAt, notesAr: item.review.notesAr ?? null }
       : { status: 'DRAFT' as const, reviewerAr: null, approvedAt: null, notesAr: null },

@@ -1,6 +1,6 @@
 # Noor — Learning hub «تعلّم مع نور» (Flutter handoff)
 
-Date: 5 November 2026 (updated 6 November: 10 prophet stories, everything is live, no draft/review states). Backend: done and tested (`/learning`, migration `20261106100000_learning_progress`). Target: the **Learning release (10 December 2026, before Rajab)**. New content is added on the server later, with no app update.
+Date: 5 November 2026 (updated 6 November: 20 prophet stories, 13 fiqh-of-fasting lessons, everything is live, no draft/review states). Backend: done and tested (`/learning`, migration `20261106100000_learning_progress`). Target: the **Learning release (10 December 2026, before Rajab)**. New content is added on the server later, with no app update.
 
 ## 0. What it is
 
@@ -8,12 +8,12 @@ One hub with 9 sections. Build **one** generic reader that works for every secti
 
 | Order | Section (`id`) | Kind | Status on 5 Nov |
 | --- | --- | --- | --- |
-| 1 | قصص الأنبياء (`prophet-stories`) | STORY | 10 stories, live |
+| 1 | قصص الأنبياء (`prophet-stories`) | STORY | 20 stories, live (every prophet named in the Quran; the Prophet ﷺ is in the seerah) |
 | 2 | السيرة النبوية (`seerah`) | STORY | coming soon |
 | 3 | قصص الصحابة (`companions`) | STORY | **already exists**: `existingEndpoint: /content/figures` → open the existing Figure screens |
 | 4 | العقيدة (`aqeedah`) | LESSON | coming soon |
 | 5 | أسماء الله الحسنى (`asma-husna`) | LESSON | coming soon |
-| 6 | الفقه (`fiqh`) | LESSON | coming soon (fasting first, for Sha'ban) |
+| 6 | الفقه (`fiqh`) | LESSON | 13 lessons on fasting, live (no `personAr`) |
 | 7 | دروس التجويد (`tajweed`) | LESSON | coming soon |
 | 8 | الأربعون النووية (`nawawi-forty`) | HADITH | 42 hadith, live |
 | 9 | الأخلاق والمواقف (`morals`) | LESSON | **already exists**: `existingEndpoint: /stances/catalog` → open the existing «موقفك إيه؟» screens |
@@ -56,7 +56,7 @@ Item shape (trimmed):
   ],
   "keyPointsAr": ["…"],
   "quiz": [ { "questionAr": "…", "optionsAr": ["…", "…", "…"], "correctIndex": 0, "explanationAr": "يوسف ٤." } ],
-  "previousItemId": "lut", "nextItemId": "shuayb",
+  "previousItemId": "ishaq-yaqub", "nextItemId": "ayyub",
   "progress": { "lastSectionIndex": 2, "completed": false, "completedAt": null, "quizBestScore": null, "quizTotal": null, "updatedAt": "…" }
 }
 ```
@@ -81,7 +81,7 @@ Item shape (trimmed):
    - **«وقفة»** (`reflectionAr`): a separate tinted box with the label «وقفة», so readers see it is a reflection, not the source.
    - End of item:
      - «الدروس المستفادة» (`keyPointsAr`);
-     - «اختبر فهمك» (`quiz`), one question at a time; show `explanationAr` after each answer; score locally;
+     - «اختبر فهمك» (`quiz`), one question at a time; show the options in the order given (the server already shuffles them); show `explanationAr` after each answer; score locally;
      - «التالي: …» (`nextItemId`).
    - Font size slider (shared with the Quran reader), night mode, RTL, Arabic-Indic digits.
 5. **Progress**:
@@ -97,7 +97,8 @@ Item shape (trimmed):
 
 ## 4. Tests
 
-- [ ] The hub shows 10 stories (آدم، نوح، هود، صالح، إبراهيم، لوط، يوسف، شعيب، موسى، يونس, in that order) and 42 hadith. Sections with no items yet show «قريبًا».
+- [ ] The hub shows 20 stories (آدم، إدريس، نوح، هود، صالح، إبراهيم، إسماعيل، لوط، إسحاق ويعقوب، يوسف، أيوب، شعيب، موسى، هارون، داود، سليمان، إلياس واليسع وذو الكفل، يونس، زكريا ويحيى، عيسى, in that order), 13 fiqh lessons and 42 hadith. Sections with no items yet show «قريبًا».
+- [ ] Fiqh lessons have no person line («عليه السلام»): hide it when `personAr` is null.
 - [ ] Companions and Morals open the existing screens, not a new list.
 - [ ] Tap an ayah → audio plays the right verse and the tafsir opens on that verse.
 - [ ] Ayah 71:1 (Nuh story) shows no Basmala inside the verse.

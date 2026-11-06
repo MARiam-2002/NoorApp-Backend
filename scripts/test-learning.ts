@@ -14,7 +14,25 @@ async function contentChecks() {
   const ids = LEARNING_COLLECTIONS_DATA.map(c => c.id);
   assert.deepEqual(ids, ['prophet-stories', 'seerah', 'companions', 'aqeedah', 'asma-husna', 'fiqh', 'tajweed', 'nawawi-forty', 'morals']);
   const stories = LEARNING_COLLECTIONS_DATA.find(c => c.id === 'prophet-stories')!;
-  assert.deepEqual(stories.items.map(i => i.id), ['adam', 'nuh', 'hud', 'salih', 'ibrahim', 'lut', 'yusuf', 'shuayb', 'musa', 'yunus']);
+  assert.deepEqual(stories.items.map(i => i.id), ['adam', 'idris', 'nuh', 'hud', 'salih', 'ibrahim', 'ismail', 'lut', 'ishaq-yaqub', 'yusuf', 'ayyub',
+    'shuayb', 'musa', 'harun', 'dawud', 'sulayman', 'ilyas-alyasa-dhulkifl', 'yunus', 'zakariyya-yahya', 'isa']);
+  // Quiz options are shuffled at build time; the right answer must still be the one the author marked.
+  const { LEARNING_COLLECTIONS } = await import('./lib/learning/catalog');
+  const authored = new Map(LEARNING_COLLECTIONS.flatMap(c => c.items.map(i => [i.id, i.quiz] as const)));
+  let notFirst = 0;
+  for (const c of LEARNING_COLLECTIONS_DATA) for (const item of c.items) item.quiz.forEach((q, i) => {
+    const src = authored.get(item.id)![i]!;
+    assert.equal(q.optionsAr[q.correctIndex], src.optionsAr[src.correctIndex], `${item.id} quiz ${i + 1}`);
+    assert.deepEqual([...q.optionsAr].sort(), [...src.optionsAr].sort());
+    if (q.correctIndex !== 0) notFirst += 1;
+  });
+  assert.ok(notFirst > 30, 'answers are not always the first option');
+  const fiqh = LEARNING_COLLECTIONS_DATA.find(c => c.id === 'fiqh')!;
+  assert.equal(fiqh.items.length, 13);
+  assert.ok(fiqh.items.every(i => i.sections.every(s => s.quran.length + s.hadith.length > 0)), 'every fiqh section cites its evidence');
+  assert.equal(fiqh.items.find(i => i.id === 'siyam-la-yufattir')!.sections[0]!.hadith[0]!.number, 1933);
+  assert.equal(fiqh.items.find(i => i.id === 'siyam-qiyam-qadr')!.sections[1]!.quran[0]!.verses[0]!.textAr, ayahText(97, 1));
+  assert.ok(!ayahText(97, 1).includes('سْمِ'), 'Basmala (stored with a shadda in 97:1) is stripped');
   for (const item of stories.items) {
     for (const s of item.sections) assert.ok(s.quran.length + s.hadith.length > 0, `${item.id}: uncited section`);
     for (const q of item.quiz) assert.ok(q.correctIndex < q.optionsAr.length);
@@ -38,7 +56,8 @@ async function contentChecks() {
 
   // Everything in the build is live.
   const hub = await getLearningHub();
-  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 10);
+  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 20);
+  assert.equal(hub.collections.find(c => c.id === 'fiqh')!.itemCount, 13);
   assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.comingSoon, false);
   assert.equal(hub.collections.find(c => c.id === 'seerah')!.comingSoon, true);
   assert.equal(hub.collections.find(c => c.id === 'companions')!.comingSoon, false);
@@ -47,9 +66,9 @@ async function contentChecks() {
   assert.equal((musa as any).draft, undefined);
   assert.equal((musa as any).review, undefined, 'internal review metadata is not sent');
   assert.equal(musa.previousItemId, 'shuayb');
-  assert.equal(musa.nextItemId, 'yunus');
+  assert.equal(musa.nextItemId, 'harun');
   assert.equal((await getLearningItem('adam')).previousItemId, null);
-  assert.equal((await getLearningItem('yunus')).nextItemId, null);
+  assert.equal((await getLearningItem('isa')).nextItemId, null);
   assert.equal((await getLearningCollection('nawawi-forty')).items.length, 42);
   await assert.rejects(getLearningCollection('unknown'), /not found/);
   await assert.rejects(getLearningItem('unknown'), /not found/);
@@ -111,7 +130,7 @@ async function dbChecks() {
 async function main() {
   await contentChecks();
   if (process.env.LEARNING_TEST_DB !== 'true') {
-    console.log('Learning content checks passed: 9 sections, 10 prophet stories with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, all items live. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
+    console.log('Learning content checks passed: 9 sections, 20 prophet stories and 13 fiqh-of-fasting lessons with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, all items live. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
     return;
   }
   await dbChecks();

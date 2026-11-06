@@ -9,7 +9,8 @@
  *   with its standard number; a phrase that is not found, or found under another number, fails the build.
  * - Every section carries at least one Quran or hadith citation. Narrative stays inside what the citations say:
  *   no Israiliyyat, no invented names, dialogue or numbers.
- * - review.status stays DRAFT until a named scholar approves the item. Production serves APPROVED items only.
+ * - review is informational (DRAFT = not yet reviewed by a named scholar). Every item in the build is served.
+ * - Quiz: write the correct option first (correctIndex 0 is fine); the build shuffles the options deterministically.
  */
 import type { SahihCollection } from '../sahihayn-lookup';
 

@@ -5,6 +5,8 @@
 import type { CollectionDef, ItemDef } from './types';
 import { PROPHET_STORIES } from './prophet-stories';
 import { PROPHET_STORIES_BATCH_2 } from './prophet-stories-2';
+import { PROPHET_STORIES_BATCH_3 } from './prophet-stories-3';
+import { FIQH_FASTING } from './fiqh-fasting';
 
 /** Titles for the 42 hadith of al-Arba'in an-Nawawiyyah. The hadith text itself is copied verbatim by the build. */
 export const NAWAWI_TITLES: string[] = [
@@ -33,14 +35,14 @@ const nawawiItems: ItemDef[] = NAWAWI_TITLES.map((titleAr, i) => ({
   review: { status: 'DRAFT' },
 }));
 
-export const LEARNING_CATALOG_VERSION = 2;
+export const LEARNING_CATALOG_VERSION = 3;
 
 export const LEARNING_COLLECTIONS: CollectionDef[] = [
   {
     id: 'prophet-stories', order: 1, kind: 'STORY', titleAr: 'قصص الأنبياء', titleEn: 'Stories of the Prophets',
     descriptionAr: 'قصص الأنبياء كما وردت في القرآن الكريم وصحيحي البخاري ومسلم، مع وقفات ودروس.',
     methodAr: 'كل قسم في القصة يذكر آياته وأحاديثه. الآيات منقولة بنصها من المصحف، والأحاديث من صحيحي البخاري ومسلم بنصها ورقمها. لا إسرائيليات ولا أسماء أو تفاصيل لم ترد في هذه المصادر. يمكنك فتح تفسير أي آية من زر التفسير.',
-    items: [...PROPHET_STORIES, ...PROPHET_STORIES_BATCH_2],
+    items: [...PROPHET_STORIES, ...PROPHET_STORIES_BATCH_2, ...PROPHET_STORIES_BATCH_3],
   },
   {
     id: 'seerah', order: 2, kind: 'STORY', titleAr: 'السيرة النبوية', titleEn: 'The Prophetic Biography',
@@ -68,9 +70,9 @@ export const LEARNING_COLLECTIONS: CollectionDef[] = [
   },
   {
     id: 'fiqh', order: 6, kind: 'LESSON', titleAr: 'الفقه', titleEn: 'Fiqh',
-    descriptionAr: 'أحكام العبادات بأدلتها: الصيام، ثم الطهارة والصلاة، ثم الزكاة.',
-    methodAr: 'كل حكم مع دليله من القرآن والسنة الصحيحة. ما اتفق عليه العلماء يُذكر حكمًا، وما اختلفوا فيه يُذكر خلافه مع إحالة إلى دار الإفتاء. ليس بديلًا عن سؤال أهل العلم في حالتك الخاصة.',
-    items: [],
+    descriptionAr: 'أحكام العبادات بأدلتها، بدءًا بفقه الصيام.',
+    methodAr: 'كل حكم مع دليله: الآيات بنصها من المصحف، والأحاديث من صحيحي البخاري ومسلم بنصها ورقمها. ما اتفق عليه العلماء يُذكر حكمًا، وما اختلفوا فيه يُذكر الخلاف باختصار مع رأي دار الإفتاء المصرية. ليس بديلًا عن سؤال أهل العلم في حالتك الخاصة.',
+    items: FIQH_FASTING,
   },
   {
     id: 'tajweed', order: 7, kind: 'LESSON', titleAr: 'دروس التجويد', titleEn: 'Tajweed lessons',

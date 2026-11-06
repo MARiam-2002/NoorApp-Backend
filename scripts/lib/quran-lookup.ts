@@ -24,8 +24,10 @@ export function ayahText(surah: number, ayah: number): string {
   // The Basmala exactly as stored in this edition (Al-Fatiha 1:1), so the prefix match is exact.
   const basmala = load()[0]!.ayahs[0]!.text.replace(/^\uFEFF/, '').trim();
   if (ayah === 1 && surah !== 1 && surah !== 9) {
-    if (!text.startsWith(basmala)) throw new Error(`Expected the Basmala prefix on ${surah}:1`);
-    text = text.slice(basmala.length).trim();
+    // Surahs 95 and 97 store the Basmala with a shadda on the first letter (بِّسْمِ); accept both spellings.
+    const prefix = [basmala, basmala.replace(/^بِ/, 'بِّ')].find(b => text.startsWith(b));
+    if (!prefix) throw new Error(`Expected the Basmala prefix on ${surah}:1`);
+    text = text.slice(prefix.length).trim();
   }
   if (!text) throw new Error(`Empty ayah: ${surah}:${ayah}`);
   return text;
