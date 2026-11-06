@@ -1,6 +1,6 @@
 # Noor — Learning hub «تعلّم مع نور» (Flutter handoff)
 
-Date: 5 November 2026 (updated 6 November: 20 prophet stories, 13 fiqh-of-fasting lessons, everything is live, no draft/review states). Backend: done and tested (`/learning`, migration `20261106100000_learning_progress`). Target: the **Learning release (10 December 2026, before Rajab)**. New content is added on the server later, with no app update.
+Date: 5 November 2026 (updated 6 November: all 7 new sections have content — 151 items, everything is live, no draft/review states). Backend: done and tested (`/learning`, migration `20261106100000_learning_progress`). Target: the **Learning release (10 December 2026, before Rajab)**. New content is added on the server later, with no app update.
 
 ## 0. What it is
 
@@ -9,12 +9,12 @@ One hub with 9 sections. Build **one** generic reader that works for every secti
 | Order | Section (`id`) | Kind | Status on 5 Nov |
 | --- | --- | --- | --- |
 | 1 | قصص الأنبياء (`prophet-stories`) | STORY | 20 stories, live (every prophet named in the Quran; the Prophet ﷺ is in the seerah) |
-| 2 | السيرة النبوية (`seerah`) | STORY | coming soon |
+| 2 | السيرة النبوية (`seerah`) | STORY | 18 chapters, live |
 | 3 | قصص الصحابة (`companions`) | STORY | **already exists**: `existingEndpoint: /content/figures` → open the existing Figure screens |
-| 4 | العقيدة (`aqeedah`) | LESSON | coming soon |
-| 5 | أسماء الله الحسنى (`asma-husna`) | LESSON | coming soon |
+| 4 | العقيدة (`aqeedah`) | LESSON | 12 lessons, live (one section embeds the Jibril hadith as a `nawawi` block) |
+| 5 | أسماء الله الحسنى (`asma-husna`) | LESSON | 34 items (intro + 33 names or name groups), live. No quiz on name items (`hasQuiz: false`) |
 | 6 | الفقه (`fiqh`) | LESSON | 13 lessons on fasting, live (no `personAr`) |
-| 7 | دروس التجويد (`tajweed`) | LESSON | coming soon |
+| 7 | دروس التجويد (`tajweed`) | LESSON | 12 lessons (Tuhfat al-Atfal), live. Examples are ayat: «استمع» on each ayah is the key feature here |
 | 8 | الأربعون النووية (`nawawi-forty`) | HADITH | 42 hadith, live |
 | 9 | الأخلاق والمواقف (`morals`) | LESSON | **already exists**: `existingEndpoint: /stances/catalog` → open the existing «موقفك إيه؟» screens |
 
@@ -97,7 +97,7 @@ Item shape (trimmed):
 
 ## 4. Tests
 
-- [ ] The hub shows 20 stories (آدم، إدريس، نوح، هود، صالح، إبراهيم، إسماعيل، لوط، إسحاق ويعقوب، يوسف، أيوب، شعيب، موسى، هارون، داود، سليمان، إلياس واليسع وذو الكفل، يونس، زكريا ويحيى، عيسى, in that order), 13 fiqh lessons and 42 hadith. Sections with no items yet show «قريبًا».
+- [ ] The hub shows 20 stories (آدم، إدريس، نوح، هود، صالح، إبراهيم، إسماعيل، لوط، إسحاق ويعقوب، يوسف، أيوب، شعيب، موسى، هارون، داود، سليمان، إلياس واليسع وذو الكفل، يونس، زكريا ويحيى، عيسى, in that order), 18 seerah chapters, 12 aqeedah, 34 asma al-husna, 13 fiqh, 12 tajweed and 42 hadith. No section shows «قريبًا» now (companions and morals open their existing screens).
 - [ ] Fiqh lessons have no person line («عليه السلام»): hide it when `personAr` is null.
 - [ ] Companions and Morals open the existing screens, not a new list.
 - [ ] Tap an ayah → audio plays the right verse and the tafsir opens on that verse.
@@ -110,6 +110,6 @@ Item shape (trimmed):
 ## 5. Coming next (server only, no app change)
 
 - More prophet stories each week until Ramadan.
-- Fiqh of fasting (Sha'ban), tajweed lessons (Tuhfat al-Atfal), asma al-husna, aqeedah, seerah.
+- More fiqh (purification and prayer, then zakat), more seerah and tajweed lessons.
 
 New items appear as soon as the server is deployed; the app picks them up through `catalogVersion`.

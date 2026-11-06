@@ -5,7 +5,7 @@
  * pinned by SHA-256 in the build script.
  */
 
-export const LEARNING_CATALOG_VERSION = 3;
+export const LEARNING_CATALOG_VERSION = 4;
 
 export const LEARNING_SOURCES_SHA256 = {
   "prisma/data/quran-uthmani.json": "3f71fc5ad4dd7f9f9cc5fa1766e36eb26f5eb2da32aea9055828a21919bd9731",
@@ -15,7 +15,27 @@ export const LEARNING_SOURCES_SHA256 = {
   "prisma/data/hadith/ara-nawawi.json": "91f559b90422005b768bb449426d87d2e6fabbb43ac3a31e5c24c50ca77465e6"
 } as const;
 
-export const LEARNING_COLLECTIONS_DATA = [
+export type LearningVerse = { verseKey: string; ayah: number; textAr: string };
+export type LearningQuranBlock = { surah: number; surahNameAr: string; fromAyah: number; toAyah: number; referenceAr: string; verses: LearningVerse[] };
+export type LearningHadithBlock = { collection: 'bukhari' | 'muslim'; collectionAr: string; number: number; excerptsAr: string[]; sourceAr: string };
+export type LearningNawawiBlock = { number: number; textAr: string; sourceAr: string };
+export type LearningSection = {
+  index: number; titleAr: string; paragraphsAr: string[]; reflectionAr: string | null;
+  quran: LearningQuranBlock[]; hadith: LearningHadithBlock[]; nawawi: LearningNawawiBlock[];
+};
+export type LearningQuiz = { questionAr: string; optionsAr: string[]; correctIndex: number; explanationAr: string };
+export type LearningItemData = {
+  id: string; collectionId: string; order: number; titleAr: string; titleEn: string; personAr: string | null; honorificAr: string | null;
+  summaryAr: string; readingMinutes: number; sections: LearningSection[]; keyPointsAr: string[]; quiz: LearningQuiz[];
+  review: { status: 'DRAFT' | 'APPROVED'; reviewerAr: string | null; approvedAt: string | null; notesAr: string | null };
+};
+export type LearningCollectionData = {
+  id: string; order: number; kind: 'STORY' | 'LESSON' | 'HADITH'; existingEndpoint: string | null; titleAr: string; titleEn: string;
+  descriptionAr: string; methodAr: string; items: LearningItemData[];
+};
+
+/** Explicitly typed (not `as const`) so the compiler does not have to infer a literal type for every item. */
+export const LEARNING_COLLECTIONS_DATA: readonly LearningCollectionData[] = [
   {
     "id": "prophet-stories",
     "order": 1,
@@ -5851,9 +5871,2351 @@ export const LEARNING_COLLECTIONS_DATA = [
     "existingEndpoint": null,
     "titleAr": "السيرة النبوية",
     "titleEn": "The Prophetic Biography",
-    "descriptionAr": "سيرة النبي ﷺ من القرآن والأحاديث الصحيحة.",
-    "methodAr": "من القرآن الكريم وصحيحي البخاري ومسلم، ثم ما صححه أهل الحديث من السنن مع ذكر الحكم.",
-    "items": []
+    "descriptionAr": "سيرة النبي ﷺ من مولده إلى وفاته، وأخلاقه، من القرآن والأحاديث الصحيحة.",
+    "methodAr": "كل فصل من القرآن الكريم وصحيحي البخاري ومسلم بنص الحديث ورقمه. التفاصيل المشهورة التي لم ترد في هذه المصادر (تواريخ وأسماء وأعداد) تُركت عمدًا.",
+    "items": [
+      {
+        "id": "seerah-nasab",
+        "collectionId": "seerah",
+        "order": 10,
+        "titleAr": "النسب والنشأة",
+        "titleEn": "Lineage and early life",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "وُلد النبي ﷺ يوم الاثنين في مكة، من بني هاشم من قريش من ولد إسماعيل. نشأ يتيمًا فآواه الله، ورعى الغنم كما رعاها الأنبياء قبله.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "اصطفاه من خيار الخيار",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «إن الله اصطفى كنانة من ولد إسماعيل، واصطفى قريشًا من كنانة، واصطفى من قريش بني هاشم، واصطفاني من بني هاشم».",
+              "وسُئل عن صوم يوم الاثنين فقال: «ذاك يوم وُلدت فيه»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 2276,
+                "excerptsAr": [
+                  "إِنَّ اللَّهَ اصْطَفَى كِنَانَةَ مِنْ وَلَدِ إِسْمَاعِيلَ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٢٢٧٦"
+              },
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 1162,
+                "excerptsAr": [
+                  "ذَاكَ يَوْمٌ وُلِدْتُ فِيهِ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ١١٦٢"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "ألم يجدك يتيمًا فآوى",
+            "paragraphsAr": [
+              "نشأ النبي ﷺ يتيمًا، فآواه الله، ووجده فقيرًا فأغناه. ويذكّره الله بذلك في سورة الضحى."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 93,
+                "surahNameAr": "الضحى",
+                "fromAyah": 6,
+                "toAyah": 8,
+                "referenceAr": "الضحى ٦–٨",
+                "verses": [
+                  {
+                    "verseKey": "93:6",
+                    "ayah": 6,
+                    "textAr": "أَلَمْ يَجِدْكَ يَتِيمًۭا فَـَٔاوَىٰ"
+                  },
+                  {
+                    "verseKey": "93:7",
+                    "ayah": 7,
+                    "textAr": "وَوَجَدَكَ ضَآلًّۭا فَهَدَىٰ"
+                  },
+                  {
+                    "verseKey": "93:8",
+                    "ayah": 8,
+                    "textAr": "وَوَجَدَكَ عَآئِلًۭا فَأَغْنَىٰ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "رعي الغنم",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «ما بعث الله نبيًّا إلا رعى الغنم»، قالوا: وأنت؟ قال: «نعم، كنت أرعاها على قراريط لأهل مكة»."
+            ],
+            "reflectionAr": "رعي الغنم يعلّم الصبر والرحمة والمسؤولية؛ صفات يحتاجها من سيرعى أمة.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 2262,
+                "excerptsAr": [
+                  "مَا بَعَثَ اللَّهُ نَبِيًّا إِلاَّ رَعَى الْغَنَمَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٢٦٢"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "النبي ﷺ من ولد إسماعيل، من بني هاشم.",
+          "وُلد يوم الاثنين.",
+          "نشأ يتيمًا ورعى الغنم."
+        ],
+        "quiz": [
+          {
+            "questionAr": "في أي يوم وُلد النبي ﷺ؟",
+            "optionsAr": [
+              "الخميس",
+              "الجمعة",
+              "الاثنين"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح مسلم ١١٦٢."
+          },
+          {
+            "questionAr": "من أي قبيلة النبي ﷺ؟",
+            "optionsAr": [
+              "قريش، من بني هاشم",
+              "الأوس",
+              "ثقيف"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ٢٢٧٦."
+          },
+          {
+            "questionAr": "ما العمل الذي عمله كل الأنبياء؟",
+            "optionsAr": [
+              "التجارة",
+              "الزراعة",
+              "رعي الغنم"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٢٢٦٢."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-khadija",
+        "collectionId": "seerah",
+        "order": 20,
+        "titleAr": "خديجة: أول من آمن",
+        "titleEn": "Khadijah: the first to believe",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "تزوّج النبي ﷺ خديجة رضي الله عنها، فكانت أول من صدّقه وواساه. أقرأها الله السلام وبشّرها ببيت في الجنة، وما غارت عائشة على امرأة كما غارت عليها.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "كلا والله ما يخزيك الله أبدًا",
+            "paragraphsAr": [
+              "لما رجع النبي ﷺ من غار حراء خائفًا قال لخديجة: لقد خشيت على نفسي. فقالت: «كلا والله ما يخزيك الله أبدًا، إنك لتصل الرحم، وتحمل الكلّ، وتكسب المعدوم، وتقري الضيف، وتعين على نوائب الحق»."
+            ],
+            "reflectionAr": "استدلّت خديجة بأخلاقه على أن الله لن يخذله: من يحسن إلى الناس لا يضيّعه الله.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3,
+                "excerptsAr": [
+                  "كَلاَّ وَاللَّهِ مَا يُخْزِيكَ اللَّهُ أَبَدًا، إِنَّكَ لَتَصِلُ الرَّحِمَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "بيت في الجنة من قصب",
+            "paragraphsAr": [
+              "أتى جبريل النبيَّ ﷺ فقال: هذه خديجة قد أتت معها إناء فيه طعام، فإذا هي أتتك فاقرأ عليها السلام من ربها ومني، وبشّرها ببيت في الجنة من قصب لا صخب فيه ولا نصب.",
+              "وقالت عائشة: ما غرت على أحد من نساء النبي ﷺ ما غرت على خديجة، وما رأيتها، ولكن كان النبي ﷺ يكثر ذكرها."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3820,
+                "excerptsAr": [
+                  "وَبَشِّرْهَا بِبَيْتٍ فِي الْجَنَّةِ مِنْ قَصَبٍ، لاَ صَخَبَ فِيهِ وَلاَ نَصَبَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٨٢٠"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3818,
+                "excerptsAr": [
+                  "مَا غِرْتُ عَلَى أَحَدٍ مِنْ نِسَاءِ النَّبِيِّ صلى الله عليه وسلم مَا غِرْتُ عَلَى خَدِيجَةَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٨١٨"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "خديجة أول من صدّق النبي ﷺ وواساه.",
+          "الوفاء للزوجة حتى بعد وفاتها من خُلقه ﷺ."
+        ],
+        "quiz": [
+          {
+            "questionAr": "من أقرأ خديجة السلام؟",
+            "optionsAr": [
+              "أبو بكر",
+              "عائشة",
+              "ربها وجبريل"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٣٨٢٠."
+          },
+          {
+            "questionAr": "بماذا بُشّرت خديجة؟",
+            "optionsAr": [
+              "بولد",
+              "ببيت في الجنة من قصب",
+              "بمال"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٣٨٢٠."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-wahy",
+        "collectionId": "seerah",
+        "order": 30,
+        "titleAr": "بدء الوحي",
+        "titleEn": "The beginning of revelation",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "حُبّب إلى النبي ﷺ الخلاء في غار حراء، فجاءه جبريل فقال: اقرأ، فقال: ما أنا بقارئ. فنزلت أول آيات العلق، ورجع إلى خديجة يقول: زمّلوني زمّلوني.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "الرؤيا الصادقة وغار حراء",
+            "paragraphsAr": [
+              "أول ما بُدئ به رسول الله ﷺ من الوحي الرؤيا الصالحة في النوم، فكان لا يرى رؤيا إلا جاءت مثل فلق الصبح. ثم حُبّب إليه الخلاء، فكان يخلو بغار حراء فيتحنّث فيه (يتعبّد) الليالي ذوات العدد."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3,
+                "excerptsAr": [
+                  "أَوَّلُ مَا بُدِئَ بِهِ رَسُولُ اللَّهِ صلى الله عليه وسلم مِنَ الْوَحْىِ الرُّؤْيَا الصَّالِحَةُ فِي النَّوْمِ",
+                  "وَكَانَ يَخْلُو بِغَارِ حِرَاءٍ فَيَتَحَنَّثُ فِيهِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "اقرأ باسم ربك",
+            "paragraphsAr": [
+              "جاءه الملك فقال: اقرأ، قال: ما أنا بقارئ. فغطّه حتى بلغ منه الجهد ثلاث مرات، ثم قال: «اقرأ باسم ربك الذي خلق، خلق الإنسان من علق، اقرأ وربك الأكرم، الذي علّم بالقلم، علّم الإنسان ما لم يعلم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 96,
+                "surahNameAr": "العلق",
+                "fromAyah": 1,
+                "toAyah": 5,
+                "referenceAr": "العلق ١–٥",
+                "verses": [
+                  {
+                    "verseKey": "96:1",
+                    "ayah": 1,
+                    "textAr": "ٱقْرَأْ بِٱسْمِ رَبِّكَ ٱلَّذِى خَلَقَ"
+                  },
+                  {
+                    "verseKey": "96:2",
+                    "ayah": 2,
+                    "textAr": "خَلَقَ ٱلْإِنسَٰنَ مِنْ عَلَقٍ"
+                  },
+                  {
+                    "verseKey": "96:3",
+                    "ayah": 3,
+                    "textAr": "ٱقْرَأْ وَرَبُّكَ ٱلْأَكْرَمُ"
+                  },
+                  {
+                    "verseKey": "96:4",
+                    "ayah": 4,
+                    "textAr": "ٱلَّذِى عَلَّمَ بِٱلْقَلَمِ"
+                  },
+                  {
+                    "verseKey": "96:5",
+                    "ayah": 5,
+                    "textAr": "عَلَّمَ ٱلْإِنسَٰنَ مَا لَمْ يَعْلَمْ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3,
+                "excerptsAr": [
+                  "مَا أَنَا بِقَارِئٍ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "زمّلوني زمّلوني",
+            "paragraphsAr": [
+              "رجع بها رسول الله ﷺ يرجف فؤاده، فدخل على خديجة فقال: زمّلوني زمّلوني، فزمّلوه حتى ذهب عنه الروع. فطمأنته خديجة، وانطلقت به إلى ابن عمها ورقة بن نوفل، فأخبره أنه الناموس الذي نزل على موسى، وقال: يا ليتني فيها جذعًا إذ يخرجك قومك.",
+              "ثم نزل: «يا أيها المدثر، قم فأنذر، وربك فكبّر، وثيابك فطهّر، والرجز فاهجر»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 74,
+                "surahNameAr": "المدثر",
+                "fromAyah": 1,
+                "toAyah": 5,
+                "referenceAr": "المدثر ١–٥",
+                "verses": [
+                  {
+                    "verseKey": "74:1",
+                    "ayah": 1,
+                    "textAr": "يَٰٓأَيُّهَا ٱلْمُدَّثِّرُ"
+                  },
+                  {
+                    "verseKey": "74:2",
+                    "ayah": 2,
+                    "textAr": "قُمْ فَأَنذِرْ"
+                  },
+                  {
+                    "verseKey": "74:3",
+                    "ayah": 3,
+                    "textAr": "وَرَبَّكَ فَكَبِّرْ"
+                  },
+                  {
+                    "verseKey": "74:4",
+                    "ayah": 4,
+                    "textAr": "وَثِيَابَكَ فَطَهِّرْ"
+                  },
+                  {
+                    "verseKey": "74:5",
+                    "ayah": 5,
+                    "textAr": "وَٱلرُّجْزَ فَٱهْجُرْ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3,
+                "excerptsAr": [
+                  "زَمِّلُونِي زَمِّلُونِي",
+                  "يَا لَيْتَنِي فِيهَا جَذَعًا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "أول ما نزل: «اقرأ».",
+          "الوحي بدأ بالرؤيا الصادقة ثم في غار حراء.",
+          "السند الأول للنبي ﷺ كانت زوجته خديجة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "أين نزل الوحي أول مرة؟",
+            "optionsAr": [
+              "المسجد الحرام",
+              "غار حراء",
+              "غار ثور"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٣."
+          },
+          {
+            "questionAr": "ما أول ما نزل من القرآن؟",
+            "optionsAr": [
+              "يا أيها المدثر",
+              "الفاتحة",
+              "اقرأ باسم ربك"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "العلق ١–٥."
+          },
+          {
+            "questionAr": "إلى من ذهبت خديجة بالنبي ﷺ؟",
+            "optionsAr": [
+              "ورقة بن نوفل",
+              "أبي طالب",
+              "أبي بكر"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٣."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-dawa",
+        "collectionId": "seerah",
+        "order": 40,
+        "titleAr": "الدعوة جهرًا",
+        "titleEn": "The public call",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "لما نزل «وأنذر عشيرتك الأقربين» صعد النبي ﷺ الصفا ونادى بطون قريش، فقال أبو لهب: تبًّا لك، ألهذا جمعتنا؟ فنزلت «تبّت يدا أبي لهب».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "يا بني فهر، يا بني عدي",
+            "paragraphsAr": [
+              "لما نزلت «وأنذر عشيرتك الأقربين» صعد النبي ﷺ على الصفا فنادى: يا بني فهر، يا بني عدي، لبطون قريش، حتى اجتمعوا. فقال: أرأيتم لو أخبرتكم أن خيلًا بالوادي تريد أن تغير عليكم، أكنتم مصدّقيّ؟ قالوا: نعم، ما جرّبنا عليك إلا صدقًا. قال: فإني نذير لكم بين يدي عذاب شديد."
+            ],
+            "reflectionAr": "بدأ دعوته بالسؤال عن صدقه، فشهدوا به قبل أن يسمعوا ما يقول.",
+            "quran": [
+              {
+                "surah": 26,
+                "surahNameAr": "الشعراء",
+                "fromAyah": 214,
+                "toAyah": 214,
+                "referenceAr": "الشعراء ٢١٤",
+                "verses": [
+                  {
+                    "verseKey": "26:214",
+                    "ayah": 214,
+                    "textAr": "وَأَنذِرْ عَشِيرَتَكَ ٱلْأَقْرَبِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4770,
+                "excerptsAr": [
+                  "يَا بَنِي فِهْرٍ، يَا بَنِي عَدِيٍّ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٧٧٠"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "تبّت يدا أبي لهب",
+            "paragraphsAr": [
+              "فقال أبو لهب: تبًّا لك سائر اليوم، ألهذا جمعتنا؟ فأنزل الله: «تبّت يدا أبي لهب وتبّ، ما أغنى عنه ماله وما كسب، سيصلى نارًا ذات لهب»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 111,
+                "surahNameAr": "المسد",
+                "fromAyah": 1,
+                "toAyah": 3,
+                "referenceAr": "المسد ١–٣",
+                "verses": [
+                  {
+                    "verseKey": "111:1",
+                    "ayah": 1,
+                    "textAr": "تَبَّتْ يَدَآ أَبِى لَهَبٍۢ وَتَبَّ"
+                  },
+                  {
+                    "verseKey": "111:2",
+                    "ayah": 2,
+                    "textAr": "مَآ أَغْنَىٰ عَنْهُ مَالُهُۥ وَمَا كَسَبَ"
+                  },
+                  {
+                    "verseKey": "111:3",
+                    "ayah": 3,
+                    "textAr": "سَيَصْلَىٰ نَارًۭا ذَاتَ لَهَبٍۢ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4770,
+                "excerptsAr": [
+                  "تَبًّا لَكَ سَائِرَ الْيَوْمِ، أَلِهَذَا جَمَعْتَنَا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٧٧٠"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الدعوة بدأت بالأقربين.",
+          "الصدق رأس مال الداعية."
+        ],
+        "quiz": [
+          {
+            "questionAr": "على أي جبل صعد النبي ﷺ لينذر قريشًا؟",
+            "optionsAr": [
+              "عرفات",
+              "أحد",
+              "الصفا"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٤٧٧٠."
+          },
+          {
+            "questionAr": "من قال: تبًّا لك ألهذا جمعتنا؟",
+            "optionsAr": [
+              "أبو لهب",
+              "أبو جهل",
+              "أبو سفيان"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٤٧٧٠."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-adha",
+        "collectionId": "seerah",
+        "order": 50,
+        "titleAr": "الأذى والصبر في مكة",
+        "titleEn": "Persecution and patience in Makkah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "لقي النبي ﷺ وأصحابه أذى شديدًا في مكة، فكان يصبّرهم ويبشّرهم بأن الله سيتمّ هذا الأمر. وهاجر بعضهم إلى الحبشة عند النجاشي.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "اللهم عليك بقريش",
+            "paragraphsAr": [
+              "كان النبي ﷺ يصلي عند الكعبة، فجاء أحدهم بسلا جزور فوضعه على ظهره وهو ساجد، فجاءت ابنته فاطمة فطرحته عنه، فدعا عليهم: «اللهم عليك بقريش»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 240,
+                "excerptsAr": [
+                  "اللَّهُمَّ عَلَيْكَ بِقُرَيْشٍ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٤٠"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "ولكنكم تستعجلون",
+            "paragraphsAr": [
+              "جاءه خبّاب بن الأرت وهو متوسّد بردة في ظل الكعبة يشكو شدة الأذى، فقال: كان الرجل فيمن قبلكم يُنشر بالمنشار فما يصدّه ذلك عن دينه، «والله ليتمّنّ هذا الأمر حتى يسير الراكب من صنعاء إلى حضرموت لا يخاف إلا الله… ولكنكم تستعجلون»."
+            ],
+            "reflectionAr": "وعدهم بالنصر وهم في أشد الضعف، وحذّرهم من الاستعجال.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3612,
+                "excerptsAr": [
+                  "وَهْوَ مُتَوَسِّدٌ بُرْدَةً لَهُ فِي ظِلِّ الْكَعْبَةِ",
+                  "وَاللَّهِ لَيُتِمَّنَّ هَذَا الأَمْرَ حَتَّى يَسِيرَ الرَّاكِبُ مِنْ صَنْعَاءَ إِلَى حَضْرَمَوْتَ، لاَ يَخَافُ إِلاَّ اللَّهَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٦١٢"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "النجاشي",
+            "paragraphsAr": [
+              "هاجر بعض المسلمين إلى الحبشة فأمنوا عند ملكها النجاشي. ولما مات نعاه النبي ﷺ في اليوم الذي مات فيه، وصلّى عليه بأصحابه."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 15,
+                "surahNameAr": "الحجر",
+                "fromAyah": 94,
+                "toAyah": 94,
+                "referenceAr": "الحجر ٩٤",
+                "verses": [
+                  {
+                    "verseKey": "15:94",
+                    "ayah": 94,
+                    "textAr": "فَٱصْدَعْ بِمَا تُؤْمَرُ وَأَعْرِضْ عَنِ ٱلْمُشْرِكِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 1245,
+                "excerptsAr": [
+                  "نَعَى النَّجَاشِيَّ فِي الْيَوْمِ الَّذِي مَاتَ فِيهِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٢٤٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الطريق إلى النصر يمر بالصبر.",
+          "لا تستعجل النتائج.",
+          "الحبشة أول هجرة للمسلمين."
+        ],
+        "quiz": [
+          {
+            "questionAr": "من أزال الأذى عن ظهر النبي ﷺ وهو ساجد؟",
+            "optionsAr": [
+              "فاطمة",
+              "عائشة",
+              "خديجة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٢٤٠."
+          },
+          {
+            "questionAr": "ماذا قال النبي ﷺ لخبّاب في آخر كلامه؟",
+            "optionsAr": [
+              "هاجروا",
+              "ولكنكم تستعجلون",
+              "اصبروا ولا تعجلوا"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٣٦١٢."
+          },
+          {
+            "questionAr": "من ملك الحبشة الذي أمّن المسلمين؟",
+            "optionsAr": [
+              "هرقل",
+              "النجاشي",
+              "كسرى"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ١٢٤٥."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-taif",
+        "collectionId": "seerah",
+        "order": 60,
+        "titleAr": "يوم الطائف",
+        "titleEn": "The day of Taif",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "عرض النبي ﷺ نفسه على أهل الطائف فردّوه ردًّا قبيحًا، فجاءه ملك الجبال يستأذنه أن يطبق عليهم الأخشبين، فقال: بل أرجو أن يخرج الله من أصلابهم من يعبد الله وحده.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "أشد من يوم أحد",
+            "paragraphsAr": [
+              "سألته عائشة: هل أتى عليك يوم كان أشد من يوم أحد؟ فذكر يوم عرض نفسه على ابن عبد ياليل فلم يُجبه، فانطلق وهو مهموم، فلم يستفق إلا بقرن الثعالب.",
+              "فإذا سحابة قد أظلّته، فيها جبريل، فناداه: إن الله قد سمع قول قومك، وقد بعث إليك ملك الجبال لتأمره بما شئت فيهم."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3231,
+                "excerptsAr": [
+                  "هَلْ أَتَى عَلَيْكَ يَوْمٌ كَانَ أَشَدَّ مِنْ يَوْمِ أُحُدٍ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٢٣١"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "بل أرجو",
+            "paragraphsAr": [
+              "قال ملك الجبال: إن شئت أن أطبق عليهم الأخشبين. فقال النبي ﷺ: «بل أرجو أن يخرج الله من أصلابهم من يعبد الله وحده لا يشرك به شيئًا»."
+            ],
+            "reflectionAr": "في أشد لحظة ألم، اختار الرحمة والأمل: «وما أرسلناك إلا رحمة للعالمين».",
+            "quran": [
+              {
+                "surah": 21,
+                "surahNameAr": "الأنبياء",
+                "fromAyah": 107,
+                "toAyah": 107,
+                "referenceAr": "الأنبياء ١٠٧",
+                "verses": [
+                  {
+                    "verseKey": "21:107",
+                    "ayah": 107,
+                    "textAr": "وَمَآ أَرْسَلْنَٰكَ إِلَّا رَحْمَةًۭ لِّلْعَٰلَمِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3231,
+                "excerptsAr": [
+                  "بَلْ أَرْجُو أَنْ يُخْرِجَ اللَّهُ مِنْ أَصْلاَبِهِمْ مَنْ يَعْبُدُ اللَّهَ وَحْدَهُ لاَ يُشْرِكُ بِهِ شَيْئًا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٢٣١"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الرحمة مع القدرة على الانتقام.",
+          "الأمل في هداية الأجيال القادمة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "من عرض على النبي ﷺ أن يطبق الجبلين على أهل الطائف؟",
+            "optionsAr": [
+              "ملك الجبال",
+              "ميكائيل",
+              "جبريل"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٣٢٣١."
+          },
+          {
+            "questionAr": "بماذا أجاب النبي ﷺ؟",
+            "optionsAr": [
+              "بل أرجو أن يخرج الله من أصلابهم من يعبد الله",
+              "افعل",
+              "أمهلهم سنة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٣٢٣١."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-isra",
+        "collectionId": "seerah",
+        "order": 70,
+        "titleAr": "الإسراء والمعراج",
+        "titleEn": "The Night Journey and the Ascension",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "أسرى الله بنبيه ﷺ ليلًا من المسجد الحرام إلى المسجد الأقصى، ثم عرج به إلى السماوات، فلقي الأنبياء، ورأى من آيات ربه الكبرى، وفُرضت الصلوات الخمس.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "سبحان الذي أسرى بعبده",
+            "paragraphsAr": [
+              "«سبحان الذي أسرى بعبده ليلًا من المسجد الحرام إلى المسجد الأقصى الذي باركنا حوله لنريه من آياتنا».",
+              "وحدّث النبي ﷺ: بينا أنا عند البيت بين النائم واليقظان… فأتيت بدابة تُسمّى البراق، ثم عُرج به إلى السماء."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 17,
+                "surahNameAr": "الإسراء",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الإسراء ١",
+                "verses": [
+                  {
+                    "verseKey": "17:1",
+                    "ayah": 1,
+                    "textAr": "سُبْحَٰنَ ٱلَّذِىٓ أَسْرَىٰ بِعَبْدِهِۦ لَيْلًۭا مِّنَ ٱلْمَسْجِدِ ٱلْحَرَامِ إِلَى ٱلْمَسْجِدِ ٱلْأَقْصَا ٱلَّذِى بَٰرَكْنَا حَوْلَهُۥ لِنُرِيَهُۥ مِنْ ءَايَٰتِنَآ ۚ إِنَّهُۥ هُوَ ٱلسَّمِيعُ ٱلْبَصِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3207,
+                "excerptsAr": [
+                  "بَيْنَا أَنَا عِنْدَ الْبَيْتِ بَيْنَ النَّائِمِ وَالْيَقْظَانِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٢٠٧"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "لقاء الأنبياء",
+            "paragraphsAr": [
+              "لقي في السماء الأولى آدم، وفي الثانية يحيى وعيسى، وفي الثالثة يوسف، وفي الرابعة إدريس، وفي الخامسة هارون، وفي السادسة موسى، وفي السابعة إبراهيم، وكلهم يرحّب به: مرحبًا بالأخ الصالح والنبي الصالح.",
+              "ورأى جبريل على صورته عند سدرة المنتهى، عندها جنة المأوى، لقد رأى من آيات ربه الكبرى."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 53,
+                "surahNameAr": "النجم",
+                "fromAyah": 13,
+                "toAyah": 18,
+                "referenceAr": "النجم ١٣–١٨",
+                "verses": [
+                  {
+                    "verseKey": "53:13",
+                    "ayah": 13,
+                    "textAr": "وَلَقَدْ رَءَاهُ نَزْلَةً أُخْرَىٰ"
+                  },
+                  {
+                    "verseKey": "53:14",
+                    "ayah": 14,
+                    "textAr": "عِندَ سِدْرَةِ ٱلْمُنتَهَىٰ"
+                  },
+                  {
+                    "verseKey": "53:15",
+                    "ayah": 15,
+                    "textAr": "عِندَهَا جَنَّةُ ٱلْمَأْوَىٰٓ"
+                  },
+                  {
+                    "verseKey": "53:16",
+                    "ayah": 16,
+                    "textAr": "إِذْ يَغْشَى ٱلسِّدْرَةَ مَا يَغْشَىٰ"
+                  },
+                  {
+                    "verseKey": "53:17",
+                    "ayah": 17,
+                    "textAr": "مَا زَاغَ ٱلْبَصَرُ وَمَا طَغَىٰ"
+                  },
+                  {
+                    "verseKey": "53:18",
+                    "ayah": 18,
+                    "textAr": "لَقَدْ رَأَىٰ مِنْ ءَايَٰتِ رَبِّهِ ٱلْكُبْرَىٰٓ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3887,
+                "excerptsAr": [
+                  "إِذَا يَحْيَى وَعِيسَى، وَهُمَا ابْنَا الْخَالَةِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٨٨٧"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "هي خمس وهي خمسون",
+            "paragraphsAr": [
+              "فُرضت عليه الصلوات خمسين صلاة، فرجع إلى موسى فقال له: إن أمتك لا تستطيع، فارجع إلى ربك فاسأله التخفيف. فما زال يراجع حتى صارت خمسًا، فنودي: «هي خمس وهي خمسون، لا يبدّل القول لديّ»."
+            ],
+            "reflectionAr": "الصلاة فُرضت في السماء بلا واسطة، وأجرها أجر خمسين.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3887,
+                "excerptsAr": [
+                  "ثُمَّ فُرِضَتْ عَلَىَّ الصَّلَوَاتُ خَمْسِينَ صَلاَةً"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٨٨٧"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 349,
+                "excerptsAr": [
+                  "هِيَ خَمْسٌ وَهْىَ خَمْسُونَ، لاَ يُبَدَّلُ الْقَوْلُ لَدَىَّ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٤٩"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الإسراء من المسجد الحرام إلى الأقصى، ثم المعراج.",
+          "الصلوات خمس في العدد وخمسون في الأجر."
+        ],
+        "quiz": [
+          {
+            "questionAr": "من أين بدأ الإسراء وإلى أين؟",
+            "optionsAr": [
+              "من المسجد الحرام إلى الأقصى",
+              "من المدينة إلى مكة",
+              "من مكة إلى الطائف"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "الإسراء ١."
+          },
+          {
+            "questionAr": "كم صلاة فُرضت أول الأمر؟",
+            "optionsAr": [
+              "خمسون",
+              "خمس",
+              "عشر"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٣٨٨٧."
+          },
+          {
+            "questionAr": "من أشار على النبي ﷺ بسؤال التخفيف؟",
+            "optionsAr": [
+              "عيسى",
+              "إبراهيم",
+              "موسى"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٣٨٨٧."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-hijra",
+        "collectionId": "seerah",
+        "order": 80,
+        "titleAr": "الهجرة",
+        "titleEn": "The Hijrah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "مكر المشركون ليقتلوا النبي ﷺ أو يخرجوه، فهاجر مع أبي بكر إلى المدينة، واختبآ في الغار، والمشركون عند بابه، فقال: ما ظنك باثنين الله ثالثهما؟",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "وإذ يمكر بك الذين كفروا",
+            "paragraphsAr": [
+              "اجتمع المشركون على أن يحبسوا النبي ﷺ أو يقتلوه أو يخرجوه، «ويمكرون ويمكر الله والله خير الماكرين». فأذن الله له بالهجرة إلى المدينة، وصحبه أبو بكر الصديق."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 8,
+                "surahNameAr": "الأنفال",
+                "fromAyah": 30,
+                "toAyah": 30,
+                "referenceAr": "الأنفال ٣٠",
+                "verses": [
+                  {
+                    "verseKey": "8:30",
+                    "ayah": 30,
+                    "textAr": "وَإِذْ يَمْكُرُ بِكَ ٱلَّذِينَ كَفَرُوا۟ لِيُثْبِتُوكَ أَوْ يَقْتُلُوكَ أَوْ يُخْرِجُوكَ ۚ وَيَمْكُرُونَ وَيَمْكُرُ ٱللَّهُ ۖ وَٱللَّهُ خَيْرُ ٱلْمَٰكِرِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "ثاني اثنين إذ هما في الغار",
+            "paragraphsAr": [
+              "قال أبو بكر: كنت مع النبي ﷺ في الغار، فرأيت آثار المشركين، فقلت: يا رسول الله لو أن أحدهم رفع قدمه رآنا. فقال: «ما ظنك باثنين الله ثالثهما».",
+              "ونزل في ذلك: «إذ يقول لصاحبه لا تحزن إن الله معنا، فأنزل الله سكينته عليه»."
+            ],
+            "reflectionAr": "الأخذ بالأسباب كاملًا (الغار والدليل والتخفّي)، ثم تعلّق القلب بالله وحده.",
+            "quran": [
+              {
+                "surah": 9,
+                "surahNameAr": "التوبة",
+                "fromAyah": 40,
+                "toAyah": 40,
+                "referenceAr": "التوبة ٤٠",
+                "verses": [
+                  {
+                    "verseKey": "9:40",
+                    "ayah": 40,
+                    "textAr": "إِلَّا تَنصُرُوهُ فَقَدْ نَصَرَهُ ٱللَّهُ إِذْ أَخْرَجَهُ ٱلَّذِينَ كَفَرُوا۟ ثَانِىَ ٱثْنَيْنِ إِذْ هُمَا فِى ٱلْغَارِ إِذْ يَقُولُ لِصَٰحِبِهِۦ لَا تَحْزَنْ إِنَّ ٱللَّهَ مَعَنَا ۖ فَأَنزَلَ ٱللَّهُ سَكِينَتَهُۥ عَلَيْهِ وَأَيَّدَهُۥ بِجُنُودٍۢ لَّمْ تَرَوْهَا وَجَعَلَ كَلِمَةَ ٱلَّذِينَ كَفَرُوا۟ ٱلسُّفْلَىٰ ۗ وَكَلِمَةُ ٱللَّهِ هِىَ ٱلْعُلْيَا ۗ وَٱللَّهُ عَزِيزٌ حَكِيمٌ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3653,
+                "excerptsAr": [
+                  "لَوْ أَنَّ أَحَدَهُمْ نَظَرَ تَحْتَ قَدَمَيْهِ لأَبْصَرَنَا",
+                  "مَا ظَنُّكَ يَا أَبَا بَكْرٍ بِاثْنَيْنِ اللَّهُ ثَالِثُهُمَا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٦٥٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "المؤاخاة في المدينة",
+            "paragraphsAr": [
+              "لما قدموا المدينة آخى رسول الله ﷺ بين المهاجرين والأنصار، ومن ذلك أنه آخى بين عبد الرحمن بن عوف وسعد بن الربيع، فعرض سعد أن يقاسمه ماله، فقال عبد الرحمن: بارك الله لك في أهلك ومالك، دلّوني على السوق."
+            ],
+            "reflectionAr": "كرم الأنصار وعفّة المهاجرين: هكذا يُبنى المجتمع.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3780,
+                "excerptsAr": [
+                  "لَمَّا قَدِمُوا الْمَدِينَةَ آخَى رَسُولُ اللَّهِ صلى الله عليه وسلم بَيْنَ عَبْدِ الرَّحْمَنِ وَسَعْدِ بْنِ الرَّبِيعِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٧٨٠"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الهجرة مع أبي بكر، والاختباء في الغار.",
+          "«لا تحزن إن الله معنا».",
+          "المؤاخاة أساس المجتمع الجديد."
+        ],
+        "quiz": [
+          {
+            "questionAr": "من صحب النبي ﷺ في الهجرة؟",
+            "optionsAr": [
+              "علي",
+              "عمر",
+              "أبو بكر"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "التوبة ٤٠، البخاري ٣٦٥٣."
+          },
+          {
+            "questionAr": "ماذا قال النبي ﷺ لأبي بكر في الغار؟",
+            "optionsAr": [
+              "اهرب",
+              "سنقاتلهم",
+              "ما ظنك باثنين الله ثالثهما"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٣٦٥٣."
+          },
+          {
+            "questionAr": "بين من آخى النبي ﷺ وسعد بن الربيع؟",
+            "optionsAr": [
+              "أبي بكر",
+              "عبد الرحمن بن عوف",
+              "بلال"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٣٧٨٠."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-badr",
+        "collectionId": "seerah",
+        "order": 90,
+        "titleAr": "غزوة بدر",
+        "titleEn": "The Battle of Badr",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "نصر الله المسلمين ببدر وهم أذلة قليلون، بعد أن استغاث النبي ﷺ ربه: اللهم أنجز لي ما وعدتني، فأمدّهم الله بالملائكة.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "ولقد نصركم الله ببدر",
+            "paragraphsAr": [
+              "خرج المسلمون قليلين، فنصرهم الله على عدوهم الأكثر عددًا وعُدّة: «ولقد نصركم الله ببدر وأنتم أذلّة»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 123,
+                "toAyah": 123,
+                "referenceAr": "ال عمران ١٢٣",
+                "verses": [
+                  {
+                    "verseKey": "3:123",
+                    "ayah": 123,
+                    "textAr": "وَلَقَدْ نَصَرَكُمُ ٱللَّهُ بِبَدْرٍۢ وَأَنتُمْ أَذِلَّةٌۭ ۖ فَٱتَّقُوا۟ ٱللَّهَ لَعَلَّكُمْ تَشْكُرُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "اللهم أنجز لي ما وعدتني",
+            "paragraphsAr": [
+              "استقبل النبي ﷺ القبلة يوم بدر ومدّ يديه يهتف بربه: «اللهم أنجز لي ما وعدتني»، حتى سقط رداؤه عن منكبيه. فأنزل الله: «إذ تستغيثون ربكم فاستجاب لكم أني ممدّكم بألف من الملائكة مردفين»."
+            ],
+            "reflectionAr": "أعدّ الجيش وصفّ الصفوف، ثم قضى ليلته في الدعاء: الأسباب والدعاء معًا.",
+            "quran": [
+              {
+                "surah": 8,
+                "surahNameAr": "الأنفال",
+                "fromAyah": 9,
+                "toAyah": 9,
+                "referenceAr": "الأنفال ٩",
+                "verses": [
+                  {
+                    "verseKey": "8:9",
+                    "ayah": 9,
+                    "textAr": "إِذْ تَسْتَغِيثُونَ رَبَّكُمْ فَٱسْتَجَابَ لَكُمْ أَنِّى مُمِدُّكُم بِأَلْفٍۢ مِّنَ ٱلْمَلَٰٓئِكَةِ مُرْدِفِينَ"
+                  }
+                ]
+              },
+              {
+                "surah": 8,
+                "surahNameAr": "الأنفال",
+                "fromAyah": 17,
+                "toAyah": 17,
+                "referenceAr": "الأنفال ١٧",
+                "verses": [
+                  {
+                    "verseKey": "8:17",
+                    "ayah": 17,
+                    "textAr": "فَلَمْ تَقْتُلُوهُمْ وَلَٰكِنَّ ٱللَّهَ قَتَلَهُمْ ۚ وَمَا رَمَيْتَ إِذْ رَمَيْتَ وَلَٰكِنَّ ٱللَّهَ رَمَىٰ ۚ وَلِيُبْلِىَ ٱلْمُؤْمِنِينَ مِنْهُ بَلَآءً حَسَنًا ۚ إِنَّ ٱللَّهَ سَمِيعٌ عَلِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 1763,
+                "excerptsAr": [
+                  "اللَّهُمَّ أَنْجِزْ لِي مَا وَعَدْتَنِي"
+                ],
+                "sourceAr": "رواه مسلم — رقم ١٧٦٣"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "النصر من عند الله لا بالكثرة.",
+          "الدعاء سلاح المؤمن مع الأخذ بالأسباب."
+        ],
+        "quiz": [
+          {
+            "questionAr": "بماذا أمدّ الله المسلمين يوم بدر؟",
+            "optionsAr": [
+              "بجيش من اليمن",
+              "بألف من الملائكة",
+              "بالمطر فقط"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "الأنفال ٩."
+          },
+          {
+            "questionAr": "ماذا كان دعاء النبي ﷺ يوم بدر؟",
+            "optionsAr": [
+              "اللهم أنجز لي ما وعدتني",
+              "ربنا آتنا في الدنيا حسنة",
+              "اللهم اهد قومي"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ١٧٦٣."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-uhud",
+        "collectionId": "seerah",
+        "order": 100,
+        "titleAr": "غزوة أحد",
+        "titleEn": "The Battle of Uhud",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "أمر النبي ﷺ الرماة ألا يبرحوا مكانهم، فلما رأوا الغنيمة نزل أكثرهم، فتحوّل النصر إلى ابتلاء. ونزلت آيات آل عمران تعلّم الأمة من الدرس.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "لا تبرحوا",
+            "paragraphsAr": [
+              "جعل النبي ﷺ الرماة على الجبل وقال: «لا تبرحوا، إن رأيتمونا ظهرنا عليهم فلا تبرحوا، وإن رأيتموهم ظهروا علينا فلا تعينونا». فلما انهزم المشركون أول الأمر نزل كثير من الرماة يطلبون الغنيمة."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4043,
+                "excerptsAr": [
+                  "لاَ تَبْرَحُوا، إِنْ رَأَيْتُمُونَا ظَهَرْنَا عَلَيْهِمْ فَلاَ تَبْرَحُوا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٠٤٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "حتى إذا فشلتم وتنازعتم",
+            "paragraphsAr": [
+              "قال الله: «ولقد صدقكم الله وعده إذ تحسّونهم بإذنه، حتى إذا فشلتم وتنازعتم في الأمر وعصيتم من بعد ما أراكم ما تحبون، منكم من يريد الدنيا ومنكم من يريد الآخرة»."
+            ],
+            "reflectionAr": "لحظة مخالفة واحدة غيّرت مسار المعركة؛ الطاعة في التفاصيل الصغيرة تحفظ النتائج الكبيرة.",
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 152,
+                "toAyah": 152,
+                "referenceAr": "ال عمران ١٥٢",
+                "verses": [
+                  {
+                    "verseKey": "3:152",
+                    "ayah": 152,
+                    "textAr": "وَلَقَدْ صَدَقَكُمُ ٱللَّهُ وَعْدَهُۥٓ إِذْ تَحُسُّونَهُم بِإِذْنِهِۦ ۖ حَتَّىٰٓ إِذَا فَشِلْتُمْ وَتَنَٰزَعْتُمْ فِى ٱلْأَمْرِ وَعَصَيْتُم مِّنۢ بَعْدِ مَآ أَرَىٰكُم مَّا تُحِبُّونَ ۚ مِنكُم مَّن يُرِيدُ ٱلدُّنْيَا وَمِنكُم مَّن يُرِيدُ ٱلْءَاخِرَةَ ۚ ثُمَّ صَرَفَكُمْ عَنْهُمْ لِيَبْتَلِيَكُمْ ۖ وَلَقَدْ عَفَا عَنكُمْ ۗ وَٱللَّهُ ذُو فَضْلٍ عَلَى ٱلْمُؤْمِنِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "مخالفة الأمر سبب للهزيمة.",
+          "حب الدنيا قد يفسد أعظم الأعمال."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما الأمر الذي أعطاه النبي ﷺ للرماة؟",
+            "optionsAr": [
+              "لا تبرحوا مكانكم",
+              "انزلوا للغنيمة",
+              "اهجموا أولًا"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٤٠٤٣."
+          },
+          {
+            "questionAr": "في أي سورة نزل الحديث عن أحد؟",
+            "optionsAr": [
+              "الأحزاب",
+              "الأنفال",
+              "آل عمران"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "آل عمران ١٥٢."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-khandaq",
+        "collectionId": "seerah",
+        "order": 110,
+        "titleAr": "غزوة الأحزاب (الخندق)",
+        "titleEn": "The Battle of the Trench",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "اجتمعت الأحزاب على المدينة، فحفر المسلمون الخندق مع النبي ﷺ في جوع وبرد، حتى زاغت الأبصار وبلغت القلوب الحناجر، فأرسل الله عليهم ريحًا وجنودًا لم يروها.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "حفر الخندق",
+            "paragraphsAr": [
+              "قال جابر: إنا يوم الخندق نحفر، فعرضت كدية شديدة (صخرة)، فجاء النبي ﷺ وبطنه معصوب بحجر من الجوع، فأخذ المعول فضرب فعادت كثيبًا.",
+              "وكان النبي ﷺ يحفر معهم ويرتجز: «اللهم لا عيش إلا عيش الآخرة، فاغفر للأنصار والمهاجرة»."
+            ],
+            "reflectionAr": "القائد يحفر مع جنوده ويجوع معهم.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4101,
+                "excerptsAr": [
+                  "إِنَّا يَوْمَ الْخَنْدَقِ نَحْفِرُ فَعَرَضَتْ كُدْيَةٌ شَدِيدَةٌ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤١٠١"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4098,
+                "excerptsAr": [
+                  "اللَّهُمَّ لاَ عَيْشَ إِلاَّ عَيْشُ الآخِرَهْ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٠٩٨"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "وبلغت القلوب الحناجر",
+            "paragraphsAr": [
+              "جاءتهم الأحزاب من فوقهم ومن أسفل منهم، وزاغت الأبصار وبلغت القلوب الحناجر، وزُلزل المؤمنون زلزالًا شديدًا، فأرسل الله عليهم ريحًا وجنودًا لم تروها.",
+              "ولما رأى المؤمنون الأحزاب قالوا: هذا ما وعدنا الله ورسوله وصدق الله ورسوله، وما زادهم إلا إيمانًا وتسليمًا."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 33,
+                "surahNameAr": "الأحزاب",
+                "fromAyah": 9,
+                "toAyah": 11,
+                "referenceAr": "الأحزاب ٩–١١",
+                "verses": [
+                  {
+                    "verseKey": "33:9",
+                    "ayah": 9,
+                    "textAr": "يَٰٓأَيُّهَا ٱلَّذِينَ ءَامَنُوا۟ ٱذْكُرُوا۟ نِعْمَةَ ٱللَّهِ عَلَيْكُمْ إِذْ جَآءَتْكُمْ جُنُودٌۭ فَأَرْسَلْنَا عَلَيْهِمْ رِيحًۭا وَجُنُودًۭا لَّمْ تَرَوْهَا ۚ وَكَانَ ٱللَّهُ بِمَا تَعْمَلُونَ بَصِيرًا"
+                  },
+                  {
+                    "verseKey": "33:10",
+                    "ayah": 10,
+                    "textAr": "إِذْ جَآءُوكُم مِّن فَوْقِكُمْ وَمِنْ أَسْفَلَ مِنكُمْ وَإِذْ زَاغَتِ ٱلْأَبْصَٰرُ وَبَلَغَتِ ٱلْقُلُوبُ ٱلْحَنَاجِرَ وَتَظُنُّونَ بِٱللَّهِ ٱلظُّنُونَا۠"
+                  },
+                  {
+                    "verseKey": "33:11",
+                    "ayah": 11,
+                    "textAr": "هُنَالِكَ ٱبْتُلِىَ ٱلْمُؤْمِنُونَ وَزُلْزِلُوا۟ زِلْزَالًۭا شَدِيدًۭا"
+                  }
+                ]
+              },
+              {
+                "surah": 33,
+                "surahNameAr": "الأحزاب",
+                "fromAyah": 22,
+                "toAyah": 22,
+                "referenceAr": "الأحزاب ٢٢",
+                "verses": [
+                  {
+                    "verseKey": "33:22",
+                    "ayah": 22,
+                    "textAr": "وَلَمَّا رَءَا ٱلْمُؤْمِنُونَ ٱلْأَحْزَابَ قَالُوا۟ هَٰذَا مَا وَعَدَنَا ٱللَّهُ وَرَسُولُهُۥ وَصَدَقَ ٱللَّهُ وَرَسُولُهُۥ ۚ وَمَا زَادَهُمْ إِلَّآ إِيمَٰنًۭا وَتَسْلِيمًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الابتلاء يزيد المؤمن إيمانًا.",
+          "النصر قد يأتي بجنود لا تُرى."
+        ],
+        "quiz": [
+          {
+            "questionAr": "بماذا ردّ الله الأحزاب؟",
+            "optionsAr": [
+              "بريح وجنود لم يروها",
+              "بالصلح",
+              "بقتال شديد"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "الأحزاب ٩."
+          },
+          {
+            "questionAr": "من روى قصة الصخرة في الخندق؟",
+            "optionsAr": [
+              "ابن عباس",
+              "جابر بن عبد الله",
+              "أنس بن مالك"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٤١٠١."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-hudaybiya",
+        "collectionId": "seerah",
+        "order": 120,
+        "titleAr": "صلح الحديبية",
+        "titleEn": "The Treaty of Hudaybiyyah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "خرج النبي ﷺ معتمرًا فصدّته قريش، فبايعه الصحابة تحت الشجرة، ثم صالح قريشًا صلحًا ظاهره الشدة، فسمّاه الله فتحًا مبينًا.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "بيعة الرضوان",
+            "paragraphsAr": [
+              "بايع الصحابة النبي ﷺ تحت الشجرة، فقال الله: «لقد رضي الله عن المؤمنين إذ يبايعونك تحت الشجرة، فعلم ما في قلوبهم فأنزل السكينة عليهم وأثابهم فتحًا قريبًا»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 48,
+                "surahNameAr": "الفتح",
+                "fromAyah": 18,
+                "toAyah": 18,
+                "referenceAr": "الفتح ١٨",
+                "verses": [
+                  {
+                    "verseKey": "48:18",
+                    "ayah": 18,
+                    "textAr": "۞ لَّقَدْ رَضِىَ ٱللَّهُ عَنِ ٱلْمُؤْمِنِينَ إِذْ يُبَايِعُونَكَ تَحْتَ ٱلشَّجَرَةِ فَعَلِمَ مَا فِى قُلُوبِهِمْ فَأَنزَلَ ٱلسَّكِينَةَ عَلَيْهِمْ وَأَثَٰبَهُمْ فَتْحًۭا قَرِيبًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "هذا ما قاضى عليه محمد رسول الله",
+            "paragraphsAr": [
+              "لما كُتب الصلح قال النبي ﷺ: اكتب: هذا ما قاضى عليه محمد رسول الله. فقال سهيل بن عمرو: والله لو كنا نعلم أنك رسول الله ما صددناك عن البيت ولا قاتلناك، ولكن اكتب محمد بن عبد الله. فقبل النبي ﷺ."
+            ],
+            "reflectionAr": "تنازل عن اللفظ وثبت على الأصل؛ الحكمة في التفاوض ليست ضعفًا.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 2731,
+                "excerptsAr": [
+                  "هَذَا مَا قَاضَى عَلَيْهِ مُحَمَّدٌ رَسُولُ اللَّهِ",
+                  "وَاللَّهِ لَوْ كُنَّا نَعْلَمُ أَنَّكَ رَسُولُ اللَّهِ مَا صَدَدْنَاكَ عَنِ الْبَيْتِ وَلاَ قَاتَلْنَاكَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٧٣١"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "إنا فتحنا لك فتحًا مبينًا",
+            "paragraphsAr": [
+              "رجع المسلمون وفي نفوس بعضهم حزن من شروط الصلح، فنزلت: «إنا فتحنا لك فتحًا مبينًا». فكان الصلح بابًا لدخول الناس في الإسلام وتمهيدًا لفتح مكة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 48,
+                "surahNameAr": "الفتح",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الفتح ١",
+                "verses": [
+                  {
+                    "verseKey": "48:1",
+                    "ayah": 1,
+                    "textAr": "إِنَّا فَتَحْنَا لَكَ فَتْحًۭا مُّبِينًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "ما يبدو خسارة قد يكون فتحًا.",
+          "الصبر على الشروط الصعبة لأجل المصلحة الكبرى."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ماذا سمّى الله صلح الحديبية؟",
+            "optionsAr": [
+              "فتحًا مبينًا",
+              "هدنة",
+              "هزيمة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "الفتح ١."
+          },
+          {
+            "questionAr": "أين كانت بيعة الرضوان؟",
+            "optionsAr": [
+              "في المسجد",
+              "تحت الشجرة",
+              "في الغار"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "الفتح ١٨."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-fath",
+        "collectionId": "seerah",
+        "order": 130,
+        "titleAr": "فتح مكة",
+        "titleEn": "The conquest of Makkah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "دخل النبي ﷺ مكة فاتحًا، فطاف بالكعبة وحطّم الأصنام وهو يقول: جاء الحق وزهق الباطل. ونزلت سورة النصر.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "جاء الحق وزهق الباطل",
+            "paragraphsAr": [
+              "دخل النبي ﷺ مكة يوم الفتح وحول البيت ستون وثلاثمائة نُصُب، فجعل يطعنها بعود في يده ويقول: «جاء الحق وزهق الباطل، جاء الحق وما يبدئ الباطل وما يعيد»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 17,
+                "surahNameAr": "الإسراء",
+                "fromAyah": 81,
+                "toAyah": 81,
+                "referenceAr": "الإسراء ٨١",
+                "verses": [
+                  {
+                    "verseKey": "17:81",
+                    "ayah": 81,
+                    "textAr": "وَقُلْ جَآءَ ٱلْحَقُّ وَزَهَقَ ٱلْبَٰطِلُ ۚ إِنَّ ٱلْبَٰطِلَ كَانَ زَهُوقًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4287,
+                "excerptsAr": [
+                  "جَاءَ الْحَقُّ وَزَهَقَ الْبَاطِلُ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٢٨٧"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "إذا جاء نصر الله والفتح",
+            "paragraphsAr": [
+              "ودخل الناس في دين الله أفواجًا، فأُمر النبي ﷺ أن يسبّح بحمد ربه ويستغفره. فالنصر يُقابل بالتسبيح والاستغفار لا بالفخر."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 110,
+                "surahNameAr": "النصر",
+                "fromAyah": 1,
+                "toAyah": 3,
+                "referenceAr": "النصر ١–٣",
+                "verses": [
+                  {
+                    "verseKey": "110:1",
+                    "ayah": 1,
+                    "textAr": "إِذَا جَآءَ نَصْرُ ٱللَّهِ وَٱلْفَتْحُ"
+                  },
+                  {
+                    "verseKey": "110:2",
+                    "ayah": 2,
+                    "textAr": "وَرَأَيْتَ ٱلنَّاسَ يَدْخُلُونَ فِى دِينِ ٱللَّهِ أَفْوَاجًۭا"
+                  },
+                  {
+                    "verseKey": "110:3",
+                    "ayah": 3,
+                    "textAr": "فَسَبِّحْ بِحَمْدِ رَبِّكَ وَٱسْتَغْفِرْهُ ۚ إِنَّهُۥ كَانَ تَوَّابًۢا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الفتح انتهى بتطهير البيت من الأصنام.",
+          "النصر يُقابل بالتسبيح والاستغفار."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ماذا كان يقول النبي ﷺ وهو يحطّم الأصنام؟",
+            "optionsAr": [
+              "الله أكبر فقط",
+              "لا إله إلا الله",
+              "جاء الحق وزهق الباطل"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٤٢٨٧."
+          },
+          {
+            "questionAr": "بماذا أُمر النبي ﷺ عند النصر؟",
+            "optionsAr": [
+              "الفخر",
+              "التسبيح والاستغفار",
+              "الراحة"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "سورة النصر."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-hunayn-tabuk",
+        "collectionId": "seerah",
+        "order": 140,
+        "titleAr": "حنين وتبوك",
+        "titleEn": "Hunayn and Tabuk",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "يوم حنين أعجبت المسلمين كثرتهم فلم تغنِ عنهم شيئًا، وثبت النبي ﷺ يقول: أنا النبي لا كذب. وفي تبوك تخلّف كعب بن مالك وصاحباه، فصدقوا فتاب الله عليهم.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "إذ أعجبتكم كثرتكم",
+            "paragraphsAr": [
+              "يوم حنين أعجبت المسلمين كثرتهم فلم تغنِ عنهم شيئًا، وضاقت عليهم الأرض بما رحبت، ثم ولّوا مدبرين. وثبت النبي ﷺ على بغلته يقول: «أنا النبي لا كذب، أنا ابن عبد المطلب»، ثم أنزل الله سكينته ونصره."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 9,
+                "surahNameAr": "التوبة",
+                "fromAyah": 25,
+                "toAyah": 26,
+                "referenceAr": "التوبة ٢٥–٢٦",
+                "verses": [
+                  {
+                    "verseKey": "9:25",
+                    "ayah": 25,
+                    "textAr": "لَقَدْ نَصَرَكُمُ ٱللَّهُ فِى مَوَاطِنَ كَثِيرَةٍۢ ۙ وَيَوْمَ حُنَيْنٍ ۙ إِذْ أَعْجَبَتْكُمْ كَثْرَتُكُمْ فَلَمْ تُغْنِ عَنكُمْ شَيْـًۭٔا وَضَاقَتْ عَلَيْكُمُ ٱلْأَرْضُ بِمَا رَحُبَتْ ثُمَّ وَلَّيْتُم مُّدْبِرِينَ"
+                  },
+                  {
+                    "verseKey": "9:26",
+                    "ayah": 26,
+                    "textAr": "ثُمَّ أَنزَلَ ٱللَّهُ سَكِينَتَهُۥ عَلَىٰ رَسُولِهِۦ وَعَلَى ٱلْمُؤْمِنِينَ وَأَنزَلَ جُنُودًۭا لَّمْ تَرَوْهَا وَعَذَّبَ ٱلَّذِينَ كَفَرُوا۟ ۚ وَذَٰلِكَ جَزَآءُ ٱلْكَٰفِرِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 2864,
+                "excerptsAr": [
+                  "أَنَا النَّبِيُّ لاَ كَذِبْ أَنَا ابْنُ عَبْدِ الْمُطَّلِبْ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٨٦٤"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "الثلاثة الذين خُلّفوا",
+            "paragraphsAr": [
+              "تخلّف كعب بن مالك عن غزوة تبوك بلا عذر، فلما رجع النبي ﷺ لم يكذب كما فعل المنافقون، بل صدق. فقاطعهم المسلمون خمسين ليلة حتى ضاقت عليهم الأرض بما رحبت، ثم نزلت توبتهم.",
+              "فقال له النبي ﷺ ووجهه يبرق من السرور: «أبشر بخير يوم مرّ عليك منذ ولدتك أمك»."
+            ],
+            "reflectionAr": "الصدق أنجى كعبًا، والكذب لم ينفع المنافقين وإن قُبل منهم ظاهرًا.",
+            "quran": [
+              {
+                "surah": 9,
+                "surahNameAr": "التوبة",
+                "fromAyah": 118,
+                "toAyah": 118,
+                "referenceAr": "التوبة ١١٨",
+                "verses": [
+                  {
+                    "verseKey": "9:118",
+                    "ayah": 118,
+                    "textAr": "وَعَلَى ٱلثَّلَٰثَةِ ٱلَّذِينَ خُلِّفُوا۟ حَتَّىٰٓ إِذَا ضَاقَتْ عَلَيْهِمُ ٱلْأَرْضُ بِمَا رَحُبَتْ وَضَاقَتْ عَلَيْهِمْ أَنفُسُهُمْ وَظَنُّوٓا۟ أَن لَّا مَلْجَأَ مِنَ ٱللَّهِ إِلَّآ إِلَيْهِ ثُمَّ تَابَ عَلَيْهِمْ لِيَتُوبُوٓا۟ ۚ إِنَّ ٱللَّهَ هُوَ ٱلتَّوَّابُ ٱلرَّحِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4418,
+                "excerptsAr": [
+                  "{وَعَلَى الثَّلاَثَةِ الَّذِينَ خُلِّفُوا}",
+                  "أَبْشِرْ بِخَيْرِ يَوْمٍ مَرَّ عَلَيْكَ مُنْذُ وَلَدَتْكَ أُمُّكَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٤١٨"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الكثرة لا تغني بلا توكل.",
+          "الصدق طريق النجاة ولو كان مؤلمًا."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ماذا كان يقول النبي ﷺ يوم حنين؟",
+            "optionsAr": [
+              "إليّ عباد الله",
+              "اثبتوا",
+              "أنا النبي لا كذب أنا ابن عبد المطلب"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٢٨٦٤."
+          },
+          {
+            "questionAr": "ما الذي أنجى كعب بن مالك؟",
+            "optionsAr": [
+              "الصدق",
+              "الفداء",
+              "الاعتذار بعذر"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٤٤١٨."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-wadaa",
+        "collectionId": "seerah",
+        "order": 150,
+        "titleAr": "حجة الوداع",
+        "titleEn": "The Farewell Pilgrimage",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "حج النبي ﷺ حجة واحدة، خطب فيها الناس فحرّم الدماء والأموال، ونزل فيها: اليوم أكملت لكم دينكم.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "إن دماءكم وأموالكم حرام عليكم",
+            "paragraphsAr": [
+              "قال النبي ﷺ في خطبته يوم عرفة: «إن دماءكم وأموالكم حرام عليكم كحرمة يومكم هذا في شهركم هذا في بلدكم هذا»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 1218,
+                "excerptsAr": [
+                  "إِنَّ دِمَاءَكُمْ وَأَمْوَالَكُمْ حَرَامٌ عَلَيْكُمْ كَحُرْمَةِ يَوْمِكُمْ هَذَا فِي شَهْرِكُمْ هَذَا فِي بَلَدِكُمْ هَذَا"
+                ],
+                "sourceAr": "رواه مسلم — رقم ١٢١٨"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "اليوم أكملت لكم دينكم",
+            "paragraphsAr": [
+              "نزل في حجة الوداع يوم عرفة: «اليوم أكملت لكم دينكم وأتممت عليكم نعمتي ورضيت لكم الإسلام دينًا»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 5,
+                "surahNameAr": "المائـدة",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "المائـدة ٣",
+                "verses": [
+                  {
+                    "verseKey": "5:3",
+                    "ayah": 3,
+                    "textAr": "حُرِّمَتْ عَلَيْكُمُ ٱلْمَيْتَةُ وَٱلدَّمُ وَلَحْمُ ٱلْخِنزِيرِ وَمَآ أُهِلَّ لِغَيْرِ ٱللَّهِ بِهِۦ وَٱلْمُنْخَنِقَةُ وَٱلْمَوْقُوذَةُ وَٱلْمُتَرَدِّيَةُ وَٱلنَّطِيحَةُ وَمَآ أَكَلَ ٱلسَّبُعُ إِلَّا مَا ذَكَّيْتُمْ وَمَا ذُبِحَ عَلَى ٱلنُّصُبِ وَأَن تَسْتَقْسِمُوا۟ بِٱلْأَزْلَٰمِ ۚ ذَٰلِكُمْ فِسْقٌ ۗ ٱلْيَوْمَ يَئِسَ ٱلَّذِينَ كَفَرُوا۟ مِن دِينِكُمْ فَلَا تَخْشَوْهُمْ وَٱخْشَوْنِ ۚ ٱلْيَوْمَ أَكْمَلْتُ لَكُمْ دِينَكُمْ وَأَتْمَمْتُ عَلَيْكُمْ نِعْمَتِى وَرَضِيتُ لَكُمُ ٱلْإِسْلَٰمَ دِينًۭا ۚ فَمَنِ ٱضْطُرَّ فِى مَخْمَصَةٍ غَيْرَ مُتَجَانِفٍۢ لِّإِثْمٍۢ ۙ فَإِنَّ ٱللَّهَ غَفُورٌۭ رَّحِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 45,
+                "excerptsAr": [
+                  "{الْيَوْمَ أَكْمَلْتُ لَكُمْ دِينَكُمْ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "حرمة الدماء والأموال والأعراض.",
+          "الدين كامل لا يحتاج إلى زيادة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم حجة حجّ النبي ﷺ؟",
+            "optionsAr": [
+              "واحدة",
+              "عشر",
+              "ثلاث"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "حجة الوداع."
+          },
+          {
+            "questionAr": "ما الآية التي نزلت يوم عرفة في حجة الوداع؟",
+            "optionsAr": [
+              "اليوم أكملت لكم دينكم",
+              "إذا جاء نصر الله",
+              "إنا فتحنا لك"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٤٥."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-wafat",
+        "collectionId": "seerah",
+        "order": 160,
+        "titleAr": "وفاة النبي ﷺ",
+        "titleEn": "The passing of the Prophet ﷺ",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "كان آخر ما قاله النبي ﷺ: اللهم الرفيق الأعلى. ولما مات قام أبو بكر في الناس: من كان يعبد محمدًا فإن محمدًا قد مات، ومن كان يعبد الله فإن الله حي لا يموت.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "اللهم الرفيق الأعلى",
+            "paragraphsAr": [
+              "خُيّر النبي ﷺ بين الدنيا والآخرة، فكان آخر ما تكلّم به: «اللهم الرفيق الأعلى»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4463,
+                "excerptsAr": [
+                  "اللَّهُمَّ الرَّفِيقَ الأَعْلَى"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٤٦٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "وما محمد إلا رسول",
+            "paragraphsAr": [
+              "لما مات النبي ﷺ اضطرب الناس، فقام أبو بكر فحمد الله وقال: «ألا من كان يعبد محمدًا ﷺ فإن محمدًا قد مات، ومن كان يعبد الله فإن الله حي لا يموت»، وقرأ: «وما محمد إلا رسول قد خلت من قبله الرسل، أفإن مات أو قُتل انقلبتم على أعقابكم»."
+            ],
+            "reflectionAr": "تعلّق القلوب بالله الحي الذي لا يموت، والسير على سنة النبي ﷺ بعده.",
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 144,
+                "toAyah": 144,
+                "referenceAr": "ال عمران ١٤٤",
+                "verses": [
+                  {
+                    "verseKey": "3:144",
+                    "ayah": 144,
+                    "textAr": "وَمَا مُحَمَّدٌ إِلَّا رَسُولٌۭ قَدْ خَلَتْ مِن قَبْلِهِ ٱلرُّسُلُ ۚ أَفَإِي۟ن مَّاتَ أَوْ قُتِلَ ٱنقَلَبْتُمْ عَلَىٰٓ أَعْقَٰبِكُمْ ۚ وَمَن يَنقَلِبْ عَلَىٰ عَقِبَيْهِ فَلَن يَضُرَّ ٱللَّهَ شَيْـًۭٔا ۗ وَسَيَجْزِى ٱللَّهُ ٱلشَّٰكِرِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3668,
+                "excerptsAr": [
+                  "أَلاَ مَنْ كَانَ يَعْبُدُ مُحَمَّدًا صلى الله عليه وسلم فَإِنَّ مُحَمَّدًا قَدْ مَاتَ",
+                  "وَمَنْ كَانَ يَعْبُدُ اللَّهَ فَإِنَّ اللَّهَ حَىٌّ لاَ يَمُوتُ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٦٦٨"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "آخر كلماته: اللهم الرفيق الأعلى.",
+          "الثبات بعد المصيبة: الله حي لا يموت."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما آخر ما قاله النبي ﷺ؟",
+            "optionsAr": [
+              "الصلاة الصلاة",
+              "اللهم الرفيق الأعلى",
+              "أوصيكم بالنساء"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٤٤٦٣."
+          },
+          {
+            "questionAr": "من قال: من كان يعبد محمدًا فإن محمدًا قد مات؟",
+            "optionsAr": [
+              "عمر",
+              "علي",
+              "أبو بكر"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٣٦٦٨."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-akhlaq",
+        "collectionId": "seerah",
+        "order": 170,
+        "titleAr": "أخلاقه ﷺ",
+        "titleEn": "His character ﷺ",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "وإنك لعلى خُلق عظيم. كان خُلقه القرآن، لم يكن فاحشًا ولا متفحشًا، ما ضرب بيده أحدًا، وكان في مهنة أهله، وما خُيّر بين أمرين إلا اختار أيسرهما ما لم يكن إثمًا.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "كان خُلقه القرآن",
+            "paragraphsAr": [
+              "سُئلت عائشة عن خُلق النبي ﷺ فقالت: «فإن خُلق نبي الله ﷺ كان القرآن». وأثنى الله عليه: «وإنك لعلى خُلق عظيم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 68,
+                "surahNameAr": "القلم",
+                "fromAyah": 4,
+                "toAyah": 4,
+                "referenceAr": "القلم ٤",
+                "verses": [
+                  {
+                    "verseKey": "68:4",
+                    "ayah": 4,
+                    "textAr": "وَإِنَّكَ لَعَلَىٰ خُلُقٍ عَظِيمٍۢ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 746,
+                "excerptsAr": [
+                  "فَإِنَّ خُلُقَ نَبِيِّ اللَّهِ صلى الله عليه وسلم كَانَ الْقُرْآنَ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٧٤٦"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "ما ضرب شيئًا قط بيده",
+            "paragraphsAr": [
+              "قالت عائشة: ما ضرب رسول الله ﷺ شيئًا قط بيده، ولا امرأة ولا خادمًا، إلا أن يجاهد في سبيل الله.",
+              "ولم يكن فاحشًا ولا متفحشًا، وكان يقول: إن من خياركم أحسنكم أخلاقًا."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 2328,
+                "excerptsAr": [
+                  "مَا ضَرَبَ رَسُولُ اللَّهِ صلى الله عليه وسلم شَيْئًا قَطُّ بِيَدِهِ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٢٣٢٨"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3559,
+                "excerptsAr": [
+                  "لَمْ يَكُنِ النَّبِيُّ صلى الله عليه وسلم فَاحِشًا وَلاَ مُتَفَحِّشًا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٥٥٩"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "في مهنة أهله",
+            "paragraphsAr": [
+              "سُئلت عائشة: ما كان النبي ﷺ يصنع في بيته؟ قالت: كان يكون في مهنة أهله، أي في خدمتهم، فإذا حضرت الصلاة خرج إلى الصلاة.",
+              "وما خُيّر بين أمرين إلا أخذ أيسرهما ما لم يكن إثمًا. وكان أجود الناس، وأجود ما يكون في رمضان."
+            ],
+            "reflectionAr": "أعظم الخلق كان يخدم أهله في البيت.",
+            "quran": [
+              {
+                "surah": 9,
+                "surahNameAr": "التوبة",
+                "fromAyah": 128,
+                "toAyah": 128,
+                "referenceAr": "التوبة ١٢٨",
+                "verses": [
+                  {
+                    "verseKey": "9:128",
+                    "ayah": 128,
+                    "textAr": "لَقَدْ جَآءَكُمْ رَسُولٌۭ مِّنْ أَنفُسِكُمْ عَزِيزٌ عَلَيْهِ مَا عَنِتُّمْ حَرِيصٌ عَلَيْكُم بِٱلْمُؤْمِنِينَ رَءُوفٌۭ رَّحِيمٌۭ"
+                  }
+                ]
+              },
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 159,
+                "toAyah": 159,
+                "referenceAr": "ال عمران ١٥٩",
+                "verses": [
+                  {
+                    "verseKey": "3:159",
+                    "ayah": 159,
+                    "textAr": "فَبِمَا رَحْمَةٍۢ مِّنَ ٱللَّهِ لِنتَ لَهُمْ ۖ وَلَوْ كُنتَ فَظًّا غَلِيظَ ٱلْقَلْبِ لَٱنفَضُّوا۟ مِنْ حَوْلِكَ ۖ فَٱعْفُ عَنْهُمْ وَٱسْتَغْفِرْ لَهُمْ وَشَاوِرْهُمْ فِى ٱلْأَمْرِ ۖ فَإِذَا عَزَمْتَ فَتَوَكَّلْ عَلَى ٱللَّهِ ۚ إِنَّ ٱللَّهَ يُحِبُّ ٱلْمُتَوَكِّلِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 676,
+                "excerptsAr": [
+                  "كَانَ يَكُونُ فِي مِهْنَةِ أَهْلِهِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٧٦"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3560,
+                "excerptsAr": [
+                  "مَا خُيِّرَ رَسُولُ اللَّهِ صلى الله عليه وسلم بَيْنَ أَمْرَيْنِ إِلاَّ أَخَذَ أَيْسَرَهُمَا، مَا لَمْ يَكُنْ إِثْمًا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٥٦٠"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 1902,
+                "excerptsAr": [
+                  "كَانَ النَّبِيُّ صلى الله عليه وسلم أَجْوَدَ النَّاسِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٩٠٢"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "خُلقه القرآن.",
+          "الرفق ولين الجانب.",
+          "خدمة الأهل من السنة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كيف وصفت عائشة خُلق النبي ﷺ؟",
+            "optionsAr": [
+              "كان خُلقه القرآن",
+              "كان كثير الصمت",
+              "كان شديدًا"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ٧٤٦."
+          },
+          {
+            "questionAr": "ماذا كان النبي ﷺ يصنع في بيته؟",
+            "optionsAr": [
+              "في مهنة أهله",
+              "ينام",
+              "يقرأ فقط"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٦٧٦."
+          },
+          {
+            "questionAr": "إذا خُيّر بين أمرين؟",
+            "optionsAr": [
+              "تركهما",
+              "أخذ أشدهما",
+              "أخذ أيسرهما ما لم يكن إثمًا"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٣٥٦٠."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "seerah-rahma",
+        "collectionId": "seerah",
+        "order": 180,
+        "titleAr": "رحمة للعالمين",
+        "titleEn": "A mercy to the worlds",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "أرسله الله رحمة للعالمين، عزيز عليه ما يشقّ علينا، حريص علينا، بالمؤمنين رؤوف رحيم. ومحبته واتباعه من الإيمان.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "حريص عليكم",
+            "paragraphsAr": [
+              "«لقد جاءكم رسول من أنفسكم عزيز عليه ما عنتّم حريص عليكم بالمؤمنين رؤوف رحيم». و«ما أرسلناك إلا رحمة للعالمين»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 9,
+                "surahNameAr": "التوبة",
+                "fromAyah": 128,
+                "toAyah": 128,
+                "referenceAr": "التوبة ١٢٨",
+                "verses": [
+                  {
+                    "verseKey": "9:128",
+                    "ayah": 128,
+                    "textAr": "لَقَدْ جَآءَكُمْ رَسُولٌۭ مِّنْ أَنفُسِكُمْ عَزِيزٌ عَلَيْهِ مَا عَنِتُّمْ حَرِيصٌ عَلَيْكُم بِٱلْمُؤْمِنِينَ رَءُوفٌۭ رَّحِيمٌۭ"
+                  }
+                ]
+              },
+              {
+                "surah": 21,
+                "surahNameAr": "الأنبياء",
+                "fromAyah": 107,
+                "toAyah": 107,
+                "referenceAr": "الأنبياء ١٠٧",
+                "verses": [
+                  {
+                    "verseKey": "21:107",
+                    "ayah": 107,
+                    "textAr": "وَمَآ أَرْسَلْنَٰكَ إِلَّا رَحْمَةًۭ لِّلْعَٰلَمِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أحب إليه من والده وولده",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «لا يؤمن أحدكم حتى أكون أحب إليه من والده وولده والناس أجمعين». ومحبته تظهر في اتباع سنته، والصلاة عليه، والدفاع عنه بالأخلاق قبل الكلام."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 33,
+                "surahNameAr": "الأحزاب",
+                "fromAyah": 21,
+                "toAyah": 21,
+                "referenceAr": "الأحزاب ٢١",
+                "verses": [
+                  {
+                    "verseKey": "33:21",
+                    "ayah": 21,
+                    "textAr": "لَّقَدْ كَانَ لَكُمْ فِى رَسُولِ ٱللَّهِ أُسْوَةٌ حَسَنَةٌۭ لِّمَن كَانَ يَرْجُوا۟ ٱللَّهَ وَٱلْيَوْمَ ٱلْءَاخِرَ وَذَكَرَ ٱللَّهَ كَثِيرًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 15,
+                "excerptsAr": [
+                  "لاَ يُؤْمِنُ أَحَدُكُمْ حَتَّى أَكُونَ أَحَبَّ إِلَيْهِ مِنْ وَالِدِهِ وَوَلَدِهِ وَالنَّاسِ أَجْمَعِينَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "النبي ﷺ رحمة للعالمين.",
+          "محبته من الإيمان، ودليلها الاتباع."
+        ],
+        "quiz": [
+          {
+            "questionAr": "أكمل: «وما أرسلناك إلا…»",
+            "optionsAr": [
+              "رحمة للعالمين",
+              "بشيرًا ونذيرًا",
+              "هاديًا"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "الأنبياء ١٠٧."
+          },
+          {
+            "questionAr": "متى يكتمل إيمان العبد بالنبي ﷺ؟",
+            "optionsAr": [
+              "حين يحفظ سيرته",
+              "حين يكون أحب إليه من والده وولده والناس أجمعين",
+              "حين يزور قبره"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ١٥."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      }
+    ]
   },
   {
     "id": "companions",
@@ -5875,7 +8237,1970 @@ export const LEARNING_COLLECTIONS_DATA = [
     "titleEn": "Creed",
     "descriptionAr": "أركان الإيمان وأركان الإسلام بأدلتها.",
     "methodAr": "أدلة كل درس من القرآن الكريم وصحيحي البخاري ومسلم، دون الدخول في مسائل الخلاف.",
-    "items": []
+    "items": [
+      {
+        "id": "aqeedah-tawhid",
+        "collectionId": "aqeedah",
+        "order": 10,
+        "titleAr": "التوحيد: معنى لا إله إلا الله",
+        "titleEn": "Tawhid: the meaning of la ilaha illa Allah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "لا إله إلا الله: لا معبود بحق إلا الله. هي دعوة كل الرسل، وأول أركان الإسلام، ومن قالها صادقًا من قلبه حرّمه الله على النار.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "فاعلم أنه لا إله إلا الله",
+            "paragraphsAr": [
+              "معنى «لا إله إلا الله»: لا يستحق العبادة إلا الله وحده. فيها نفي: لا إله، وإثبات: إلا الله.",
+              "وبدأ الله الأمر بالعلم قبل القول والعمل: «فاعلم أنه لا إله إلا الله»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 47,
+                "surahNameAr": "محمد",
+                "fromAyah": 19,
+                "toAyah": 19,
+                "referenceAr": "محمد ١٩",
+                "verses": [
+                  {
+                    "verseKey": "47:19",
+                    "ayah": 19,
+                    "textAr": "فَٱعْلَمْ أَنَّهُۥ لَآ إِلَٰهَ إِلَّا ٱللَّهُ وَٱسْتَغْفِرْ لِذَنۢبِكَ وَلِلْمُؤْمِنِينَ وَٱلْمُؤْمِنَٰتِ ۗ وَٱللَّهُ يَعْلَمُ مُتَقَلَّبَكُمْ وَمَثْوَىٰكُمْ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "دعوة كل الرسل",
+            "paragraphsAr": [
+              "ما أرسل الله رسولًا إلا أوحى إليه: أنه لا إله إلا أنا فاعبدون. فالتوحيد دين الأنبياء كلهم من نوح إلى محمد ﷺ.",
+              "وحق الله على العباد أن يعبدوه ولا يشركوا به شيئًا."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 21,
+                "surahNameAr": "الأنبياء",
+                "fromAyah": 25,
+                "toAyah": 25,
+                "referenceAr": "الأنبياء ٢٥",
+                "verses": [
+                  {
+                    "verseKey": "21:25",
+                    "ayah": 25,
+                    "textAr": "وَمَآ أَرْسَلْنَا مِن قَبْلِكَ مِن رَّسُولٍ إِلَّا نُوحِىٓ إِلَيْهِ أَنَّهُۥ لَآ إِلَٰهَ إِلَّآ أَنَا۠ فَٱعْبُدُونِ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 2856,
+                "excerptsAr": [
+                  "حَقَّ اللَّهِ عَلَى الْعِبَادِ أَنْ يَعْبُدُوهُ وَلاَ يُشْرِكُوا بِهِ شَيْئًا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٨٥٦"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "قل هو الله أحد",
+            "paragraphsAr": [
+              "سورة الإخلاص تصف الله: أحد لا شريك له، صمد تقصده الخلائق في حوائجها، لم يلد ولم يولد، ولم يكن له كفوًا أحد. وقال النبي ﷺ: إنها تعدل ثلث القرآن."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 112,
+                "surahNameAr": "الإخلاص",
+                "fromAyah": 1,
+                "toAyah": 4,
+                "referenceAr": "الإخلاص ١–٤",
+                "verses": [
+                  {
+                    "verseKey": "112:1",
+                    "ayah": 1,
+                    "textAr": "قُلْ هُوَ ٱللَّهُ أَحَدٌ"
+                  },
+                  {
+                    "verseKey": "112:2",
+                    "ayah": 2,
+                    "textAr": "ٱللَّهُ ٱلصَّمَدُ"
+                  },
+                  {
+                    "verseKey": "112:3",
+                    "ayah": 3,
+                    "textAr": "لَمْ يَلِدْ وَلَمْ يُولَدْ"
+                  },
+                  {
+                    "verseKey": "112:4",
+                    "ayah": 4,
+                    "textAr": "وَلَمْ يَكُن لَّهُۥ كُفُوًا أَحَدٌۢ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 5013,
+                "excerptsAr": [
+                  "وَالَّذِي نَفْسِي بِيَدِهِ إِنَّهَا لَتَعْدِلُ ثُلُثَ الْقُرْآنِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٥٠١٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 3,
+            "titleAr": "صدقًا من قلبه",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «ما من أحد يشهد أن لا إله إلا الله وأن محمدًا رسول الله صدقًا من قلبه إلا حرّمه الله على النار».",
+              "وقال: «ذاق طعم الإيمان من رضي بالله ربًّا وبالإسلام دينًا وبمحمد رسولًا»."
+            ],
+            "reflectionAr": "الشهادة ليست كلمة تُقال فقط، بل صدق في القلب يظهر أثره في الحياة.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 128,
+                "excerptsAr": [
+                  "مَا مِنْ أَحَدٍ يَشْهَدُ أَنْ لاَ إِلَهَ إِلاَّ اللَّهُ وَأَنَّ مُحَمَّدًا رَسُولُ اللَّهِ صِدْقًا مِنْ قَلْبِهِ إِلاَّ حَرَّمَهُ اللَّهُ عَلَى النَّارِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٢٨"
+              },
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 34,
+                "excerptsAr": [
+                  "ذَاقَ طَعْمَ الإِيمَانِ مَنْ رَضِيَ بِاللَّهِ رَبًّا وَبِالإِسْلاَمِ دِينًا وَبِمُحَمَّدٍ رَسُولاً"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٣٤"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "لا إله إلا الله: لا معبود بحق إلا الله.",
+          "التوحيد دعوة جميع الرسل.",
+          "الشهادة الصادقة من القلب سبب النجاة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما معنى «لا إله إلا الله»؟",
+            "optionsAr": [
+              "لا معبود بحق إلا الله",
+              "لا خالق إلا الله فقط",
+              "الله موجود"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "نفي العبادة عن غير الله وإثباتها له وحده."
+          },
+          {
+            "questionAr": "سورة الإخلاص تعدل…",
+            "optionsAr": [
+              "ثلث القرآن",
+              "نصف القرآن",
+              "ربع القرآن"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٥٠١٣."
+          },
+          {
+            "questionAr": "ما حق الله على العباد؟",
+            "optionsAr": [
+              "أن يعبدوه ولا يشركوا به شيئًا",
+              "أن يصوموا الدهر",
+              "أن يحجوا كل عام"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٢٨٥٦."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-arkan",
+        "collectionId": "aqeedah",
+        "order": 20,
+        "titleAr": "الإسلام والإيمان والإحسان",
+        "titleEn": "Islam, Iman and Ihsan",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "في حديث جبريل علّم النبي ﷺ الدين في ثلاث مراتب: الإسلام بأركانه الخمسة، والإيمان بأركانه الستة، والإحسان أن تعبد الله كأنك تراه.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "حديث جبريل",
+            "paragraphsAr": [
+              "جاء جبريل في صورة رجل شديد بياض الثياب، شديد سواد الشعر، فسأل النبي ﷺ عن الإسلام والإيمان والإحسان والساعة، ثم قال النبي ﷺ: «فإنه جبريل أتاكم يعلّمكم دينكم»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [],
+            "nawawi": [
+              {
+                "number": 2,
+                "textAr": "عَنْ عُمَرَ رَضِيَ اللهُ عَنْهُ أَيْضًا قَالَ: بَيْنَمَا نَحْنُ جُلُوسٌ عِنْدَ رَسُولِ اللَّهِ صلى الله عليه و سلم ذَاتَ يَوْمٍ، إذْ طَلَعَ عَلَيْنَا رَجُلٌ شَدِيدُ بَيَاضِ الثِّيَابِ، شَدِيدُ سَوَادِ الشَّعْرِ، لَا يُرَى عَلَيْهِ أَثَرُ السَّفَرِ، وَلَا يَعْرِفُهُ مِنَّا أَحَدٌ. حَتَّى جَلَسَ إلَى النَّبِيِّ صلى الله عليه و سلم . فَأَسْنَدَ رُكْبَتَيْهِ إلَى رُكْبَتَيْهِ، وَوَضَعَ كَفَّيْهِ عَلَى فَخِذَيْهِ، وَقَالَ: يَا مُحَمَّدُ أَخْبِرْنِي عَنْ الْإِسْلَامِ. فَقَالَ رَسُولُ اللَّهِ صلى الله عليه و سلم الْإِسْلَامُ أَنْ تَشْهَدَ أَنْ لَا إلَهَ إلَّا اللَّهُ وَأَنَّ مُحَمَّدًا رَسُولُ اللَّهِ، وَتُقِيمَ الصَّلَاةَ، وَتُؤْتِيَ الزَّكَاةَ، وَتَصُومَ رَمَضَانَ، وَتَحُجَّ الْبَيْتَ إنْ اسْتَطَعْت إلَيْهِ سَبِيلًا. قَالَ: صَدَقْت . فَعَجِبْنَا لَهُ يَسْأَلُهُ وَيُصَدِّقُهُ! قَالَ: فَأَخْبِرْنِي عَنْ الْإِيمَانِ. قَالَ: أَنْ تُؤْمِنَ بِاَللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ وَالْيَوْمِ الْآخِرِ، وَتُؤْمِنَ بِالْقَدَرِ خَيْرِهِ وَشَرِّهِ. قَالَ: صَدَقْت. قَالَ: فَأَخْبِرْنِي عَنْ الْإِحْسَانِ. قَالَ: أَنْ تَعْبُدَ اللَّهَ كَأَنَّك تَرَاهُ، فَإِنْ لَمْ تَكُنْ تَرَاهُ فَإِنَّهُ يَرَاك. قَالَ: فَأَخْبِرْنِي عَنْ السَّاعَةِ. قَالَ: مَا الْمَسْئُولُ عَنْهَا بِأَعْلَمَ مِنْ السَّائِلِ. قَالَ: فَأَخْبِرْنِي عَنْ أَمَارَاتِهَا؟ قَالَ: أَنْ تَلِدَ الْأَمَةُ رَبَّتَهَا، وَأَنْ تَرَى الْحُفَاةَ الْعُرَاةَ الْعَالَةَ رِعَاءَ الشَّاءِ يَتَطَاوَلُونَ فِي الْبُنْيَانِ. ثُمَّ انْطَلَقَ، فَلَبِثْتُ مَلِيًّا، ثُمَّ قَالَ: يَا عُمَرُ أَتَدْرِي مَنْ السَّائِلُ؟. ‫‬قُلْتُ: اللَّهُ وَرَسُولُهُ أَعْلَمُ. قَالَ: فَإِنَّهُ جِبْرِيلُ أَتَاكُمْ يُعَلِّمُكُمْ دِينَكُمْ . [رَوَاهُ مُسْلِمٌ]",
+                "sourceAr": "الأربعون النووية — الحديث ٢"
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "titleAr": "أركان الإسلام الخمسة",
+            "paragraphsAr": [
+              "بُني الإسلام على خمس: شهادة أن لا إله إلا الله وأن محمدًا رسول الله، وإقام الصلاة، وإيتاء الزكاة، والحج، وصوم رمضان."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 8,
+                "excerptsAr": [
+                  "بُنِيَ الإِسْلاَمُ عَلَى خَمْسٍ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٨"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "أركان الإيمان الستة",
+            "paragraphsAr": [
+              "الإيمان أن تؤمن بالله، وملائكته، وكتبه، ورسله، واليوم الآخر، وتؤمن بالقدر خيره وشره. وكل ركن منها له درس في هذا القسم.",
+              "والإيمان بضع وسبعون شعبة: أعلاها قول لا إله إلا الله، وأدناها إماطة الأذى عن الطريق، والحياء شعبة من الإيمان."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 285,
+                "toAyah": 285,
+                "referenceAr": "البقرة ٢٨٥",
+                "verses": [
+                  {
+                    "verseKey": "2:285",
+                    "ayah": 285,
+                    "textAr": "ءَامَنَ ٱلرَّسُولُ بِمَآ أُنزِلَ إِلَيْهِ مِن رَّبِّهِۦ وَٱلْمُؤْمِنُونَ ۚ كُلٌّ ءَامَنَ بِٱللَّهِ وَمَلَٰٓئِكَتِهِۦ وَكُتُبِهِۦ وَرُسُلِهِۦ لَا نُفَرِّقُ بَيْنَ أَحَدٍۢ مِّن رُّسُلِهِۦ ۚ وَقَالُوا۟ سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ ٱلْمَصِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 8,
+                "excerptsAr": [
+                  "وَتُؤْمِنَ بِالْقَدَرِ خَيْرِهِ وَشَرِّهِ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٨"
+              },
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 35,
+                "excerptsAr": [
+                  "الإِيمَانُ بِضْعٌ وَسَبْعُونَ أَوْ بِضْعٌ وَسِتُّونَ شُعْبَةً فَأَفْضَلُهَا قَوْلُ لاَ إِلَهَ إِلاَّ اللَّهُ وَأَدْنَاهَا إِمَاطَةُ الأَذَى عَنِ الطَّرِيقِ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٣٥"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 3,
+            "titleAr": "الإحسان",
+            "paragraphsAr": [
+              "الإحسان أعلى المراتب: «أن تعبد الله كأنك تراه، فإن لم تكن تراه فإنه يراك»."
+            ],
+            "reflectionAr": "من استحضر أن الله يراه أتقن صلاته، وحفظ لسانه، وأحسن عمله وإن لم يره أحد.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 8,
+                "excerptsAr": [
+                  "أَنْ تَعْبُدَ اللَّهَ كَأَنَّكَ تَرَاهُ فَإِنْ لَمْ تَكُنْ تَرَاهُ فَإِنَّهُ يَرَاكَ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٨"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الدين ثلاث مراتب: الإسلام، ثم الإيمان، ثم الإحسان.",
+          "أركان الإسلام خمسة، وأركان الإيمان ستة.",
+          "الإحسان: أن تعبد الله كأنك تراه."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم ركنًا للإيمان؟",
+            "optionsAr": [
+              "ستة",
+              "سبعة",
+              "خمسة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "حديث جبريل (مسلم ٨)."
+          },
+          {
+            "questionAr": "ما تعريف الإحسان؟",
+            "optionsAr": [
+              "أن تتصدق كثيرًا",
+              "أن تعبد الله كأنك تراه",
+              "أن تحسن إلى الناس فقط"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح مسلم ٨."
+          },
+          {
+            "questionAr": "ما أدنى شعب الإيمان؟",
+            "optionsAr": [
+              "إماطة الأذى عن الطريق",
+              "الصدقة",
+              "الصلاة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ٣٥."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-billah",
+        "collectionId": "aqeedah",
+        "order": 30,
+        "titleAr": "الإيمان بالله",
+        "titleEn": "Belief in Allah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الإيمان بالله: بوجوده، وبأنه الرب الخالق المدبّر، وبأنه وحده المستحق للعبادة، وبأسمائه الحسنى وصفاته العلا، ليس كمثله شيء وهو السميع البصير.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "ليس كمثله شيء",
+            "paragraphsAr": [
+              "نؤمن بما وصف الله به نفسه في كتابه وما وصفه به رسوله ﷺ، من غير تشبيه بخلقه ولا تعطيل: «ليس كمثله شيء وهو السميع البصير»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 42,
+                "surahNameAr": "الشورى",
+                "fromAyah": 11,
+                "toAyah": 11,
+                "referenceAr": "الشورى ١١",
+                "verses": [
+                  {
+                    "verseKey": "42:11",
+                    "ayah": 11,
+                    "textAr": "فَاطِرُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۚ جَعَلَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَٰجًۭا وَمِنَ ٱلْأَنْعَٰمِ أَزْوَٰجًۭا ۖ يَذْرَؤُكُمْ فِيهِ ۚ لَيْسَ كَمِثْلِهِۦ شَىْءٌۭ ۖ وَهُوَ ٱلسَّمِيعُ ٱلْبَصِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "آية الكرسي",
+            "paragraphsAr": [
+              "أعظم آية في كتاب الله آية الكرسي، تجمع صفات الله: الحي القيوم، لا تأخذه سِنة ولا نوم، له ما في السماوات والأرض، يعلم ما بين أيديهم وما خلفهم، وسع كرسيه السماوات والأرض."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 255,
+                "toAyah": 255,
+                "referenceAr": "البقرة ٢٥٥",
+                "verses": [
+                  {
+                    "verseKey": "2:255",
+                    "ayah": 255,
+                    "textAr": "ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌۭ وَلَا نَوْمٌۭ ۚ لَّهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَمَا فِى ٱلْأَرْضِ ۗ مَن ذَا ٱلَّذِى يَشْفَعُ عِندَهُۥٓ إِلَّا بِإِذْنِهِۦ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَىْءٍۢ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَآءَ ۚ وَسِعَ كُرْسِيُّهُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ ۖ وَلَا يَـُٔودُهُۥ حِفْظُهُمَا ۚ وَهُوَ ٱلْعَلِىُّ ٱلْعَظِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 810,
+                "excerptsAr": [
+                  "أَىُّ آيَةٍ مِنْ كِتَابِ اللَّهِ مَعَكَ أَعْظَمُ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٨١٠"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "أقرب إليك مما تظن",
+            "paragraphsAr": [
+              "وإذا سألك عبادي عني فإني قريب أجيب دعوة الداع إذا دعان. وقال النبي ﷺ لأصحابه حين رفعوا أصواتهم بالذكر: إنكم لا تدعون أصمّ ولا غائبًا، إنكم تدعون سميعًا قريبًا.",
+              "وقال الله في الحديث القدسي: «أنا عند ظن عبدي بي»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 186,
+                "toAyah": 186,
+                "referenceAr": "البقرة ١٨٦",
+                "verses": [
+                  {
+                    "verseKey": "2:186",
+                    "ayah": 186,
+                    "textAr": "وَإِذَا سَأَلَكَ عِبَادِى عَنِّى فَإِنِّى قَرِيبٌ ۖ أُجِيبُ دَعْوَةَ ٱلدَّاعِ إِذَا دَعَانِ ۖ فَلْيَسْتَجِيبُوا۟ لِى وَلْيُؤْمِنُوا۟ بِى لَعَلَّهُمْ يَرْشُدُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4205,
+                "excerptsAr": [
+                  "إِنَّكُمْ تَدْعُونَ سَمِيعًا قَرِيبًا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٢٠٥"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 7405,
+                "excerptsAr": [
+                  "أَنَا عِنْدَ ظَنِّ عَبْدِي بِي"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٧٤٠٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "نثبت لله ما أثبته لنفسه بلا تشبيه ولا تعطيل.",
+          "آية الكرسي أعظم آية في القرآن.",
+          "الله قريب يجيب الدعاء، وهو عند ظن عبده به."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما أعظم آية في كتاب الله؟",
+            "optionsAr": [
+              "آية الكرسي",
+              "آخر آية في البقرة",
+              "أول آية في الفاتحة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ٨١٠."
+          },
+          {
+            "questionAr": "أكمل: «ليس كمثله شيء…»",
+            "optionsAr": [
+              "وهو السميع البصير",
+              "وهو الغفور الرحيم",
+              "وهو العزيز الحكيم"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "الشورى ١١."
+          },
+          {
+            "questionAr": "ماذا قال الله في الحديث القدسي؟",
+            "optionsAr": [
+              "أنا عند ظن عبدي بي",
+              "أنا الرزاق",
+              "أنا أغنى الأغنياء"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٧٤٠٥."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-malaika",
+        "collectionId": "aqeedah",
+        "order": 40,
+        "titleAr": "الإيمان بالملائكة",
+        "titleEn": "Belief in the angels",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الملائكة خلق من نور، عباد مكرمون لا يعصون الله ما أمرهم، لهم أجنحة وأعمال: منهم جبريل بالوحي، والحفظة الذين يكتبون أعمالنا.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "خُلقت الملائكة من نور",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «خُلقت الملائكة من نور». وجعلهم الله رسلًا أولي أجنحة مثنى وثلاث ورباع."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 35,
+                "surahNameAr": "فاطر",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "فاطر ١",
+                "verses": [
+                  {
+                    "verseKey": "35:1",
+                    "ayah": 1,
+                    "textAr": "ٱلْحَمْدُ لِلَّهِ فَاطِرِ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ جَاعِلِ ٱلْمَلَٰٓئِكَةِ رُسُلًا أُو۟لِىٓ أَجْنِحَةٍۢ مَّثْنَىٰ وَثُلَٰثَ وَرُبَٰعَ ۚ يَزِيدُ فِى ٱلْخَلْقِ مَا يَشَآءُ ۚ إِنَّ ٱللَّهَ عَلَىٰ كُلِّ شَىْءٍۢ قَدِيرٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 2996,
+                "excerptsAr": [
+                  "خُلِقَتِ الْمَلاَئِكَةُ مِنْ نُورٍ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٢٩٩٦"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "لا يعصون الله ما أمرهم",
+            "paragraphsAr": [
+              "الملائكة لا يعصون الله ما أمرهم ويفعلون ما يؤمرون. ومنهم خزنة النار، ومنهم من ينزل بالوحي كجبريل، ومنهم الكرام الكاتبون."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 66,
+                "surahNameAr": "التحريم",
+                "fromAyah": 6,
+                "toAyah": 6,
+                "referenceAr": "التحريم ٦",
+                "verses": [
+                  {
+                    "verseKey": "66:6",
+                    "ayah": 6,
+                    "textAr": "يَٰٓأَيُّهَا ٱلَّذِينَ ءَامَنُوا۟ قُوٓا۟ أَنفُسَكُمْ وَأَهْلِيكُمْ نَارًۭا وَقُودُهَا ٱلنَّاسُ وَٱلْحِجَارَةُ عَلَيْهَا مَلَٰٓئِكَةٌ غِلَاظٌۭ شِدَادٌۭ لَّا يَعْصُونَ ٱللَّهَ مَآ أَمَرَهُمْ وَيَفْعَلُونَ مَا يُؤْمَرُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "ما يلفظ من قول إلا لديه رقيب عتيد",
+            "paragraphsAr": [
+              "عن يمين كل إنسان وشماله ملكان يكتبان عمله، ما يلفظ من قول إلا لديه رقيب عتيد."
+            ],
+            "reflectionAr": "تذكّر أن كل كلمة تُكتب يجعلك تزن كلامك قبل أن تقوله.",
+            "quran": [
+              {
+                "surah": 50,
+                "surahNameAr": "ق",
+                "fromAyah": 17,
+                "toAyah": 18,
+                "referenceAr": "ق ١٧–١٨",
+                "verses": [
+                  {
+                    "verseKey": "50:17",
+                    "ayah": 17,
+                    "textAr": "إِذْ يَتَلَقَّى ٱلْمُتَلَقِّيَانِ عَنِ ٱلْيَمِينِ وَعَنِ ٱلشِّمَالِ قَعِيدٌۭ"
+                  },
+                  {
+                    "verseKey": "50:18",
+                    "ayah": 18,
+                    "textAr": "مَّا يَلْفِظُ مِن قَوْلٍ إِلَّا لَدَيْهِ رَقِيبٌ عَتِيدٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الملائكة مخلوقون من نور.",
+          "لا يعصون الله، ولكل منهم عمل.",
+          "كل قول وعمل يُكتب: «ما يلفظ من قول إلا لديه رقيب عتيد»."
+        ],
+        "quiz": [
+          {
+            "questionAr": "مِمَّ خُلقت الملائكة؟",
+            "optionsAr": [
+              "من نور",
+              "من طين",
+              "من نار"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ٢٩٩٦."
+          },
+          {
+            "questionAr": "من الملك الموكّل بالوحي؟",
+            "optionsAr": [
+              "جبريل",
+              "مالك",
+              "ميكائيل"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "حديث بدء الوحي وحديث جبريل."
+          },
+          {
+            "questionAr": "أكمل: «ما يلفظ من قول…»",
+            "optionsAr": [
+              "إلا لديه رقيب عتيد",
+              "إلا عند الله",
+              "إلا كُتب في كتاب"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "ق ١٨."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-kutub",
+        "collectionId": "aqeedah",
+        "order": 50,
+        "titleAr": "الإيمان بالكتب",
+        "titleEn": "Belief in the revealed books",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "أنزل الله كتبًا على رسله: التوراة والإنجيل والزبور وصحف إبراهيم وموسى، وختمها بالقرآن مصدّقًا لما قبله ومهيمنًا عليه، وتكفّل بحفظه.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "وأنزل التوراة والإنجيل",
+            "paragraphsAr": [
+              "نؤمن بكل كتاب أنزله الله على رسله: التوراة على موسى، والإنجيل على عيسى، والزبور على داود، وصحف إبراهيم وموسى. وكلها كانت هدى للناس."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 3,
+                "toAyah": 4,
+                "referenceAr": "ال عمران ٣–٤",
+                "verses": [
+                  {
+                    "verseKey": "3:3",
+                    "ayah": 3,
+                    "textAr": "نَزَّلَ عَلَيْكَ ٱلْكِتَٰبَ بِٱلْحَقِّ مُصَدِّقًۭا لِّمَا بَيْنَ يَدَيْهِ وَأَنزَلَ ٱلتَّوْرَىٰةَ وَٱلْإِنجِيلَ"
+                  },
+                  {
+                    "verseKey": "3:4",
+                    "ayah": 4,
+                    "textAr": "مِن قَبْلُ هُدًۭى لِّلنَّاسِ وَأَنزَلَ ٱلْفُرْقَانَ ۗ إِنَّ ٱلَّذِينَ كَفَرُوا۟ بِـَٔايَٰتِ ٱللَّهِ لَهُمْ عَذَابٌۭ شَدِيدٌۭ ۗ وَٱللَّهُ عَزِيزٌۭ ذُو ٱنتِقَامٍ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "مصدّقًا ومهيمنًا",
+            "paragraphsAr": [
+              "وأنزل الله القرآن مصدّقًا لما بين يديه من الكتاب ومهيمنًا عليه، فهو الحاكم على ما قبله، والمرجع لنا في ديننا."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 5,
+                "surahNameAr": "المائـدة",
+                "fromAyah": 48,
+                "toAyah": 48,
+                "referenceAr": "المائـدة ٤٨",
+                "verses": [
+                  {
+                    "verseKey": "5:48",
+                    "ayah": 48,
+                    "textAr": "وَأَنزَلْنَآ إِلَيْكَ ٱلْكِتَٰبَ بِٱلْحَقِّ مُصَدِّقًۭا لِّمَا بَيْنَ يَدَيْهِ مِنَ ٱلْكِتَٰبِ وَمُهَيْمِنًا عَلَيْهِ ۖ فَٱحْكُم بَيْنَهُم بِمَآ أَنزَلَ ٱللَّهُ ۖ وَلَا تَتَّبِعْ أَهْوَآءَهُمْ عَمَّا جَآءَكَ مِنَ ٱلْحَقِّ ۚ لِكُلٍّۢ جَعَلْنَا مِنكُمْ شِرْعَةًۭ وَمِنْهَاجًۭا ۚ وَلَوْ شَآءَ ٱللَّهُ لَجَعَلَكُمْ أُمَّةًۭ وَٰحِدَةًۭ وَلَٰكِن لِّيَبْلُوَكُمْ فِى مَآ ءَاتَىٰكُمْ ۖ فَٱسْتَبِقُوا۟ ٱلْخَيْرَٰتِ ۚ إِلَى ٱللَّهِ مَرْجِعُكُمْ جَمِيعًۭا فَيُنَبِّئُكُم بِمَا كُنتُمْ فِيهِ تَخْتَلِفُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "وإنا له لحافظون",
+            "paragraphsAr": [
+              "تكفّل الله بحفظ القرآن بنفسه: «إنا نحن نزّلنا الذكر وإنا له لحافظون». فهو محفوظ بحروفه منذ نزل إلى اليوم.",
+              "وقال النبي ﷺ: «خيركم من تعلّم القرآن وعلّمه»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 15,
+                "surahNameAr": "الحجر",
+                "fromAyah": 9,
+                "toAyah": 9,
+                "referenceAr": "الحجر ٩",
+                "verses": [
+                  {
+                    "verseKey": "15:9",
+                    "ayah": 9,
+                    "textAr": "إِنَّا نَحْنُ نَزَّلْنَا ٱلذِّكْرَ وَإِنَّا لَهُۥ لَحَٰفِظُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 5027,
+                "excerptsAr": [
+                  "خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٥٠٢٧"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "نؤمن بكل الكتب التي أنزلها الله.",
+          "القرآن مصدّق لما قبله ومهيمن عليه.",
+          "الله تكفّل بحفظ القرآن."
+        ],
+        "quiz": [
+          {
+            "questionAr": "على من أُنزل الزبور؟",
+            "optionsAr": [
+              "موسى",
+              "داود",
+              "عيسى"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "«وآتينا داود زبورًا»."
+          },
+          {
+            "questionAr": "من تكفّل بحفظ القرآن؟",
+            "optionsAr": [
+              "العلماء فقط",
+              "الله سبحانه",
+              "الحفاظ فقط"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "الحجر ٩."
+          },
+          {
+            "questionAr": "ما علاقة القرآن بالكتب السابقة؟",
+            "optionsAr": [
+              "مصدّق لها ومهيمن عليها",
+              "لا علاقة",
+              "نسخة منها"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "المائدة ٤٨."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-rusul",
+        "collectionId": "aqeedah",
+        "order": 60,
+        "titleAr": "الإيمان بالرسل",
+        "titleEn": "Belief in the messengers",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "أرسل الله رسلًا مبشرين ومنذرين، منهم من قصّ علينا ومنهم من لم يقصص، لا نفرّق بين أحد منهم، وخاتمهم محمد ﷺ لا نبي بعده.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "لا نفرّق بين أحد من رسله",
+            "paragraphsAr": [
+              "نؤمن بكل الرسل: من ذكرهم الله في القرآن بأسمائهم، ومن لم يذكرهم. أرسلهم مبشرين ومنذرين لئلا يكون للناس على الله حجة بعد الرسل."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 285,
+                "toAyah": 285,
+                "referenceAr": "البقرة ٢٨٥",
+                "verses": [
+                  {
+                    "verseKey": "2:285",
+                    "ayah": 285,
+                    "textAr": "ءَامَنَ ٱلرَّسُولُ بِمَآ أُنزِلَ إِلَيْهِ مِن رَّبِّهِۦ وَٱلْمُؤْمِنُونَ ۚ كُلٌّ ءَامَنَ بِٱللَّهِ وَمَلَٰٓئِكَتِهِۦ وَكُتُبِهِۦ وَرُسُلِهِۦ لَا نُفَرِّقُ بَيْنَ أَحَدٍۢ مِّن رُّسُلِهِۦ ۚ وَقَالُوا۟ سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ ٱلْمَصِيرُ"
+                  }
+                ]
+              },
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 164,
+                "toAyah": 165,
+                "referenceAr": "النساء ١٦٤–١٦٥",
+                "verses": [
+                  {
+                    "verseKey": "4:164",
+                    "ayah": 164,
+                    "textAr": "وَرُسُلًۭا قَدْ قَصَصْنَٰهُمْ عَلَيْكَ مِن قَبْلُ وَرُسُلًۭا لَّمْ نَقْصُصْهُمْ عَلَيْكَ ۚ وَكَلَّمَ ٱللَّهُ مُوسَىٰ تَكْلِيمًۭا"
+                  },
+                  {
+                    "verseKey": "4:165",
+                    "ayah": 165,
+                    "textAr": "رُّسُلًۭا مُّبَشِّرِينَ وَمُنذِرِينَ لِئَلَّا يَكُونَ لِلنَّاسِ عَلَى ٱللَّهِ حُجَّةٌۢ بَعْدَ ٱلرُّسُلِ ۚ وَكَانَ ٱللَّهُ عَزِيزًا حَكِيمًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "خاتم النبيين",
+            "paragraphsAr": [
+              "محمد ﷺ رسول الله وخاتم النبيين. وضرب النبي ﷺ مثلًا: بيت جميل تامّ إلا موضع لبنة، «فأنا اللبنة وأنا خاتم النبيين»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 33,
+                "surahNameAr": "الأحزاب",
+                "fromAyah": 40,
+                "toAyah": 40,
+                "referenceAr": "الأحزاب ٤٠",
+                "verses": [
+                  {
+                    "verseKey": "33:40",
+                    "ayah": 40,
+                    "textAr": "مَّا كَانَ مُحَمَّدٌ أَبَآ أَحَدٍۢ مِّن رِّجَالِكُمْ وَلَٰكِن رَّسُولَ ٱللَّهِ وَخَاتَمَ ٱلنَّبِيِّۦنَ ۗ وَكَانَ ٱللَّهُ بِكُلِّ شَىْءٍ عَلِيمًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3535,
+                "excerptsAr": [
+                  "فَأَنَا اللَّبِنَةُ، وَأَنَا خَاتِمُ النَّبِيِّينَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٥٣٥"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "المحبة والاتباع",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «لا يؤمن أحدكم حتى أكون أحبّ إليه من والده وولده والناس أجمعين». ودليل المحبة الاتباع: «قل إن كنتم تحبون الله فاتّبعوني يحببكم الله»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 31,
+                "toAyah": 31,
+                "referenceAr": "ال عمران ٣١",
+                "verses": [
+                  {
+                    "verseKey": "3:31",
+                    "ayah": 31,
+                    "textAr": "قُلْ إِن كُنتُمْ تُحِبُّونَ ٱللَّهَ فَٱتَّبِعُونِى يُحْبِبْكُمُ ٱللَّهُ وَيَغْفِرْ لَكُمْ ذُنُوبَكُمْ ۗ وَٱللَّهُ غَفُورٌۭ رَّحِيمٌۭ"
+                  }
+                ]
+              },
+              {
+                "surah": 33,
+                "surahNameAr": "الأحزاب",
+                "fromAyah": 21,
+                "toAyah": 21,
+                "referenceAr": "الأحزاب ٢١",
+                "verses": [
+                  {
+                    "verseKey": "33:21",
+                    "ayah": 21,
+                    "textAr": "لَّقَدْ كَانَ لَكُمْ فِى رَسُولِ ٱللَّهِ أُسْوَةٌ حَسَنَةٌۭ لِّمَن كَانَ يَرْجُوا۟ ٱللَّهَ وَٱلْيَوْمَ ٱلْءَاخِرَ وَذَكَرَ ٱللَّهَ كَثِيرًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 15,
+                "excerptsAr": [
+                  "لاَ يُؤْمِنُ أَحَدُكُمْ حَتَّى أَكُونَ أَحَبَّ إِلَيْهِ مِنْ وَالِدِهِ وَوَلَدِهِ وَالنَّاسِ أَجْمَعِينَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "نؤمن بجميع الرسل ولا نفرّق بينهم.",
+          "محمد ﷺ خاتم النبيين.",
+          "محبة النبي ﷺ تظهر في اتباعه."
+        ],
+        "quiz": [
+          {
+            "questionAr": "من خاتم النبيين؟",
+            "optionsAr": [
+              "عيسى عليه السلام",
+              "موسى عليه السلام",
+              "محمد ﷺ"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "الأحزاب ٤٠."
+          },
+          {
+            "questionAr": "ما دليل محبة الله في آية آل عمران؟",
+            "optionsAr": [
+              "كثرة النوافل فقط",
+              "اتباع النبي ﷺ",
+              "حفظ القرآن"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "آل عمران ٣١."
+          },
+          {
+            "questionAr": "هل ذكر الله كل الرسل في القرآن؟",
+            "optionsAr": [
+              "لا، منهم من لم يقصص علينا",
+              "ذكر عشرة فقط",
+              "نعم كلهم"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "النساء ١٦٤."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-qabr-baath",
+        "collectionId": "aqeedah",
+        "order": 70,
+        "titleAr": "اليوم الآخر: القبر والبعث",
+        "titleEn": "The Last Day: the grave and the resurrection",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "بعد الموت برزخ إلى يوم يُبعثون، يُسأل فيه العبد في قبره. ثم يُنفخ في الصور فيقوم الناس من قبورهم حفاة عراة إلى ربهم.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "ومن ورائهم برزخ",
+            "paragraphsAr": [
+              "إذا جاء أحدهم الموت تمنّى الرجوع ليعمل صالحًا، ومن ورائهم برزخ إلى يوم يُبعثون.",
+              "وأخبر النبي ﷺ أن العبد إذا وُضع في قبره وتولّى عنه أصحابه أتاه ملكان فيسألانه."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 23,
+                "surahNameAr": "المؤمنون",
+                "fromAyah": 99,
+                "toAyah": 100,
+                "referenceAr": "المؤمنون ٩٩–١٠٠",
+                "verses": [
+                  {
+                    "verseKey": "23:99",
+                    "ayah": 99,
+                    "textAr": "حَتَّىٰٓ إِذَا جَآءَ أَحَدَهُمُ ٱلْمَوْتُ قَالَ رَبِّ ٱرْجِعُونِ"
+                  },
+                  {
+                    "verseKey": "23:100",
+                    "ayah": 100,
+                    "textAr": "لَعَلِّىٓ أَعْمَلُ صَٰلِحًۭا فِيمَا تَرَكْتُ ۚ كَلَّآ ۚ إِنَّهَا كَلِمَةٌ هُوَ قَآئِلُهَا ۖ وَمِن وَرَآئِهِم بَرْزَخٌ إِلَىٰ يَوْمِ يُبْعَثُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 1374,
+                "excerptsAr": [
+                  "إِنَّ الْعَبْدَ إِذَا وُضِعَ فِي قَبْرِهِ، وَتَوَلَّى عَنْهُ أَصْحَابُهُ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٣٧٤"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "ونُفخ في الصور",
+            "paragraphsAr": [
+              "ونُفخ في الصور فإذا هم من الأجداث (القبور) إلى ربهم ينسلون، قالوا: يا ويلنا من بعثنا من مرقدنا؟ هذا ما وعد الرحمن وصدق المرسلون.",
+              "وقال النبي ﷺ: «يا أيها الناس إنكم محشورون إلى الله حفاة عراة غُرلًا»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 36,
+                "surahNameAr": "يس",
+                "fromAyah": 51,
+                "toAyah": 52,
+                "referenceAr": "يس ٥١–٥٢",
+                "verses": [
+                  {
+                    "verseKey": "36:51",
+                    "ayah": 51,
+                    "textAr": "وَنُفِخَ فِى ٱلصُّورِ فَإِذَا هُم مِّنَ ٱلْأَجْدَاثِ إِلَىٰ رَبِّهِمْ يَنسِلُونَ"
+                  },
+                  {
+                    "verseKey": "36:52",
+                    "ayah": 52,
+                    "textAr": "قَالُوا۟ يَٰوَيْلَنَا مَنۢ بَعَثَنَا مِن مَّرْقَدِنَا ۜ ۗ هَٰذَا مَا وَعَدَ ٱلرَّحْمَٰنُ وَصَدَقَ ٱلْمُرْسَلُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4625,
+                "excerptsAr": [
+                  "يَا أَيُّهَا النَّاسُ إِنَّكُمْ مَحْشُورُونَ إِلَى اللَّهِ حُفَاةً عُرَاةً غُرْلاً"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٦٢٥"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "بُعثت أنا والساعة كهاتين",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «بُعثت أنا والساعة كهاتين»، وقرن بين إصبعيه. فالساعة قريبة، ولا يعلم وقتها إلا الله."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6504,
+                "excerptsAr": [
+                  "بُعِثْتُ أَنَا وَالسَّاعَةَ كَهَاتَيْنِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٥٠٤"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "القبر أول منازل الآخرة، وفيه السؤال.",
+          "البعث حق: يقوم الناس من قبورهم إلى ربهم.",
+          "الساعة قريبة، ووقتها عند الله."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما البرزخ؟",
+            "optionsAr": [
+              "يوم الحساب",
+              "الصراط",
+              "ما بين الموت والبعث"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "المؤمنون ١٠٠."
+          },
+          {
+            "questionAr": "كيف يُحشر الناس؟",
+            "optionsAr": [
+              "بثيابهم",
+              "حفاة عراة غرلًا",
+              "على الدواب"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٤٦٢٥."
+          },
+          {
+            "questionAr": "من يعلم وقت الساعة؟",
+            "optionsAr": [
+              "الله وحده",
+              "الملائكة",
+              "الأنبياء"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "«إن الله عنده علم الساعة»."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-hisab",
+        "collectionId": "aqeedah",
+        "order": 80,
+        "titleAr": "الحساب والميزان والصراط والحوض",
+        "titleEn": "The reckoning, the scale, the bridge and the pool",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "يوم القيامة تُعرض الأعمال، فمن يعمل مثقال ذرة خيرًا يره، وتوضع الموازين القسط، ويُضرب الصراط على جهنم، ولنبينا ﷺ حوض يرده المؤمنون.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "مثقال ذرة",
+            "paragraphsAr": [
+              "يومئذ يصدر الناس أشتاتًا ليُروا أعمالهم، فمن يعمل مثقال ذرة خيرًا يره، ومن يعمل مثقال ذرة شرًّا يره.",
+              "وقال النبي ﷺ: «من نوقش الحساب عُذّب»، فنسأل الله الحساب اليسير."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 99,
+                "surahNameAr": "الزلزلة",
+                "fromAyah": 6,
+                "toAyah": 8,
+                "referenceAr": "الزلزلة ٦–٨",
+                "verses": [
+                  {
+                    "verseKey": "99:6",
+                    "ayah": 6,
+                    "textAr": "يَوْمَئِذٍۢ يَصْدُرُ ٱلنَّاسُ أَشْتَاتًۭا لِّيُرَوْا۟ أَعْمَٰلَهُمْ"
+                  },
+                  {
+                    "verseKey": "99:7",
+                    "ayah": 7,
+                    "textAr": "فَمَن يَعْمَلْ مِثْقَالَ ذَرَّةٍ خَيْرًۭا يَرَهُۥ"
+                  },
+                  {
+                    "verseKey": "99:8",
+                    "ayah": 8,
+                    "textAr": "وَمَن يَعْمَلْ مِثْقَالَ ذَرَّةٍۢ شَرًّۭا يَرَهُۥ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6536,
+                "excerptsAr": [
+                  "مَنْ نُوقِشَ الْحِسَابَ عُذِّبَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٥٣٦"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "الموازين القسط",
+            "paragraphsAr": [
+              "ونضع الموازين القسط ليوم القيامة فلا تُظلم نفس شيئًا، وإن كان مثقال حبة من خردل أتينا بها.",
+              "ومن أثقل ما في الميزان: «سبحان الله وبحمده، سبحان الله العظيم»، كلمتان خفيفتان على اللسان ثقيلتان في الميزان."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 21,
+                "surahNameAr": "الأنبياء",
+                "fromAyah": 47,
+                "toAyah": 47,
+                "referenceAr": "الأنبياء ٤٧",
+                "verses": [
+                  {
+                    "verseKey": "21:47",
+                    "ayah": 47,
+                    "textAr": "وَنَضَعُ ٱلْمَوَٰزِينَ ٱلْقِسْطَ لِيَوْمِ ٱلْقِيَٰمَةِ فَلَا تُظْلَمُ نَفْسٌۭ شَيْـًۭٔا ۖ وَإِن كَانَ مِثْقَالَ حَبَّةٍۢ مِّنْ خَرْدَلٍ أَتَيْنَا بِهَا ۗ وَكَفَىٰ بِنَا حَٰسِبِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6682,
+                "excerptsAr": [
+                  "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٦٨٢"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "الصراط والحوض",
+            "paragraphsAr": [
+              "يُضرب الصراط بين ظهراني جهنم، فيكون النبي ﷺ أول من يجوز من الرسل بأمته.",
+              "وللنبي ﷺ حوض، قال: «حوضي مسيرة شهر»، ماؤه أبيض من اللبن، من شرب منه لا يظمأ أبدًا."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 806,
+                "excerptsAr": [
+                  "فَيُضْرَبُ الصِّرَاطُ بَيْنَ ظَهْرَانَىْ جَهَنَّمَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٨٠٦"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6579,
+                "excerptsAr": [
+                  "حَوْضِي مَسِيرَةُ شَهْرٍ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٥٧٩"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "لا يضيع عند الله مثقال ذرة.",
+          "الموازين قسط لا ظلم فيها.",
+          "الصراط على جهنم، وللنبي ﷺ حوض."
+        ],
+        "quiz": [
+          {
+            "questionAr": "أكمل: «فمن يعمل مثقال ذرة خيرًا…»",
+            "optionsAr": [
+              "يره",
+              "يُجزَ به",
+              "يُكتب له"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "الزلزلة ٧."
+          },
+          {
+            "questionAr": "ما الكلمتان الثقيلتان في الميزان؟",
+            "optionsAr": [
+              "الحمد لله والله أكبر",
+              "سبحان الله وبحمده سبحان الله العظيم",
+              "لا حول ولا قوة إلا بالله"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٦٦٨٢."
+          },
+          {
+            "questionAr": "كم مسيرة حوض النبي ﷺ؟",
+            "optionsAr": [
+              "شهر",
+              "سنة",
+              "يوم"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٦٥٧٩."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-janna-nar",
+        "collectionId": "aqeedah",
+        "order": 90,
+        "titleAr": "الجنة والنار",
+        "titleEn": "Paradise and Hellfire",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الجنة دار المؤمنين، فيها ما لا عين رأت ولا أذن سمعت ولا خطر على قلب بشر، ودرجاتها مئة. والنار دار العذاب، نارنا جزء من سبعين جزءًا منها.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "ما لا عين رأت",
+            "paragraphsAr": [
+              "قال الله في الحديث القدسي: «أعددت لعبادي الصالحين ما لا عين رأت، ولا أذن سمعت، ولا خطر على قلب بشر»، واقرؤوا إن شئتم: «فلا تعلم نفس ما أُخفي لهم من قرة أعين».",
+              "وفي الجنة مئة درجة، ما بين كل درجتين كما بين السماء والأرض، وأعلاها الفردوس."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 32,
+                "surahNameAr": "السجدة",
+                "fromAyah": 17,
+                "toAyah": 17,
+                "referenceAr": "السجدة ١٧",
+                "verses": [
+                  {
+                    "verseKey": "32:17",
+                    "ayah": 17,
+                    "textAr": "فَلَا تَعْلَمُ نَفْسٌۭ مَّآ أُخْفِىَ لَهُم مِّن قُرَّةِ أَعْيُنٍۢ جَزَآءًۢ بِمَا كَانُوا۟ يَعْمَلُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 18,
+                "surahNameAr": "الكهف",
+                "fromAyah": 107,
+                "toAyah": 108,
+                "referenceAr": "الكهف ١٠٧–١٠٨",
+                "verses": [
+                  {
+                    "verseKey": "18:107",
+                    "ayah": 107,
+                    "textAr": "إِنَّ ٱلَّذِينَ ءَامَنُوا۟ وَعَمِلُوا۟ ٱلصَّٰلِحَٰتِ كَانَتْ لَهُمْ جَنَّٰتُ ٱلْفِرْدَوْسِ نُزُلًا"
+                  },
+                  {
+                    "verseKey": "18:108",
+                    "ayah": 108,
+                    "textAr": "خَٰلِدِينَ فِيهَا لَا يَبْغُونَ عَنْهَا حِوَلًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3244,
+                "excerptsAr": [
+                  "أَعْدَدْتُ لِعِبَادِي الصَّالِحِينَ مَا لاَ عَيْنَ رَأَتْ، وَلاَ أُذُنَ سَمِعَتْ، وَلاَ خَطَرَ عَلَى قَلْبِ بَشَرٍ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٢٤٤"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 2790,
+                "excerptsAr": [
+                  "إِنَّ فِي الْجَنَّةِ مِائَةَ دَرَجَةٍ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٧٩٠"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "قوا أنفسكم وأهليكم نارًا",
+            "paragraphsAr": [
+              "أمر الله المؤمنين أن يقوا أنفسهم وأهليهم نارًا وقودها الناس والحجارة. وقال النبي ﷺ: «ناركم جزء من سبعين جزءًا من نار جهنم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 66,
+                "surahNameAr": "التحريم",
+                "fromAyah": 6,
+                "toAyah": 6,
+                "referenceAr": "التحريم ٦",
+                "verses": [
+                  {
+                    "verseKey": "66:6",
+                    "ayah": 6,
+                    "textAr": "يَٰٓأَيُّهَا ٱلَّذِينَ ءَامَنُوا۟ قُوٓا۟ أَنفُسَكُمْ وَأَهْلِيكُمْ نَارًۭا وَقُودُهَا ٱلنَّاسُ وَٱلْحِجَارَةُ عَلَيْهَا مَلَٰٓئِكَةٌ غِلَاظٌۭ شِدَادٌۭ لَّا يَعْصُونَ ٱللَّهَ مَآ أَمَرَهُمْ وَيَفْعَلُونَ مَا يُؤْمَرُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 3265,
+                "excerptsAr": [
+                  "نَارُكُمْ جُزْءٌ مِنْ سَبْعِينَ جُزْءًا مِنْ نَارِ جَهَنَّمَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٣٢٦٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "نعيم الجنة فوق التصور.",
+          "الجنة درجات، وأعلاها الفردوس.",
+          "وقاية النفس والأهل من النار واجب."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم درجة في الجنة كما في الحديث؟",
+            "optionsAr": [
+              "سبعون",
+              "ألف",
+              "مئة"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٢٧٩٠."
+          },
+          {
+            "questionAr": "نار الدنيا جزء من كم جزءًا من نار جهنم؟",
+            "optionsAr": [
+              "عشرة",
+              "مئة",
+              "سبعين"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٣٢٦٥."
+          },
+          {
+            "questionAr": "ما أعلى الجنة؟",
+            "optionsAr": [
+              "الفردوس",
+              "عدن",
+              "المأوى"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "الكهف ١٠٧."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-qadar",
+        "collectionId": "aqeedah",
+        "order": 100,
+        "titleAr": "الإيمان بالقدر",
+        "titleEn": "Belief in the divine decree",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "كل شيء خلقه الله بقدر، وكتب مقادير الخلائق قبل خلق السماوات والأرض بخمسين ألف سنة. والإيمان بالقدر لا يعني ترك العمل: «اعملوا فكلٌّ ميسّر لما خُلق له».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "إنا كل شيء خلقناه بقدر",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «كتب الله مقادير الخلائق قبل أن يخلق السماوات والأرض بخمسين ألف سنة». فما أصاب من مصيبة إلا في كتاب من قبل أن يبرأها الله."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 54,
+                "surahNameAr": "القمر",
+                "fromAyah": 49,
+                "toAyah": 49,
+                "referenceAr": "القمر ٤٩",
+                "verses": [
+                  {
+                    "verseKey": "54:49",
+                    "ayah": 49,
+                    "textAr": "إِنَّا كُلَّ شَىْءٍ خَلَقْنَٰهُ بِقَدَرٍۢ"
+                  }
+                ]
+              },
+              {
+                "surah": 57,
+                "surahNameAr": "الحديد",
+                "fromAyah": 22,
+                "toAyah": 22,
+                "referenceAr": "الحديد ٢٢",
+                "verses": [
+                  {
+                    "verseKey": "57:22",
+                    "ayah": 22,
+                    "textAr": "مَآ أَصَابَ مِن مُّصِيبَةٍۢ فِى ٱلْأَرْضِ وَلَا فِىٓ أَنفُسِكُمْ إِلَّا فِى كِتَٰبٍۢ مِّن قَبْلِ أَن نَّبْرَأَهَآ ۚ إِنَّ ذَٰلِكَ عَلَى ٱللَّهِ يَسِيرٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 2653,
+                "excerptsAr": [
+                  "كَتَبَ اللَّهُ مَقَادِيرَ الْخَلاَئِقِ قَبْلَ أَنْ يَخْلُقَ السَّمَوَاتِ وَالأَرْضَ بِخَمْسِينَ أَلْفَ سَنَةٍ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٢٦٥٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "لكيلا تأسوا",
+            "paragraphsAr": [
+              "ثمرة الإيمان بالقدر الطمأنينة: لكيلا تأسوا على ما فاتكم ولا تفرحوا بما آتاكم. ومن يؤمن بالله يهد قلبه."
+            ],
+            "reflectionAr": "ما أخطأك لم يكن ليصيبك، وما أصابك لم يكن ليخطئك؛ فارتح.",
+            "quran": [
+              {
+                "surah": 57,
+                "surahNameAr": "الحديد",
+                "fromAyah": 23,
+                "toAyah": 23,
+                "referenceAr": "الحديد ٢٣",
+                "verses": [
+                  {
+                    "verseKey": "57:23",
+                    "ayah": 23,
+                    "textAr": "لِّكَيْلَا تَأْسَوْا۟ عَلَىٰ مَا فَاتَكُمْ وَلَا تَفْرَحُوا۟ بِمَآ ءَاتَىٰكُمْ ۗ وَٱللَّهُ لَا يُحِبُّ كُلَّ مُخْتَالٍۢ فَخُورٍ"
+                  }
+                ]
+              },
+              {
+                "surah": 64,
+                "surahNameAr": "التغابن",
+                "fromAyah": 11,
+                "toAyah": 11,
+                "referenceAr": "التغابن ١١",
+                "verses": [
+                  {
+                    "verseKey": "64:11",
+                    "ayah": 11,
+                    "textAr": "مَآ أَصَابَ مِن مُّصِيبَةٍ إِلَّا بِإِذْنِ ٱللَّهِ ۗ وَمَن يُؤْمِنۢ بِٱللَّهِ يَهْدِ قَلْبَهُۥ ۚ وَٱللَّهُ بِكُلِّ شَىْءٍ عَلِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "اعملوا فكلٌّ ميسّر",
+            "paragraphsAr": [
+              "لما قال النبي ﷺ: ما منكم من أحد إلا وقد كُتب مقعده من النار ومقعده من الجنة، قالوا: أفلا نتّكل؟ قال: «اعملوا فكلٌّ ميسّر لما خُلق له».",
+              "وقال: «احرص على ما ينفعك، واستعن بالله، ولا تعجز»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4949,
+                "excerptsAr": [
+                  "اعْمَلُوا فَكُلٌّ مُيَسَّرٌ لِمَا خُلِقَ لَهُ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٩٤٩"
+              },
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 2664,
+                "excerptsAr": [
+                  "احْرِصْ عَلَى مَا يَنْفَعُكَ وَاسْتَعِنْ بِاللَّهِ وَلاَ تَعْجِزْ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٢٦٦٤"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "كل شيء بقدر مكتوب.",
+          "الإيمان بالقدر يورث الطمأنينة.",
+          "القدر لا يمنع العمل: احرص واستعن بالله ولا تعجز."
+        ],
+        "quiz": [
+          {
+            "questionAr": "متى كتب الله مقادير الخلائق؟",
+            "optionsAr": [
+              "قبل خلق السماوات والأرض بخمسين ألف سنة",
+              "ليلة القدر فقط",
+              "يوم يولد الإنسان"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ٢٦٥٣."
+          },
+          {
+            "questionAr": "ماذا قال النبي ﷺ لمن قال: أفلا نتّكل؟",
+            "optionsAr": [
+              "اعملوا فكلٌّ ميسّر لما خُلق له",
+              "نعم اتّكلوا",
+              "لا تسألوا عن القدر"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٤٩٤٩."
+          },
+          {
+            "questionAr": "أكمل: «احرص على ما ينفعك…»",
+            "optionsAr": [
+              "وتوكل على الله",
+              "واترك ما لا يعنيك",
+              "واستعن بالله ولا تعجز"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح مسلم ٢٦٦٤."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-shirk",
+        "collectionId": "aqeedah",
+        "order": 110,
+        "titleAr": "الشرك وخطره",
+        "titleEn": "Shirk and its danger",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الشرك أعظم الذنوب: أن تجعل لله ندًّا وهو خلقك. لا يغفره الله لمن مات عليه، ويحبط العمل. ومنه الشرك الخفي: الرياء.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "إن الشرك لظلم عظيم",
+            "paragraphsAr": [
+              "وصّى لقمان ابنه: يا بنيّ لا تشرك بالله، إن الشرك لظلم عظيم. وقال النبي ﷺ: «ألا أنبئكم بأكبر الكبائر؟» قالوا: بلى، قال: «الإشراك بالله، وعقوق الوالدين…»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 31,
+                "surahNameAr": "لقمان",
+                "fromAyah": 13,
+                "toAyah": 13,
+                "referenceAr": "لقمان ١٣",
+                "verses": [
+                  {
+                    "verseKey": "31:13",
+                    "ayah": 13,
+                    "textAr": "وَإِذْ قَالَ لُقْمَٰنُ لِٱبْنِهِۦ وَهُوَ يَعِظُهُۥ يَٰبُنَىَّ لَا تُشْرِكْ بِٱللَّهِ ۖ إِنَّ ٱلشِّرْكَ لَظُلْمٌ عَظِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 2654,
+                "excerptsAr": [
+                  "أَلاَ أُنَبِّئُكُمْ بِأَكْبَرِ الْكَبَائِرِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٦٥٤"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "لا يغفر أن يُشرك به",
+            "paragraphsAr": [
+              "إن الله لا يغفر أن يُشرك به ويغفر ما دون ذلك لمن يشاء. والشرك يحبط العمل كله: «لئن أشركت ليحبطنّ عملك».",
+              "وقال النبي ﷺ: «من مات لا يشرك بالله شيئًا دخل الجنة»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 48,
+                "toAyah": 48,
+                "referenceAr": "النساء ٤٨",
+                "verses": [
+                  {
+                    "verseKey": "4:48",
+                    "ayah": 48,
+                    "textAr": "إِنَّ ٱللَّهَ لَا يَغْفِرُ أَن يُشْرَكَ بِهِۦ وَيَغْفِرُ مَا دُونَ ذَٰلِكَ لِمَن يَشَآءُ ۚ وَمَن يُشْرِكْ بِٱللَّهِ فَقَدِ ٱفْتَرَىٰٓ إِثْمًا عَظِيمًا"
+                  }
+                ]
+              },
+              {
+                "surah": 39,
+                "surahNameAr": "الزمر",
+                "fromAyah": 65,
+                "toAyah": 65,
+                "referenceAr": "الزمر ٦٥",
+                "verses": [
+                  {
+                    "verseKey": "39:65",
+                    "ayah": 65,
+                    "textAr": "وَلَقَدْ أُوحِىَ إِلَيْكَ وَإِلَى ٱلَّذِينَ مِن قَبْلِكَ لَئِنْ أَشْرَكْتَ لَيَحْبَطَنَّ عَمَلُكَ وَلَتَكُونَنَّ مِنَ ٱلْخَٰسِرِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 1238,
+                "excerptsAr": [
+                  "مَنْ مَاتَ لاَ يُشْرِكُ بِاللَّهِ شَيْئًا دَخَلَ الْجَنَّةَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٢٣٨"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "الرياء",
+            "paragraphsAr": [
+              "قال الله في الحديث القدسي: «أنا أغنى الشركاء عن الشرك، من عمل عملًا أشرك فيه معي غيري تركته وشركه». فالعمل لأجل مدح الناس يُبطل ثوابه.",
+              "والعلاج: الإخلاص، «فمن كان يرجو لقاء ربه فليعمل عملًا صالحًا ولا يشرك بعبادة ربه أحدًا»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 18,
+                "surahNameAr": "الكهف",
+                "fromAyah": 110,
+                "toAyah": 110,
+                "referenceAr": "الكهف ١١٠",
+                "verses": [
+                  {
+                    "verseKey": "18:110",
+                    "ayah": 110,
+                    "textAr": "قُلْ إِنَّمَآ أَنَا۠ بَشَرٌۭ مِّثْلُكُمْ يُوحَىٰٓ إِلَىَّ أَنَّمَآ إِلَٰهُكُمْ إِلَٰهٌۭ وَٰحِدٌۭ ۖ فَمَن كَانَ يَرْجُوا۟ لِقَآءَ رَبِّهِۦ فَلْيَعْمَلْ عَمَلًۭا صَٰلِحًۭا وَلَا يُشْرِكْ بِعِبَادَةِ رَبِّهِۦٓ أَحَدًۢا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 2985,
+                "excerptsAr": [
+                  "أَنَا أَغْنَى الشُّرَكَاءِ عَنِ الشِّرْكِ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٢٩٨٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الشرك أكبر الكبائر.",
+          "لا يُغفر لمن مات عليه، ويحبط العمل.",
+          "الرياء شرك خفي، وعلاجه الإخلاص."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما أكبر الكبائر؟",
+            "optionsAr": [
+              "الإشراك بالله",
+              "السرقة",
+              "الكذب"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح البخاري ٢٦٥٤."
+          },
+          {
+            "questionAr": "بماذا وصف لقمان الشرك؟",
+            "optionsAr": [
+              "خطأ",
+              "ذنب صغير",
+              "ظلم عظيم"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "لقمان ١٣."
+          },
+          {
+            "questionAr": "ماذا يفعل الله بالعمل الذي فيه رياء؟",
+            "optionsAr": [
+              "يضاعفه",
+              "يقبله",
+              "يتركه وشركه"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح مسلم ٢٩٨٥."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "aqeedah-halawa",
+        "collectionId": "aqeedah",
+        "order": 120,
+        "titleAr": "حلاوة الإيمان",
+        "titleEn": "The sweetness of faith",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "ثلاث من كنّ فيه وجد حلاوة الإيمان: أن يكون الله ورسوله أحب إليه مما سواهما، وأن يحب المرء لا يحبه إلا لله، وأن يكره أن يعود في الكفر كما يكره أن يُقذف في النار.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "ثلاث من كنّ فيه",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «ثلاث من كنّ فيه وجد حلاوة الإيمان: أن يكون الله ورسوله أحب إليه مما سواهما، وأن يحب المرء لا يحبه إلا لله، وأن يكره أن يعود في الكفر كما يكره أن يُقذف في النار»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 16,
+                "excerptsAr": [
+                  "ثَلاَثٌ مَنْ كُنَّ فِيهِ وَجَدَ حَلاَوَةَ الإِيمَانِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١٦"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "يهد قلبه",
+            "paragraphsAr": [
+              "الإيمان يزيد بالطاعة وينقص بالمعصية. ومن آمن بالله هدى الله قلبه، فيجد الطمأنينة في البلاء والشكر في النعمة."
+            ],
+            "reflectionAr": "الإيمان ليس معلومات فقط؛ له حلاوة يجدها القلب حين يحب الله ورسوله ويحب في الله.",
+            "quran": [
+              {
+                "surah": 64,
+                "surahNameAr": "التغابن",
+                "fromAyah": 11,
+                "toAyah": 11,
+                "referenceAr": "التغابن ١١",
+                "verses": [
+                  {
+                    "verseKey": "64:11",
+                    "ayah": 11,
+                    "textAr": "مَآ أَصَابَ مِن مُّصِيبَةٍ إِلَّا بِإِذْنِ ٱللَّهِ ۗ وَمَن يُؤْمِنۢ بِٱللَّهِ يَهْدِ قَلْبَهُۥ ۚ وَٱللَّهُ بِكُلِّ شَىْءٍ عَلِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "للإيمان حلاوة يجدها من أحب الله ورسوله أكثر من كل شيء.",
+          "الحب في الله من أوثق عرى الإيمان.",
+          "الإيمان يزيد بالطاعة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم خصلة يجد بها المرء حلاوة الإيمان؟",
+            "optionsAr": [
+              "خمس",
+              "سبع",
+              "ثلاث"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ١٦."
+          },
+          {
+            "questionAr": "من هذه الخصال:",
+            "optionsAr": [
+              "أن يكثر ماله",
+              "أن يحفظ الشعر",
+              "أن يحب المرء لا يحبه إلا لله"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ١٦."
+          },
+          {
+            "questionAr": "ماذا يحدث لقلب من يؤمن بالله؟",
+            "optionsAr": [
+              "لا يتغير",
+              "يقسو",
+              "يهديه الله"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "التغابن ١١."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      }
+    ]
   },
   {
     "id": "asma-husna",
@@ -5885,8 +10210,2977 @@ export const LEARNING_COLLECTIONS_DATA = [
     "titleAr": "أسماء الله الحسنى",
     "titleEn": "The Beautiful Names of Allah",
     "descriptionAr": "كل اسم مع الآية التي ورد فيها ومعناه.",
-    "methodAr": "الأسماء الواردة في القرآن الكريم مع موضعها، وحديث «إن لله تسعة وتسعين اسمًا» من الصحيحين.",
-    "items": []
+    "methodAr": "الأسماء الواردة في القرآن الكريم مع الآية التي ورد فيها كل اسم، وما ثبت في الصحيحين. القائمة المشهورة بتسعة وتسعين اسمًا لم ترد في الصحيحين، فلم نعتمد عليها.",
+    "items": [
+      {
+        "id": "asma-intro",
+        "collectionId": "asma-husna",
+        "order": 1,
+        "titleAr": "ولله الأسماء الحسنى",
+        "titleEn": "To Allah belong the most beautiful names",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "لله تسعة وتسعون اسمًا، من أحصاها دخل الجنة. وإحصاؤها: حفظها، وفهم معانيها، والعمل بمقتضاها، ودعاء الله بها.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "فادعوه بها",
+            "paragraphsAr": [
+              "قال الله: «ولله الأسماء الحسنى فادعوه بها». وقال النبي ﷺ: «إن لله تسعة وتسعين اسمًا، مائة إلا واحدًا، من أحصاها دخل الجنة».",
+              "والقائمة المشهورة بتسعة وتسعين اسمًا لم ترد في الصحيحين، ولذلك جمعنا في هذا القسم الأسماء الواردة في القرآن الكريم وفي الأحاديث الصحيحة، كل اسم مع الآية التي ورد فيها."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 7,
+                "surahNameAr": "الأعراف",
+                "fromAyah": 180,
+                "toAyah": 180,
+                "referenceAr": "الأعراف ١٨٠",
+                "verses": [
+                  {
+                    "verseKey": "7:180",
+                    "ayah": 180,
+                    "textAr": "وَلِلَّهِ ٱلْأَسْمَآءُ ٱلْحُسْنَىٰ فَٱدْعُوهُ بِهَا ۖ وَذَرُوا۟ ٱلَّذِينَ يُلْحِدُونَ فِىٓ أَسْمَٰٓئِهِۦ ۚ سَيُجْزَوْنَ مَا كَانُوا۟ يَعْمَلُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 2736,
+                "excerptsAr": [
+                  "إِنَّ لِلَّهِ تِسْعَةً وَتِسْعِينَ اسْمَا مِائَةً إِلاَّ وَاحِدًا مَنْ أَحْصَاهَا دَخَلَ الْجَنَّةَ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٢٧٣٦"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "كيف نُحصيها؟",
+            "paragraphsAr": [
+              "الإحصاء ليس حفظ القائمة فقط، بل: أن تعرف الاسم، وتفهم معناه، وتدعو الله به («يا رزاق ارزقني»، «يا تواب تب عليّ»)، وأن يظهر أثره في قلبك وسلوكك."
+            ],
+            "reflectionAr": "في كل اسم من الأسماء التالية فقرة «أثره في حياتك»: هي الطريق العملي للإحصاء.",
+            "quran": [
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 24,
+                "toAyah": 24,
+                "referenceAr": "الحشر ٢٤",
+                "verses": [
+                  {
+                    "verseKey": "59:24",
+                    "ayah": 24,
+                    "textAr": "هُوَ ٱللَّهُ ٱلْخَٰلِقُ ٱلْبَارِئُ ٱلْمُصَوِّرُ ۖ لَهُ ٱلْأَسْمَآءُ ٱلْحُسْنَىٰ ۚ يُسَبِّحُ لَهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۖ وَهُوَ ٱلْعَزِيزُ ٱلْحَكِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "لله تسعة وتسعون اسمًا من أحصاها دخل الجنة.",
+          "الإحصاء: الفهم والدعاء والعمل."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما جزاء من أحصى أسماء الله الحسنى؟",
+            "optionsAr": [
+              "لا يمرض",
+              "دخل الجنة",
+              "غُفر له يومه"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "صحيح البخاري ٢٧٣٦."
+          },
+          {
+            "questionAr": "ماذا أمرنا الله أن نفعل بأسمائه؟",
+            "optionsAr": [
+              "أن نعلّقها",
+              "أن نكتبها فقط",
+              "أن ندعوه بها"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "الأعراف ١٨٠."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-allah",
+        "collectionId": "asma-husna",
+        "order": 10,
+        "titleAr": "الله",
+        "titleEn": "Allah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "«الله» علم على الرب سبحانه، وهو أعظم أسمائه، ومعناه: المألوه المعبود بحق. وإليه تُضاف الأسماء كلها: الرحمن والرحيم والملك من أسماء الله.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "«الله» علم على الرب سبحانه، وهو أعظم أسمائه، ومعناه: المألوه المعبود بحق. وإليه تُضاف الأسماء كلها: الرحمن والرحيم والملك من أسماء الله."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 20,
+                "surahNameAr": "طه",
+                "fromAyah": 14,
+                "toAyah": 14,
+                "referenceAr": "طه ١٤",
+                "verses": [
+                  {
+                    "verseKey": "20:14",
+                    "ayah": 14,
+                    "textAr": "إِنَّنِىٓ أَنَا ٱللَّهُ لَآ إِلَٰهَ إِلَّآ أَنَا۠ فَٱعْبُدْنِى وَأَقِمِ ٱلصَّلَوٰةَ لِذِكْرِىٓ"
+                  }
+                ]
+              },
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 22,
+                "toAyah": 22,
+                "referenceAr": "الحشر ٢٢",
+                "verses": [
+                  {
+                    "verseKey": "59:22",
+                    "ayah": 22,
+                    "textAr": "هُوَ ٱللَّهُ ٱلَّذِى لَآ إِلَٰهَ إِلَّا هُوَ ۖ عَٰلِمُ ٱلْغَيْبِ وَٱلشَّهَٰدَةِ ۖ هُوَ ٱلرَّحْمَٰنُ ٱلرَّحِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "من عرف أن الله وحده المعبود بحق لم يتعلّق قلبه بغيره خوفًا ورجاءً ومحبة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 20,
+                "surahNameAr": "طه",
+                "fromAyah": 14,
+                "toAyah": 14,
+                "referenceAr": "طه ١٤",
+                "verses": [
+                  {
+                    "verseKey": "20:14",
+                    "ayah": 14,
+                    "textAr": "إِنَّنِىٓ أَنَا ٱللَّهُ لَآ إِلَٰهَ إِلَّآ أَنَا۠ فَٱعْبُدْنِى وَأَقِمِ ٱلصَّلَوٰةَ لِذِكْرِىٓ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«الله» أعظم الأسماء، ومعناه المعبود بحق."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-rahman-rahim",
+        "collectionId": "asma-husna",
+        "order": 20,
+        "titleAr": "الرحمن، الرحيم",
+        "titleEn": "Ar-Rahman, Ar-Rahim",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الرحمن: ذو الرحمة الواسعة التي وسعت كل شيء. الرحيم: الذي يوصل رحمته إلى عباده.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الرحمن: ذو الرحمة الواسعة التي وسعت كل شيء. الرحيم: الذي يوصل رحمته إلى عباده.",
+              "وكتب الله في كتابه: «إن رحمتي سبقت غضبي». ورأى النبي ﷺ امرأة تضم ولدها فقال: «لَله أرحم بعباده من هذه بولدها»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "الفاتحة ٣",
+                "verses": [
+                  {
+                    "verseKey": "1:3",
+                    "ayah": 3,
+                    "textAr": "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ"
+                  }
+                ]
+              },
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 22,
+                "toAyah": 22,
+                "referenceAr": "الحشر ٢٢",
+                "verses": [
+                  {
+                    "verseKey": "59:22",
+                    "ayah": 22,
+                    "textAr": "هُوَ ٱللَّهُ ٱلَّذِى لَآ إِلَٰهَ إِلَّا هُوَ ۖ عَٰلِمُ ٱلْغَيْبِ وَٱلشَّهَٰدَةِ ۖ هُوَ ٱلرَّحْمَٰنُ ٱلرَّحِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 7554,
+                "excerptsAr": [
+                  "إِنَّ اللَّهَ كَتَبَ كِتَابًا قَبْلَ أَنْ يَخْلُقَ الْخَلْقَ إِنَّ رَحْمَتِي سَبَقَتْ غَضَبِي"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٧٥٥٤"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 5999,
+                "excerptsAr": [
+                  "اللَّهُ أَرْحَمُ بِعِبَادِهِ مِنْ هَذِهِ بِوَلَدِهَا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٥٩٩٩"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "لا تيأس من رحمة الله مهما كان ذنبك، وكن رحيمًا بالخلق، فالراحمون يرحمهم الرحمن."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "الفاتحة ٣",
+                "verses": [
+                  {
+                    "verseKey": "1:3",
+                    "ayah": 3,
+                    "textAr": "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "رحمة الله سبقت غضبه.",
+          "الله أرحم بعباده من الأم بولدها."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-malik-quddus-salam",
+        "collectionId": "asma-husna",
+        "order": 30,
+        "titleAr": "الملك، القدوس، السلام، المؤمن، المهيمن",
+        "titleEn": "Al-Malik, Al-Quddus, As-Salam, Al-Mumin, Al-Muhaymin",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الملك: المالك لكل شيء المتصرف فيه. القدوس: المنزّه عن كل نقص. السلام: السالم من كل عيب، ومنه السلامة. المؤمن: الذي يؤمّن عباده ويصدّق رسله بالآيات. المهيمن: الرقيب الشاهد على خلقه القائم عليهم.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الملك: المالك لكل شيء المتصرف فيه. القدوس: المنزّه عن كل نقص. السلام: السالم من كل عيب، ومنه السلامة. المؤمن: الذي يؤمّن عباده ويصدّق رسله بالآيات. المهيمن: الرقيب الشاهد على خلقه القائم عليهم."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 23,
+                "toAyah": 23,
+                "referenceAr": "الحشر ٢٣",
+                "verses": [
+                  {
+                    "verseKey": "59:23",
+                    "ayah": 23,
+                    "textAr": "هُوَ ٱللَّهُ ٱلَّذِى لَآ إِلَٰهَ إِلَّا هُوَ ٱلْمَلِكُ ٱلْقُدُّوسُ ٱلسَّلَٰمُ ٱلْمُؤْمِنُ ٱلْمُهَيْمِنُ ٱلْعَزِيزُ ٱلْجَبَّارُ ٱلْمُتَكَبِّرُ ۚ سُبْحَٰنَ ٱللَّهِ عَمَّا يُشْرِكُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "الملك الحق هو الله، فلا تذلّ نفسك لغيره. ومن طلب الأمن والسلام فليطلبه من السلام المؤمن."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 23,
+                "toAyah": 23,
+                "referenceAr": "الحشر ٢٣",
+                "verses": [
+                  {
+                    "verseKey": "59:23",
+                    "ayah": 23,
+                    "textAr": "هُوَ ٱللَّهُ ٱلَّذِى لَآ إِلَٰهَ إِلَّا هُوَ ٱلْمَلِكُ ٱلْقُدُّوسُ ٱلسَّلَٰمُ ٱلْمُؤْمِنُ ٱلْمُهَيْمِنُ ٱلْعَزِيزُ ٱلْجَبَّارُ ٱلْمُتَكَبِّرُ ۚ سُبْحَٰنَ ٱللَّهِ عَمَّا يُشْرِكُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "خمسة أسماء في آية واحدة من آخر سورة الحشر."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-aziz-jabbar",
+        "collectionId": "asma-husna",
+        "order": 40,
+        "titleAr": "العزيز، الجبار، المتكبر",
+        "titleEn": "Al-Aziz, Al-Jabbar, Al-Mutakabbir",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "العزيز: الغالب الذي لا يُغلب، وله العزة جميعًا. الجبار: الذي يجبر كسر عباده ويقهر الجبابرة. المتكبر: المتعالي عن صفات الخلق، والكبرياء له وحده.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "العزيز: الغالب الذي لا يُغلب، وله العزة جميعًا. الجبار: الذي يجبر كسر عباده ويقهر الجبابرة. المتكبر: المتعالي عن صفات الخلق، والكبرياء له وحده."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 23,
+                "toAyah": 23,
+                "referenceAr": "الحشر ٢٣",
+                "verses": [
+                  {
+                    "verseKey": "59:23",
+                    "ayah": 23,
+                    "textAr": "هُوَ ٱللَّهُ ٱلَّذِى لَآ إِلَٰهَ إِلَّا هُوَ ٱلْمَلِكُ ٱلْقُدُّوسُ ٱلسَّلَٰمُ ٱلْمُؤْمِنُ ٱلْمُهَيْمِنُ ٱلْعَزِيزُ ٱلْجَبَّارُ ٱلْمُتَكَبِّرُ ۚ سُبْحَٰنَ ٱللَّهِ عَمَّا يُشْرِكُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "اطلب العزة من العزيز بطاعته، واطلب جبر قلبك المكسور من الجبار، واترك الكبر لأن الكبرياء لله وحده."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 23,
+                "toAyah": 23,
+                "referenceAr": "الحشر ٢٣",
+                "verses": [
+                  {
+                    "verseKey": "59:23",
+                    "ayah": 23,
+                    "textAr": "هُوَ ٱللَّهُ ٱلَّذِى لَآ إِلَٰهَ إِلَّا هُوَ ٱلْمَلِكُ ٱلْقُدُّوسُ ٱلسَّلَٰمُ ٱلْمُؤْمِنُ ٱلْمُهَيْمِنُ ٱلْعَزِيزُ ٱلْجَبَّارُ ٱلْمُتَكَبِّرُ ۚ سُبْحَٰنَ ٱللَّهِ عَمَّا يُشْرِكُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الجبار من معانيه: الذي يجبر الكسير.",
+          "الكبرياء لله، والتواضع زينة العبد."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-khaliq-bari-musawwir",
+        "collectionId": "asma-husna",
+        "order": 50,
+        "titleAr": "الخالق، البارئ، المصور",
+        "titleEn": "Al-Khaliq, Al-Bari, Al-Musawwir",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الخالق: الذي أوجد الأشياء من العدم بتقدير. البارئ: الذي أبرز الخلق وميّز بعضه عن بعض. المصور: الذي صوّر كل مخلوق على صورة تخصه.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الخالق: الذي أوجد الأشياء من العدم بتقدير. البارئ: الذي أبرز الخلق وميّز بعضه عن بعض. المصور: الذي صوّر كل مخلوق على صورة تخصه."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 24,
+                "toAyah": 24,
+                "referenceAr": "الحشر ٢٤",
+                "verses": [
+                  {
+                    "verseKey": "59:24",
+                    "ayah": 24,
+                    "textAr": "هُوَ ٱللَّهُ ٱلْخَٰلِقُ ٱلْبَارِئُ ٱلْمُصَوِّرُ ۖ لَهُ ٱلْأَسْمَآءُ ٱلْحُسْنَىٰ ۚ يُسَبِّحُ لَهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۖ وَهُوَ ٱلْعَزِيزُ ٱلْحَكِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "خلقك الله وصوّرك فأحسن صورتك؛ فاشكره على خلقك ولا تحتقر خلق الله في نفسك ولا في غيرك."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 59,
+                "surahNameAr": "الحشر",
+                "fromAyah": 24,
+                "toAyah": 24,
+                "referenceAr": "الحشر ٢٤",
+                "verses": [
+                  {
+                    "verseKey": "59:24",
+                    "ayah": 24,
+                    "textAr": "هُوَ ٱللَّهُ ٱلْخَٰلِقُ ٱلْبَارِئُ ٱلْمُصَوِّرُ ۖ لَهُ ٱلْأَسْمَآءُ ٱلْحُسْنَىٰ ۚ يُسَبِّحُ لَهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۖ وَهُوَ ٱلْعَزِيزُ ٱلْحَكِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الخلق والتقدير والتصوير لله وحده."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-hayy-qayyum",
+        "collectionId": "asma-husna",
+        "order": 60,
+        "titleAr": "الحي، القيوم",
+        "titleEn": "Al-Hayy, Al-Qayyum",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الحي: الذي له الحياة الكاملة التي لا يسبقها عدم ولا يلحقها زوال. القيوم: القائم بنفسه، المقيم لغيره، لا تأخذه سِنة ولا نوم.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الحي: الذي له الحياة الكاملة التي لا يسبقها عدم ولا يلحقها زوال. القيوم: القائم بنفسه، المقيم لغيره، لا تأخذه سِنة ولا نوم.",
+              "وقال النبي ﷺ: «إن الله لا ينام ولا ينبغي له أن ينام»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 255,
+                "toAyah": 255,
+                "referenceAr": "البقرة ٢٥٥",
+                "verses": [
+                  {
+                    "verseKey": "2:255",
+                    "ayah": 255,
+                    "textAr": "ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌۭ وَلَا نَوْمٌۭ ۚ لَّهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَمَا فِى ٱلْأَرْضِ ۗ مَن ذَا ٱلَّذِى يَشْفَعُ عِندَهُۥٓ إِلَّا بِإِذْنِهِۦ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَىْءٍۢ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَآءَ ۚ وَسِعَ كُرْسِيُّهُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ ۖ وَلَا يَـُٔودُهُۥ حِفْظُهُمَا ۚ وَهُوَ ٱلْعَلِىُّ ٱلْعَظِيمُ"
+                  }
+                ]
+              },
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 2,
+                "toAyah": 2,
+                "referenceAr": "ال عمران ٢",
+                "verses": [
+                  {
+                    "verseKey": "3:2",
+                    "ayah": 2,
+                    "textAr": "ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 179,
+                "excerptsAr": [
+                  "إِنَّ اللَّهَ لاَ يَنَامُ وَلاَ يَنْبَغِي لَهُ أَنْ يَنَامَ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ١٧٩"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "توكّل على الحي الذي لا يموت؛ كل من تعتمد عليه من الناس يغيب أو ينام أو يموت، والله قائم عليك لا يغفل."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 255,
+                "toAyah": 255,
+                "referenceAr": "البقرة ٢٥٥",
+                "verses": [
+                  {
+                    "verseKey": "2:255",
+                    "ayah": 255,
+                    "textAr": "ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌۭ وَلَا نَوْمٌۭ ۚ لَّهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَمَا فِى ٱلْأَرْضِ ۗ مَن ذَا ٱلَّذِى يَشْفَعُ عِندَهُۥٓ إِلَّا بِإِذْنِهِۦ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَىْءٍۢ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَآءَ ۚ وَسِعَ كُرْسِيُّهُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ ۖ وَلَا يَـُٔودُهُۥ حِفْظُهُمَا ۚ وَهُوَ ٱلْعَلِىُّ ٱلْعَظِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الحي القيوم ذُكرا في آية الكرسي."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-awwal-akhir",
+        "collectionId": "asma-husna",
+        "order": 70,
+        "titleAr": "الأول، الآخر، الظاهر، الباطن",
+        "titleEn": "Al-Awwal, Al-Akhir, Az-Zahir, Al-Batin",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "فسّرها النبي ﷺ في دعائه: «اللهم أنت الأول فليس قبلك شيء، وأنت الآخر فليس بعدك شيء، وأنت الظاهر فليس فوقك شيء، وأنت الباطن فليس دونك شيء».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "فسّرها النبي ﷺ في دعائه: «اللهم أنت الأول فليس قبلك شيء، وأنت الآخر فليس بعدك شيء، وأنت الظاهر فليس فوقك شيء، وأنت الباطن فليس دونك شيء»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 57,
+                "surahNameAr": "الحديد",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "الحديد ٣",
+                "verses": [
+                  {
+                    "verseKey": "57:3",
+                    "ayah": 3,
+                    "textAr": "هُوَ ٱلْأَوَّلُ وَٱلْءَاخِرُ وَٱلظَّٰهِرُ وَٱلْبَاطِنُ ۖ وَهُوَ بِكُلِّ شَىْءٍ عَلِيمٌ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 2713,
+                "excerptsAr": [
+                  "اللَّهُمَّ أَنْتَ الأَوَّلُ فَلَيْسَ قَبْلَكَ شَىْءٌ وَأَنْتَ الآخِرُ فَلَيْسَ بَعْدَكَ شَىْءٌ وَأَنْتَ الظَّاهِرُ فَلَيْسَ فَوْقَكَ شَىْءٌ وَأَنْتَ الْبَاطِنُ فَلَيْسَ دُونَكَ شَىْءٌ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٢٧١٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "كل شيء يبدأ بالله وينتهي إليه، فاجعل بدايتك به ونهايتك إليه."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 57,
+                "surahNameAr": "الحديد",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "الحديد ٣",
+                "verses": [
+                  {
+                    "verseKey": "57:3",
+                    "ayah": 3,
+                    "textAr": "هُوَ ٱلْأَوَّلُ وَٱلْءَاخِرُ وَٱلظَّٰهِرُ وَٱلْبَاطِنُ ۖ وَهُوَ بِكُلِّ شَىْءٍ عَلِيمٌ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "أربعة أسماء فسّرها النبي ﷺ بنفسه."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-ahad-samad",
+        "collectionId": "asma-husna",
+        "order": 80,
+        "titleAr": "الواحد، الأحد، الصمد، القهار",
+        "titleEn": "Al-Wahid, Al-Ahad, As-Samad, Al-Qahhar",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الواحد الأحد: المتفرد في ذاته وصفاته وأفعاله، لا شريك له ولا مثيل. الصمد: السيد الذي تقصده الخلائق في حوائجها. القهار: الذي قهر كل شيء وخضع له كل شيء.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الواحد الأحد: المتفرد في ذاته وصفاته وأفعاله، لا شريك له ولا مثيل. الصمد: السيد الذي تقصده الخلائق في حوائجها. القهار: الذي قهر كل شيء وخضع له كل شيء."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 112,
+                "surahNameAr": "الإخلاص",
+                "fromAyah": 1,
+                "toAyah": 2,
+                "referenceAr": "الإخلاص ١–٢",
+                "verses": [
+                  {
+                    "verseKey": "112:1",
+                    "ayah": 1,
+                    "textAr": "قُلْ هُوَ ٱللَّهُ أَحَدٌ"
+                  },
+                  {
+                    "verseKey": "112:2",
+                    "ayah": 2,
+                    "textAr": "ٱللَّهُ ٱلصَّمَدُ"
+                  }
+                ]
+              },
+              {
+                "surah": 13,
+                "surahNameAr": "الرعد",
+                "fromAyah": 16,
+                "toAyah": 16,
+                "referenceAr": "الرعد ١٦",
+                "verses": [
+                  {
+                    "verseKey": "13:16",
+                    "ayah": 16,
+                    "textAr": "قُلْ مَن رَّبُّ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ قُلِ ٱللَّهُ ۚ قُلْ أَفَٱتَّخَذْتُم مِّن دُونِهِۦٓ أَوْلِيَآءَ لَا يَمْلِكُونَ لِأَنفُسِهِمْ نَفْعًۭا وَلَا ضَرًّۭا ۚ قُلْ هَلْ يَسْتَوِى ٱلْأَعْمَىٰ وَٱلْبَصِيرُ أَمْ هَلْ تَسْتَوِى ٱلظُّلُمَٰتُ وَٱلنُّورُ ۗ أَمْ جَعَلُوا۟ لِلَّهِ شُرَكَآءَ خَلَقُوا۟ كَخَلْقِهِۦ فَتَشَٰبَهَ ٱلْخَلْقُ عَلَيْهِمْ ۚ قُلِ ٱللَّهُ خَٰلِقُ كُلِّ شَىْءٍۢ وَهُوَ ٱلْوَٰحِدُ ٱلْقَهَّٰرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "اقصد الصمد في كل حاجة صغيرة وكبيرة؛ فهو الذي يُقصد ولا يحتاج إلى أحد."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 112,
+                "surahNameAr": "الإخلاص",
+                "fromAyah": 1,
+                "toAyah": 2,
+                "referenceAr": "الإخلاص ١–٢",
+                "verses": [
+                  {
+                    "verseKey": "112:1",
+                    "ayah": 1,
+                    "textAr": "قُلْ هُوَ ٱللَّهُ أَحَدٌ"
+                  },
+                  {
+                    "verseKey": "112:2",
+                    "ayah": 2,
+                    "textAr": "ٱللَّهُ ٱلصَّمَدُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الصمد: المقصود في الحوائج."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-sami-basir",
+        "collectionId": "asma-husna",
+        "order": 90,
+        "titleAr": "السميع، البصير",
+        "titleEn": "As-Sami, Al-Basir",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "السميع: الذي يسمع كل صوت، سرًّا وجهرًا، لا تختلط عليه الأصوات. البصير: الذي يرى كل شيء، ظاهره وباطنه.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "السميع: الذي يسمع كل صوت، سرًّا وجهرًا، لا تختلط عليه الأصوات. البصير: الذي يرى كل شيء، ظاهره وباطنه.",
+              "وقال النبي ﷺ: «إنكم لا تدعون أصمّ ولا غائبًا، إنكم تدعون سميعًا قريبًا»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 42,
+                "surahNameAr": "الشورى",
+                "fromAyah": 11,
+                "toAyah": 11,
+                "referenceAr": "الشورى ١١",
+                "verses": [
+                  {
+                    "verseKey": "42:11",
+                    "ayah": 11,
+                    "textAr": "فَاطِرُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۚ جَعَلَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَٰجًۭا وَمِنَ ٱلْأَنْعَٰمِ أَزْوَٰجًۭا ۖ يَذْرَؤُكُمْ فِيهِ ۚ لَيْسَ كَمِثْلِهِۦ شَىْءٌۭ ۖ وَهُوَ ٱلسَّمِيعُ ٱلْبَصِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4205,
+                "excerptsAr": [
+                  "إِنَّكُمْ تَدْعُونَ سَمِيعًا قَرِيبًا"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٢٠٥"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "الله يسمع همسك في السجود ويرى دمعتك في الخلوة، فلا تكتم شكواك عنه، واستحِ أن يراك حيث نهاك."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 42,
+                "surahNameAr": "الشورى",
+                "fromAyah": 11,
+                "toAyah": 11,
+                "referenceAr": "الشورى ١١",
+                "verses": [
+                  {
+                    "verseKey": "42:11",
+                    "ayah": 11,
+                    "textAr": "فَاطِرُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۚ جَعَلَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَٰجًۭا وَمِنَ ٱلْأَنْعَٰمِ أَزْوَٰجًۭا ۖ يَذْرَؤُكُمْ فِيهِ ۚ لَيْسَ كَمِثْلِهِۦ شَىْءٌۭ ۖ وَهُوَ ٱلسَّمِيعُ ٱلْبَصِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الله يسمع الدعاء ولو كان همسًا."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-alim-khabir",
+        "collectionId": "asma-husna",
+        "order": 100,
+        "titleAr": "العليم، الخبير",
+        "titleEn": "Al-Alim, Al-Khabir",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "العليم: الذي أحاط علمه بكل شيء: ما كان وما يكون. الخبير: العليم بدقائق الأمور وخفاياها.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "العليم: الذي أحاط علمه بكل شيء: ما كان وما يكون. الخبير: العليم بدقائق الأمور وخفاياها."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 66,
+                "surahNameAr": "التحريم",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "التحريم ٣",
+                "verses": [
+                  {
+                    "verseKey": "66:3",
+                    "ayah": 3,
+                    "textAr": "وَإِذْ أَسَرَّ ٱلنَّبِىُّ إِلَىٰ بَعْضِ أَزْوَٰجِهِۦ حَدِيثًۭا فَلَمَّا نَبَّأَتْ بِهِۦ وَأَظْهَرَهُ ٱللَّهُ عَلَيْهِ عَرَّفَ بَعْضَهُۥ وَأَعْرَضَ عَنۢ بَعْضٍۢ ۖ فَلَمَّا نَبَّأَهَا بِهِۦ قَالَتْ مَنْ أَنۢبَأَكَ هَٰذَا ۖ قَالَ نَبَّأَنِىَ ٱلْعَلِيمُ ٱلْخَبِيرُ"
+                  }
+                ]
+              },
+              {
+                "surah": 67,
+                "surahNameAr": "الملك",
+                "fromAyah": 14,
+                "toAyah": 14,
+                "referenceAr": "الملك ١٤",
+                "verses": [
+                  {
+                    "verseKey": "67:14",
+                    "ayah": 14,
+                    "textAr": "أَلَا يَعْلَمُ مَنْ خَلَقَ وَهُوَ ٱللَّطِيفُ ٱلْخَبِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "لا تشكُ إلى الناس ما يعلمه الله، ويكفيك أن الخبير يعلم ما في قلبك ولو لم تقله."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 66,
+                "surahNameAr": "التحريم",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "التحريم ٣",
+                "verses": [
+                  {
+                    "verseKey": "66:3",
+                    "ayah": 3,
+                    "textAr": "وَإِذْ أَسَرَّ ٱلنَّبِىُّ إِلَىٰ بَعْضِ أَزْوَٰجِهِۦ حَدِيثًۭا فَلَمَّا نَبَّأَتْ بِهِۦ وَأَظْهَرَهُ ٱللَّهُ عَلَيْهِ عَرَّفَ بَعْضَهُۥ وَأَعْرَضَ عَنۢ بَعْضٍۢ ۖ فَلَمَّا نَبَّأَهَا بِهِۦ قَالَتْ مَنْ أَنۢبَأَكَ هَٰذَا ۖ قَالَ نَبَّأَنِىَ ٱلْعَلِيمُ ٱلْخَبِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«ألا يعلم من خلق وهو اللطيف الخبير»."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-latif",
+        "collectionId": "asma-husna",
+        "order": 110,
+        "titleAr": "اللطيف",
+        "titleEn": "Al-Latif",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "اللطيف: الذي يوصل الخير إلى عباده من حيث لا يشعرون، ويعلم دقائق الأمور. قال يوسف بعد كل ما مرّ به: «إن ربي لطيف لما يشاء».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "اللطيف: الذي يوصل الخير إلى عباده من حيث لا يشعرون، ويعلم دقائق الأمور. قال يوسف بعد كل ما مرّ به: «إن ربي لطيف لما يشاء»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 67,
+                "surahNameAr": "الملك",
+                "fromAyah": 14,
+                "toAyah": 14,
+                "referenceAr": "الملك ١٤",
+                "verses": [
+                  {
+                    "verseKey": "67:14",
+                    "ayah": 14,
+                    "textAr": "أَلَا يَعْلَمُ مَنْ خَلَقَ وَهُوَ ٱللَّطِيفُ ٱلْخَبِيرُ"
+                  }
+                ]
+              },
+              {
+                "surah": 12,
+                "surahNameAr": "يوسف",
+                "fromAyah": 100,
+                "toAyah": 100,
+                "referenceAr": "يوسف ١٠٠",
+                "verses": [
+                  {
+                    "verseKey": "12:100",
+                    "ayah": 100,
+                    "textAr": "وَرَفَعَ أَبَوَيْهِ عَلَى ٱلْعَرْشِ وَخَرُّوا۟ لَهُۥ سُجَّدًۭا ۖ وَقَالَ يَٰٓأَبَتِ هَٰذَا تَأْوِيلُ رُءْيَٰىَ مِن قَبْلُ قَدْ جَعَلَهَا رَبِّى حَقًّۭا ۖ وَقَدْ أَحْسَنَ بِىٓ إِذْ أَخْرَجَنِى مِنَ ٱلسِّجْنِ وَجَآءَ بِكُم مِّنَ ٱلْبَدْوِ مِنۢ بَعْدِ أَن نَّزَغَ ٱلشَّيْطَٰنُ بَيْنِى وَبَيْنَ إِخْوَتِىٓ ۚ إِنَّ رَبِّى لَطِيفٌۭ لِّمَا يَشَآءُ ۚ إِنَّهُۥ هُوَ ٱلْعَلِيمُ ٱلْحَكِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "البئر والسجن كانا طريق يوسف إلى الملك. ثق أن الله يدبّر لك بلطفه وإن لم ترَ الحكمة الآن."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 67,
+                "surahNameAr": "الملك",
+                "fromAyah": 14,
+                "toAyah": 14,
+                "referenceAr": "الملك ١٤",
+                "verses": [
+                  {
+                    "verseKey": "67:14",
+                    "ayah": 14,
+                    "textAr": "أَلَا يَعْلَمُ مَنْ خَلَقَ وَهُوَ ٱللَّطِيفُ ٱلْخَبِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "لطف الله قد يأتي في صورة ابتلاء."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-hakim",
+        "collectionId": "asma-husna",
+        "order": 120,
+        "titleAr": "الحكيم",
+        "titleEn": "Al-Hakim",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الحكيم: الذي يضع كل شيء في موضعه، فلا يقدّر شيئًا عبثًا، وأحكامه كلها عدل وحكمة.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الحكيم: الذي يضع كل شيء في موضعه، فلا يقدّر شيئًا عبثًا، وأحكامه كلها عدل وحكمة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 32,
+                "toAyah": 32,
+                "referenceAr": "البقرة ٣٢",
+                "verses": [
+                  {
+                    "verseKey": "2:32",
+                    "ayah": 32,
+                    "textAr": "قَالُوا۟ سُبْحَٰنَكَ لَا عِلْمَ لَنَآ إِلَّا مَا عَلَّمْتَنَآ ۖ إِنَّكَ أَنتَ ٱلْعَلِيمُ ٱلْحَكِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "إذا لم تفهم حكمة قدر أو حكم، فقل كما قالت الملائكة: «سبحانك لا علم لنا إلا ما علمتنا إنك أنت العليم الحكيم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 32,
+                "toAyah": 32,
+                "referenceAr": "البقرة ٣٢",
+                "verses": [
+                  {
+                    "verseKey": "2:32",
+                    "ayah": 32,
+                    "textAr": "قَالُوا۟ سُبْحَٰنَكَ لَا عِلْمَ لَنَآ إِلَّا مَا عَلَّمْتَنَآ ۖ إِنَّكَ أَنتَ ٱلْعَلِيمُ ٱلْحَكِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "كل أفعال الله وأحكامه لحكمة."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-ghafur-ghaffar",
+        "collectionId": "asma-husna",
+        "order": 130,
+        "titleAr": "الغفور، الغفار",
+        "titleEn": "Al-Ghafur, Al-Ghaffar",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الغفور الغفار: الذي يستر الذنوب ويتجاوز عنها مهما كثرت وتكررت. «قل يا عبادي الذين أسرفوا على أنفسهم لا تقنطوا من رحمة الله إن الله يغفر الذنوب جميعًا».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الغفور الغفار: الذي يستر الذنوب ويتجاوز عنها مهما كثرت وتكررت. «قل يا عبادي الذين أسرفوا على أنفسهم لا تقنطوا من رحمة الله إن الله يغفر الذنوب جميعًا»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 39,
+                "surahNameAr": "الزمر",
+                "fromAyah": 53,
+                "toAyah": 53,
+                "referenceAr": "الزمر ٥٣",
+                "verses": [
+                  {
+                    "verseKey": "39:53",
+                    "ayah": 53,
+                    "textAr": "۞ قُلْ يَٰعِبَادِىَ ٱلَّذِينَ أَسْرَفُوا۟ عَلَىٰٓ أَنفُسِهِمْ لَا تَقْنَطُوا۟ مِن رَّحْمَةِ ٱللَّهِ ۚ إِنَّ ٱللَّهَ يَغْفِرُ ٱلذُّنُوبَ جَمِيعًا ۚ إِنَّهُۥ هُوَ ٱلْغَفُورُ ٱلرَّحِيمُ"
+                  }
+                ]
+              },
+              {
+                "surah": 71,
+                "surahNameAr": "نوح",
+                "fromAyah": 10,
+                "toAyah": 10,
+                "referenceAr": "نوح ١٠",
+                "verses": [
+                  {
+                    "verseKey": "71:10",
+                    "ayah": 10,
+                    "textAr": "فَقُلْتُ ٱسْتَغْفِرُوا۟ رَبَّكُمْ إِنَّهُۥ كَانَ غَفَّارًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "أكثر من الاستغفار، فإن الله غفّار لمن يستغفره، ولا تدع الشيطان يقنّطك من التوبة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 39,
+                "surahNameAr": "الزمر",
+                "fromAyah": 53,
+                "toAyah": 53,
+                "referenceAr": "الزمر ٥٣",
+                "verses": [
+                  {
+                    "verseKey": "39:53",
+                    "ayah": 53,
+                    "textAr": "۞ قُلْ يَٰعِبَادِىَ ٱلَّذِينَ أَسْرَفُوا۟ عَلَىٰٓ أَنفُسِهِمْ لَا تَقْنَطُوا۟ مِن رَّحْمَةِ ٱللَّهِ ۚ إِنَّ ٱللَّهَ يَغْفِرُ ٱلذُّنُوبَ جَمِيعًا ۚ إِنَّهُۥ هُوَ ٱلْغَفُورُ ٱلرَّحِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "لا ذنب أكبر من مغفرة الله."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-tawwab",
+        "collectionId": "asma-husna",
+        "order": 140,
+        "titleAr": "التواب",
+        "titleEn": "At-Tawwab",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "التواب: الذي يوفّق عباده للتوبة ثم يقبلها منهم مرة بعد مرة. تاب على آدم حين تلقّى من ربه كلمات.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "التواب: الذي يوفّق عباده للتوبة ثم يقبلها منهم مرة بعد مرة. تاب على آدم حين تلقّى من ربه كلمات.",
+              "وقال النبي ﷺ: «لَله أفرح بتوبة عبده» من رجل وجد راحلته بعد أن أضلّها في فلاة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 37,
+                "toAyah": 37,
+                "referenceAr": "البقرة ٣٧",
+                "verses": [
+                  {
+                    "verseKey": "2:37",
+                    "ayah": 37,
+                    "textAr": "فَتَلَقَّىٰٓ ءَادَمُ مِن رَّبِّهِۦ كَلِمَٰتٍۢ فَتَابَ عَلَيْهِ ۚ إِنَّهُۥ هُوَ ٱلتَّوَّابُ ٱلرَّحِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6309,
+                "excerptsAr": [
+                  "اللَّهُ أَفْرَحُ بِتَوْبَةِ عَبْدِهِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٣٠٩"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "كلما رجعت إلى الله وجدته يفرح برجوعك، فلا تؤجّل التوبة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 37,
+                "toAyah": 37,
+                "referenceAr": "البقرة ٣٧",
+                "verses": [
+                  {
+                    "verseKey": "2:37",
+                    "ayah": 37,
+                    "textAr": "فَتَلَقَّىٰٓ ءَادَمُ مِن رَّبِّهِۦ كَلِمَٰتٍۢ فَتَابَ عَلَيْهِ ۚ إِنَّهُۥ هُوَ ٱلتَّوَّابُ ٱلرَّحِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الله يفرح بتوبة عبده."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-afuw",
+        "collectionId": "asma-husna",
+        "order": 150,
+        "titleAr": "العفو",
+        "titleEn": "Al-Afuw",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "العفو: الذي يمحو الذنوب ويزيل أثرها، والعفو أبلغ من المغفرة لأن فيه محو الذنب.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "العفو: الذي يمحو الذنوب ويزيل أثرها، والعفو أبلغ من المغفرة لأن فيه محو الذنب."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 99,
+                "toAyah": 99,
+                "referenceAr": "النساء ٩٩",
+                "verses": [
+                  {
+                    "verseKey": "4:99",
+                    "ayah": 99,
+                    "textAr": "فَأُو۟لَٰٓئِكَ عَسَى ٱللَّهُ أَن يَعْفُوَ عَنْهُمْ ۚ وَكَانَ ٱللَّهُ عَفُوًّا غَفُورًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "اعفُ عمن ظلمك؛ فمن أحب أن يعفو الله عنه عفا عن الناس."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 99,
+                "toAyah": 99,
+                "referenceAr": "النساء ٩٩",
+                "verses": [
+                  {
+                    "verseKey": "4:99",
+                    "ayah": 99,
+                    "textAr": "فَأُو۟لَٰٓئِكَ عَسَى ٱللَّهُ أَن يَعْفُوَ عَنْهُمْ ۚ وَكَانَ ٱللَّهُ عَفُوًّا غَفُورًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "العفو: محو الذنب وأثره."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-rauf-wadud",
+        "collectionId": "asma-husna",
+        "order": 160,
+        "titleAr": "الرؤوف، الودود",
+        "titleEn": "Ar-Rauf, Al-Wadud",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الرؤوف: شديد الرأفة، والرأفة أرقّ الرحمة. الودود: الذي يحب أولياءه ويتودد إليهم بنعمه، ويحبه عباده.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الرؤوف: شديد الرأفة، والرأفة أرقّ الرحمة. الودود: الذي يحب أولياءه ويتودد إليهم بنعمه، ويحبه عباده."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 143,
+                "toAyah": 143,
+                "referenceAr": "البقرة ١٤٣",
+                "verses": [
+                  {
+                    "verseKey": "2:143",
+                    "ayah": 143,
+                    "textAr": "وَكَذَٰلِكَ جَعَلْنَٰكُمْ أُمَّةًۭ وَسَطًۭا لِّتَكُونُوا۟ شُهَدَآءَ عَلَى ٱلنَّاسِ وَيَكُونَ ٱلرَّسُولُ عَلَيْكُمْ شَهِيدًۭا ۗ وَمَا جَعَلْنَا ٱلْقِبْلَةَ ٱلَّتِى كُنتَ عَلَيْهَآ إِلَّا لِنَعْلَمَ مَن يَتَّبِعُ ٱلرَّسُولَ مِمَّن يَنقَلِبُ عَلَىٰ عَقِبَيْهِ ۚ وَإِن كَانَتْ لَكَبِيرَةً إِلَّا عَلَى ٱلَّذِينَ هَدَى ٱللَّهُ ۗ وَمَا كَانَ ٱللَّهُ لِيُضِيعَ إِيمَٰنَكُمْ ۚ إِنَّ ٱللَّهَ بِٱلنَّاسِ لَرَءُوفٌۭ رَّحِيمٌۭ"
+                  }
+                ]
+              },
+              {
+                "surah": 85,
+                "surahNameAr": "البروج",
+                "fromAyah": 14,
+                "toAyah": 14,
+                "referenceAr": "البروج ١٤",
+                "verses": [
+                  {
+                    "verseKey": "85:14",
+                    "ayah": 14,
+                    "textAr": "وَهُوَ ٱلْغَفُورُ ٱلْوَدُودُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "الله يتودد إليك بالنعم وأنت تعصيه، فكيف لو أطعته؟ تودّد إليه بالطاعة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 143,
+                "toAyah": 143,
+                "referenceAr": "البقرة ١٤٣",
+                "verses": [
+                  {
+                    "verseKey": "2:143",
+                    "ayah": 143,
+                    "textAr": "وَكَذَٰلِكَ جَعَلْنَٰكُمْ أُمَّةًۭ وَسَطًۭا لِّتَكُونُوا۟ شُهَدَآءَ عَلَى ٱلنَّاسِ وَيَكُونَ ٱلرَّسُولُ عَلَيْكُمْ شَهِيدًۭا ۗ وَمَا جَعَلْنَا ٱلْقِبْلَةَ ٱلَّتِى كُنتَ عَلَيْهَآ إِلَّا لِنَعْلَمَ مَن يَتَّبِعُ ٱلرَّسُولَ مِمَّن يَنقَلِبُ عَلَىٰ عَقِبَيْهِ ۚ وَإِن كَانَتْ لَكَبِيرَةً إِلَّا عَلَى ٱلَّذِينَ هَدَى ٱللَّهُ ۗ وَمَا كَانَ ٱللَّهُ لِيُضِيعَ إِيمَٰنَكُمْ ۚ إِنَّ ٱللَّهَ بِٱلنَّاسِ لَرَءُوفٌۭ رَّحِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«وهو الغفور الودود»: يغفر ويحب."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-halim",
+        "collectionId": "asma-husna",
+        "order": 170,
+        "titleAr": "الحليم",
+        "titleEn": "Al-Halim",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الحليم: الذي لا يعاجل العصاة بالعقوبة، ويمهلهم ليتوبوا. وكان النبي ﷺ يقول عند الكرب: «لا إله إلا الله العظيم الحليم».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الحليم: الذي لا يعاجل العصاة بالعقوبة، ويمهلهم ليتوبوا. وكان النبي ﷺ يقول عند الكرب: «لا إله إلا الله العظيم الحليم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 235,
+                "toAyah": 235,
+                "referenceAr": "البقرة ٢٣٥",
+                "verses": [
+                  {
+                    "verseKey": "2:235",
+                    "ayah": 235,
+                    "textAr": "وَلَا جُنَاحَ عَلَيْكُمْ فِيمَا عَرَّضْتُم بِهِۦ مِنْ خِطْبَةِ ٱلنِّسَآءِ أَوْ أَكْنَنتُمْ فِىٓ أَنفُسِكُمْ ۚ عَلِمَ ٱللَّهُ أَنَّكُمْ سَتَذْكُرُونَهُنَّ وَلَٰكِن لَّا تُوَاعِدُوهُنَّ سِرًّا إِلَّآ أَن تَقُولُوا۟ قَوْلًۭا مَّعْرُوفًۭا ۚ وَلَا تَعْزِمُوا۟ عُقْدَةَ ٱلنِّكَاحِ حَتَّىٰ يَبْلُغَ ٱلْكِتَٰبُ أَجَلَهُۥ ۚ وَٱعْلَمُوٓا۟ أَنَّ ٱللَّهَ يَعْلَمُ مَا فِىٓ أَنفُسِكُمْ فَٱحْذَرُوهُ ۚ وَٱعْلَمُوٓا۟ أَنَّ ٱللَّهَ غَفُورٌ حَلِيمٌۭ"
+                  }
+                ]
+              },
+              {
+                "surah": 64,
+                "surahNameAr": "التغابن",
+                "fromAyah": 17,
+                "toAyah": 17,
+                "referenceAr": "التغابن ١٧",
+                "verses": [
+                  {
+                    "verseKey": "64:17",
+                    "ayah": 17,
+                    "textAr": "إِن تُقْرِضُوا۟ ٱللَّهَ قَرْضًا حَسَنًۭا يُضَٰعِفْهُ لَكُمْ وَيَغْفِرْ لَكُمْ ۚ وَٱللَّهُ شَكُورٌ حَلِيمٌ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6345,
+                "excerptsAr": [
+                  "لاَ إِلَهَ إِلاَّ اللَّهُ الْعَظِيمُ الْحَلِيمُ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٣٤٥"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "حِلم الله عليك فرصة للتوبة لا دعوة للاستمرار، وكن حليمًا مع من أخطأ في حقك."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 235,
+                "toAyah": 235,
+                "referenceAr": "البقرة ٢٣٥",
+                "verses": [
+                  {
+                    "verseKey": "2:235",
+                    "ayah": 235,
+                    "textAr": "وَلَا جُنَاحَ عَلَيْكُمْ فِيمَا عَرَّضْتُم بِهِۦ مِنْ خِطْبَةِ ٱلنِّسَآءِ أَوْ أَكْنَنتُمْ فِىٓ أَنفُسِكُمْ ۚ عَلِمَ ٱللَّهُ أَنَّكُمْ سَتَذْكُرُونَهُنَّ وَلَٰكِن لَّا تُوَاعِدُوهُنَّ سِرًّا إِلَّآ أَن تَقُولُوا۟ قَوْلًۭا مَّعْرُوفًۭا ۚ وَلَا تَعْزِمُوا۟ عُقْدَةَ ٱلنِّكَاحِ حَتَّىٰ يَبْلُغَ ٱلْكِتَٰبُ أَجَلَهُۥ ۚ وَٱعْلَمُوٓا۟ أَنَّ ٱللَّهَ يَعْلَمُ مَا فِىٓ أَنفُسِكُمْ فَٱحْذَرُوهُ ۚ وَٱعْلَمُوٓا۟ أَنَّ ٱللَّهَ غَفُورٌ حَلِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "دعاء الكرب: لا إله إلا الله العظيم الحليم."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-shakur",
+        "collectionId": "asma-husna",
+        "order": 180,
+        "titleAr": "الشكور",
+        "titleEn": "Ash-Shakur",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الشكور: الذي يجزي على العمل القليل بالثواب الكثير، ولا يضيع عنده مثقال ذرة.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الشكور: الذي يجزي على العمل القليل بالثواب الكثير، ولا يضيع عنده مثقال ذرة."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 35,
+                "surahNameAr": "فاطر",
+                "fromAyah": 30,
+                "toAyah": 30,
+                "referenceAr": "فاطر ٣٠",
+                "verses": [
+                  {
+                    "verseKey": "35:30",
+                    "ayah": 30,
+                    "textAr": "لِيُوَفِّيَهُمْ أُجُورَهُمْ وَيَزِيدَهُم مِّن فَضْلِهِۦٓ ۚ إِنَّهُۥ غَفُورٌۭ شَكُورٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "لا تحتقر عملًا صغيرًا، فإن الله شكور يضاعفه."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 35,
+                "surahNameAr": "فاطر",
+                "fromAyah": 30,
+                "toAyah": 30,
+                "referenceAr": "فاطر ٣٠",
+                "verses": [
+                  {
+                    "verseKey": "35:30",
+                    "ayah": 30,
+                    "textAr": "لِيُوَفِّيَهُمْ أُجُورَهُمْ وَيَزِيدَهُم مِّن فَضْلِهِۦٓ ۚ إِنَّهُۥ غَفُورٌۭ شَكُورٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "القليل عند الله كثير."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-razzaq",
+        "collectionId": "asma-husna",
+        "order": 190,
+        "titleAr": "الرزاق، القوي، المتين",
+        "titleEn": "Ar-Razzaq, Al-Qawiyy, Al-Matin",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الرزاق: الذي تكفّل بأرزاق الخلق كلهم. القوي المتين: صاحب القوة الكاملة التي لا يلحقها ضعف.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الرزاق: الذي تكفّل بأرزاق الخلق كلهم. القوي المتين: صاحب القوة الكاملة التي لا يلحقها ضعف."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 51,
+                "surahNameAr": "الذاريات",
+                "fromAyah": 58,
+                "toAyah": 58,
+                "referenceAr": "الذاريات ٥٨",
+                "verses": [
+                  {
+                    "verseKey": "51:58",
+                    "ayah": 58,
+                    "textAr": "إِنَّ ٱللَّهَ هُوَ ٱلرَّزَّاقُ ذُو ٱلْقُوَّةِ ٱلْمَتِينُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "اسعَ في طلب الرزق بالحلال، واعلم أن الرزاق قد قسمه لك، فلا تطلبه بمعصية."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 51,
+                "surahNameAr": "الذاريات",
+                "fromAyah": 58,
+                "toAyah": 58,
+                "referenceAr": "الذاريات ٥٨",
+                "verses": [
+                  {
+                    "verseKey": "51:58",
+                    "ayah": 58,
+                    "textAr": "إِنَّ ٱللَّهَ هُوَ ٱلرَّزَّاقُ ذُو ٱلْقُوَّةِ ٱلْمَتِينُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الرزق بيد الرزاق، والسعي عبادة."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-wahhab-fattah",
+        "collectionId": "asma-husna",
+        "order": 200,
+        "titleAr": "الوهاب، الفتاح",
+        "titleEn": "Al-Wahhab, Al-Fattah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الوهاب: الذي يعطي بلا مقابل ولا سبب. الفتاح: الذي يفتح أبواب الرحمة والرزق، ويحكم بين عباده بالحق.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الوهاب: الذي يعطي بلا مقابل ولا سبب. الفتاح: الذي يفتح أبواب الرحمة والرزق، ويحكم بين عباده بالحق."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 8,
+                "toAyah": 8,
+                "referenceAr": "ال عمران ٨",
+                "verses": [
+                  {
+                    "verseKey": "3:8",
+                    "ayah": 8,
+                    "textAr": "رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رَحْمَةً ۚ إِنَّكَ أَنتَ ٱلْوَهَّابُ"
+                  }
+                ]
+              },
+              {
+                "surah": 34,
+                "surahNameAr": "سبإ",
+                "fromAyah": 26,
+                "toAyah": 26,
+                "referenceAr": "سبإ ٢٦",
+                "verses": [
+                  {
+                    "verseKey": "34:26",
+                    "ayah": 26,
+                    "textAr": "قُلْ يَجْمَعُ بَيْنَنَا رَبُّنَا ثُمَّ يَفْتَحُ بَيْنَنَا بِٱلْحَقِّ وَهُوَ ٱلْفَتَّاحُ ٱلْعَلِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "ادعُ بدعاء الراسخين: «ربنا لا تزغ قلوبنا بعد إذ هديتنا وهب لنا من لدنك رحمة إنك أنت الوهاب»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 8,
+                "toAyah": 8,
+                "referenceAr": "ال عمران ٨",
+                "verses": [
+                  {
+                    "verseKey": "3:8",
+                    "ayah": 8,
+                    "textAr": "رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِن لَّدُنكَ رَحْمَةً ۚ إِنَّكَ أَنتَ ٱلْوَهَّابُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الوهاب يعطي بلا سبب، فلا تيأس إن انقطعت الأسباب."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-karim",
+        "collectionId": "asma-husna",
+        "order": 210,
+        "titleAr": "الكريم",
+        "titleEn": "Al-Karim",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الكريم: كثير الخير، الذي يعطي قبل السؤال، ويعفو مع القدرة. «يا أيها الإنسان ما غرّك بربك الكريم».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الكريم: كثير الخير، الذي يعطي قبل السؤال، ويعفو مع القدرة. «يا أيها الإنسان ما غرّك بربك الكريم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 82,
+                "surahNameAr": "الانفطار",
+                "fromAyah": 6,
+                "toAyah": 6,
+                "referenceAr": "الانفطار ٦",
+                "verses": [
+                  {
+                    "verseKey": "82:6",
+                    "ayah": 6,
+                    "textAr": "يَٰٓأَيُّهَا ٱلْإِنسَٰنُ مَا غَرَّكَ بِرَبِّكَ ٱلْكَرِيمِ"
+                  }
+                ]
+              },
+              {
+                "surah": 27,
+                "surahNameAr": "النمل",
+                "fromAyah": 40,
+                "toAyah": 40,
+                "referenceAr": "النمل ٤٠",
+                "verses": [
+                  {
+                    "verseKey": "27:40",
+                    "ayah": 40,
+                    "textAr": "قَالَ ٱلَّذِى عِندَهُۥ عِلْمٌۭ مِّنَ ٱلْكِتَٰبِ أَنَا۠ ءَاتِيكَ بِهِۦ قَبْلَ أَن يَرْتَدَّ إِلَيْكَ طَرْفُكَ ۚ فَلَمَّا رَءَاهُ مُسْتَقِرًّا عِندَهُۥ قَالَ هَٰذَا مِن فَضْلِ رَبِّى لِيَبْلُوَنِىٓ ءَأَشْكُرُ أَمْ أَكْفُرُ ۖ وَمَن شَكَرَ فَإِنَّمَا يَشْكُرُ لِنَفْسِهِۦ ۖ وَمَن كَفَرَ فَإِنَّ رَبِّى غَنِىٌّۭ كَرِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "كرم الله لا يُقابل بالجحود. كن كريمًا مع الناس كما يكرمك الله."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 82,
+                "surahNameAr": "الانفطار",
+                "fromAyah": 6,
+                "toAyah": 6,
+                "referenceAr": "الانفطار ٦",
+                "verses": [
+                  {
+                    "verseKey": "82:6",
+                    "ayah": 6,
+                    "textAr": "يَٰٓأَيُّهَا ٱلْإِنسَٰنُ مَا غَرَّكَ بِرَبِّكَ ٱلْكَرِيمِ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "كرم الله ليس سببًا للاغترار به."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-ghani-hamid",
+        "collectionId": "asma-husna",
+        "order": 220,
+        "titleAr": "الغني، الحميد",
+        "titleEn": "Al-Ghaniyy, Al-Hamid",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الغني: الذي لا يحتاج إلى أحد، والكل يحتاج إليه. الحميد: المحمود في ذاته وصفاته وأفعاله.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الغني: الذي لا يحتاج إلى أحد، والكل يحتاج إليه. الحميد: المحمود في ذاته وصفاته وأفعاله."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 35,
+                "surahNameAr": "فاطر",
+                "fromAyah": 15,
+                "toAyah": 15,
+                "referenceAr": "فاطر ١٥",
+                "verses": [
+                  {
+                    "verseKey": "35:15",
+                    "ayah": 15,
+                    "textAr": "۞ يَٰٓأَيُّهَا ٱلنَّاسُ أَنتُمُ ٱلْفُقَرَآءُ إِلَى ٱللَّهِ ۖ وَٱللَّهُ هُوَ ٱلْغَنِىُّ ٱلْحَمِيدُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "«أنتم الفقراء إلى الله»: عبادتك لا تنفع الله، بل تنفعك أنت."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 35,
+                "surahNameAr": "فاطر",
+                "fromAyah": 15,
+                "toAyah": 15,
+                "referenceAr": "فاطر ١٥",
+                "verses": [
+                  {
+                    "verseKey": "35:15",
+                    "ayah": 15,
+                    "textAr": "۞ يَٰٓأَيُّهَا ٱلنَّاسُ أَنتُمُ ٱلْفُقَرَآءُ إِلَى ٱللَّهِ ۖ وَٱللَّهُ هُوَ ٱلْغَنِىُّ ٱلْحَمِيدُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "نحن الفقراء إلى الله، وهو الغني الحميد."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-qarib-mujib",
+        "collectionId": "asma-husna",
+        "order": 230,
+        "titleAr": "القريب، المجيب",
+        "titleEn": "Al-Qarib, Al-Mujib",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "القريب: القريب من عباده بعلمه وإجابته. المجيب: الذي يجيب دعاء الداعين. وينزل ربنا كل ليلة إلى السماء الدنيا حين يبقى ثلث الليل الآخر فيقول: «من يدعوني فأستجيب له؟».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "القريب: القريب من عباده بعلمه وإجابته. المجيب: الذي يجيب دعاء الداعين. وينزل ربنا كل ليلة إلى السماء الدنيا حين يبقى ثلث الليل الآخر فيقول: «من يدعوني فأستجيب له؟»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 11,
+                "surahNameAr": "هود",
+                "fromAyah": 61,
+                "toAyah": 61,
+                "referenceAr": "هود ٦١",
+                "verses": [
+                  {
+                    "verseKey": "11:61",
+                    "ayah": 61,
+                    "textAr": "۞ وَإِلَىٰ ثَمُودَ أَخَاهُمْ صَٰلِحًۭا ۚ قَالَ يَٰقَوْمِ ٱعْبُدُوا۟ ٱللَّهَ مَا لَكُم مِّنْ إِلَٰهٍ غَيْرُهُۥ ۖ هُوَ أَنشَأَكُم مِّنَ ٱلْأَرْضِ وَٱسْتَعْمَرَكُمْ فِيهَا فَٱسْتَغْفِرُوهُ ثُمَّ تُوبُوٓا۟ إِلَيْهِ ۚ إِنَّ رَبِّى قَرِيبٌۭ مُّجِيبٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 1145,
+                "excerptsAr": [
+                  "مَنْ يَدْعُونِي فَأَسْتَجِيبَ لَهُ مَنْ يَسْأَلُنِي فَأُعْطِيَهُ مَنْ يَسْتَغْفِرُنِي فَأَغْفِرَ لَهُ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١١٤٥"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "اغتنم ثلث الليل الآخر، فالله قريب مجيب."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 11,
+                "surahNameAr": "هود",
+                "fromAyah": 61,
+                "toAyah": 61,
+                "referenceAr": "هود ٦١",
+                "verses": [
+                  {
+                    "verseKey": "11:61",
+                    "ayah": 61,
+                    "textAr": "۞ وَإِلَىٰ ثَمُودَ أَخَاهُمْ صَٰلِحًۭا ۚ قَالَ يَٰقَوْمِ ٱعْبُدُوا۟ ٱللَّهَ مَا لَكُم مِّنْ إِلَٰهٍ غَيْرُهُۥ ۖ هُوَ أَنشَأَكُم مِّنَ ٱلْأَرْضِ وَٱسْتَعْمَرَكُمْ فِيهَا فَٱسْتَغْفِرُوهُ ثُمَّ تُوبُوٓا۟ إِلَيْهِ ۚ إِنَّ رَبِّى قَرِيبٌۭ مُّجِيبٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "أرجى أوقات الإجابة: ثلث الليل الآخر."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-wasi",
+        "collectionId": "asma-husna",
+        "order": 240,
+        "titleAr": "الواسع",
+        "titleEn": "Al-Wasi",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الواسع: واسع الرحمة والعلم والعطاء والفضل، لا يضيق بكثرة السائلين.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الواسع: واسع الرحمة والعلم والعطاء والفضل، لا يضيق بكثرة السائلين."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 115,
+                "toAyah": 115,
+                "referenceAr": "البقرة ١١٥",
+                "verses": [
+                  {
+                    "verseKey": "2:115",
+                    "ayah": 115,
+                    "textAr": "وَلِلَّهِ ٱلْمَشْرِقُ وَٱلْمَغْرِبُ ۚ فَأَيْنَمَا تُوَلُّوا۟ فَثَمَّ وَجْهُ ٱللَّهِ ۚ إِنَّ ٱللَّهَ وَٰسِعٌ عَلِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "لا تستكثر حاجتك على الله، فهو واسع."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 115,
+                "toAyah": 115,
+                "referenceAr": "البقرة ١١٥",
+                "verses": [
+                  {
+                    "verseKey": "2:115",
+                    "ayah": 115,
+                    "textAr": "وَلِلَّهِ ٱلْمَشْرِقُ وَٱلْمَغْرِبُ ۚ فَأَيْنَمَا تُوَلُّوا۟ فَثَمَّ وَجْهُ ٱللَّهِ ۚ إِنَّ ٱللَّهَ وَٰسِعٌ عَلِيمٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«إن الله واسع عليم»."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-wakil",
+        "collectionId": "asma-husna",
+        "order": 250,
+        "titleAr": "الوكيل",
+        "titleEn": "Al-Wakil",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الوكيل: الذي يتولّى أمور من توكّل عليه ويكفيه. قالها إبراهيم حين أُلقي في النار، وقالها محمد ﷺ والصحابة حين قيل لهم: إن الناس قد جمعوا لكم: «حسبنا الله ونعم الوكيل».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الوكيل: الذي يتولّى أمور من توكّل عليه ويكفيه. قالها إبراهيم حين أُلقي في النار، وقالها محمد ﷺ والصحابة حين قيل لهم: إن الناس قد جمعوا لكم: «حسبنا الله ونعم الوكيل»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 173,
+                "toAyah": 173,
+                "referenceAr": "ال عمران ١٧٣",
+                "verses": [
+                  {
+                    "verseKey": "3:173",
+                    "ayah": 173,
+                    "textAr": "ٱلَّذِينَ قَالَ لَهُمُ ٱلنَّاسُ إِنَّ ٱلنَّاسَ قَدْ جَمَعُوا۟ لَكُمْ فَٱخْشَوْهُمْ فَزَادَهُمْ إِيمَٰنًۭا وَقَالُوا۟ حَسْبُنَا ٱللَّهُ وَنِعْمَ ٱلْوَكِيلُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 4563,
+                "excerptsAr": [
+                  "{حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ} قَالَهَا إِبْرَاهِيمُ عَلَيْهِ السَّلاَمُ حِينَ أُلْقِيَ فِي النَّارِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٤٥٦٣"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "خذ بالأسباب ثم سلّم الأمر للوكيل، وقل عند الخوف: حسبنا الله ونعم الوكيل."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 173,
+                "toAyah": 173,
+                "referenceAr": "ال عمران ١٧٣",
+                "verses": [
+                  {
+                    "verseKey": "3:173",
+                    "ayah": 173,
+                    "textAr": "ٱلَّذِينَ قَالَ لَهُمُ ٱلنَّاسُ إِنَّ ٱلنَّاسَ قَدْ جَمَعُوا۟ لَكُمْ فَٱخْشَوْهُمْ فَزَادَهُمْ إِيمَٰنًۭا وَقَالُوا۟ حَسْبُنَا ٱللَّهُ وَنِعْمَ ٱلْوَكِيلُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«حسبنا الله ونعم الوكيل» كلمة إبراهيم ومحمد عليهما السلام عند الشدة."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-hafiz",
+        "collectionId": "asma-husna",
+        "order": 260,
+        "titleAr": "الحفيظ، المقيت",
+        "titleEn": "Al-Hafiz, Al-Muqit",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الحفيظ: الذي يحفظ عباده ويحفظ أعمالهم. المقيت: الذي يعطي كل مخلوق قوته، والقادر الحافظ لكل شيء.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الحفيظ: الذي يحفظ عباده ويحفظ أعمالهم. المقيت: الذي يعطي كل مخلوق قوته، والقادر الحافظ لكل شيء."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 11,
+                "surahNameAr": "هود",
+                "fromAyah": 57,
+                "toAyah": 57,
+                "referenceAr": "هود ٥٧",
+                "verses": [
+                  {
+                    "verseKey": "11:57",
+                    "ayah": 57,
+                    "textAr": "فَإِن تَوَلَّوْا۟ فَقَدْ أَبْلَغْتُكُم مَّآ أُرْسِلْتُ بِهِۦٓ إِلَيْكُمْ ۚ وَيَسْتَخْلِفُ رَبِّى قَوْمًا غَيْرَكُمْ وَلَا تَضُرُّونَهُۥ شَيْـًٔا ۚ إِنَّ رَبِّى عَلَىٰ كُلِّ شَىْءٍ حَفِيظٌۭ"
+                  }
+                ]
+              },
+              {
+                "surah": 12,
+                "surahNameAr": "يوسف",
+                "fromAyah": 64,
+                "toAyah": 64,
+                "referenceAr": "يوسف ٦٤",
+                "verses": [
+                  {
+                    "verseKey": "12:64",
+                    "ayah": 64,
+                    "textAr": "قَالَ هَلْ ءَامَنُكُمْ عَلَيْهِ إِلَّا كَمَآ أَمِنتُكُمْ عَلَىٰٓ أَخِيهِ مِن قَبْلُ ۖ فَٱللَّهُ خَيْرٌ حَٰفِظًۭا ۖ وَهُوَ أَرْحَمُ ٱلرَّٰحِمِينَ"
+                  }
+                ]
+              },
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 85,
+                "toAyah": 85,
+                "referenceAr": "النساء ٨٥",
+                "verses": [
+                  {
+                    "verseKey": "4:85",
+                    "ayah": 85,
+                    "textAr": "مَّن يَشْفَعْ شَفَٰعَةً حَسَنَةًۭ يَكُن لَّهُۥ نَصِيبٌۭ مِّنْهَا ۖ وَمَن يَشْفَعْ شَفَٰعَةًۭ سَيِّئَةًۭ يَكُن لَّهُۥ كِفْلٌۭ مِّنْهَا ۗ وَكَانَ ٱللَّهُ عَلَىٰ كُلِّ شَىْءٍۢ مُّقِيتًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "استودع الله أهلك ومالك، فهو خير حافظًا وهو أرحم الراحمين."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 11,
+                "surahNameAr": "هود",
+                "fromAyah": 57,
+                "toAyah": 57,
+                "referenceAr": "هود ٥٧",
+                "verses": [
+                  {
+                    "verseKey": "11:57",
+                    "ayah": 57,
+                    "textAr": "فَإِن تَوَلَّوْا۟ فَقَدْ أَبْلَغْتُكُم مَّآ أُرْسِلْتُ بِهِۦٓ إِلَيْكُمْ ۚ وَيَسْتَخْلِفُ رَبِّى قَوْمًا غَيْرَكُمْ وَلَا تَضُرُّونَهُۥ شَيْـًٔا ۚ إِنَّ رَبِّى عَلَىٰ كُلِّ شَىْءٍ حَفِيظٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«فالله خير حافظًا»."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-raqib-shahid",
+        "collectionId": "asma-husna",
+        "order": 270,
+        "titleAr": "الرقيب، الشهيد، الحسيب",
+        "titleEn": "Ar-Raqib, Ash-Shahid, Al-Hasib",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الرقيب: المطّلع على كل شيء لا يغيب عنه شيء. الشهيد: الحاضر الذي يشهد كل شيء. الحسيب: الكافي، والمحاسب لعباده على أعمالهم.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الرقيب: المطّلع على كل شيء لا يغيب عنه شيء. الشهيد: الحاضر الذي يشهد كل شيء. الحسيب: الكافي، والمحاسب لعباده على أعمالهم."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "النساء ١",
+                "verses": [
+                  {
+                    "verseKey": "4:1",
+                    "ayah": 1,
+                    "textAr": "يَٰٓأَيُّهَا ٱلنَّاسُ ٱتَّقُوا۟ رَبَّكُمُ ٱلَّذِى خَلَقَكُم مِّن نَّفْسٍۢ وَٰحِدَةٍۢ وَخَلَقَ مِنْهَا زَوْجَهَا وَبَثَّ مِنْهُمَا رِجَالًۭا كَثِيرًۭا وَنِسَآءًۭ ۚ وَٱتَّقُوا۟ ٱللَّهَ ٱلَّذِى تَسَآءَلُونَ بِهِۦ وَٱلْأَرْحَامَ ۚ إِنَّ ٱللَّهَ كَانَ عَلَيْكُمْ رَقِيبًۭا"
+                  }
+                ]
+              },
+              {
+                "surah": 22,
+                "surahNameAr": "الحج",
+                "fromAyah": 17,
+                "toAyah": 17,
+                "referenceAr": "الحج ١٧",
+                "verses": [
+                  {
+                    "verseKey": "22:17",
+                    "ayah": 17,
+                    "textAr": "إِنَّ ٱلَّذِينَ ءَامَنُوا۟ وَٱلَّذِينَ هَادُوا۟ وَٱلصَّٰبِـِٔينَ وَٱلنَّصَٰرَىٰ وَٱلْمَجُوسَ وَٱلَّذِينَ أَشْرَكُوٓا۟ إِنَّ ٱللَّهَ يَفْصِلُ بَيْنَهُمْ يَوْمَ ٱلْقِيَٰمَةِ ۚ إِنَّ ٱللَّهَ عَلَىٰ كُلِّ شَىْءٍۢ شَهِيدٌ"
+                  }
+                ]
+              },
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 86,
+                "toAyah": 86,
+                "referenceAr": "النساء ٨٦",
+                "verses": [
+                  {
+                    "verseKey": "4:86",
+                    "ayah": 86,
+                    "textAr": "وَإِذَا حُيِّيتُم بِتَحِيَّةٍۢ فَحَيُّوا۟ بِأَحْسَنَ مِنْهَآ أَوْ رُدُّوهَآ ۗ إِنَّ ٱللَّهَ كَانَ عَلَىٰ كُلِّ شَىْءٍ حَسِيبًا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "من استحضر أن الرقيب يراه في الخلوة، كان ظاهره وباطنه سواء."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 4,
+                "surahNameAr": "النساء",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "النساء ١",
+                "verses": [
+                  {
+                    "verseKey": "4:1",
+                    "ayah": 1,
+                    "textAr": "يَٰٓأَيُّهَا ٱلنَّاسُ ٱتَّقُوا۟ رَبَّكُمُ ٱلَّذِى خَلَقَكُم مِّن نَّفْسٍۢ وَٰحِدَةٍۢ وَخَلَقَ مِنْهَا زَوْجَهَا وَبَثَّ مِنْهُمَا رِجَالًۭا كَثِيرًۭا وَنِسَآءًۭ ۚ وَٱتَّقُوا۟ ٱللَّهَ ٱلَّذِى تَسَآءَلُونَ بِهِۦ وَٱلْأَرْحَامَ ۚ إِنَّ ٱللَّهَ كَانَ عَلَيْكُمْ رَقِيبًۭا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "مراقبة الله أساس الإحسان."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-qadir",
+        "collectionId": "asma-husna",
+        "order": 280,
+        "titleAr": "القدير",
+        "titleEn": "Al-Qadir",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "القدير: الذي لا يعجزه شيء، إذا أراد شيئًا قال له كن فيكون.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "القدير: الذي لا يعجزه شيء، إذا أراد شيئًا قال له كن فيكون."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 20,
+                "toAyah": 20,
+                "referenceAr": "البقرة ٢٠",
+                "verses": [
+                  {
+                    "verseKey": "2:20",
+                    "ayah": 20,
+                    "textAr": "يَكَادُ ٱلْبَرْقُ يَخْطَفُ أَبْصَٰرَهُمْ ۖ كُلَّمَآ أَضَآءَ لَهُم مَّشَوْا۟ فِيهِ وَإِذَآ أَظْلَمَ عَلَيْهِمْ قَامُوا۟ ۚ وَلَوْ شَآءَ ٱللَّهُ لَذَهَبَ بِسَمْعِهِمْ وَأَبْصَٰرِهِمْ ۚ إِنَّ ٱللَّهَ عَلَىٰ كُلِّ شَىْءٍۢ قَدِيرٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "ما تراه مستحيلًا يسير على القدير، فلا تقطع رجاءك."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 20,
+                "toAyah": 20,
+                "referenceAr": "البقرة ٢٠",
+                "verses": [
+                  {
+                    "verseKey": "2:20",
+                    "ayah": 20,
+                    "textAr": "يَكَادُ ٱلْبَرْقُ يَخْطَفُ أَبْصَٰرَهُمْ ۖ كُلَّمَآ أَضَآءَ لَهُم مَّشَوْا۟ فِيهِ وَإِذَآ أَظْلَمَ عَلَيْهِمْ قَامُوا۟ ۚ وَلَوْ شَآءَ ٱللَّهُ لَذَهَبَ بِسَمْعِهِمْ وَأَبْصَٰرِهِمْ ۚ إِنَّ ٱللَّهَ عَلَىٰ كُلِّ شَىْءٍۢ قَدِيرٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«إن الله على كل شيء قدير»."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-ali-azim",
+        "collectionId": "asma-husna",
+        "order": 290,
+        "titleAr": "العلي، العظيم، الكبير، المتعال",
+        "titleEn": "Al-Aliyy, Al-Azim, Al-Kabir, Al-Mutaal",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "العلي المتعال: العالي فوق خلقه بذاته وقدره وقهره. العظيم الكبير: الذي له العظمة والكبرياء، وكل شيء دونه صغير.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "العلي المتعال: العالي فوق خلقه بذاته وقدره وقهره. العظيم الكبير: الذي له العظمة والكبرياء، وكل شيء دونه صغير."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 255,
+                "toAyah": 255,
+                "referenceAr": "البقرة ٢٥٥",
+                "verses": [
+                  {
+                    "verseKey": "2:255",
+                    "ayah": 255,
+                    "textAr": "ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌۭ وَلَا نَوْمٌۭ ۚ لَّهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَمَا فِى ٱلْأَرْضِ ۗ مَن ذَا ٱلَّذِى يَشْفَعُ عِندَهُۥٓ إِلَّا بِإِذْنِهِۦ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَىْءٍۢ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَآءَ ۚ وَسِعَ كُرْسِيُّهُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ ۖ وَلَا يَـُٔودُهُۥ حِفْظُهُمَا ۚ وَهُوَ ٱلْعَلِىُّ ٱلْعَظِيمُ"
+                  }
+                ]
+              },
+              {
+                "surah": 13,
+                "surahNameAr": "الرعد",
+                "fromAyah": 9,
+                "toAyah": 9,
+                "referenceAr": "الرعد ٩",
+                "verses": [
+                  {
+                    "verseKey": "13:9",
+                    "ayah": 9,
+                    "textAr": "عَٰلِمُ ٱلْغَيْبِ وَٱلشَّهَٰدَةِ ٱلْكَبِيرُ ٱلْمُتَعَالِ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6682,
+                "excerptsAr": [
+                  "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٦٨٢"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "نقول في الركوع «سبحان ربي العظيم» وفي السجود «سبحان ربي الأعلى»، فاستحضر المعنى وأنت تقولها."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 255,
+                "toAyah": 255,
+                "referenceAr": "البقرة ٢٥٥",
+                "verses": [
+                  {
+                    "verseKey": "2:255",
+                    "ayah": 255,
+                    "textAr": "ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌۭ وَلَا نَوْمٌۭ ۚ لَّهُۥ مَا فِى ٱلسَّمَٰوَٰتِ وَمَا فِى ٱلْأَرْضِ ۗ مَن ذَا ٱلَّذِى يَشْفَعُ عِندَهُۥٓ إِلَّا بِإِذْنِهِۦ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَىْءٍۢ مِّنْ عِلْمِهِۦٓ إِلَّا بِمَا شَآءَ ۚ وَسِعَ كُرْسِيُّهُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ ۖ وَلَا يَـُٔودُهُۥ حِفْظُهُمَا ۚ وَهُوَ ٱلْعَلِىُّ ٱلْعَظِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "كل كبير دون الله صغير: «الله أكبر»."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-haqq-mubin",
+        "collectionId": "asma-husna",
+        "order": 300,
+        "titleAr": "الحق، المبين",
+        "titleEn": "Al-Haqq, Al-Mubin",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الحق: الثابت الذي لا شك فيه، وقوله حق ووعده حق. المبين: الظاهر البيّن. وكان النبي ﷺ يقول في قيام الليل: «أنت الحق، ووعدك الحق».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الحق: الثابت الذي لا شك فيه، وقوله حق ووعده حق. المبين: الظاهر البيّن. وكان النبي ﷺ يقول في قيام الليل: «أنت الحق، ووعدك الحق»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 24,
+                "surahNameAr": "النور",
+                "fromAyah": 25,
+                "toAyah": 25,
+                "referenceAr": "النور ٢٥",
+                "verses": [
+                  {
+                    "verseKey": "24:25",
+                    "ayah": 25,
+                    "textAr": "يَوْمَئِذٍۢ يُوَفِّيهِمُ ٱللَّهُ دِينَهُمُ ٱلْحَقَّ وَيَعْلَمُونَ أَنَّ ٱللَّهَ هُوَ ٱلْحَقُّ ٱلْمُبِينُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 1120,
+                "excerptsAr": [
+                  "أَنْتَ الْحَقُّ، وَوَعْدُكَ الْحَقُّ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ١١٢٠"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "وعد الله حق، فلا تستبطئ نصره ولا ثوابه."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 24,
+                "surahNameAr": "النور",
+                "fromAyah": 25,
+                "toAyah": 25,
+                "referenceAr": "النور ٢٥",
+                "verses": [
+                  {
+                    "verseKey": "24:25",
+                    "ayah": 25,
+                    "textAr": "يَوْمَئِذٍۢ يُوَفِّيهِمُ ٱللَّهُ دِينَهُمُ ٱلْحَقَّ وَيَعْلَمُونَ أَنَّ ٱللَّهَ هُوَ ٱلْحَقُّ ٱلْمُبِينُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الله الحق، وكل ما سواه زائل."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-wali-mawla",
+        "collectionId": "asma-husna",
+        "order": 310,
+        "titleAr": "الولي، المولى، النصير",
+        "titleEn": "Al-Waliyy, Al-Mawla, An-Nasir",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الولي المولى: الذي يتولّى أمور عباده المؤمنين ويحبهم وينصرهم. النصير: الذي ينصر من نصره.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "الولي المولى: الذي يتولّى أمور عباده المؤمنين ويحبهم وينصرهم. النصير: الذي ينصر من نصره."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 8,
+                "surahNameAr": "الأنفال",
+                "fromAyah": 40,
+                "toAyah": 40,
+                "referenceAr": "الأنفال ٤٠",
+                "verses": [
+                  {
+                    "verseKey": "8:40",
+                    "ayah": 40,
+                    "textAr": "وَإِن تَوَلَّوْا۟ فَٱعْلَمُوٓا۟ أَنَّ ٱللَّهَ مَوْلَىٰكُمْ ۚ نِعْمَ ٱلْمَوْلَىٰ وَنِعْمَ ٱلنَّصِيرُ"
+                  }
+                ]
+              },
+              {
+                "surah": 42,
+                "surahNameAr": "الشورى",
+                "fromAyah": 28,
+                "toAyah": 28,
+                "referenceAr": "الشورى ٢٨",
+                "verses": [
+                  {
+                    "verseKey": "42:28",
+                    "ayah": 28,
+                    "textAr": "وَهُوَ ٱلَّذِى يُنَزِّلُ ٱلْغَيْثَ مِنۢ بَعْدِ مَا قَنَطُوا۟ وَيَنشُرُ رَحْمَتَهُۥ ۚ وَهُوَ ٱلْوَلِىُّ ٱلْحَمِيدُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "من كان الله وليّه فلن يضيع، فاجعل ولاءك لله ولرسوله وللمؤمنين."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 8,
+                "surahNameAr": "الأنفال",
+                "fromAyah": 40,
+                "toAyah": 40,
+                "referenceAr": "الأنفال ٤٠",
+                "verses": [
+                  {
+                    "verseKey": "8:40",
+                    "ayah": 40,
+                    "textAr": "وَإِن تَوَلَّوْا۟ فَٱعْلَمُوٓا۟ أَنَّ ٱللَّهَ مَوْلَىٰكُمْ ۚ نِعْمَ ٱلْمَوْلَىٰ وَنِعْمَ ٱلنَّصِيرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "«نعم المولى ونعم النصير»."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-barr-majid",
+        "collectionId": "asma-husna",
+        "order": 320,
+        "titleAr": "البر، المجيد",
+        "titleEn": "Al-Barr, Al-Majid",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "البر: الواسع الإحسان إلى عباده. المجيد: الواسع المجد والشرف والكرم.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "البر: الواسع الإحسان إلى عباده. المجيد: الواسع المجد والشرف والكرم."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 52,
+                "surahNameAr": "الطور",
+                "fromAyah": 28,
+                "toAyah": 28,
+                "referenceAr": "الطور ٢٨",
+                "verses": [
+                  {
+                    "verseKey": "52:28",
+                    "ayah": 28,
+                    "textAr": "إِنَّا كُنَّا مِن قَبْلُ نَدْعُوهُ ۖ إِنَّهُۥ هُوَ ٱلْبَرُّ ٱلرَّحِيمُ"
+                  }
+                ]
+              },
+              {
+                "surah": 11,
+                "surahNameAr": "هود",
+                "fromAyah": 73,
+                "toAyah": 73,
+                "referenceAr": "هود ٧٣",
+                "verses": [
+                  {
+                    "verseKey": "11:73",
+                    "ayah": 73,
+                    "textAr": "قَالُوٓا۟ أَتَعْجَبِينَ مِنْ أَمْرِ ٱللَّهِ ۖ رَحْمَتُ ٱللَّهِ وَبَرَكَٰتُهُۥ عَلَيْكُمْ أَهْلَ ٱلْبَيْتِ ۚ إِنَّهُۥ حَمِيدٌۭ مَّجِيدٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "من عرف أن ربه بَرّ رحيم أحسن الظن به في كل حال."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 52,
+                "surahNameAr": "الطور",
+                "fromAyah": 28,
+                "toAyah": 28,
+                "referenceAr": "الطور ٢٨",
+                "verses": [
+                  {
+                    "verseKey": "52:28",
+                    "ayah": 28,
+                    "textAr": "إِنَّا كُنَّا مِن قَبْلُ نَدْعُوهُ ۖ إِنَّهُۥ هُوَ ٱلْبَرُّ ٱلرَّحِيمُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "نقول في التشهد: «إنك حميد مجيد»."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "ism-tayyib-jamil-rafiq",
+        "collectionId": "asma-husna",
+        "order": 330,
+        "titleAr": "الطيب، الجميل، الرفيق",
+        "titleEn": "At-Tayyib, Al-Jamil, Ar-Rafiq",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "ثبتت هذه الأسماء في السنة الصحيحة: «إن الله طيب لا يقبل إلا طيبًا»، «إن الله جميل يحب الجمال»، «إن الله رفيق يحب الرفق في الأمر كله».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المعنى",
+            "paragraphsAr": [
+              "ثبتت هذه الأسماء في السنة الصحيحة: «إن الله طيب لا يقبل إلا طيبًا»، «إن الله جميل يحب الجمال»، «إن الله رفيق يحب الرفق في الأمر كله»."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 1015,
+                "excerptsAr": [
+                  "إِنَّ اللَّهَ طَيِّبٌ لاَ يَقْبَلُ إِلاَّ طَيِّبًا"
+                ],
+                "sourceAr": "رواه مسلم — رقم ١٠١٥"
+              },
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 91,
+                "excerptsAr": [
+                  "إِنَّ اللَّهَ جَمِيلٌ يُحِبُّ الْجَمَالَ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٩١"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 6927,
+                "excerptsAr": [
+                  "إِنَّ اللَّهَ رَفِيقٌ يُحِبُّ الرِّفْقَ فِي الأَمْرِ كُلِّهِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٦٩٢٧"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "أثره في حياتك",
+            "paragraphsAr": [
+              "تحرَّ الحلال الطيب في كسبك، واعتنِ بجمال مظهرك وأخلاقك، وارفق بأهلك ومن حولك."
+            ],
+            "reflectionAr": null,
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 1015,
+                "excerptsAr": [
+                  "إِنَّ اللَّهَ طَيِّبٌ لاَ يَقْبَلُ إِلاَّ طَيِّبًا"
+                ],
+                "sourceAr": "رواه مسلم — رقم ١٠١٥"
+              }
+            ],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "من أسماء الله ما ثبت في السنة الصحيحة."
+        ],
+        "quiz": [],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      }
+    ]
   },
   {
     "id": "fiqh",
@@ -8034,8 +15328,1718 @@ export const LEARNING_COLLECTIONS_DATA = [
     "titleAr": "دروس التجويد",
     "titleEn": "Tajweed lessons",
     "descriptionAr": "أحكام التجويد على منهج تحفة الأطفال ثم الجزرية، بأمثلة من المصحف.",
-    "methodAr": "الأمثلة آيات منقولة بنصها من المصحف مع ألوان التجويد، والدروس مراجعة من معلّم تجويد مجاز.",
-    "items": []
+    "methodAr": "على منهج متن تحفة الأطفال للجمزوري برواية حفص عن عاصم، وكل مثال كلمة من آية منقولة بنصها من المصحف، يمكنك الاستماع إليها. التجويد يُتلقّى بالمشافهة، فاجعل هذه الدروس عونًا مع معلّم.",
+    "items": [
+      {
+        "id": "tajweed-muqaddima",
+        "collectionId": "tajweed",
+        "order": 10,
+        "titleAr": "ما التجويد؟ وما حكمه؟",
+        "titleEn": "What tajweed is and why it matters",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "التجويد: إعطاء كل حرف حقه من المخرج والصفات. أمر الله بترتيل القرآن، والماهر بالقرآن مع السفرة الكرام البررة، والذي يتتعتع فيه وهو عليه شاق له أجران.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "ورتّل القرآن ترتيلًا",
+            "paragraphsAr": [
+              "التجويد لغةً: التحسين. واصطلاحًا: إخراج كل حرف من مخرجه، مع إعطائه حقه من الصفات والأحكام.",
+              "وقراءة القرآن بالتجويد بقدر ما يحفظ الحروف من اللحن الذي يغيّر المعنى واجبة، وتعلّم قواعده بالتفصيل فرض كفاية."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 73,
+                "surahNameAr": "المزمل",
+                "fromAyah": 4,
+                "toAyah": 4,
+                "referenceAr": "المزمل ٤",
+                "verses": [
+                  {
+                    "verseKey": "73:4",
+                    "ayah": 4,
+                    "textAr": "أَوْ زِدْ عَلَيْهِ وَرَتِّلِ ٱلْقُرْءَانَ تَرْتِيلًا"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "الماهر بالقرآن",
+            "paragraphsAr": [
+              "قال النبي ﷺ: «الماهر بالقرآن مع السفرة الكرام البررة، والذي يقرأ القرآن ويتتعتع فيه وهو عليه شاق له أجران».",
+              "وسُئل أنس عن قراءة النبي ﷺ فقال: كانت مدًّا، ثم قرأ «بسم الله الرحمن الرحيم» يمدّ ببسم الله، ويمدّ بالرحمن، ويمدّ بالرحيم."
+            ],
+            "reflectionAr": "لا تنتظر أن تتقن لتبدأ؛ من يتتعتع وهو يتعلّم له أجران.",
+            "quran": [],
+            "hadith": [
+              {
+                "collection": "muslim",
+                "collectionAr": "صحيح مسلم",
+                "number": 798,
+                "excerptsAr": [
+                  "الْمَاهِرُ بِالْقُرْآنِ مَعَ السَّفَرَةِ الْكِرَامِ الْبَرَرَةِ"
+                ],
+                "sourceAr": "رواه مسلم — رقم ٧٩٨"
+              },
+              {
+                "collection": "bukhari",
+                "collectionAr": "صحيح البخاري",
+                "number": 5046,
+                "excerptsAr": [
+                  "كَانَتْ مَدًّا. ثُمَّ قَرَأَ بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ، يَمُدُّ بِبِسْمِ اللَّهِ، وَيَمُدُّ بِالرَّحْمَنِ، وَيَمُدُّ بِالرَّحِيمِ"
+                ],
+                "sourceAr": "رواه البخاري — رقم ٥٠٤٦"
+              }
+            ],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "كيف تستفيد من هذه الدروس؟",
+            "paragraphsAr": [
+              "كل درس فيه القاعدة ثم أمثلة من المصحف. اضغط على الآية لتسمعها بصوت القارئ وتلاحظ الحكم. والتجويد يُتلقّى بالمشافهة، فاجعل هذه الدروس مساعدة لك مع معلّم."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 2,
+                "toAyah": 2,
+                "referenceAr": "الفاتحة ٢",
+                "verses": [
+                  {
+                    "verseKey": "1:2",
+                    "ayah": 2,
+                    "textAr": "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "التجويد: إعطاء الحروف حقها.",
+          "الماهر مع السفرة، والمتتعتع له أجران.",
+          "التجويد يُتلقّى بالسماع والمشافهة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما أجر من يقرأ القرآن ويتتعتع فيه وهو عليه شاق؟",
+            "optionsAr": [
+              "له أجران",
+              "لا أجر له",
+              "أجر واحد"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "صحيح مسلم ٧٩٨."
+          },
+          {
+            "questionAr": "كيف وصف أنس قراءة النبي ﷺ؟",
+            "optionsAr": [
+              "كانت سريعة",
+              "كانت بلا صوت",
+              "كانت مدًّا"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "صحيح البخاري ٥٠٤٦."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-istiadha",
+        "collectionId": "tajweed",
+        "order": 20,
+        "titleAr": "الاستعاذة والبسملة",
+        "titleEn": "Seeking refuge and the Basmala",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "يُستعاذ بالله عند بدء القراءة، وتُقرأ البسملة في أول كل سورة إلا سورة التوبة.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "فاستعذ بالله",
+            "paragraphsAr": [
+              "قال الله: «فإذا قرأت القرآن فاستعذ بالله من الشيطان الرجيم». وصيغتها المشهورة: أعوذ بالله من الشيطان الرجيم.",
+              "ويُجهر بها إذا كانت القراءة جهرية أمام من يستمع، ويُسرّ بها في الصلاة وفي القراءة السرية."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 16,
+                "surahNameAr": "النحل",
+                "fromAyah": 98,
+                "toAyah": 98,
+                "referenceAr": "النحل ٩٨",
+                "verses": [
+                  {
+                    "verseKey": "16:98",
+                    "ayah": 98,
+                    "textAr": "فَإِذَا قَرَأْتَ ٱلْقُرْءَانَ فَٱسْتَعِذْ بِٱللَّهِ مِنَ ٱلشَّيْطَٰنِ ٱلرَّجِيمِ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "البسملة",
+            "paragraphsAr": [
+              "تُقرأ البسملة في أول كل سورة إلا سورة التوبة، ويجوز قراءتها أو تركها إذا بدأت من وسط سورة.",
+              "وعند الانتقال من سورة إلى أخرى لك ثلاثة أوجه: قطع الجميع (الوقف على آخر السورة ثم على البسملة)، أو وصل الجميع، أو قطع الأول ووصل البسملة بأول السورة. أما وصل آخر السورة بالبسملة ثم الوقف عليها فلا يجوز."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الفاتحة ١",
+                "verses": [
+                  {
+                    "verseKey": "1:1",
+                    "ayah": 1,
+                    "textAr": "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الاستعاذة قبل القراءة.",
+          "البسملة في أول كل سورة إلا التوبة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "أي سورة لا تبدأ بالبسملة؟",
+            "optionsAr": [
+              "الفاتحة",
+              "الإخلاص",
+              "التوبة"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "سورة التوبة (براءة)."
+          },
+          {
+            "questionAr": "ما الوجه الممنوع بين السورتين؟",
+            "optionsAr": [
+              "وصل آخر السورة بالبسملة ثم الوقف عليها",
+              "قطع الجميع",
+              "وصل الجميع"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "لئلا يُظن أن البسملة آخر السورة."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-izhar",
+        "collectionId": "tajweed",
+        "order": 30,
+        "titleAr": "النون الساكنة والتنوين: الإظهار",
+        "titleEn": "Noon sakinah and tanween: izhar",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "للنون الساكنة والتنوين أربعة أحكام: الإظهار، والإدغام، والإقلاب، والإخفاء. الإظهار: إذا جاء بعدها أحد حروف الحلق الستة (ء هـ ع ح غ خ) تُنطق النون واضحة بلا غنة زائدة.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "أربعة أحكام",
+            "paragraphsAr": [
+              "النون الساكنة: نون لا حركة عليها، تثبت لفظًا وخطًّا. والتنوين: نون ساكنة زائدة تلحق آخر الاسم لفظًا لا خطًّا (ـًـٍـٌ).",
+              "ولهما أربعة أحكام بحسب الحرف الذي بعدهما: الإظهار، والإدغام، والإقلاب، والإخفاء."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 62,
+                "toAyah": 62,
+                "referenceAr": "البقرة ٦٢",
+                "verses": [
+                  {
+                    "verseKey": "2:62",
+                    "ayah": 62,
+                    "textAr": "إِنَّ ٱلَّذِينَ ءَامَنُوا۟ وَٱلَّذِينَ هَادُوا۟ وَٱلنَّصَٰرَىٰ وَٱلصَّٰبِـِٔينَ مَنْ ءَامَنَ بِٱللَّهِ وَٱلْيَوْمِ ٱلْءَاخِرِ وَعَمِلَ صَٰلِحًۭا فَلَهُمْ أَجْرُهُمْ عِندَ رَبِّهِمْ وَلَا خَوْفٌ عَلَيْهِمْ وَلَا هُمْ يَحْزَنُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "الإظهار الحلقي",
+            "paragraphsAr": [
+              "حروفه ستة من الحلق: الهمزة، والهاء، والعين، والحاء، والغين، والخاء. وجمعها الشيخ الجمزوري في أوائل كلمات: «أخي هاك علمًا حازه غير خاسر».",
+              "إذا جاء أحدها بعد النون الساكنة أو التنوين، في كلمة أو كلمتين، أُظهرت النون من مخرجها بلا غنة زائدة.",
+              "أمثلة: «من ءامن»، «منهم»، «من عمل»، «من غل»، «من خوف»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 62,
+                "toAyah": 62,
+                "referenceAr": "البقرة ٦٢",
+                "verses": [
+                  {
+                    "verseKey": "2:62",
+                    "ayah": 62,
+                    "textAr": "إِنَّ ٱلَّذِينَ ءَامَنُوا۟ وَٱلَّذِينَ هَادُوا۟ وَٱلنَّصَٰرَىٰ وَٱلصَّٰبِـِٔينَ مَنْ ءَامَنَ بِٱللَّهِ وَٱلْيَوْمِ ٱلْءَاخِرِ وَعَمِلَ صَٰلِحًۭا فَلَهُمْ أَجْرُهُمْ عِندَ رَبِّهِمْ وَلَا خَوْفٌ عَلَيْهِمْ وَلَا هُمْ يَحْزَنُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 75,
+                "toAyah": 75,
+                "referenceAr": "البقرة ٧٥",
+                "verses": [
+                  {
+                    "verseKey": "2:75",
+                    "ayah": 75,
+                    "textAr": "۞ أَفَتَطْمَعُونَ أَن يُؤْمِنُوا۟ لَكُمْ وَقَدْ كَانَ فَرِيقٌۭ مِّنْهُمْ يَسْمَعُونَ كَلَٰمَ ٱللَّهِ ثُمَّ يُحَرِّفُونَهُۥ مِنۢ بَعْدِ مَا عَقَلُوهُ وَهُمْ يَعْلَمُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 16,
+                "surahNameAr": "النحل",
+                "fromAyah": 97,
+                "toAyah": 97,
+                "referenceAr": "النحل ٩٧",
+                "verses": [
+                  {
+                    "verseKey": "16:97",
+                    "ayah": 97,
+                    "textAr": "مَنْ عَمِلَ صَٰلِحًۭا مِّن ذَكَرٍ أَوْ أُنثَىٰ وَهُوَ مُؤْمِنٌۭ فَلَنُحْيِيَنَّهُۥ حَيَوٰةًۭ طَيِّبَةًۭ ۖ وَلَنَجْزِيَنَّهُمْ أَجْرَهُم بِأَحْسَنِ مَا كَانُوا۟ يَعْمَلُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 7,
+                "surahNameAr": "الأعراف",
+                "fromAyah": 43,
+                "toAyah": 43,
+                "referenceAr": "الأعراف ٤٣",
+                "verses": [
+                  {
+                    "verseKey": "7:43",
+                    "ayah": 43,
+                    "textAr": "وَنَزَعْنَا مَا فِى صُدُورِهِم مِّنْ غِلٍّۢ تَجْرِى مِن تَحْتِهِمُ ٱلْأَنْهَٰرُ ۖ وَقَالُوا۟ ٱلْحَمْدُ لِلَّهِ ٱلَّذِى هَدَىٰنَا لِهَٰذَا وَمَا كُنَّا لِنَهْتَدِىَ لَوْلَآ أَنْ هَدَىٰنَا ٱللَّهُ ۖ لَقَدْ جَآءَتْ رُسُلُ رَبِّنَا بِٱلْحَقِّ ۖ وَنُودُوٓا۟ أَن تِلْكُمُ ٱلْجَنَّةُ أُورِثْتُمُوهَا بِمَا كُنتُمْ تَعْمَلُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 106,
+                "surahNameAr": "قريش",
+                "fromAyah": 4,
+                "toAyah": 4,
+                "referenceAr": "قريش ٤",
+                "verses": [
+                  {
+                    "verseKey": "106:4",
+                    "ayah": 4,
+                    "textAr": "ٱلَّذِىٓ أَطْعَمَهُم مِّن جُوعٍۢ وَءَامَنَهُم مِّنْ خَوْفٍۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "حروف الإظهار: ء هـ ع ح غ خ.",
+          "الإظهار: نطق النون واضحة بلا غنة زائدة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم حرفًا للإظهار الحلقي؟",
+            "optionsAr": [
+              "أربعة",
+              "خمسة عشر",
+              "ستة"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "ء هـ ع ح غ خ."
+          },
+          {
+            "questionAr": "ما حكم النون في «من خوف»؟",
+            "optionsAr": [
+              "إدغام",
+              "إظهار",
+              "إخفاء"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "الخاء من حروف الحلق."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-idgham",
+        "collectionId": "tajweed",
+        "order": 40,
+        "titleAr": "الإدغام",
+        "titleEn": "Idgham (merging)",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "حروف الإدغام ستة مجموعة في «يرملون». في (ي ن م و) يكون الإدغام بغنة، وفي (ل ر) بغير غنة. ويُشترط أن يكون في كلمتين.",
+        "readingMinutes": 2,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "الإدغام بغنة: ينمو",
+            "paragraphsAr": [
+              "إذا جاء بعد النون الساكنة أو التنوين حرف من حروف «ينمو» (ي ن م و) في كلمة أخرى، أُدغمت النون فيه مع غنة بمقدار حركتين.",
+              "أمثلة: «من يقول»، «من نور»، «من وال»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 8,
+                "toAyah": 8,
+                "referenceAr": "البقرة ٨",
+                "verses": [
+                  {
+                    "verseKey": "2:8",
+                    "ayah": 8,
+                    "textAr": "وَمِنَ ٱلنَّاسِ مَن يَقُولُ ءَامَنَّا بِٱللَّهِ وَبِٱلْيَوْمِ ٱلْءَاخِرِ وَمَا هُم بِمُؤْمِنِينَ"
+                  }
+                ]
+              },
+              {
+                "surah": 24,
+                "surahNameAr": "النور",
+                "fromAyah": 40,
+                "toAyah": 40,
+                "referenceAr": "النور ٤٠",
+                "verses": [
+                  {
+                    "verseKey": "24:40",
+                    "ayah": 40,
+                    "textAr": "أَوْ كَظُلُمَٰتٍۢ فِى بَحْرٍۢ لُّجِّىٍّۢ يَغْشَىٰهُ مَوْجٌۭ مِّن فَوْقِهِۦ مَوْجٌۭ مِّن فَوْقِهِۦ سَحَابٌۭ ۚ ظُلُمَٰتٌۢ بَعْضُهَا فَوْقَ بَعْضٍ إِذَآ أَخْرَجَ يَدَهُۥ لَمْ يَكَدْ يَرَىٰهَا ۗ وَمَن لَّمْ يَجْعَلِ ٱللَّهُ لَهُۥ نُورًۭا فَمَا لَهُۥ مِن نُّورٍ"
+                  }
+                ]
+              },
+              {
+                "surah": 13,
+                "surahNameAr": "الرعد",
+                "fromAyah": 11,
+                "toAyah": 11,
+                "referenceAr": "الرعد ١١",
+                "verses": [
+                  {
+                    "verseKey": "13:11",
+                    "ayah": 11,
+                    "textAr": "لَهُۥ مُعَقِّبَٰتٌۭ مِّنۢ بَيْنِ يَدَيْهِ وَمِنْ خَلْفِهِۦ يَحْفَظُونَهُۥ مِنْ أَمْرِ ٱللَّهِ ۗ إِنَّ ٱللَّهَ لَا يُغَيِّرُ مَا بِقَوْمٍ حَتَّىٰ يُغَيِّرُوا۟ مَا بِأَنفُسِهِمْ ۗ وَإِذَآ أَرَادَ ٱللَّهُ بِقَوْمٍۢ سُوٓءًۭا فَلَا مَرَدَّ لَهُۥ ۚ وَمَا لَهُم مِّن دُونِهِۦ مِن وَالٍ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "الإدغام بغير غنة: ل ر",
+            "paragraphsAr": [
+              "إذا جاء بعدهما اللام أو الراء أُدغمت النون إدغامًا كاملًا بلا غنة.",
+              "أمثلة: «من لدنه»، «من ربهم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 18,
+                "surahNameAr": "الكهف",
+                "fromAyah": 2,
+                "toAyah": 2,
+                "referenceAr": "الكهف ٢",
+                "verses": [
+                  {
+                    "verseKey": "18:2",
+                    "ayah": 2,
+                    "textAr": "قَيِّمًۭا لِّيُنذِرَ بَأْسًۭا شَدِيدًۭا مِّن لَّدُنْهُ وَيُبَشِّرَ ٱلْمُؤْمِنِينَ ٱلَّذِينَ يَعْمَلُونَ ٱلصَّٰلِحَٰتِ أَنَّ لَهُمْ أَجْرًا حَسَنًۭا"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 5,
+                "toAyah": 5,
+                "referenceAr": "البقرة ٥",
+                "verses": [
+                  {
+                    "verseKey": "2:5",
+                    "ayah": 5,
+                    "textAr": "أُو۟لَٰٓئِكَ عَلَىٰ هُدًۭى مِّن رَّبِّهِمْ ۖ وَأُو۟لَٰٓئِكَ هُمُ ٱلْمُفْلِحُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "إذا كانا في كلمة واحدة",
+            "paragraphsAr": [
+              "إذا جاءت النون الساكنة وبعدها الياء أو الواو في كلمة واحدة فلا إدغام، بل تُظهر، ويُسمّى إظهارًا مطلقًا. وورد في القرآن في أربع كلمات: «الدنيا»، «قنوان»، «صنوان»، «بنيان».",
+              "أمثلة: «صنوان»، «قنوان»، «بنيان»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 13,
+                "surahNameAr": "الرعد",
+                "fromAyah": 4,
+                "toAyah": 4,
+                "referenceAr": "الرعد ٤",
+                "verses": [
+                  {
+                    "verseKey": "13:4",
+                    "ayah": 4,
+                    "textAr": "وَفِى ٱلْأَرْضِ قِطَعٌۭ مُّتَجَٰوِرَٰتٌۭ وَجَنَّٰتٌۭ مِّنْ أَعْنَٰبٍۢ وَزَرْعٌۭ وَنَخِيلٌۭ صِنْوَانٌۭ وَغَيْرُ صِنْوَانٍۢ يُسْقَىٰ بِمَآءٍۢ وَٰحِدٍۢ وَنُفَضِّلُ بَعْضَهَا عَلَىٰ بَعْضٍۢ فِى ٱلْأُكُلِ ۚ إِنَّ فِى ذَٰلِكَ لَءَايَٰتٍۢ لِّقَوْمٍۢ يَعْقِلُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 6,
+                "surahNameAr": "الأنعام",
+                "fromAyah": 99,
+                "toAyah": 99,
+                "referenceAr": "الأنعام ٩٩",
+                "verses": [
+                  {
+                    "verseKey": "6:99",
+                    "ayah": 99,
+                    "textAr": "وَهُوَ ٱلَّذِىٓ أَنزَلَ مِنَ ٱلسَّمَآءِ مَآءًۭ فَأَخْرَجْنَا بِهِۦ نَبَاتَ كُلِّ شَىْءٍۢ فَأَخْرَجْنَا مِنْهُ خَضِرًۭا نُّخْرِجُ مِنْهُ حَبًّۭا مُّتَرَاكِبًۭا وَمِنَ ٱلنَّخْلِ مِن طَلْعِهَا قِنْوَانٌۭ دَانِيَةٌۭ وَجَنَّٰتٍۢ مِّنْ أَعْنَابٍۢ وَٱلزَّيْتُونَ وَٱلرُّمَّانَ مُشْتَبِهًۭا وَغَيْرَ مُتَشَٰبِهٍ ۗ ٱنظُرُوٓا۟ إِلَىٰ ثَمَرِهِۦٓ إِذَآ أَثْمَرَ وَيَنْعِهِۦٓ ۚ إِنَّ فِى ذَٰلِكُمْ لَءَايَٰتٍۢ لِّقَوْمٍۢ يُؤْمِنُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 61,
+                "surahNameAr": "الصف",
+                "fromAyah": 4,
+                "toAyah": 4,
+                "referenceAr": "الصف ٤",
+                "verses": [
+                  {
+                    "verseKey": "61:4",
+                    "ayah": 4,
+                    "textAr": "إِنَّ ٱللَّهَ يُحِبُّ ٱلَّذِينَ يُقَٰتِلُونَ فِى سَبِيلِهِۦ صَفًّۭا كَأَنَّهُم بُنْيَٰنٌۭ مَّرْصُوصٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "يرملون: حروف الإدغام.",
+          "ينمو بغنة، ول ر بغير غنة.",
+          "لا إدغام في كلمة واحدة: الدنيا، قنوان، صنوان، بنيان."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما حكم النون في «من ربهم»؟",
+            "optionsAr": [
+              "إظهار",
+              "إدغام بغنة",
+              "إدغام بغير غنة"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "الراء من حرفي الإدغام بلا غنة."
+          },
+          {
+            "questionAr": "لماذا تُظهر النون في «بنيان»؟",
+            "optionsAr": [
+              "لأن الياء حرف حلق",
+              "لأنها آخر الآية",
+              "لأن النون والياء في كلمة واحدة"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "الإظهار المطلق."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-iqlab",
+        "collectionId": "tajweed",
+        "order": 50,
+        "titleAr": "الإقلاب",
+        "titleEn": "Iqlab (conversion)",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "إذا جاء بعد النون الساكنة أو التنوين حرف الباء قُلبت النون ميمًا مخفاة مع الغنة. وفي المصحف علامته ميم صغيرة.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "حرف واحد: الباء",
+            "paragraphsAr": [
+              "الإقلاب: قلب النون الساكنة أو التنوين ميمًا مخفاة عند الباء، مع غنة بمقدار حركتين، في كلمة أو كلمتين. وتجد فوقها في المصحف ميمًا صغيرة.",
+              "أمثلة: «من بعد»، «أنبئهم»، «سميع بصير»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 27,
+                "toAyah": 27,
+                "referenceAr": "البقرة ٢٧",
+                "verses": [
+                  {
+                    "verseKey": "2:27",
+                    "ayah": 27,
+                    "textAr": "ٱلَّذِينَ يَنقُضُونَ عَهْدَ ٱللَّهِ مِنۢ بَعْدِ مِيثَٰقِهِۦ وَيَقْطَعُونَ مَآ أَمَرَ ٱللَّهُ بِهِۦٓ أَن يُوصَلَ وَيُفْسِدُونَ فِى ٱلْأَرْضِ ۚ أُو۟لَٰٓئِكَ هُمُ ٱلْخَٰسِرُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 33,
+                "toAyah": 33,
+                "referenceAr": "البقرة ٣٣",
+                "verses": [
+                  {
+                    "verseKey": "2:33",
+                    "ayah": 33,
+                    "textAr": "قَالَ يَٰٓـَٔادَمُ أَنۢبِئْهُم بِأَسْمَآئِهِمْ ۖ فَلَمَّآ أَنۢبَأَهُم بِأَسْمَآئِهِمْ قَالَ أَلَمْ أَقُل لَّكُمْ إِنِّىٓ أَعْلَمُ غَيْبَ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ وَأَعْلَمُ مَا تُبْدُونَ وَمَا كُنتُمْ تَكْتُمُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 22,
+                "surahNameAr": "الحج",
+                "fromAyah": 61,
+                "toAyah": 61,
+                "referenceAr": "الحج ٦١",
+                "verses": [
+                  {
+                    "verseKey": "22:61",
+                    "ayah": 61,
+                    "textAr": "ذَٰلِكَ بِأَنَّ ٱللَّهَ يُولِجُ ٱلَّيْلَ فِى ٱلنَّهَارِ وَيُولِجُ ٱلنَّهَارَ فِى ٱلَّيْلِ وَأَنَّ ٱللَّهَ سَمِيعٌۢ بَصِيرٌۭ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "حرف الإقلاب: الباء وحدها.",
+          "تُقلب النون ميمًا مخفاة مع الغنة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما حرف الإقلاب؟",
+            "optionsAr": [
+              "النون",
+              "الباء",
+              "الميم"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "حرف واحد."
+          },
+          {
+            "questionAr": "ما علامة الإقلاب في المصحف؟",
+            "optionsAr": [
+              "ميم صغيرة",
+              "شدة",
+              "سكون"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "ميم صغيرة فوق النون أو بدل التنوين."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-ikhfa",
+        "collectionId": "tajweed",
+        "order": 60,
+        "titleAr": "الإخفاء الحقيقي",
+        "titleEn": "Ikhfa (concealment)",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "الإخفاء عند باقي الحروف الخمسة عشر: تُنطق النون بين الإظهار والإدغام مع غنة بمقدار حركتين.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "خمسة عشر حرفًا",
+            "paragraphsAr": [
+              "حروف الإخفاء هي الباقية بعد حروف الإظهار والإدغام والإقلاب، وجمعها الجمزوري في أوائل كلمات هذا البيت: «صف ذا ثنا كم جاد شخص قد سما، دم طيبًا زد في تقى ضع ظالما».",
+              "وهي: ص ذ ث ك ج ش ق س د ط ز ف ت ض ظ."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "البقرة ٣",
+                "verses": [
+                  {
+                    "verseKey": "2:3",
+                    "ayah": 3,
+                    "textAr": "ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَٰهُمْ يُنفِقُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "كيف يُنطق؟",
+            "paragraphsAr": [
+              "تُنطق النون بصفة بين الإظهار والإدغام، خالية من التشديد، مع غنة بمقدار حركتين، ويتهيأ اللسان لمخرج الحرف الذي بعدها.",
+              "أمثلة: «ينفقون»، «أنتم»، «من قبل»، «كنتم»، «منضود»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 3,
+                "toAyah": 3,
+                "referenceAr": "البقرة ٣",
+                "verses": [
+                  {
+                    "verseKey": "2:3",
+                    "ayah": 3,
+                    "textAr": "ٱلَّذِينَ يُؤْمِنُونَ بِٱلْغَيْبِ وَيُقِيمُونَ ٱلصَّلَوٰةَ وَمِمَّا رَزَقْنَٰهُمْ يُنفِقُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 85,
+                "toAyah": 85,
+                "referenceAr": "البقرة ٨٥",
+                "verses": [
+                  {
+                    "verseKey": "2:85",
+                    "ayah": 85,
+                    "textAr": "ثُمَّ أَنتُمْ هَٰٓؤُلَآءِ تَقْتُلُونَ أَنفُسَكُمْ وَتُخْرِجُونَ فَرِيقًۭا مِّنكُم مِّن دِيَٰرِهِمْ تَظَٰهَرُونَ عَلَيْهِم بِٱلْإِثْمِ وَٱلْعُدْوَٰنِ وَإِن يَأْتُوكُمْ أُسَٰرَىٰ تُفَٰدُوهُمْ وَهُوَ مُحَرَّمٌ عَلَيْكُمْ إِخْرَاجُهُمْ ۚ أَفَتُؤْمِنُونَ بِبَعْضِ ٱلْكِتَٰبِ وَتَكْفُرُونَ بِبَعْضٍۢ ۚ فَمَا جَزَآءُ مَن يَفْعَلُ ذَٰلِكَ مِنكُمْ إِلَّا خِزْىٌۭ فِى ٱلْحَيَوٰةِ ٱلدُّنْيَا ۖ وَيَوْمَ ٱلْقِيَٰمَةِ يُرَدُّونَ إِلَىٰٓ أَشَدِّ ٱلْعَذَابِ ۗ وَمَا ٱللَّهُ بِغَٰفِلٍ عَمَّا تَعْمَلُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 25,
+                "toAyah": 25,
+                "referenceAr": "البقرة ٢٥",
+                "verses": [
+                  {
+                    "verseKey": "2:25",
+                    "ayah": 25,
+                    "textAr": "وَبَشِّرِ ٱلَّذِينَ ءَامَنُوا۟ وَعَمِلُوا۟ ٱلصَّٰلِحَٰتِ أَنَّ لَهُمْ جَنَّٰتٍۢ تَجْرِى مِن تَحْتِهَا ٱلْأَنْهَٰرُ ۖ كُلَّمَا رُزِقُوا۟ مِنْهَا مِن ثَمَرَةٍۢ رِّزْقًۭا ۙ قَالُوا۟ هَٰذَا ٱلَّذِى رُزِقْنَا مِن قَبْلُ ۖ وَأُتُوا۟ بِهِۦ مُتَشَٰبِهًۭا ۖ وَلَهُمْ فِيهَآ أَزْوَٰجٌۭ مُّطَهَّرَةٌۭ ۖ وَهُمْ فِيهَا خَٰلِدُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 23,
+                "toAyah": 23,
+                "referenceAr": "البقرة ٢٣",
+                "verses": [
+                  {
+                    "verseKey": "2:23",
+                    "ayah": 23,
+                    "textAr": "وَإِن كُنتُمْ فِى رَيْبٍۢ مِّمَّا نَزَّلْنَا عَلَىٰ عَبْدِنَا فَأْتُوا۟ بِسُورَةٍۢ مِّن مِّثْلِهِۦ وَٱدْعُوا۟ شُهَدَآءَكُم مِّن دُونِ ٱللَّهِ إِن كُنتُمْ صَٰدِقِينَ"
+                  }
+                ]
+              },
+              {
+                "surah": 56,
+                "surahNameAr": "الواقعة",
+                "fromAyah": 29,
+                "toAyah": 29,
+                "referenceAr": "الواقعة ٢٩",
+                "verses": [
+                  {
+                    "verseKey": "56:29",
+                    "ayah": 29,
+                    "textAr": "وَطَلْحٍۢ مَّنضُودٍۢ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الإخفاء عند ١٥ حرفًا.",
+          "غنة بمقدار حركتين."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم حرفًا للإخفاء الحقيقي؟",
+            "optionsAr": [
+              "خمسة عشر",
+              "ستة",
+              "أربعة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "أوائل كلمات «صف ذا ثنا…»."
+          },
+          {
+            "questionAr": "ما حكم النون في «ينفقون»؟",
+            "optionsAr": [
+              "إظهار",
+              "إخفاء",
+              "إقلاب"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "الفاء من حروف الإخفاء."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-meem",
+        "collectionId": "tajweed",
+        "order": 70,
+        "titleAr": "أحكام الميم الساكنة",
+        "titleEn": "Meem sakinah",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "للميم الساكنة ثلاثة أحكام: الإخفاء الشفوي عند الباء، والإدغام عند الميم، والإظهار الشفوي عند باقي الحروف، وأشدّه عند الواو والفاء.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "الإخفاء الشفوي",
+            "paragraphsAr": [
+              "إذا جاء بعد الميم الساكنة باء أُخفيت الميم مع الغنة.",
+              "أمثلة: «ترميهم بحجارة»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 105,
+                "surahNameAr": "الفيل",
+                "fromAyah": 4,
+                "toAyah": 4,
+                "referenceAr": "الفيل ٤",
+                "verses": [
+                  {
+                    "verseKey": "105:4",
+                    "ayah": 4,
+                    "textAr": "تَرْمِيهِم بِحِجَارَةٍۢ مِّن سِجِّيلٍۢ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "إدغام المثلين الصغير",
+            "paragraphsAr": [
+              "إذا جاء بعد الميم الساكنة ميم أُدغمت فيها مع الغنة.",
+              "أمثلة: «ولكم ما كسبتم»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 134,
+                "toAyah": 134,
+                "referenceAr": "البقرة ١٣٤",
+                "verses": [
+                  {
+                    "verseKey": "2:134",
+                    "ayah": 134,
+                    "textAr": "تِلْكَ أُمَّةٌۭ قَدْ خَلَتْ ۖ لَهَا مَا كَسَبَتْ وَلَكُم مَّا كَسَبْتُمْ ۖ وَلَا تُسْـَٔلُونَ عَمَّا كَانُوا۟ يَعْمَلُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "الإظهار الشفوي",
+            "paragraphsAr": [
+              "عند باقي الحروف تُظهر الميم، ويُحرص على إظهارها عند الواو والفاء لقرب مخرجهما منها، فلا تُخفى.",
+              "أمثلة: «ألم تر»، «عليهم ولا الضالين»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 105,
+                "surahNameAr": "الفيل",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الفيل ١",
+                "verses": [
+                  {
+                    "verseKey": "105:1",
+                    "ayah": 1,
+                    "textAr": "أَلَمْ تَرَ كَيْفَ فَعَلَ رَبُّكَ بِأَصْحَٰبِ ٱلْفِيلِ"
+                  }
+                ]
+              },
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 7,
+                "toAyah": 7,
+                "referenceAr": "الفاتحة ٧",
+                "verses": [
+                  {
+                    "verseKey": "1:7",
+                    "ayah": 7,
+                    "textAr": "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "الميم + ب: إخفاء شفوي.",
+          "الميم + م: إدغام.",
+          "الميم + باقي الحروف: إظهار، وأشده عند الواو والفاء."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما حكم الميم في «ترميهم بحجارة»؟",
+            "optionsAr": [
+              "إدغام",
+              "إخفاء شفوي",
+              "إظهار شفوي"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "جاءت بعدها باء."
+          },
+          {
+            "questionAr": "عند أي حرفين يُحرص على إظهار الميم أكثر؟",
+            "optionsAr": [
+              "الباء والميم",
+              "اللام والراء",
+              "الواو والفاء"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "لقرب مخرجهما من الميم."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-mushaddad",
+        "collectionId": "tajweed",
+        "order": 80,
+        "titleAr": "النون والميم المشددتان",
+        "titleEn": "Doubled noon and meem",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "كل نون مشددة وكل ميم مشددة تُنطق بغنة كاملة بمقدار حركتين، وتُسمّى «حرف غنة مشدد».",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "غنة بحركتين",
+            "paragraphsAr": [
+              "قال الجمزوري: «وغُنَّ ميمًا ثم نونًا شُدّدا، وسمِّ كلًّا حرف غنة بدا». فالنون المشددة والميم المشددة تُغنّان بمقدار حركتين في الوصل والوقف.",
+              "أمثلة: «إن الذين»، «ثم يميتكم»، «الناس»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 6,
+                "toAyah": 6,
+                "referenceAr": "البقرة ٦",
+                "verses": [
+                  {
+                    "verseKey": "2:6",
+                    "ayah": 6,
+                    "textAr": "إِنَّ ٱلَّذِينَ كَفَرُوا۟ سَوَآءٌ عَلَيْهِمْ ءَأَنذَرْتَهُمْ أَمْ لَمْ تُنذِرْهُمْ لَا يُؤْمِنُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 28,
+                "toAyah": 28,
+                "referenceAr": "البقرة ٢٨",
+                "verses": [
+                  {
+                    "verseKey": "2:28",
+                    "ayah": 28,
+                    "textAr": "كَيْفَ تَكْفُرُونَ بِٱللَّهِ وَكُنتُمْ أَمْوَٰتًۭا فَأَحْيَٰكُمْ ۖ ثُمَّ يُمِيتُكُمْ ثُمَّ يُحْيِيكُمْ ثُمَّ إِلَيْهِ تُرْجَعُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 114,
+                "surahNameAr": "الناس",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الناس ١",
+                "verses": [
+                  {
+                    "verseKey": "114:1",
+                    "ayah": 1,
+                    "textAr": "قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "النون والميم المشددتان: غنة بحركتين."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم مقدار الغنة في «إنّ» و«ثمّ»؟",
+            "optionsAr": [
+              "أربع حركات",
+              "ست حركات",
+              "حركتان"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "غنة كاملة بحركتين."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-lam",
+        "collectionId": "tajweed",
+        "order": 90,
+        "titleAr": "لام التعريف: القمرية والشمسية",
+        "titleEn": "The definite article: lunar and solar lam",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "لام «ال» تُظهر قبل الحروف القمرية الأربعة عشر المجموعة في «ابغِ حجك وخف عقيمه»، وتُدغم في الحروف الشمسية الباقية.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "اللام القمرية",
+            "paragraphsAr": [
+              "تُظهر اللام وتُنطق ساكنة قبل أربعة عشر حرفًا مجموعة في: «ابغِ حجّك وخف عقيمه».",
+              "أمثلة: «الحمد»، «القمر»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 2,
+                "toAyah": 2,
+                "referenceAr": "الفاتحة ٢",
+                "verses": [
+                  {
+                    "verseKey": "1:2",
+                    "ayah": 2,
+                    "textAr": "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ"
+                  }
+                ]
+              },
+              {
+                "surah": 54,
+                "surahNameAr": "القمر",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "القمر ١",
+                "verses": [
+                  {
+                    "verseKey": "54:1",
+                    "ayah": 1,
+                    "textAr": "ٱقْتَرَبَتِ ٱلسَّاعَةُ وَٱنشَقَّ ٱلْقَمَرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "اللام الشمسية",
+            "paragraphsAr": [
+              "تُدغم اللام في الحرف الذي بعدها في باقي الحروف الأربعة عشر، فلا تُنطق، ويُشدّد الحرف الذي بعدها.",
+              "أمثلة: «الشمس»، «الساعة».",
+              "وفي آية القمر اجتمعتا: «اقتربت الساعة» لام شمسية، و«القمر» لام قمرية."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 91,
+                "surahNameAr": "الشمس",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الشمس ١",
+                "verses": [
+                  {
+                    "verseKey": "91:1",
+                    "ayah": 1,
+                    "textAr": "وَٱلشَّمْسِ وَضُحَىٰهَا"
+                  }
+                ]
+              },
+              {
+                "surah": 54,
+                "surahNameAr": "القمر",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "القمر ١",
+                "verses": [
+                  {
+                    "verseKey": "54:1",
+                    "ayah": 1,
+                    "textAr": "ٱقْتَرَبَتِ ٱلسَّاعَةُ وَٱنشَقَّ ٱلْقَمَرُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "القمرية تُظهر: ابغِ حجك وخف عقيمه.",
+          "الشمسية تُدغم ويُشدد ما بعدها."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما نوع اللام في «الشمس»؟",
+            "optionsAr": [
+              "لام فعل",
+              "شمسية",
+              "قمرية"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "تُدغم في الشين."
+          },
+          {
+            "questionAr": "ما نوع اللام في «القمر»؟",
+            "optionsAr": [
+              "شمسية",
+              "قمرية",
+              "لا لام فيها"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "القاف من «ابغ حجك وخف عقيمه»."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-madd",
+        "collectionId": "tajweed",
+        "order": 100,
+        "titleAr": "المدود",
+        "titleEn": "Prolongation (madd)",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "حروف المد ثلاثة (ا و ي). المد الطبيعي حركتان. فإن جاء بعده همز أو سكون صار فرعيًّا: المتصل والمنفصل (٤ أو ٥ حركات)، واللازم (٦)، والعارض للسكون (٢ أو ٤ أو ٦).",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "المد الطبيعي",
+            "paragraphsAr": [
+              "حروف المد: الألف الساكنة المفتوح ما قبلها، والواو الساكنة المضموم ما قبلها، والياء الساكنة المكسور ما قبلها، وجمعها «واي».",
+              "المد الطبيعي: لا يأتي بعده همز ولا سكون، ويُمد حركتين.",
+              "أمثلة: «قال»، «نستعين»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 33,
+                "toAyah": 33,
+                "referenceAr": "البقرة ٣٣",
+                "verses": [
+                  {
+                    "verseKey": "2:33",
+                    "ayah": 33,
+                    "textAr": "قَالَ يَٰٓـَٔادَمُ أَنۢبِئْهُم بِأَسْمَآئِهِمْ ۖ فَلَمَّآ أَنۢبَأَهُم بِأَسْمَآئِهِمْ قَالَ أَلَمْ أَقُل لَّكُمْ إِنِّىٓ أَعْلَمُ غَيْبَ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ وَأَعْلَمُ مَا تُبْدُونَ وَمَا كُنتُمْ تَكْتُمُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 5,
+                "toAyah": 5,
+                "referenceAr": "الفاتحة ٥",
+                "verses": [
+                  {
+                    "verseKey": "1:5",
+                    "ayah": 5,
+                    "textAr": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "المد المتصل والمنفصل",
+            "paragraphsAr": [
+              "المتصل الواجب: حرف المد وبعده همز في كلمة واحدة، ويُمد ٤ أو ٥ حركات لحفص من طريق الشاطبية. أمثلة: «السماء»، «جاء».",
+              "المنفصل الجائز: حرف المد في آخر كلمة والهمز في أول الكلمة التالية، ويُمد ٤ أو ٥ حركات لحفص من طريق الشاطبية. أمثلة: «بما أنزل»، «يأيها»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 19,
+                "toAyah": 19,
+                "referenceAr": "البقرة ١٩",
+                "verses": [
+                  {
+                    "verseKey": "2:19",
+                    "ayah": 19,
+                    "textAr": "أَوْ كَصَيِّبٍۢ مِّنَ ٱلسَّمَآءِ فِيهِ ظُلُمَٰتٌۭ وَرَعْدٌۭ وَبَرْقٌۭ يَجْعَلُونَ أَصَٰبِعَهُمْ فِىٓ ءَاذَانِهِم مِّنَ ٱلصَّوَٰعِقِ حَذَرَ ٱلْمَوْتِ ۚ وَٱللَّهُ مُحِيطٌۢ بِٱلْكَٰفِرِينَ"
+                  }
+                ]
+              },
+              {
+                "surah": 110,
+                "surahNameAr": "النصر",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "النصر ١",
+                "verses": [
+                  {
+                    "verseKey": "110:1",
+                    "ayah": 1,
+                    "textAr": "إِذَا جَآءَ نَصْرُ ٱللَّهِ وَٱلْفَتْحُ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 4,
+                "toAyah": 4,
+                "referenceAr": "البقرة ٤",
+                "verses": [
+                  {
+                    "verseKey": "2:4",
+                    "ayah": 4,
+                    "textAr": "وَٱلَّذِينَ يُؤْمِنُونَ بِمَآ أُنزِلَ إِلَيْكَ وَمَآ أُنزِلَ مِن قَبْلِكَ وَبِٱلْءَاخِرَةِ هُمْ يُوقِنُونَ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 21,
+                "toAyah": 21,
+                "referenceAr": "البقرة ٢١",
+                "verses": [
+                  {
+                    "verseKey": "2:21",
+                    "ayah": 21,
+                    "textAr": "يَٰٓأَيُّهَا ٱلنَّاسُ ٱعْبُدُوا۟ رَبَّكُمُ ٱلَّذِى خَلَقَكُمْ وَٱلَّذِينَ مِن قَبْلِكُمْ لَعَلَّكُمْ تَتَّقُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "المد اللازم والعارض للسكون",
+            "paragraphsAr": [
+              "اللازم: حرف المد وبعده سكون أصلي ثابت وصلًا ووقفًا، ويُمد ست حركات لزومًا. ومنه ما في أوائل السور مثل «الم». أمثلة: «الضالين»، «الحاقة»، «الم».",
+              "العارض للسكون: حرف المد وبعده حرف سُكّن لأجل الوقف، مثل الوقف على «نستعين»، ويجوز فيه ٢ أو ٤ أو ٦ حركات."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 7,
+                "toAyah": 7,
+                "referenceAr": "الفاتحة ٧",
+                "verses": [
+                  {
+                    "verseKey": "1:7",
+                    "ayah": 7,
+                    "textAr": "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ"
+                  }
+                ]
+              },
+              {
+                "surah": 69,
+                "surahNameAr": "الحاقة",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الحاقة ١",
+                "verses": [
+                  {
+                    "verseKey": "69:1",
+                    "ayah": 1,
+                    "textAr": "ٱلْحَآقَّةُ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "البقرة ١",
+                "verses": [
+                  {
+                    "verseKey": "2:1",
+                    "ayah": 1,
+                    "textAr": "الٓمٓ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "حروف المد: ا و ي.",
+          "الطبيعي ٢، المتصل والمنفصل ٤ أو ٥، اللازم ٦، العارض ٢ أو ٤ أو ٦."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كم حركة يُمد المد اللازم؟",
+            "optionsAr": [
+              "ست",
+              "أربع",
+              "اثنتان"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "مثل «الضالين»."
+          },
+          {
+            "questionAr": "ما نوع المد في «السماء»؟",
+            "optionsAr": [
+              "طبيعي",
+              "متصل",
+              "منفصل"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "المد والهمز في كلمة واحدة."
+          },
+          {
+            "questionAr": "ما نوع المد في «بما أنزل»؟",
+            "optionsAr": [
+              "لازم",
+              "متصل",
+              "منفصل"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "المد في كلمة والهمز في الكلمة التالية."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-qalqala",
+        "collectionId": "tajweed",
+        "order": 110,
+        "titleAr": "القلقلة",
+        "titleEn": "Qalqala (echoing)",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "حروف القلقلة خمسة مجموعة في «قطب جد». إذا سكنت اضطرب الصوت بها حتى يُسمع لها نبرة قوية، وأقواها عند الوقف.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "قطب جد",
+            "paragraphsAr": [
+              "حروف القلقلة: القاف، والطاء، والباء، والجيم، والدال. إذا سكنت في وسط الكلمة أو آخرها اضطرب المخرج بها حتى يُسمع لها نبرة قوية.",
+              "ومراتبها: كبرى عند الوقف على حرف قلقلة مشدد مثل «وتبّ»، ووسطى عند الوقف على حرف قلقلة غير مشدد مثل «الفلق» و«أحد»، وصغرى إذا كان الحرف ساكنًا في وسط الكلمة مثل «يجعلون».",
+              "أمثلة: «وتب»، «الفلق»، «أحد»، «يجعلون»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 111,
+                "surahNameAr": "المسد",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "المسد ١",
+                "verses": [
+                  {
+                    "verseKey": "111:1",
+                    "ayah": 1,
+                    "textAr": "تَبَّتْ يَدَآ أَبِى لَهَبٍۢ وَتَبَّ"
+                  }
+                ]
+              },
+              {
+                "surah": 113,
+                "surahNameAr": "الفلق",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الفلق ١",
+                "verses": [
+                  {
+                    "verseKey": "113:1",
+                    "ayah": 1,
+                    "textAr": "قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ"
+                  }
+                ]
+              },
+              {
+                "surah": 112,
+                "surahNameAr": "الإخلاص",
+                "fromAyah": 1,
+                "toAyah": 1,
+                "referenceAr": "الإخلاص ١",
+                "verses": [
+                  {
+                    "verseKey": "112:1",
+                    "ayah": 1,
+                    "textAr": "قُلْ هُوَ ٱللَّهُ أَحَدٌ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 19,
+                "toAyah": 19,
+                "referenceAr": "البقرة ١٩",
+                "verses": [
+                  {
+                    "verseKey": "2:19",
+                    "ayah": 19,
+                    "textAr": "أَوْ كَصَيِّبٍۢ مِّنَ ٱلسَّمَآءِ فِيهِ ظُلُمَٰتٌۭ وَرَعْدٌۭ وَبَرْقٌۭ يَجْعَلُونَ أَصَٰبِعَهُمْ فِىٓ ءَاذَانِهِم مِّنَ ٱلصَّوَٰعِقِ حَذَرَ ٱلْمَوْتِ ۚ وَٱللَّهُ مُحِيطٌۢ بِٱلْكَٰفِرِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "قطب جد.",
+          "أقوى القلقلة عند الوقف."
+        ],
+        "quiz": [
+          {
+            "questionAr": "ما حروف القلقلة؟",
+            "optionsAr": [
+              "يرملون",
+              "قطب جد",
+              "ينمو"
+            ],
+            "correctIndex": 1,
+            "explanationAr": "ق ط ب ج د."
+          },
+          {
+            "questionAr": "متى تكون القلقلة أقوى؟",
+            "optionsAr": [
+              "عند الوقف",
+              "عند الوصل",
+              "في وسط الكلمة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "مثل الوقف على «الفلق»."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      },
+      {
+        "id": "tajweed-tafkhim",
+        "collectionId": "tajweed",
+        "order": 120,
+        "titleAr": "التفخيم والترقيق: لام لفظ الجلالة والراء",
+        "titleEn": "Heavy and light letters: the lam of Allah and the ra",
+        "personAr": null,
+        "honorificAr": null,
+        "summaryAr": "حروف الاستعلاء «خص ضغط قظ» مفخّمة دائمًا. ولام لفظ الجلالة تُفخّم بعد فتح أو ضم وتُرقّق بعد كسر. والراء تُفخّم إذا فُتحت أو ضُمّت وتُرقّق إذا كُسرت.",
+        "readingMinutes": 1,
+        "sections": [
+          {
+            "index": 0,
+            "titleAr": "حروف الاستعلاء",
+            "paragraphsAr": [
+              "سبعة حروف تُنطق مفخّمة دائمًا، مجموعة في «خص ضغط قظ»: الخاء، والصاد، والضاد، والغين، والطاء، والقاف، والظاء."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 7,
+                "toAyah": 7,
+                "referenceAr": "الفاتحة ٧",
+                "verses": [
+                  {
+                    "verseKey": "1:7",
+                    "ayah": 7,
+                    "textAr": "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 1,
+            "titleAr": "لام لفظ الجلالة",
+            "paragraphsAr": [
+              "تُفخّم إذا سبقها فتح أو ضم. أمثلة: «شهد الله»، «رسول الله».",
+              "وتُرقّق إذا سبقها كسر. أمثلة: «الحمد لله»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 3,
+                "surahNameAr": "ال عمران",
+                "fromAyah": 18,
+                "toAyah": 18,
+                "referenceAr": "ال عمران ١٨",
+                "verses": [
+                  {
+                    "verseKey": "3:18",
+                    "ayah": 18,
+                    "textAr": "شَهِدَ ٱللَّهُ أَنَّهُۥ لَآ إِلَٰهَ إِلَّا هُوَ وَٱلْمَلَٰٓئِكَةُ وَأُو۟لُوا۟ ٱلْعِلْمِ قَآئِمًۢا بِٱلْقِسْطِ ۚ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْعَزِيزُ ٱلْحَكِيمُ"
+                  }
+                ]
+              },
+              {
+                "surah": 48,
+                "surahNameAr": "الفتح",
+                "fromAyah": 29,
+                "toAyah": 29,
+                "referenceAr": "الفتح ٢٩",
+                "verses": [
+                  {
+                    "verseKey": "48:29",
+                    "ayah": 29,
+                    "textAr": "مُّحَمَّدٌۭ رَّسُولُ ٱللَّهِ ۚ وَٱلَّذِينَ مَعَهُۥٓ أَشِدَّآءُ عَلَى ٱلْكُفَّارِ رُحَمَآءُ بَيْنَهُمْ ۖ تَرَىٰهُمْ رُكَّعًۭا سُجَّدًۭا يَبْتَغُونَ فَضْلًۭا مِّنَ ٱللَّهِ وَرِضْوَٰنًۭا ۖ سِيمَاهُمْ فِى وُجُوهِهِم مِّنْ أَثَرِ ٱلسُّجُودِ ۚ ذَٰلِكَ مَثَلُهُمْ فِى ٱلتَّوْرَىٰةِ ۚ وَمَثَلُهُمْ فِى ٱلْإِنجِيلِ كَزَرْعٍ أَخْرَجَ شَطْـَٔهُۥ فَـَٔازَرَهُۥ فَٱسْتَغْلَظَ فَٱسْتَوَىٰ عَلَىٰ سُوقِهِۦ يُعْجِبُ ٱلزُّرَّاعَ لِيَغِيظَ بِهِمُ ٱلْكُفَّارَ ۗ وَعَدَ ٱللَّهُ ٱلَّذِينَ ءَامَنُوا۟ وَعَمِلُوا۟ ٱلصَّٰلِحَٰتِ مِنْهُم مَّغْفِرَةًۭ وَأَجْرًا عَظِيمًۢا"
+                  }
+                ]
+              },
+              {
+                "surah": 1,
+                "surahNameAr": "الفاتحة",
+                "fromAyah": 2,
+                "toAyah": 2,
+                "referenceAr": "الفاتحة ٢",
+                "verses": [
+                  {
+                    "verseKey": "1:2",
+                    "ayah": 2,
+                    "textAr": "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          },
+          {
+            "index": 2,
+            "titleAr": "الراء",
+            "paragraphsAr": [
+              "تُفخّم الراء إذا كانت مفتوحة أو مضمومة، وتُرقّق إذا كانت مكسورة. ولأحوال الراء الساكنة تفصيل تتعلّمه مع المعلّم.",
+              "أمثلة: «ربنا»، «رزقا»."
+            ],
+            "reflectionAr": null,
+            "quran": [
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 201,
+                "toAyah": 201,
+                "referenceAr": "البقرة ٢٠١",
+                "verses": [
+                  {
+                    "verseKey": "2:201",
+                    "ayah": 201,
+                    "textAr": "وَمِنْهُم مَّن يَقُولُ رَبَّنَآ ءَاتِنَا فِى ٱلدُّنْيَا حَسَنَةًۭ وَفِى ٱلْءَاخِرَةِ حَسَنَةًۭ وَقِنَا عَذَابَ ٱلنَّارِ"
+                  }
+                ]
+              },
+              {
+                "surah": 2,
+                "surahNameAr": "البقرة",
+                "fromAyah": 22,
+                "toAyah": 22,
+                "referenceAr": "البقرة ٢٢",
+                "verses": [
+                  {
+                    "verseKey": "2:22",
+                    "ayah": 22,
+                    "textAr": "ٱلَّذِى جَعَلَ لَكُمُ ٱلْأَرْضَ فِرَٰشًۭا وَٱلسَّمَآءَ بِنَآءًۭ وَأَنزَلَ مِنَ ٱلسَّمَآءِ مَآءًۭ فَأَخْرَجَ بِهِۦ مِنَ ٱلثَّمَرَٰتِ رِزْقًۭا لَّكُمْ ۖ فَلَا تَجْعَلُوا۟ لِلَّهِ أَندَادًۭا وَأَنتُمْ تَعْلَمُونَ"
+                  }
+                ]
+              }
+            ],
+            "hadith": [],
+            "nawawi": []
+          }
+        ],
+        "keyPointsAr": [
+          "خص ضغط قظ مفخّمة دائمًا.",
+          "لام الجلالة تُفخّم بعد فتح أو ضم، وتُرقّق بعد كسر.",
+          "الراء المفتوحة والمضمومة مفخّمة، والمكسورة مرققة."
+        ],
+        "quiz": [
+          {
+            "questionAr": "كيف تُنطق اللام في «الحمد لله»؟",
+            "optionsAr": [
+              "مدغمة",
+              "مفخمة",
+              "مرققة"
+            ],
+            "correctIndex": 2,
+            "explanationAr": "سبقها كسر."
+          },
+          {
+            "questionAr": "كيف تُنطق اللام في «رسول الله»؟",
+            "optionsAr": [
+              "مفخمة",
+              "مرققة",
+              "مخفاة"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "سبقها ضم."
+          },
+          {
+            "questionAr": "ما حروف الاستعلاء؟",
+            "optionsAr": [
+              "خص ضغط قظ",
+              "يرملون",
+              "قطب جد"
+            ],
+            "correctIndex": 0,
+            "explanationAr": "سبعة حروف مفخمة دائمًا."
+          }
+        ],
+        "review": {
+          "status": "DRAFT",
+          "reviewerAr": null,
+          "approvedAt": null,
+          "notesAr": null
+        }
+      }
+    ]
   },
   {
     "id": "nawawi-forty",
@@ -9572,4 +18576,4 @@ export const LEARNING_COLLECTIONS_DATA = [
     "methodAr": "كل موقف مع دليله من القرآن والسنة الصحيحة.",
     "items": []
   }
-] as const;
+];

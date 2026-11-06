@@ -27,6 +27,17 @@ async function contentChecks() {
     if (q.correctIndex !== 0) notFirst += 1;
   });
   assert.ok(notFirst > 30, 'answers are not always the first option');
+  // Every tajweed example and every name of Allah must really occur in the ayah cited for it.
+  // Skeleton key: no marks, one alef form (then dropped, as Uthmani spelling often omits it), ى→ي, ة→ه, ؤ→و, ئ→ي.
+  const key = (t: string) => t.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, '').replace(/[\u0671\u0622\u0623\u0625]/g, '\u0627')
+    .replace(/\u0649/g, '\u064A').replace(/\u0629/g, '\u0647').replace(/\u0624/g, '\u0648').replace(/\u0626/g, '\u064A')
+    .replace(/[^\u0621-\u064A]/g, '').replace(/[\u0627\u0621]/g, '');
+  const { TAJWEED_EXAMPLES } = await import('./lib/learning/tajweed');
+  for (const e of TAJWEED_EXAMPLES) assert.ok(key(ayahText(e.surah, e.ayah)).includes(key(e.word)), `tajweed example «${e.word}» not in ${e.surah}:${e.ayah}`);
+  const { ASMA_REFS } = await import('./lib/learning/asma-husna');
+  for (const r of ASMA_REFS) for (const w of r.words) assert.ok(key(ayahText(r.surah, r.ayah)).includes(key(w)), `${r.id}: «${w}» not in ${r.surah}:${r.ayah}`);
+  const counts = Object.fromEntries(LEARNING_COLLECTIONS_DATA.map(c => [c.id, c.items.length]));
+  assert.deepEqual(counts, { 'prophet-stories': 20, seerah: 18, companions: 0, aqeedah: 12, 'asma-husna': 34, fiqh: 13, tajweed: 12, 'nawawi-forty': 42, morals: 0 });
   const fiqh = LEARNING_COLLECTIONS_DATA.find(c => c.id === 'fiqh')!;
   assert.equal(fiqh.items.length, 13);
   assert.ok(fiqh.items.every(i => i.sections.every(s => s.quran.length + s.hadith.length > 0)), 'every fiqh section cites its evidence');
@@ -59,7 +70,7 @@ async function contentChecks() {
   assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 20);
   assert.equal(hub.collections.find(c => c.id === 'fiqh')!.itemCount, 13);
   assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.comingSoon, false);
-  assert.equal(hub.collections.find(c => c.id === 'seerah')!.comingSoon, true);
+  assert.equal(hub.collections.find(c => c.id === 'seerah')!.comingSoon, false);
   assert.equal(hub.collections.find(c => c.id === 'companions')!.comingSoon, false);
   assert.equal(hub.collections.find(c => c.id === 'companions')!.existingEndpoint, '/content/figures');
   const musa = await getLearningItem('musa');
@@ -130,7 +141,7 @@ async function dbChecks() {
 async function main() {
   await contentChecks();
   if (process.env.LEARNING_TEST_DB !== 'true') {
-    console.log('Learning content checks passed: 9 sections, 20 prophet stories and 13 fiqh-of-fasting lessons with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, all items live. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
+    console.log('Learning content checks passed: 9 sections, 151 items (20 prophet stories, 18 seerah chapters, 12 aqeedah, 34 asma al-husna, 13 fiqh of fasting, 12 tajweed with verified examples) with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, all items live. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
     return;
   }
   await dbChecks();

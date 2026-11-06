@@ -7,6 +7,10 @@ import { PROPHET_STORIES } from './prophet-stories';
 import { PROPHET_STORIES_BATCH_2 } from './prophet-stories-2';
 import { PROPHET_STORIES_BATCH_3 } from './prophet-stories-3';
 import { FIQH_FASTING } from './fiqh-fasting';
+import { AQEEDAH } from './aqeedah';
+import { ASMA_HUSNA } from './asma-husna';
+import { TAJWEED } from './tajweed';
+import { SEERAH } from './seerah';
 
 /** Titles for the 42 hadith of al-Arba'in an-Nawawiyyah. The hadith text itself is copied verbatim by the build. */
 export const NAWAWI_TITLES: string[] = [
@@ -35,7 +39,7 @@ const nawawiItems: ItemDef[] = NAWAWI_TITLES.map((titleAr, i) => ({
   review: { status: 'DRAFT' },
 }));
 
-export const LEARNING_CATALOG_VERSION = 3;
+export const LEARNING_CATALOG_VERSION = 4;
 
 export const LEARNING_COLLECTIONS: CollectionDef[] = [
   {
@@ -46,9 +50,9 @@ export const LEARNING_COLLECTIONS: CollectionDef[] = [
   },
   {
     id: 'seerah', order: 2, kind: 'STORY', titleAr: 'السيرة النبوية', titleEn: 'The Prophetic Biography',
-    descriptionAr: 'سيرة النبي ﷺ من القرآن والأحاديث الصحيحة.',
-    methodAr: 'من القرآن الكريم وصحيحي البخاري ومسلم، ثم ما صححه أهل الحديث من السنن مع ذكر الحكم.',
-    items: [],
+    descriptionAr: 'سيرة النبي ﷺ من مولده إلى وفاته، وأخلاقه، من القرآن والأحاديث الصحيحة.',
+    methodAr: 'كل فصل من القرآن الكريم وصحيحي البخاري ومسلم بنص الحديث ورقمه. التفاصيل المشهورة التي لم ترد في هذه المصادر (تواريخ وأسماء وأعداد) تُركت عمدًا.',
+    items: SEERAH,
   },
   {
     id: 'companions', order: 3, kind: 'STORY', existingEndpoint: '/content/figures', titleAr: 'قصص الصحابة', titleEn: 'Stories of the Companions',
@@ -60,13 +64,13 @@ export const LEARNING_COLLECTIONS: CollectionDef[] = [
     id: 'aqeedah', order: 4, kind: 'LESSON', titleAr: 'العقيدة', titleEn: 'Creed',
     descriptionAr: 'أركان الإيمان وأركان الإسلام بأدلتها.',
     methodAr: 'أدلة كل درس من القرآن الكريم وصحيحي البخاري ومسلم، دون الدخول في مسائل الخلاف.',
-    items: [],
+    items: AQEEDAH,
   },
   {
     id: 'asma-husna', order: 5, kind: 'LESSON', titleAr: 'أسماء الله الحسنى', titleEn: 'The Beautiful Names of Allah',
     descriptionAr: 'كل اسم مع الآية التي ورد فيها ومعناه.',
-    methodAr: 'الأسماء الواردة في القرآن الكريم مع موضعها، وحديث «إن لله تسعة وتسعين اسمًا» من الصحيحين.',
-    items: [],
+    methodAr: 'الأسماء الواردة في القرآن الكريم مع الآية التي ورد فيها كل اسم، وما ثبت في الصحيحين. القائمة المشهورة بتسعة وتسعين اسمًا لم ترد في الصحيحين، فلم نعتمد عليها.',
+    items: ASMA_HUSNA,
   },
   {
     id: 'fiqh', order: 6, kind: 'LESSON', titleAr: 'الفقه', titleEn: 'Fiqh',
@@ -77,8 +81,8 @@ export const LEARNING_COLLECTIONS: CollectionDef[] = [
   {
     id: 'tajweed', order: 7, kind: 'LESSON', titleAr: 'دروس التجويد', titleEn: 'Tajweed lessons',
     descriptionAr: 'أحكام التجويد على منهج تحفة الأطفال ثم الجزرية، بأمثلة من المصحف.',
-    methodAr: 'الأمثلة آيات منقولة بنصها من المصحف مع ألوان التجويد، والدروس مراجعة من معلّم تجويد مجاز.',
-    items: [],
+    methodAr: 'على منهج متن تحفة الأطفال للجمزوري برواية حفص عن عاصم، وكل مثال كلمة من آية منقولة بنصها من المصحف، يمكنك الاستماع إليها. التجويد يُتلقّى بالمشافهة، فاجعل هذه الدروس عونًا مع معلّم.',
+    items: TAJWEED,
   },
   {
     id: 'nawawi-forty', order: 8, kind: 'HADITH', titleAr: 'الأربعون النووية', titleEn: "An-Nawawi's Forty Hadith",

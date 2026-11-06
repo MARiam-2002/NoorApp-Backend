@@ -140,7 +140,27 @@ export const LEARNING_CATALOG_VERSION = ${LEARNING_CATALOG_VERSION};
 
 export const LEARNING_SOURCES_SHA256 = ${JSON.stringify(PINNED, null, 2)} as const;
 
-export const LEARNING_COLLECTIONS_DATA = ${JSON.stringify(collections, null, 2)} as const;
+export type LearningVerse = { verseKey: string; ayah: number; textAr: string };
+export type LearningQuranBlock = { surah: number; surahNameAr: string; fromAyah: number; toAyah: number; referenceAr: string; verses: LearningVerse[] };
+export type LearningHadithBlock = { collection: 'bukhari' | 'muslim'; collectionAr: string; number: number; excerptsAr: string[]; sourceAr: string };
+export type LearningNawawiBlock = { number: number; textAr: string; sourceAr: string };
+export type LearningSection = {
+  index: number; titleAr: string; paragraphsAr: string[]; reflectionAr: string | null;
+  quran: LearningQuranBlock[]; hadith: LearningHadithBlock[]; nawawi: LearningNawawiBlock[];
+};
+export type LearningQuiz = { questionAr: string; optionsAr: string[]; correctIndex: number; explanationAr: string };
+export type LearningItemData = {
+  id: string; collectionId: string; order: number; titleAr: string; titleEn: string; personAr: string | null; honorificAr: string | null;
+  summaryAr: string; readingMinutes: number; sections: LearningSection[]; keyPointsAr: string[]; quiz: LearningQuiz[];
+  review: { status: 'DRAFT' | 'APPROVED'; reviewerAr: string | null; approvedAt: string | null; notesAr: string | null };
+};
+export type LearningCollectionData = {
+  id: string; order: number; kind: 'STORY' | 'LESSON' | 'HADITH'; existingEndpoint: string | null; titleAr: string; titleEn: string;
+  descriptionAr: string; methodAr: string; items: LearningItemData[];
+};
+
+/** Explicitly typed (not \`as const\`) so the compiler does not have to infer a literal type for every item. */
+export const LEARNING_COLLECTIONS_DATA: readonly LearningCollectionData[] = ${JSON.stringify(collections, null, 2)};
 `;
 
 if (process.argv.includes('--check')) {
