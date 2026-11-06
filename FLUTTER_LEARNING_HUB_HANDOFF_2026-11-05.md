@@ -1,6 +1,6 @@
 # Noor — Learning hub «تعلّم مع نور» (Flutter handoff)
 
-Date: 5 November 2026. Backend: done and tested (`/learning`, migration `20261106100000_learning_progress`). Target: the **Learning release (10 December 2026, before Rajab)**. New content is added on the server later, with no app update.
+Date: 5 November 2026 (updated 6 November: 10 prophet stories, everything is live, no draft/review states). Backend: done and tested (`/learning`, migration `20261106100000_learning_progress`). Target: the **Learning release (10 December 2026, before Rajab)**. New content is added on the server later, with no app update.
 
 ## 0. What it is
 
@@ -8,21 +8,21 @@ One hub with 9 sections. Build **one** generic reader that works for every secti
 
 | Order | Section (`id`) | Kind | Status on 5 Nov |
 | --- | --- | --- | --- |
-| 1 | قصص الأنبياء (`prophet-stories`) | STORY | 5 stories ready (draft, waiting for the scholar) |
+| 1 | قصص الأنبياء (`prophet-stories`) | STORY | 10 stories, live |
 | 2 | السيرة النبوية (`seerah`) | STORY | coming soon |
 | 3 | قصص الصحابة (`companions`) | STORY | **already exists**: `existingEndpoint: /content/figures` → open the existing Figure screens |
 | 4 | العقيدة (`aqeedah`) | LESSON | coming soon |
 | 5 | أسماء الله الحسنى (`asma-husna`) | LESSON | coming soon |
 | 6 | الفقه (`fiqh`) | LESSON | coming soon (fasting first, for Sha'ban) |
 | 7 | دروس التجويد (`tajweed`) | LESSON | coming soon |
-| 8 | الأربعون النووية (`nawawi-forty`) | HADITH | 42 hadith ready (draft, titles waiting for the scholar) |
+| 8 | الأربعون النووية (`nawawi-forty`) | HADITH | 42 hadith, live |
 | 9 | الأخلاق والمواقف (`morals`) | LESSON | **already exists**: `existingEndpoint: /stances/catalog` → open the existing «موقفك إيه؟» screens |
 
 Trust model (show it under «منهج هذا القسم», from `methodAr`):
 - Ayat are copied verbatim from the app's Quran text.
 - Hadith come from Sahih al-Bukhari / Sahih Muslim, verbatim, with their numbers.
 - Both are verified when the content is built.
-- **Production returns only scholar-approved items.** On Staging (`LEARNING_SHOW_DRAFTS=true`), drafts also come back with `draft: true`. Show a small banner «مسودة — لم تُراجَع بعد» on those, so testers never confuse a draft with published content.
+- Every item the server returns is published. There is no draft state and no banner to build.
 
 ## 1. API
 
@@ -31,16 +31,16 @@ All paths are under `/api/v1`. Content is public: no token needed, `Cache-Contro
 | Method | Path | Use |
 | --- | --- | --- |
 | GET | `/learning` | Hub. `collections[]`: `id, order, kind, titleAr, titleEn, descriptionAr, methodAr, existingEndpoint, itemCount, comingSoon, completedCount`, plus `continueReading[]` (up to 5 unfinished items) and `catalogVersion` |
-| GET | `/learning/collections/{id}` | Section with `items[]`: `id, order, titleAr, personAr, honorificAr, summaryAr, readingMinutes, sectionCount, hasQuiz, draft, progress` |
+| GET | `/learning/collections/{id}` | Section with `items[]`: `id, order, titleAr, personAr, honorificAr, summaryAr, readingMinutes, sectionCount, hasQuiz, progress` |
 | GET | `/learning/items/{id}` | Full item (below) + `previousItemId`, `nextItemId`, `progress` |
 | PUT | `/learning/items/{id}/progress` (token) | `{ lastSectionIndex, completed?, quizScore?, quizTotal? }`. The server keeps the furthest section, the first completion and the best quiz %. |
 
 Item shape (trimmed):
 ```json
 {
-  "id": "yusuf", "collectionId": "prophet-stories", "order": 5,
+  "id": "yusuf", "collectionId": "prophet-stories", "order": 100,
   "titleAr": "يوسف: أحسن القصص", "personAr": "يوسف", "honorificAr": "عليه السلام",
-  "summaryAr": "…", "readingMinutes": 6, "draft": true,
+  "summaryAr": "…", "readingMinutes": 6,
   "collection": { "id": "prophet-stories", "titleAr": "قصص الأنبياء", "methodAr": "…" },
   "sections": [
     {
@@ -56,10 +56,11 @@ Item shape (trimmed):
   ],
   "keyPointsAr": ["…"],
   "quiz": [ { "questionAr": "…", "optionsAr": ["…", "…", "…"], "correctIndex": 0, "explanationAr": "يوسف ٤." } ],
-  "previousItemId": "musa", "nextItemId": null,
+  "previousItemId": "lut", "nextItemId": "shuayb",
   "progress": { "lastSectionIndex": 2, "completed": false, "completedAt": null, "quizBestScore": null, "quizTotal": null, "updatedAt": "…" }
 }
 ```
+- `order` has gaps on purpose (10, 30, 40 …) so later stories slot in between in chronological order. Sort by `order` and show the position in the list (١، ٢، ٣ …), not the `order` value. Use `previousItemId` / `nextItemId` for navigation; never compute them on the device.
 - For `nawawi-forty`, each item has one section whose `nawawi[0].textAr` is the full hadith with an-Nawawi's own attribution and grading. Line breaks are `\n`.
 
 ## 2. Screens
@@ -96,7 +97,7 @@ Item shape (trimmed):
 
 ## 4. Tests
 
-- [ ] Staging: the hub shows 5 stories and 42 hadith with the «مسودة» banner. Production (before approval): sections show «قريبًا», and items return 404.
+- [ ] The hub shows 10 stories (آدم، نوح، هود، صالح، إبراهيم، لوط، يوسف، شعيب، موسى، يونس, in that order) and 42 hadith. Sections with no items yet show «قريبًا».
 - [ ] Companions and Morals open the existing screens, not a new list.
 - [ ] Tap an ayah → audio plays the right verse and the tafsir opens on that verse.
 - [ ] Ayah 71:1 (Nuh story) shows no Basmala inside the verse.
@@ -107,7 +108,7 @@ Item shape (trimmed):
 
 ## 5. Coming next (server only, no app change)
 
-- More prophet stories each week until Ramadan, then one story a day during Ramadan.
+- More prophet stories each week until Ramadan.
 - Fiqh of fasting (Sha'ban), tajweed lessons (Tuhfat al-Atfal), asma al-husna, aqeedah, seerah.
 
-Each batch goes live on production when the scholar approves it.
+New items appear as soon as the server is deployed; the app picks them up through `catalogVersion`.

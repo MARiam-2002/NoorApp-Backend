@@ -1,13 +1,12 @@
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
-import { env, ErrorCodes } from '../config';
+import { ErrorCodes } from '../config';
 import { LEARNING_CATALOG_VERSION, LEARNING_COLLECTIONS_DATA } from '../shared/data/learning-content';
 
 /**
  * Learning hub («تعلّم مع نور»): prophet stories, seerah, aqeedah, asma al-husna, fiqh, tajweed, an-Nawawi's Forty.
- * Content is static and verified at build time (scripts/build-learning-content.ts). Production serves APPROVED
- * items only; LEARNING_SHOW_DRAFTS=true (Staging) also serves DRAFT items, marked `draft: true`.
+ * Content is static and verified at build time (scripts/build-learning-content.ts). Every item in the build is live.
  * Companions and morals already exist in Noor and are listed with their own endpoint.
  */
 type Collection = (typeof LEARNING_COLLECTIONS_DATA)[number];
@@ -21,11 +20,6 @@ export const learningProgressSchema = z.object({
 }).strict().refine(v => (v.quizScore === undefined) === (v.quizTotal === undefined), 'quizScore and quizTotal go together')
   .refine(v => v.quizScore === undefined || v.quizScore <= v.quizTotal!, 'quizScore cannot exceed quizTotal');
 
-export const learningOptions = { showDrafts: () => env.LEARNING_SHOW_DRAFTS };
-
-/** Generated data is `as const`; while every item is DRAFT the literal type has no APPROVED member, so compare as string. */
-const isApproved = (item: Item) => (item.review as { status: string }).status === 'APPROVED';
-const visible = (item: Item) => isApproved(item) || learningOptions.showDrafts();
 
 function findCollection(id: string): Collection {
   const c = LEARNING_COLLECTIONS_DATA.find(x => x.id === id);
@@ -35,7 +29,7 @@ function findCollection(id: string): Collection {
 function findItem(id: string): { collection: Collection; item: Item } {
   for (const collection of LEARNING_COLLECTIONS_DATA) {
     const item = collection.items.find(i => i.id === id);
-    if (item && visible(item)) return { collection, item };
+    if (item) return { collection, item };
   }
   throw new AppError('Item not found', 404, ErrorCodes.NOT_FOUND);
 }
@@ -58,7 +52,7 @@ async function loadProgress(userId: string | undefined, itemIds?: string[]): Pro
 function itemSummary(collection: Collection, item: Item, progress: Map<string, ProgressRow>) {
   return { id: item.id, collectionId: collection.id, order: item.order, titleAr: item.titleAr, titleEn: item.titleEn,
     personAr: item.personAr, honorificAr: item.honorificAr, summaryAr: item.summaryAr, readingMinutes: item.readingMinutes,
-    sectionCount: item.sections.length, hasQuiz: item.quiz.length > 0, draft: !isApproved(item),
+    sectionCount: item.sections.length, hasQuiz: item.quiz.length > 0,
     progress: progressDto(progress.get(item.id), item.sections.length) };
 }
 
@@ -66,9 +60,8 @@ export async function getLearningHub(userId?: string) {
   const progress = await loadProgress(userId);
   return {
     catalogVersion: LEARNING_CATALOG_VERSION,
-    showsDrafts: learningOptions.showDrafts(),
     collections: LEARNING_COLLECTIONS_DATA.map(c => {
-      const items = c.items.filter(visible);
+      const items = c.items;
       return { id: c.id, order: c.order, kind: c.kind, titleAr: c.titleAr, titleEn: c.titleEn, descriptionAr: c.descriptionAr, methodAr: c.methodAr,
         existingEndpoint: c.existingEndpoint, itemCount: items.length, comingSoon: !c.existingEndpoint && items.length === 0,
         completedCount: items.filter(i => progress.get(i.id)?.completedAt).length };
@@ -81,7 +74,7 @@ export async function getLearningHub(userId?: string) {
 
 export async function getLearningCollection(collectionId: string, userId?: string) {
   const c = findCollection(collectionId);
-  const items = c.items.filter(visible);
+  const items = c.items;
   const progress = await loadProgress(userId, items.map(i => i.id));
   return { id: c.id, kind: c.kind, titleAr: c.titleAr, titleEn: c.titleEn, descriptionAr: c.descriptionAr, methodAr: c.methodAr,
     existingEndpoint: c.existingEndpoint, comingSoon: !c.existingEndpoint && items.length === 0,
@@ -91,11 +84,11 @@ export async function getLearningCollection(collectionId: string, userId?: strin
 export async function getLearningItem(itemId: string, userId?: string) {
   const { collection, item } = findItem(itemId);
   const progress = await loadProgress(userId, [item.id]);
-  const visibleItems = collection.items.filter(visible);
-  const at = visibleItems.findIndex(i => i.id === item.id);
-  return { ...item, collection: { id: collection.id, titleAr: collection.titleAr, methodAr: collection.methodAr },
-    draft: !isApproved(item),
-    previousItemId: at > 0 ? visibleItems[at - 1]!.id : null, nextItemId: at >= 0 && at < visibleItems.length - 1 ? visibleItems[at + 1]!.id : null,
+  const items = collection.items;
+  const at = items.findIndex(i => i.id === item.id);
+  const { review: _review, ...content } = item as Item & { review: unknown };
+  return { ...content, collection: { id: collection.id, titleAr: collection.titleAr, methodAr: collection.methodAr },
+    previousItemId: at > 0 ? items[at - 1]!.id : null, nextItemId: at < items.length - 1 ? items[at + 1]!.id : null,
     progress: progressDto(progress.get(item.id), item.sections.length) };
 }
 

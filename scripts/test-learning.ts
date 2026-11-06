@@ -8,7 +8,7 @@ import { normalizeArabicForSearch } from '../src/shared/utils/arabic-normalize';
 
 const plain = (t: string) => normalizeArabicForSearch(t).replace(/\s+/g, ' ').trim();
 import { LEARNING_COLLECTIONS_DATA } from '../src/shared/data/learning-content';
-import { getLearningCollection, getLearningHub, getLearningItem, learningOptions, learningProgressSchema, saveLearningProgress } from '../src/services/learning.service';
+import { getLearningCollection, getLearningHub, getLearningItem, learningProgressSchema, saveLearningProgress } from '../src/services/learning.service';
 
 async function contentChecks() {
   const ids = LEARNING_COLLECTIONS_DATA.map(c => c.id);
@@ -36,23 +36,23 @@ async function contentChecks() {
   assert.equal(learningProgressSchema.safeParse({ lastSectionIndex: 1, quizScore: 4, quizTotal: 3 }).success, false);
   assert.equal(learningProgressSchema.safeParse({ lastSectionIndex: 1, note: 'x' }).success, false);
 
-  // Draft gating: production shows nothing that is not approved.
-  learningOptions.showDrafts = () => false;
-  let hub = await getLearningHub();
-  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 0);
-  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.comingSoon, true);
+  // Everything in the build is live.
+  const hub = await getLearningHub();
+  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 10);
+  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.comingSoon, false);
+  assert.equal(hub.collections.find(c => c.id === 'seerah')!.comingSoon, true);
   assert.equal(hub.collections.find(c => c.id === 'companions')!.comingSoon, false);
   assert.equal(hub.collections.find(c => c.id === 'companions')!.existingEndpoint, '/content/figures');
-  await assert.rejects(getLearningItem('adam'), /not found/);
-  learningOptions.showDrafts = () => true;
-  hub = await getLearningHub();
-  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 10);
   const musa = await getLearningItem('musa');
-  assert.equal(musa.draft, true);
+  assert.equal((musa as any).draft, undefined);
+  assert.equal((musa as any).review, undefined, 'internal review metadata is not sent');
   assert.equal(musa.previousItemId, 'shuayb');
   assert.equal(musa.nextItemId, 'yunus');
+  assert.equal((await getLearningItem('adam')).previousItemId, null);
+  assert.equal((await getLearningItem('yunus')).nextItemId, null);
   assert.equal((await getLearningCollection('nawawi-forty')).items.length, 42);
   await assert.rejects(getLearningCollection('unknown'), /not found/);
+  await assert.rejects(getLearningItem('unknown'), /not found/);
 
   // The committed generated file matches the sources (only where the pinned sources are present).
   if (existsSync('prisma/data/hadith/ara-nawawi.json') && existsSync('prisma/data/hadith/ara-bukhari.json')) {
@@ -77,7 +77,6 @@ async function dbChecks() {
       await tx.$executeRaw`INSERT INTO users(id) VALUES ('reader'), ('other')`;
       (prisma as any).$queryRaw = tx.$queryRaw.bind(tx);
       (prisma as any).$executeRaw = tx.$executeRaw.bind(tx);
-      learningOptions.showDrafts = () => true;
       let r = await saveLearningProgress('reader', 'yusuf', { lastSectionIndex: 3 });
       assert.equal(r.progress!.lastSectionIndex, 3);
       r = await saveLearningProgress('reader', 'yusuf', { lastSectionIndex: 1 });
@@ -94,12 +93,11 @@ async function dbChecks() {
       assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.completedCount, 1);
       assert.deepEqual(hub.continueReading.map(i => i.id), ['musa']);
       assert.equal((await getLearningItem('yusuf', 'other')).progress, null, 'progress is per user');
-      learningOptions.showDrafts = () => false;
-      await assert.rejects(saveLearningProgress('reader', 'adam', { lastSectionIndex: 0 }), /not found/, 'no progress on unapproved items in production');
+      await assert.rejects(saveLearningProgress('reader', 'unknown', { lastSectionIndex: 0 }), /not found/);
       await tx.$executeRaw`DELETE FROM users WHERE id = 'reader'`;
       const left: any[] = await tx.$queryRaw`SELECT count(*)::int AS n FROM learning_progress`;
       assert.equal(left[0].n, 0);
-      console.log('Learning progress isolated PostgreSQL checks passed: furthest section, first completion, best quiz score, validation, per-user isolation, draft gating and deletion cascade. All DB changes rolled back.');
+      console.log('Learning progress isolated PostgreSQL checks passed: furthest section, first completion, best quiz score, validation, per-user isolation and deletion cascade. All DB changes rolled back.');
       throw rollback;
     }, { timeout: 60000 });
   } catch (e) {
@@ -113,7 +111,7 @@ async function dbChecks() {
 async function main() {
   await contentChecks();
   if (process.env.LEARNING_TEST_DB !== 'true') {
-    console.log('Learning content checks passed: 9 sections, 10 prophet stories with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, draft gating. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
+    console.log('Learning content checks passed: 9 sections, 10 prophet stories with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, all items live. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
     return;
   }
   await dbChecks();
