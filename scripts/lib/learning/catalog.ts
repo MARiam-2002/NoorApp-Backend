@@ -4,6 +4,7 @@
  */
 import type { CollectionDef, ItemDef } from './types';
 import { PROPHET_STORIES } from './prophet-stories';
+import { PROPHET_STORIES_BATCH_2 } from './prophet-stories-2';
 
 /** Titles for the 42 hadith of al-Arba'in an-Nawawiyyah. The hadith text itself is copied verbatim by the build. */
 export const NAWAWI_TITLES: string[] = [
@@ -32,14 +33,14 @@ const nawawiItems: ItemDef[] = NAWAWI_TITLES.map((titleAr, i) => ({
   review: { status: 'DRAFT' },
 }));
 
-export const LEARNING_CATALOG_VERSION = 1;
+export const LEARNING_CATALOG_VERSION = 2;
 
 export const LEARNING_COLLECTIONS: CollectionDef[] = [
   {
     id: 'prophet-stories', order: 1, kind: 'STORY', titleAr: 'قصص الأنبياء', titleEn: 'Stories of the Prophets',
     descriptionAr: 'قصص الأنبياء كما وردت في القرآن الكريم وصحيحي البخاري ومسلم، مع وقفات ودروس.',
     methodAr: 'كل قسم في القصة يذكر آياته وأحاديثه. الآيات منقولة بنصها من المصحف، والأحاديث من صحيحي البخاري ومسلم بنصها ورقمها. لا إسرائيليات ولا أسماء أو تفاصيل لم ترد في هذه المصادر. يمكنك فتح تفسير أي آية من زر التفسير.',
-    items: PROPHET_STORIES,
+    items: [...PROPHET_STORIES, ...PROPHET_STORIES_BATCH_2],
   },
   {
     id: 'seerah', order: 2, kind: 'STORY', titleAr: 'السيرة النبوية', titleEn: 'The Prophetic Biography',

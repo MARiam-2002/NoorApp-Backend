@@ -11,7 +11,7 @@ const DRAFT = { status: 'DRAFT' } as const;
 export const PROPHET_STORIES: ItemDef[] = [
   {
     id: 'adam',
-    order: 1,
+    order: 10,
     titleAr: 'آدم: أبو البشر والتوبة الأولى',
     titleEn: 'Adam: the father of mankind and the first repentance',
     personAr: 'آدم',
@@ -98,7 +98,7 @@ export const PROPHET_STORIES: ItemDef[] = [
   },
   {
     id: 'nuh',
-    order: 2,
+    order: 30,
     titleAr: 'نوح: صبر ألف سنة إلا خمسين',
     titleEn: 'Nuh: patience for nine hundred and fifty years',
     personAr: 'نوح',
@@ -181,7 +181,7 @@ export const PROPHET_STORIES: ItemDef[] = [
   },
   {
     id: 'ibrahim',
-    order: 3,
+    order: 60,
     titleAr: 'إبراهيم: خليل الله واليقين',
     titleEn: 'Ibrahim: the friend of Allah and certainty',
     personAr: 'إبراهيم',
@@ -269,7 +269,7 @@ export const PROPHET_STORIES: ItemDef[] = [
   },
   {
     id: 'musa',
-    order: 4,
+    order: 140,
     titleAr: 'موسى: كليم الله واليقين عند البحر',
     titleEn: 'Musa: the one Allah spoke to, and certainty at the sea',
     personAr: 'موسى',
@@ -364,7 +364,7 @@ export const PROPHET_STORIES: ItemDef[] = [
   },
   {
     id: 'yusuf',
-    order: 5,
+    order: 100,
     titleAr: 'يوسف: أحسن القصص',
     titleEn: 'Yusuf: the best of stories',
     personAr: 'يوسف',

@@ -14,7 +14,7 @@ async function contentChecks() {
   const ids = LEARNING_COLLECTIONS_DATA.map(c => c.id);
   assert.deepEqual(ids, ['prophet-stories', 'seerah', 'companions', 'aqeedah', 'asma-husna', 'fiqh', 'tajweed', 'nawawi-forty', 'morals']);
   const stories = LEARNING_COLLECTIONS_DATA.find(c => c.id === 'prophet-stories')!;
-  assert.deepEqual(stories.items.map(i => i.id), ['adam', 'nuh', 'ibrahim', 'musa', 'yusuf']);
+  assert.deepEqual(stories.items.map(i => i.id), ['adam', 'nuh', 'hud', 'salih', 'ibrahim', 'lut', 'yusuf', 'shuayb', 'musa', 'yunus']);
   for (const item of stories.items) {
     for (const s of item.sections) assert.ok(s.quran.length + s.hadith.length > 0, `${item.id}: uncited section`);
     for (const q of item.quiz) assert.ok(q.correctIndex < q.optionsAr.length);
@@ -46,11 +46,11 @@ async function contentChecks() {
   await assert.rejects(getLearningItem('adam'), /not found/);
   learningOptions.showDrafts = () => true;
   hub = await getLearningHub();
-  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 5);
+  assert.equal(hub.collections.find(c => c.id === 'prophet-stories')!.itemCount, 10);
   const musa = await getLearningItem('musa');
   assert.equal(musa.draft, true);
-  assert.equal(musa.previousItemId, 'ibrahim');
-  assert.equal(musa.nextItemId, 'yusuf');
+  assert.equal(musa.previousItemId, 'shuayb');
+  assert.equal(musa.nextItemId, 'yunus');
   assert.equal((await getLearningCollection('nawawi-forty')).items.length, 42);
   await assert.rejects(getLearningCollection('unknown'), /not found/);
 
@@ -113,7 +113,7 @@ async function dbChecks() {
 async function main() {
   await contentChecks();
   if (process.env.LEARNING_TEST_DB !== 'true') {
-    console.log('Learning content checks passed: 9 sections, 5 prophet stories with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, draft gating. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
+    console.log('Learning content checks passed: 9 sections, 10 prophet stories with cited sections, 42 Nawawi hadith verbatim, no duplicate of existing sections, draft gating. Set LEARNING_TEST_DB=true for isolated PostgreSQL progress checks.');
     return;
   }
   await dbChecks();
