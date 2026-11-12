@@ -21,6 +21,9 @@ assert.equal(wordDistance('ٱلرَّحْمَٰنِ', 'الرحمن'), 0);
 assert.equal(wordDistance('صِرَٰطَ', 'صراط'), 0);
 assert.equal(wordDistance('ٱلْعَٰلَمِينَ', 'العالمين'), 0);
 assert.equal(wordDistance('ٱلرَّحِيمِ', 'الرحمن'), 2);
+assert.equal(wordDistance('أَحَدٌ', 'واحد'), 2, 'one letter changes a short word: a real mistake');
+assert.equal(wordDistance('لَمْ', 'لن'), 2);
+assert.equal(wordDistance('ٱلْعَٰلَمِينَ', 'العلمن'), 1, 'one letter in a long word: speech-recognition slip');
 
 // Al-Ikhlas recited perfectly (as ASR would write it).
 const ikhlas = expectedOf(112);
@@ -37,6 +40,13 @@ assert.equal(r.extra.length, 1);
 r = alignRecitation(ikhlas, 'قل هو الله احد الله الصمد');
 assert.equal(r.reachedWords, 6);
 assert.deepEqual(r.stoppedAt, { verseKey: '112:2', position: 2 });
+assert.equal(r.accuracy, 100, 'words not reached are not mistakes');
+assert.deepEqual(r.counts, { correct: 6, minor: 0, wrong: 0, missed: 0, notReached: 9 });
+// A changed word, two skipped words and an early stop.
+r = alignRecitation(ikhlas, 'قل هو الله واحد الله الصمد لم يلد ولم يكن له كفوا');
+assert.equal(r.words.find(w => w.verseKey === '112:1' && w.position === 4)!.status, 'WRONG');
+assert.deepEqual(r.counts, { correct: 11, minor: 0, wrong: 1, missed: 2, notReached: 1 });
+assert.equal(r.accuracy, 78.6);
 // Longer passage stays fast.
 const mulk = expectedOf(67);
 const t0 = Date.now();

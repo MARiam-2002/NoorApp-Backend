@@ -275,7 +275,10 @@ and a range of pages; hide the glyphs and reveal word by word on tap (client onl
 2. When the reader stops (or every ~2 verses for long passages), send
    `POST /quran/recitation/check` (signed in) `{ surahId, fromAyah, toAyah, transcript }` (max 50 verses).
 3. Response: `words[]` with `status` CORRECT · MINOR · WRONG · MISSED (+ `heard`), `extra[]` (words said that are not
-   in the text, with the position after which they were said), `accuracy`, `reachedWords`, `stoppedAt`.
+   in the text, with the position after which they were said), `counts` (`correct, minor, wrong, missed, notReached`),
+   `accuracy` (percent of the words the reader reached; words after `stoppedAt` are not counted), `reachedWords`,
+   `stoppedAt`. MINOR (a one-letter slip in a word of 4+ letters) counts as correct; in shorter words a changed
+   letter is a different word (أحد / واحد) and is WRONG.
 4. On the printed page colour the glyphs: CORRECT none, MINOR light amber, WRONG red, MISSED red outline; words after
    `stoppedAt` stay neutral ("لم تصل إليها"). Tap a red word to hear it (`/quran/word` → `audioUrl`).
 5. Show the note from the response: it checks words and their order, not tajweed or vowels. Device speech recognition
