@@ -219,6 +219,8 @@ export function buildNotificationChannelManifest(): {
     spec({ id: 'continuity_silent_v1', group: 'silent', nameEn: 'Continuity', nameAr: 'الاستمرارية', nativeSound: null, importance: 'default', usage: 'notification', vibration: false }),
     // Neutral name on purpose: the channel is visible in Android settings.
     spec({ id: 'fasting_reminder_v1', group: 'reminder', nameEn: 'Fasting reminder', nameAr: 'تذكير الصيام', nativeSound: 'default', importance: 'default', usage: 'notification', vibration: true }),
+    spec({ id: 'sunnah_fasting_v1', group: 'reminder', nameEn: 'Sunnah fasting and occasions', nameAr: 'صيام السنة والمناسبات', nativeSound: 'default', importance: 'default', usage: 'notification', vibration: true }),
+    spec({ id: 'hifz', group: 'reminder', nameEn: 'Memorization', nameAr: 'تذكير الحفظ', nativeSound: 'default', importance: 'default', usage: 'notification', vibration: true }),
   );
 
   const requiredBundledSounds = [

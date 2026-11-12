@@ -347,6 +347,29 @@ export function evaluateQadaReminder(now: Date, timezone: string, prefs: Prefere
   return { fastDate: tomorrow, eligible: prefs.remindersEnabled && due && prefs.fastingWeekdays.includes(weekday) && !blocked && remainingDays > 0 && !tomorrowMadeUp };
 }
 
+/**
+ * True when the make-up (qada) reminder already covers tomorrow for this user (reminders on, a planned fasting weekday,
+ * days still owed, not blocked, not already made up). The sunnah-fasting reminder then stays silent so the user gets one
+ * "fast tomorrow" message per night. Also returns the user's shared Hijri correction.
+ */
+export async function qadaReminderContext(db: any, userId: string, timezone: string, now = new Date()) {
+  const prefs = await loadPreferences(db, userId);
+  const tomorrow = shiftDayKey(todayKeyFor(timezone, now), 1);
+  if (!prefs.remindersEnabled || !prefs.fastingWeekdays.includes(new Date(tomorrow + 'T12:00:00Z').getUTCDay())
+    || qadaFastingBlockReason(tomorrow, prefs.hijriOffsetDays)) return { coversTomorrow: false, hijriOffsetDays: prefs.hijriOffsetDays };
+  const summary = computeQadaSummary(await loadEvents(db, userId), prefs, todayKeyFor(timezone, now));
+  return { coversTomorrow: summary.remainingDays > 0 && !summary.tomorrow.madeUp, hijriOffsetDays: prefs.hijriOffsetDays };
+}
+
+/** The user's moon-sighting correction (shared by qada and sunnah fasting). */
+export async function getHijriOffsetDays(db: any, userId: string) { return (await loadPreferences(db, userId)).hijriOffsetDays; }
+
+/** Sets only the shared Hijri correction, creating the qada preference row with defaults when missing. */
+export async function setHijriOffsetDays(db: any, userId: string, offset: number) {
+  await db.$executeRaw`INSERT INTO "fasting_qada_preferences" ("userId", "hijriOffsetDays", "updatedAt") VALUES (${userId}, ${offset}, CURRENT_TIMESTAMP)
+    ON CONFLICT ("userId") DO UPDATE SET "hijriOffsetDays" = ${offset}, "revision" = "fasting_qada_preferences"."revision" + 1, "updatedAt" = CURRENT_TIMESTAMP`;
+}
+
 // Test seam: the regression suite replaces `send` so no real notification is sent.
 export const qadaReminderDelivery = { send: sendPushToUser };
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Downloads the Sahih al-Bukhari / Sahih Muslim / al-Nawawi editions (fawazahmed0/hadith-api) that the content
+ * Downloads the Sahih al-Bukhari / Sahih Muslim / al-Nawawi / Jami' al-Tirmidhi editions (fawazahmed0/hadith-api) that the content
  * tests check citations against. The files are large and gitignored; CI fetches them with this script.
  * Each file is pinned by SHA-256, so a changed upstream file fails loudly instead of silently changing the checks.
  *
@@ -17,6 +17,8 @@ const FILES = {
   'ara-muslim.json': '194073b24090c5368e4d14a3f55c9e0ef144c7437bd7e5aa83aa4d2bc54a8ea0',
   'eng-muslim.json': '2ef51a2a1980fb91e395fbf1580cc9c9413297f54bb8cad271e1499417299488',
   'ara-nawawi.json': '91f559b90422005b768bb449426d87d2e6fabbb43ac3a31e5c24c50ca77465e6',
+  'ara-tirmidhi.json': '408028cd56329ed78edbe3ad443beb96b58e16c3e5bd49f9bc7b0eac77c8820f',
+  'eng-tirmidhi.json': 'f64f1a5e6f2614e164e3b10138412af322d3959011bf84d67f428f79b3858afb',
 };
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');

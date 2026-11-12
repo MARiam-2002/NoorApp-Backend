@@ -126,6 +126,9 @@ model User {
   hifzSegments            HifzSegment[]
   hifzSendLogs            HifzSendLog[]
   quranAnnotations        QuranAnnotation[]
+  quranPlaylists          QuranPlaylist[]
+  sunnahFastingPreference SunnahFastingPreference?
+  sunnahFastingSendLogs   SunnahFastingSendLog[]
   zakatCycles             ZakatCycle[]
   charityReminder         CharityReminder?
   charitySendLogs         CharitySendLog[]
@@ -1264,4 +1267,47 @@ model QuranAnnotation {
   @@unique([userId, editionId, verseKey, wordPosition], map: "quran_annotations_user_edition_verse_word_key")
   @@index([userId, updatedAt])
   @@map("quran_annotations")
+}
+
+/// Personal Quran station playlist. items = [{kind: SURAH|VERSES|RADIO, ...}], validated by the API. Constraints in SQL.
+model QuranPlaylist {
+  id        String   @id
+  userId    String
+  name      String
+  items     Json     @default("[]")
+  revision  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("quran_playlists")
+}
+
+/// Sunnah fasting / occasion reminders (evening before). Hijri correction is shared with FastingQadaPreference.hijriOffsetDays.
+model SunnahFastingPreference {
+  userId           String   @id
+  enabled          Boolean  @default(false)
+  types            String[] @default(["MONDAY", "THURSDAY", "WHITE_DAYS", "ARAFAH", "TASUA", "ASHURA", "SIX_SHAWWAL"])
+  occasionsEnabled Boolean  @default(true)
+  reminderTime     String   @default("21:00")
+  revision         Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([enabled])
+  @@map("sunnah_fasting_preferences")
+}
+
+model SunnahFastingSendLog {
+  id            String   @id
+  userId        String
+  occurrenceKey String
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, occurrenceKey])
+  @@index([userId, createdAt])
+  @@map("sunnah_fasting_send_logs")
 }

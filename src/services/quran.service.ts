@@ -1486,7 +1486,7 @@ type ReciterOption = {
   riwaya?: 'Hafs' | 'Warsh';
 };
 
-const QURAN_RECITERS: ReciterOption[] = [
+export const QURAN_RECITERS: ReciterOption[] = [
   { id: 'Mishary_Alafasy', code: 'Mishary_Alafasy', name: 'Mishary bin Rashid Al-Afasy', nameAr: 'مشاري العفاسي', nameEn: 'Mishary bin Rashid Al-Afasy', style: 'Murattal', isDefault: true, resourceId: 7, serverUrl: 'https://everyayah.com/data/Alafasy_128kbps' },
   { id: 'Abdul_Basit', code: 'Abdul_Basit', name: 'Abdul Basit Abd us-Samad', nameAr: 'عبد الباسط عبد الصمد', nameEn: 'Abdul Basit Abd us-Samad', style: 'Murattal', resourceId: 2, serverUrl: 'https://everyayah.com/data/Abdul_Basit_Murattal_192kbps' },
   { id: 'Mahmoud_Al_Husary', code: 'Mahmoud_Al_Husary', name: 'Mahmoud Khalil Al-Husary', nameAr: 'محمود خليل الحصري', nameEn: 'Mahmoud Khalil Al-Husary', style: 'Murattal', resourceId: 6, serverUrl: 'https://everyayah.com/data/Husary_128kbps' },

@@ -3,6 +3,7 @@ import { runKahfReminders } from './kahf-reminder.service';
 import { runContinuityReminders } from './continuity-reminder.service';
 import { mutedPrayerReminderUserIds } from './prayer-excuse.service';
 import { runFastingQadaReminders } from './fasting-qada.service';
+import { runSunnahFastingReminders } from './sunnah-fasting.service';
 import { runAdhkarReminders } from './adhkar-reminder.service';
 import { prayerScheduleKey, isPrayerSnapshotCurrent } from './travel.service';
 import { prisma } from '../lib/prisma';
@@ -920,6 +921,7 @@ async function runReminderPass(trigger: ReminderCronTrigger): Promise<ReminderCr
   await runKahfReminders().catch(error => logger.error('[KahfReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   await runContinuityReminders().catch(error => logger.error('[ContinuityReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   await runFastingQadaReminders().catch(error => logger.error('[FastingQadaReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
+  await runSunnahFastingReminders().catch(error => logger.error('[SunnahFastingReminder] Pass failed', {message: error instanceof Error ? error.message : 'unknown'}));
   const adhkar = await runAdhkarReminders().catch(error => {
     logger.error('[AdhkarReminder] Pass failed', { code: (error as any)?.code ?? 'UNAVAILABLE' });
     return { usersScanned: 0, pushesAttempted: 0, pushesSent: 0, skipped: { pass_failed: 1 } };
