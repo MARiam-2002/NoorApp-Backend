@@ -28,8 +28,10 @@ async function main() {
     assert.ok(p.items[0].cacheKey.includes(reciter.id));
   }
   assert.ok(catalog.reciters.length >= 40, 'expanded reciter catalog');
-  assert.equal(catalog.catalogVersion, 2);
-  assert.ok(catalog.reciters.every(r => /^https:\/\/everyayah\.com\/data\/[A-Za-z0-9_.-]+$/.test(r.serverUrl ?? '')), 'every reciter has a verified EveryAyah folder');
+  assert.equal(catalog.catalogVersion, 3);
+  assert.deepEqual(catalog.reciters.filter(r => r.riwaya === 'Warsh').map(r => r.verseSyncWithMushaf), [false, false]);
+  assert.ok(catalog.reciters.filter(r => r.riwaya === 'Hafs').every(r => r.verseSyncWithMushaf));
+  assert.ok(catalog.reciters.every(r => /^https:\/\/everyayah\.com\/data\/(?:warsh\/)?[A-Za-z0-9_.-]+$/.test(r.serverUrl ?? '')), 'every reciter has a verified EveryAyah folder');
   assert.equal(new Set(catalog.reciters.map(r => r.serverUrl)).size, catalog.reciters.length, 'no duplicate audio folders');
   const rep = getQuranAudioPlaylist({ surahId: 112, repeatEach: 3, repeatRange: 2 });
   assert.deepEqual(rep.repeat, { each: 3, range: 2 });
@@ -60,7 +62,7 @@ async function main() {
     const c = await fetch(`${base}/audio/catalog`);
     assert.equal(c.status, 200);
     assert.equal(c.headers.get('cache-control'), 'public, max-age=300');
-    assert.equal(((await c.json()) as any).data.catalogVersion, 2);
+    assert.equal(((await c.json()) as any).data.catalogVersion, 3);
     const p = await fetch(`${base}/audio/playlist?surahId=114&reciterId=Mahmoud_Ali_Al_Banna`);
     assert.equal(p.status, 200);
     assert.equal(((await p.json()) as any).data.items.length, 6);

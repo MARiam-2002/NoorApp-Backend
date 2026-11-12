@@ -2,13 +2,17 @@ import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { listReciters, validateQuranAudioSelection } from './quran.service';
 
-export const QURAN_AUDIO_CATALOG_VERSION = 2;
+export const QURAN_AUDIO_CATALOG_VERSION = 3;
 
 function metadata(reader: Awaited<ReturnType<typeof listReciters>>[number]) {
   const bitrate = Number(reader.serverUrl?.match(/(\d+)kbps/i)?.[1]);
   return {
     ...reader,
-    riwaya: 'Hafs',
+    riwaya: reader.riwaya ?? 'Hafs',
+    /** Files are cut at Hafs (Kufi) verse boundaries for every reader, including the Warsh ones. */
+    verseNumbering: 'HAFS' as const,
+    /** Warsh readers: play surah by surah; do not highlight verses of the Warsh text with these files. */
+    verseSyncWithMushaf: (reader.riwaya ?? 'Hafs') === 'Hafs',
     provider: 'everyayah',
     availableQualities: Number.isFinite(bitrate) && bitrate > 0 ? [bitrate] : [],
     filenamePattern: '{surah:03}{ayah:03}.mp3',

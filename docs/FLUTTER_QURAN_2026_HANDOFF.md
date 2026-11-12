@@ -133,8 +133,12 @@ Future<void> ensurePageFont(String family, String ttfUrl) async {
 
 ## 3. Listening
 
-- `GET /quran/audio/catalog`: now **41 reciters** (catalogVersion 2), each with `nameAr`, `style`
-  (Murattal / Mujawwad / Muallim), `availableQualities`. Group them in the picker by style; put the user's favourites first.
+- `GET /quran/audio/catalog`: now **43 reciters** (catalogVersion 3), each with `nameAr`, `style`
+  (Murattal / Mujawwad / Muallim), `riwaya` (Hafs / Warsh), `availableQualities`, `verseSyncWithMushaf`.
+  Group them in the picker by riwaya then style; put the user's favourites first.
+- **Warsh reciters** (إبراهيم الدوسري، ياسين الجزائري): their files are cut at Hafs verse boundaries
+  (`verseSyncWithMushaf: false`). Offer them for continuous listening by surah only: no verse highlight, no
+  verse-by-verse repeat on the Warsh text. Show a small "رواية ورش" chip on them.
 - `GET /quran/audio/playlist?surahId=67&fromAyah=1&toAyah=10&reciterId=…&repeatEach=3&repeatRange=2`
   - `items[]`: one per verse (`verseKey`, `audioUrl`, `cacheKey`).
   - `sequence[]`: indexes into `items` in playback order with repeats applied (each verse ×`repeatEach`, whole range
@@ -196,28 +200,51 @@ Daily push at `reminderTime` only when there is something to do (new portion or 
 
 ---
 
-## 5. Tafsir
+## 5. Verse insights (معاني الكلمات · أسباب النزول · الفضائل)
+
+All public, static and cached for a day:
+- `GET /quran/insights?surahId=2&ayahNumber=255`
+  ```json
+  {
+    "meanings": { "source": { "bookAr": "السراج في بيان غريب القرآن", "authorAr": "محمد بن عبد العزيز الخضيري" }, "words": [ { "text": "الْقَيُّومُ", "meaning": "…" } ] },
+    "asbab": { "source": { "bookAr": "المحرر في أسباب نزول القرآن من خلال الكتب التسعة", "authorAr": "خالد بن سليمان المزيني" },
+               "items": [ { "fromAyah": 125, "toAyah": 125, "verdict": "AUTHENTIC", "verdictAr": "سبب نزول ثابت", "narrations": "أخرج البخاري …", "conclusion": "أن سبب نزول …", "reference": "المحرر …، الدراسة رقم …" } ] },
+    "virtues": [ { "id": "kursi", "titleAr": "آية الكرسي أعظم آية في كتاب الله", "textAr": "…", "referenceAr": "رواه مسلم (810)" } ],
+    "has": { "meanings": true, "asbab": false, "virtues": true }
+  }
+  ```
+- `GET /quran/surahs/{id}/virtues` — virtues of the surah (shown at the top of the surah info sheet).
+- `GET /quran/surahs/{id}/insight-markers` — `asbabAyahs`, `virtueAyahs`, `meaningsAyahs` so the reader can show a tiny
+  dot on verses that have a cause of revelation or a virtue (load once per surah).
+
+UI: in the verse sheet add three tabs next to التفسير: **معاني الكلمات** (list: word in UthmanicHafs, meaning in Tajawal),
+**سبب النزول** (only when `has.asbab`), **فضل** (only when `has.virtues`).
+- For asbab show: the narration text, then the author's conclusion in a soft card titled "النتيجة", then the source line.
+  `SUPPORTED` items carry the label `verdictAr` ("سبب نزول رجّحه المؤلف مع كلام في السند") in a neutral (not red) chip.
+- Always show the source book under each tab. Causes rejected by the author are not sent at all.
+
+## 6. Tafsir
 `GET /quran/tafsirs` now also lists **التفسير الوسيط (طنطاوي)** (`Al_Wasit`). Recommended default order in the picker:
 الميسر (short, simple) · السعدي · الوسيط · ابن كثير · البغوي · القرطبي · الطبري. Show the tafsir in a bottom sheet from the
 verse sheet, with a "أكبر/أصغر" text control.
 
-## 6. Saved verses and notes
+## 7. Saved verses and notes
 - `PUT /quran/editions/{id}/bookmarks` accepts `note` up to **2000** characters.
 - `GET /quran/editions/{id}/bookmarks?notesOnly=true` → "ملاحظاتي" tab. The SAVED section has two tabs:
   المحفوظات · ملاحظاتي.
 
-## 7. Search by voice
+## 8. Search by voice
 Use `speech_to_text` with locale `ar-SA` (or the device Arabic locale); put the recognised text into the existing
 `GET /quran/search?q=…` (it already ignores diacritics). Show a mic button inside the search field.
 
-## 8. Share a verse
+## 9. Share a verse
 - **As image**: render the verse's printed lines (same glyph widgets) inside a `RepaintBoundary` card: paper
   background, the verse, the reference (اسم السورة · رقم الآية), small Noor logo; export PNG with `share_plus`.
 - **As text**: Unicode text with diacritics from the existing ayah/page endpoints + reference.
 
 ---
 
-## 9. QA checklist
+## 10. QA checklist
 - [ ] Pages 1, 2, 50, 77, 187, 208, 604 look exactly like the printed mushaf (headers, basmala, no basmala before at-Tawbah).
 - [ ] Surah header at the bottom of a page (e.g. page 76 → an-Nisa) and its basmala at the top of the next page.
 - [ ] No layout jump while fonts load (show a skeleton until `ensurePageFont` completes).
@@ -226,3 +253,5 @@ Use `speech_to_text` with locale `ar-SA` (or the device Arabic locale); put the 
 - [ ] Repeat: `repeatEach=3` plays each verse 3 times; sleep timer stops playback.
 - [ ] Hifz: marking an overlapping range shows the 409 message nicely; reviews move to the right day.
 - [ ] Credits show the Quran Foundation / King Fahd Complex attribution.
+- [ ] 2:255 shows the Ayat al-Kursi virtue; 2:125 shows its cause of revelation; 97:1 shows none.
+- [ ] Warsh reciters never highlight verses.

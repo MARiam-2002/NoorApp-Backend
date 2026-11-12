@@ -1482,6 +1482,8 @@ type ReciterOption = {
   serverUrl?: string;
   /** Quran Foundation resource id, when available. EveryAyah-only readers use their string id. */
   resourceId?: number;
+  /** Riwayah of the recitation (default Hafs). */
+  riwaya?: 'Hafs' | 'Warsh';
 };
 
 const QURAN_RECITERS: ReciterOption[] = [
@@ -1526,6 +1528,10 @@ const QURAN_RECITERS: ReciterOption[] = [
   { id: 'Fares_Abbad', code: 'Fares_Abbad', name: 'Fares Abbad', nameAr: 'فارس عباد', nameEn: 'Fares Abbad', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Fares_Abbad_64kbps' },
   { id: 'Ayman_Sowaid', code: 'Ayman_Sowaid', name: 'Ayman Sowaid', nameAr: 'أيمن سويد', nameEn: 'Ayman Sowaid', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Ayman_Sowaid_64kbps' },
   { id: 'Karim_Mansoori', code: 'Karim_Mansoori', name: 'Karim Mansoori', nameAr: 'كريم منصوري', nameEn: 'Karim Mansoori', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Karim_Mansoori_40kbps' },
+  // Warsh recitations: EveryAyah splits them at the Hafs (Kufi) verse boundaries (checked on every surah whose count differs),
+  // so they are for continuous listening by surah, never for verse-by-verse sync with the Warsh (Madani) text.
+  { id: 'Warsh_Ibrahim_Al_Dosary', code: 'Warsh_Ibrahim_Al_Dosary', name: 'Ibrahim Al-Dosary (Warsh)', nameAr: 'إبراهيم الدوسري (ورش)', nameEn: 'Ibrahim Al-Dosary (Warsh)', style: 'Murattal', riwaya: 'Warsh', serverUrl: 'https://everyayah.com/data/warsh/warsh_ibrahim_aldosary_128kbps' },
+  { id: 'Warsh_Yassin_Al_Jazaery', code: 'Warsh_Yassin_Al_Jazaery', name: 'Yassin Al-Jazaery (Warsh)', nameAr: 'ياسين الجزائري (ورش)', nameEn: 'Yassin Al-Jazaery (Warsh)', style: 'Murattal', riwaya: 'Warsh', serverUrl: 'https://everyayah.com/data/warsh/warsh_yassin_al_jazaery_64kbps' },
 ];
 
 export async function listReciters(): Promise<ReciterOption[]> {

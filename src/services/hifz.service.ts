@@ -134,7 +134,9 @@ export async function getHifzPlan(userId: string, db: Db = prisma) {
 
 export async function saveHifzPlan(userId: string, input: HifzPlanInput, db: Db = prisma) {
   const v = hifzPlanInputSchema.parse(input);
-  if (v.reciterId) validateQuranAudioSelection(1, 1, v.reciterId);
+  if (v.reciterId && validateQuranAudioSelection(1, 1, v.reciterId).reader.riwaya === 'Warsh') {
+    throw new AppError('Memorization plans use Hafs verse numbering; choose a Hafs reciter', 400, ErrorCodes.VALIDATION_ERROR);
+  }
   await db.$executeRaw`INSERT INTO "hifz_plans" ("userId","fromSurah","toSurah","direction","dailyNewVerses","reviewLimit","reciterId","reminderEnabled","reminderTime","status","revision","updatedAt")
     VALUES (${userId},${v.fromSurah},${v.toSurah},${v.direction},${v.dailyNewVerses},${v.reviewLimit},${v.reciterId},${v.reminderEnabled},${v.reminderTime},'ACTIVE',0,CURRENT_TIMESTAMP)
     ON CONFLICT ("userId") DO UPDATE SET "fromSurah"=EXCLUDED."fromSurah","toSurah"=EXCLUDED."toSurah","direction"=EXCLUDED."direction",
