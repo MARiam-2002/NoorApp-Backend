@@ -13,12 +13,13 @@ import {
 } from '../src/shared/data/adhkar-catalog';
 import { ADHKAR_STATIC_CATALOG_VERSION } from '../src/shared/constants/static-catalog';
 import { ADHKAR_CORRECTIONS_2026, textMatchesPrefix } from './lib/adhkar-corrections-2026';
+import { findSahihPhrase } from './lib/sahihayn-lookup';
 
 const DAILY_WIRD_ITEM_GOAL = 8;
 
 const EXPECTED_COUNTS: Record<AdhkarCategoryKey, number> = {
-  MORNING: 12,
-  EVENING: 11,
+  MORNING: 20,
+  EVENING: 19,
   BEFORE_SLEEP: 7,
   ENTERING_MOSQUE: 9,
   AFTER_PRAYER: 9,
@@ -52,7 +53,7 @@ for (const key of keys) {
   assert.equal(new Set(texts).size, texts.length, `${key} has no duplicate texts`);
   total += items.length;
 }
-assert.equal(total, 93);
+assert.equal(total, 109);
 assert.equal(ADHKAR_CATALOG_TOTAL_ITEMS, total);
 assert.ok(ADHKAR_CATALOG_ITEMS.GENERAL_WIRD.length >= DAILY_WIRD_ITEM_GOAL, 'daily wird goal is reachable');
 assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 2, 'catalog version bumped after the 2026 review');
@@ -100,7 +101,25 @@ assert.ok(` ${normalizeVerse(verseText(47, 19))} `.includes(` ${normalizeVerse(r
 
 const removals = ADHKAR_CORRECTIONS_2026.filter((rule) => rule.remove).length;
 assert.equal(removals, 22);
-assert.equal(total + removals, 115, 'legacy catalog minus reviewed removals');
+const ADDED_2026_11 = 16; // morning and evening additions, migration 20261112090000
+assert.equal(total - ADDED_2026_11 + removals, 115, 'legacy catalog minus reviewed removals plus the 2026-11 additions');
+
+// 2026-11 additions: wording copied from the narration. Bukhari/Muslim items are re-checked here against the pinned
+// editions; the Sunan items were checked against pinned fawazahmed0 editions when added (hashes in the review doc).
+const all = Object.values(ADHKAR_CATALOG_ITEMS).flat();
+for (const [needle, collection, number] of [['البخاري (6306)', 'bukhari', 6306], ['مسلم (2726)', 'muslim', 2726], ['البخاري (3293)', 'bukhari', 3293]] as const) {
+  const items = all.filter(i => i.referenceAr.includes(needle));
+  assert.ok(items.length >= 1, needle);
+  for (const item of items) assert.ok(findSahihPhrase(collection, item.textAr).some(m => m.number === number), `${needle}: text must be verbatim`);
+}
+const baqarahEnd = all.filter(i => i.referenceAr.startsWith('آخر آيتين من سورة البقرة'));
+assert.equal(baqarahEnd.length, 1);
+assert.equal(normalizeVerse(baqarahEnd[0]!.textAr), normalizeVerse(`${verseText(2, 285)} ${verseText(2, 286)}`), 'al-Baqarah 285-286 verbatim');
+assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 5, 'added items must invalidate the older offline pack');
+for (const key of ['MORNING', 'EVENING'] as const) {
+  assert.ok(ADHKAR_CATALOG_ITEMS[key].some(i => i.referenceAr.startsWith('سيد الاستغفار')), `${key}: sayyid al-istighfar`);
+  assert.ok(ADHKAR_CATALOG_ITEMS[key].filter(i => i.referenceAr.includes('ضعّف الألباني')).length === 2, `${key}: graded references stated`);
+}
 
 assert.ok(textMatchesPrefix('لَا إِلَٰهَ إِلَّا اللَّهُ', 'لا إله إلا الله'), 'dagger alef spelling matches');
 assert.ok(!textMatchesPrefix('سُبْحَانَ اللَّهِ', 'الحمد لله'));

@@ -242,3 +242,45 @@ The REMOVE items are the most serious: several attribute invented wording to the
   seed now updates items in place by position instead of delete + recreate, so re-seeding keeps item ids.
 - Any future wording/reference change: edit the catalog, bump `ADHKAR_STATIC_CATALOG_VERSION`, and run
   `scripts/sync-adhkar-catalog.ts` (dry run, then `--apply`) to update production rows in place (never delete + recreate).
+
+---
+
+## Addendum 2026-11-12: morning and evening additions (catalog version 5, 93 → 109 items)
+
+Users reported that the morning and evening adhkar were incomplete. Well-known authentic adhkar (for example
+sayyid al-istighfar) were missing. Added 8 items to each list (MORNING 12 → 20, EVENING 11 → 19). Applied to production
+by migration `20261112090000_adhkar_morning_evening_additions` (existing rows keep their ids, so favorites and
+completions stay attached; only their order changes).
+
+**Rule:** only narrations graded Sahih or Hasan. The wording of every new item was copied programmatically from the
+narration (not retyped). Only orthography was changed (ى carrying a vowel written as ي).
+
+| Item | Morning | Evening | Source | Grade |
+|---|---|---|---|---|
+| سيد الاستغفار | ✓ | ✓ | al-Bukhari 6306 | Sahih |
+| اللهم عالم الغيب والشهادة… | ✓ | ✓ | Abu Dawud 5067, at-Tirmidhi 3392 | Sahih (al-Albani; at-Tirmidhi: hasan sahih) |
+| اللهم إني أسألك العفو والعافية… | ✓ | ✓ | Ibn Majah 3871 (wording), Abu Dawud 5074 | Sahih (al-Albani, al-Arna'ut) |
+| بسم الله الذي لا يضر مع اسمه شيء… ×3 | ✓ | ✓ | Abu Dawud 5088, at-Tirmidhi 3388 | Sahih |
+| اللهم عافني في بدني… / اللهم إني أعوذ بك من الكفر والفقر… ×3 | ✓ | ✓ | Abu Dawud 5090 | Hasan al-isnad (al-Albani) |
+| سبحان الله وبحمده عدد خلقه… ×3 | ✓ | | Muslim 2726 | Sahih |
+| اللهم إني أسألك علمًا نافعًا… (after Fajr) | ✓ | | Ibn Majah 925 | Sahih (al-Albani) |
+| لا إله إلا الله وحده… ×100 (daily) | ✓ | | al-Bukhari 3293, Muslim 2691 | Sahih |
+| آخر آيتين من سورة البقرة | | ✓ | Quran 2:285-286; virtue: al-Bukhari 5009 | — |
+| أعوذ بكلمات الله التامات من شر ما خلق ×3 | | ✓ | at-Tirmidhi 3604 (hasan), Abu Dawud 3898, Muslim 2709 | Sahih |
+| يا حي يا قيوم… (already in the morning list) | | ✓ | an-Nasa'i al-Kubra, al-Hakim | as in the morning item |
+
+**Grading stated on two existing items:** «اللهم إني أصبحت/أمسيت أشهدك…» (Abu Dawud 5069) and «اللهم ما أصبح/أمسى
+بي من نعمة…» (Abu Dawud 5073) are graded weak in isnad by al-Albani. They stay in the list, because scholars include
+them in the morning and evening adhkar, and their reference now says so.
+
+**Not added, with reasons:** «حسبي الله لا إله إلا هو… سبع مرات» (Abu Dawud 5081: al-Albani graded the marfu' wording
+mawdu'); «رضيت بالله ربًّا… ثلاثًا» in the morning and evening (at-Tirmidhi 3389: da'if); «أصبحنا وأصبح الملك لله رب
+العالمين، اللهم إني أسألك خير هذا اليوم…» (Abu Dawud 5084: da'if); «أصبحنا على فطرة الإسلام…» (Musnad Ahmad, not in
+the pinned sources yet).
+
+**Pinned sources used for the Sunan wording** (fawazahmed0/hadith-api, public domain, SHA-256):
+ara-abudawud `216139c5f40a8147e700d62ffa3b5b2fe45d0e034f86941a193c598c10056189`,
+ara-tirmidhi `408028cd56329ed78edbe3ad443beb96b58e16c3e5bd49f9bc7b0eac77c8820f`,
+ara-ibnmajah `b406e6be81588ab0ec1ddbed32f5fd95bbcdda242c460d88331e82eb5c2bc0aa`.
+The al-Bukhari and Muslim items and the al-Baqarah verses are re-checked by `npm run test:adhkar-catalog`, and the
+migration by `ADHKAR_TEST_DB=true npm run test:adhkar-additions`.
