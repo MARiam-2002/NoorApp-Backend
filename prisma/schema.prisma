@@ -125,6 +125,7 @@ model User {
   hifzPlan                HifzPlan?
   hifzSegments            HifzSegment[]
   hifzSendLogs            HifzSendLog[]
+  quranAnnotations        QuranAnnotation[]
   zakatCycles             ZakatCycle[]
   charityReminder         CharityReminder?
   charitySendLogs         CharitySendLog[]
@@ -1244,4 +1245,23 @@ model HifzSendLog {
   @@unique([userId, occurrenceKey])
   @@index([userId, createdAt])
   @@map("hifz_send_logs")
+}
+
+/// Highlight (colour) and/or comment with a tag on a verse (wordPosition 0) or one word. Constraints in SQL.
+model QuranAnnotation {
+  id           String   @id
+  userId       String
+  editionId    String
+  verseKey     String
+  wordPosition Int      @default(0)
+  color        String?
+  comment      String   @default("")
+  tag          String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, editionId, verseKey, wordPosition], map: "quran_annotations_user_edition_verse_word_key")
+  @@index([userId, updatedAt])
+  @@map("quran_annotations")
 }

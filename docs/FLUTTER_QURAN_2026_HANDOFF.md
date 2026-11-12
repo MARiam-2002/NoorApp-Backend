@@ -223,6 +223,44 @@ UI: in the verse sheet add three tabs next to التفسير: **معاني ال�
   `SUPPORTED` items carry the label `verdictAr` ("سبب نزول رجّحه المؤلف مع كلام في السند") in a neutral (not red) chip.
 - Always show the source book under each tab. Causes rejected by the author are not sent at all.
 
+## 5b. The word & verse panel (same structure as the reference app)
+
+Tap a word → small card: the word, its meaning (from `/quran/insights`), and buttons
+**استماع · فاصل · تلوين · تعليق · المزيد**. "المزيد" opens a sheet with four top tabs and scrollable sub-tabs:
+
+| Top tab | Sub-tabs | Endpoint / field |
+|---|---|---|
+| **الكلمة** | المعنى · القراءات · التصريف · الإحصائيات | `GET /quran/word?surahId&ayahNumber&position` → `segments[]` (form, role prefix/stem/suffix, description, root, lemma, pattern), `qiraat[]`, `statistics` (`exactOccurrences`, `wordOccurrences`, `rootOccurrences`, `rootAyahs`, `rootSurahs`, `rootRank`), `audioUrl` (word audio), `statisticsMethod` (show behind an "منهج الإحصائيات" button) |
+| **الآية** | المختصر · التفسير · القراءات · الإعراب · المتشابهات · الموضوعات · أسباب النزول · الفضل · معاني الكلمات | `GET /quran/ayah-library?surahId&ayahNumber` → `mukhtasar`, `irab`, `qiraat`, `similar`, `topics`, `insights` (meanings, asbab, virtues); التفسير = existing `/quran/tafsir` |
+| **الصفحة** | الترجمات | existing translations for the page's verses |
+| **علوم** (السورة) | نبذة · أسماء السورة · موضوعاتها · مقاصدها · الفضائل · عدد الآيات · إحصائيات | `GET /quran/surahs/{id}/info` → `introduction`, `names`, `topics`, `purposes`, `virtues`, `statistics` (revelation order, مكية/مدنية, words, letters, `ayahCountByCounting`) |
+
+- **القراءات**: each variant lists its readers (`qari` + `rawi`) and an `audioUrl` to hear that reading (play inline).
+- **المتشابهات**: `groups[]` each with a note (e.g. "ضبط مواضع ( أنعمت )") and the similar verses; tapping one jumps to it.
+- **التصريف** per word: show segments as chips (سابقة · جذع · لاحقة) with the description under each.
+- Search by root: `GET /quran/roots/{root}` → occurrences and verse keys (the "ابحث بالجذر" action in the word sheet).
+- Topical index: `GET /quran/topics` (tree) and `GET /quran/topics/{id}` (verse keys).
+- Sheet footer (as in the reference): استماع · الإعدادات · فاصل · تعليق · تلوين, plus expand, previous/next verse, share, close.
+- Sources must be shown under each tab (`source` object). The morphology comes from the Quranic Arabic Corpus:
+  show "التحليل الصرفي: المدونة القرآنية العربية corpus.quran.com" (required attribution).
+
+### Colours, comments and tags (تلوين · تعليقاتي)
+- `PUT /quran/editions/{id}/annotations` `{ verseKey, wordPosition (0 = whole verse), color?, comment?, tag? }` —
+  10 colours: PINK, BLUE, GREEN, YELLOW, ORANGE, RED, TEAL, GRAY, BROWN, PURPLE. Same verse/word updates in place.
+- `GET /quran/editions/{id}/annotations?type=all|highlights|comments&tag=&color=&surahId=` → `items`, `tags`.
+- `DELETE /quran/annotations/{id}`. Draw highlights behind the glyphs of the word or verse (light alpha).
+- "تعليقاتي" screen: list with a filter (tag / colour / type), like the reference.
+
+### Index and khatmah templates
+- `GET /quran/index/rub` → 240 quarters (`rub`, `hizb`, `juz`, `quarterInHizb`, `verseKey`, `page`, `opening`) for the
+  "الربع" tab of the index with the quarter-circle icons.
+- `GET /quran/khatmah/templates` → تحزيب السلف (7 days, with each day's surahs) · ختمة رمضان (30) · الورد اليومي
+  (10 pages a day ≈ 61 days) · ختمة مخصصة. Start with the existing `POST /quran/khatmah/plan { durationDays }`.
+
+### Memorization test "التسميع"
+In addition to `/hifz/test`, add a self-recitation mode like the reference: choose «صفحة كاملة» or «اختبار السورة»
+and a range of pages; hide the glyphs and reveal word by word on tap (client only).
+
 ## 6. Tafsir
 `GET /quran/tafsirs` now also lists **التفسير الوسيط (طنطاوي)** (`Al_Wasit`). Recommended default order in the picker:
 الميسر (short, simple) · السعدي · الوسيط · ابن كثير · البغوي · القرطبي · الطبري. Show the tafsir in a bottom sheet from the

@@ -1,0 +1,75 @@
+{
+ "provider": "Quranpedia.net open data (free use in apps; dataset republishing requires attribution)",
+ "built": "2026-11-12",
+ "files": {
+  "mukhtasar": {
+   "file": "mukhtasar.json.gz",
+   "sha256": "4f8411ca166cf3d7fe05f2d552b12ded402e7efb9204d74fd7dd5c4254520796",
+   "rows": 6236,
+   "source": {
+    "bookAr": "المختصر في تفسير القرآن الكريم",
+    "authorAr": "مركز تفسير للدراسات القرآنية",
+    "version": "2026-08-10",
+    "sha256Dump": "18fee5e926e9e81c (tafsir-book-2003)"
+   }
+  },
+  "e3rab": {
+   "file": "e3rab.json.gz",
+   "sha256": "ec0bcfe154177c249ded2a45a0cce30da1260566645b379c28ee5059d8113cdd",
+   "rows": 5887,
+   "source": {
+    "bookAr": "المجتبى من مشكل إعراب القرآن الكريم",
+    "authorAr": "أحمد بن محمد الخراط",
+    "sha256Dump": "db229aa96e433c50fa87b2cb135649314c682d5039547ec8936201d68d9fa0e2"
+   }
+  },
+  "similar": {
+   "file": "similar.json.gz",
+   "sha256": "6c1c819011f27b8395b182ced88c4c553704505d0b09d42d659b212fe2fa2f4e",
+   "rows": 2102,
+   "source": {
+    "nameAr": "المتشابهات اللفظية (نظائر الآيات وضبط مواضعها)",
+    "dataset": "similar",
+    "version": "2026-11-07"
+   }
+  },
+  "qiraat": {
+   "file": "qiraat.json.gz",
+   "sha256": "a14f6d62880a536618a6662ce2d6fae97ccd692f3deeda16845c0b1a4e31bfbf",
+   "rows": 3455,
+   "source": {
+    "nameAr": "القراءات العشر المتواترة (أوجه الكلمات ورواتها)",
+    "dataset": "qiraat",
+    "audioBase": "https://files.quranpedia.net/recitations/"
+   }
+  },
+  "topics": {
+   "file": "topics.json.gz",
+   "sha256": "24d2823368b55b323a1a560473d640e15a7d0ddb3b7935057c9e18a06d1ec988",
+   "rows": 3674,
+   "source": {
+    "nameAr": "التقسيم الموضوعي للآيات",
+    "dataset": "topics"
+   }
+  },
+  "surahs": {
+   "file": "surahs.json.gz",
+   "sha256": "e6e4b54115474d2ddb18f55cda8b9d408384e39f2d4e855b4a2948225dfab521",
+   "rows": 114,
+   "source": {
+    "nameAr": "معلومات السور",
+    "dataset": "surahs"
+   }
+  },
+  "morphology": {
+   "file": "morphology.json.gz",
+   "sha256": "648b5b856afbcd51ae3684efa3708be61cd0bc691b0f507e497e23508e1f0f97",
+   "rows": 6236,
+   "source": {
+    "nameAr": "التحليل الصرفي للكلمات",
+    "source": "Quranic Arabic Corpus (corpus.quran.com) by Dr. Kais Dukes",
+    "license": "GNU GPL — attribution to corpus.quran.com is required"
+   }
+  }
+ }
+}

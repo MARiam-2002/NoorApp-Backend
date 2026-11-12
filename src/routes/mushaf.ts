@@ -6,6 +6,7 @@ import { sendSuccess } from '../shared/utils/response';
 import { AppError } from '../lib/errors';
 import { ErrorCodes } from '../config';
 import { getQuranHome } from '../services/quran-home.service';
+import { listAnnotations, upsertAnnotation, deleteAnnotation } from '../services/quran-annotations.service';
 import { getMushafFontCatalog, getMushafPageLayout, mushafFontIdSchema } from '../services/mushaf-layout.service';
 import { editionIdSchema, getMushafEditions, getMushafPage, getMushafReaderState, readerStateSchema, setMushafReaderState, getMushafPreference, setMushafPreference, getMushafBookmarks, setMushafBookmark, mushafBookmarkSchema } from '../services/mushaf.service';
 export const mushafRouter = Router();
@@ -23,6 +24,9 @@ mushafRouter.get('/editions/:editionId/pages/:page', asyncHandler(async (req, re
   const data = await getMushafPage(id, page); res.setHeader('Cache-Control', 'public, max-age=60'); sendSuccess(res, data, 'Edition page', req);
 }));
 const privateCache: import('express').RequestHandler = (_req, res, next) => { res.setHeader('Cache-Control', 'private, no-store'); next(); };
+mushafRouter.get('/editions/:editionId/annotations', authenticate, privateCache, asyncHandler(async (req, res) => { sendSuccess(res, await listAnnotations(req.user!.sub, editionIdSchema.parse(req.params.editionId), req.query), 'Annotations', req); }));
+mushafRouter.put('/editions/:editionId/annotations', authenticate, privateCache, asyncHandler(async (req, res) => { sendSuccess(res, await upsertAnnotation(req.user!.sub, editionIdSchema.parse(req.params.editionId), req.body), 'Annotation saved', req); }));
+mushafRouter.delete('/annotations/:id', authenticate, privateCache, asyncHandler(async (req, res) => { sendSuccess(res, await deleteAnnotation(req.user!.sub, z.string().uuid().parse(req.params.id)), 'Annotation deleted', req); }));
 mushafRouter.get('/home', authenticate, privateCache, asyncHandler(async (req, res) => { sendSuccess(res, await getQuranHome(req.user!.sub), 'Quran home', req); }));
 mushafRouter.get('/edition-preference', authenticate, privateCache, asyncHandler(async (req, res) => { sendSuccess(res, await getMushafPreference(req.user!.sub), 'Edition preference', req); }));
 mushafRouter.put('/edition-preference', authenticate, privateCache, asyncHandler(async (req, res) => { const input = z.object({ editionId: editionIdSchema }).strict().parse(req.body); sendSuccess(res, await setMushafPreference(req.user!.sub, input.editionId), 'Edition selected', req); }));
