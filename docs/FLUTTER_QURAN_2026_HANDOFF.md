@@ -294,10 +294,11 @@ repeat use the per-verse catalog (`/quran/audio/catalog`, 43 reciters). In the r
 search by name, "تلاوة كاملة" badge.
 
 ## 5f. Translations
-`GET /quran/translations` now lists 45 translations in 30+ languages (English ×7 incl. transliteration, Urdu,
-Bengali, Persian, Spanish, German, Russian, Chinese, Hausa, Swahili, Hindi, Somali, Tamil, Japanese, Korean, Bosnian,
+`GET /quran/translations` now lists 44 translations in 30+ languages, each checked on production to return its own text (English ×7 incl. transliteration, Urdu,
+Bengali, Persian, Spanish, German, Russian, Chinese, Hausa, Hindi, Somali, Tamil, Japanese, Korean, Bosnian,
 Albanian, Italian, Dutch, Portuguese, Uzbek, Kurdish, Pashto, Amharic, Yoruba, Thai, Vietnamese, Tagalog, Azerbaijani,
-Kazakh, Malayalam, Indonesian, French, Turkish, Malay). Group the picker by `language`.
+Kazakh, Malayalam, Indonesian, French, Turkish, Malay). Group the picker by `language`. Fetch a verse with
+`GET /quran/translation?surahId=&ayahNumber=&translationId=<id>`; if `provider` is `unavailable`, show the Arabic only.
 
 ## 6. Tafsir
 `GET /quran/tafsirs` now also lists **التفسير الوسيط (طنطاوي)** (`Al_Wasit`). Recommended default order in the picker:

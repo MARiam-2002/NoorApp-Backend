@@ -62,7 +62,7 @@ assert.equal(getSurahAudioCatalog('Warsh').recitations.every(x => x.riwaya === '
 
 async function main() {
   const tr = await listTranslations();
-  assert.ok(tr.length >= 45, `translations ${tr.length}`);
+  assert.ok(tr.length >= 44, `translations ${tr.length}`);
   assert.equal(new Set(tr.map(t => t.id)).size, tr.length);
   assert.equal(new Set(tr.map(t => t.resourceId)).size, tr.length, 'unique resource ids');
   assert.ok(new Set(tr.map(t => t.languageCode)).size >= 30, 'at least 30 languages');
