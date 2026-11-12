@@ -30,6 +30,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Fetch pinned hadith editions used by the content citation checks
+        run: node scripts/fetch-hadith-editions.cjs
       - run: npm run prisma:deploy
       - run: npm run typecheck
       - run: npm run test:support
@@ -48,4 +50,17 @@ jobs:
       - run: npm run test:adhkar-reminders
         env:
           ADHKAR_REMINDER_TEST_DB: "true"
+      - run: npm run test:learning
+      - run: npm run test:figures
+      - run: npm run test:mushaf-layout
+      - run: npm run test:quran-insights
+      - run: npm run test:hifz
+        env:
+          HIFZ_TEST_DB: "true"
+      - run: npm run test:quran-library
+        env:
+          HIFZ_TEST_DB: "true"
+      - run: npm run test:quran-extras
+        env:
+          HIFZ_TEST_DB: "true"
       - run: npm run build
