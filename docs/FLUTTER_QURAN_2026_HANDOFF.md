@@ -261,6 +261,13 @@ Tap a word → small card: the word, its meaning (from `/quran/insights`), and b
 In addition to `/hifz/test`, add a self-recitation mode like the reference: choose «صفحة كاملة» or «اختبار السورة»
 and a range of pages; hide the glyphs and reveal word by word on tap (client only).
 
+### Reader modes (client only, as in the reference app)
+- Tablets and landscape: two printed pages side by side (right page = odd page number in RTL order).
+- Auto-scroll in vertical mode with a speed slider; keep the screen awake while it runs.
+- Display modes switcher in the top bar: صفحات (printed) · تمرير عمودي · تجويد ملوّن · ليلي · كريمي.
+- Download manager in settings: per-juz page fonts, per-surah recitations, with sizes and delete.
+- Bottom navigation like the reference: المصحف · ختمة · الفهرس · علاماتي · المزيد (المزيد = اختبار ذاتي للحفظ · تعليقاتي · علاماتي · الإعدادات).
+
 ## 6. Tafsir
 `GET /quran/tafsirs` now also lists **التفسير الوسيط (طنطاوي)** (`Al_Wasit`). Recommended default order in the picker:
 الميسر (short, simple) · السعدي · الوسيط · ابن كثير · البغوي · القرطبي · الطبري. Show the tafsir in a bottom sheet from the
