@@ -71,7 +71,7 @@ async function db() {
   const rollback = new Error('ROLLBACK');
   try {
     await prisma.$transaction(async (tx: any) => {
-      const exists = await tx.$queryRawUnsafe(`SELECT to_regclass('public.hifz_plans') AS t`);
+      const exists = await tx.$queryRawUnsafe(`SELECT to_regclass('public.hifz_plans')::text AS t`);
       if (!exists[0].t) await tx.$executeRawUnsafe(migration);
       await tx.$executeRawUnsafe(`INSERT INTO users(id, username, email, timezone, "updatedAt") VALUES ('hifz-user', 'hifz-user', 'hifz-user@test.local', 'Africa/Cairo', now()), ('hifz-other', 'hifz-other', 'hifz-other@test.local', 'Africa/Cairo', now())`);
       for (const id of [112, 113, 114]) {

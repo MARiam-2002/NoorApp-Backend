@@ -25,7 +25,14 @@ assert.ok(kursi.topics.topics.length > 0);
 const fatiha6 = getAyahLibrary(1, 6);
 const sirat = fatiha6.qiraat.words.find(w => wordKey(w.word).includes('صراط'))!;
 assert.ok(sirat.variants.some(v => v.text.includes('بالسين') && v.readers.some(r => r.rawi === 'قنبل')));
-assert.ok(sirat.variants.flatMap(v => v.readers).every(r => r.audioUrl === null || r.audioUrl.startsWith('https://files.quranpedia.net/recitations/')));
+assert.ok(sirat.variants.flatMap(v => v.readers).every(r => r.audioUrl === null || /^https:\/\/(files\.quranpedia\.net\/recitations\/|verse\.mp3quran\.net\/)/.test(r.audioUrl)));
+// Every reading's audio link is one well-formed URL (some readers already carry a full mp3quran.net URL).
+for (const key of ['1:6', '1:7', '2:255', '18:10', '112:1']) {
+  const [s, a] = key.split(':').map(Number);
+  for (const r of getAyahLibrary(s!, a!).qiraat.words.flatMap(w => w.variants.flatMap(v => v.readers))) {
+    if (r.audioUrl !== null) assert.equal(r.audioUrl.split('://').length, 2, `${key} ${r.qari}/${r.rawi}: ${r.audioUrl}`);
+  }
+}
 const sim = getAyahLibrary(1, 7).similar;
 assert.ok(sim.groups.length > 0 && sim.groups.every(g => g.verses.every(v => v.verseKey !== '1:7')), 'similar verses exclude the verse itself');
 assert.equal(getAyahLibrary(2, 255).mukhtasar.source.bookAr, 'المختصر في تفسير القرآن الكريم');
@@ -92,7 +99,7 @@ async function db() {
   const rollback = new Error('ROLLBACK');
   try {
     await prisma.$transaction(async (tx: any) => {
-      const exists = await tx.$queryRawUnsafe(`SELECT to_regclass('public.quran_annotations') AS t`);
+      const exists = await tx.$queryRawUnsafe(`SELECT to_regclass('public.quran_annotations')::text AS t`);
       if (!exists[0].t) await tx.$executeRawUnsafe(readFileSync('prisma/migrations/20261112140000_quran_annotations/migration.sql', 'utf8'));
       await tx.$executeRawUnsafe(`INSERT INTO users(id, username, email, timezone, "updatedAt") VALUES ('ann-user', 'ann-user', 'ann@test.local', 'Africa/Cairo', now())`);
       const a = await upsertAnnotation('ann-user', 'madani-hafs', { verseKey: '1:7', wordPosition: 4, color: 'PINK' }, tx);

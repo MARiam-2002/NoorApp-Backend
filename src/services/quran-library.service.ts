@@ -165,7 +165,7 @@ export function getAyahQiraat(surahId: number, ayahNumber: number) {
       word,
       variants: variants.map(([text, readers]) => ({
         text,
-        readers: readers.map(([qari, rawi, audio]) => ({ qari, rawi, audioUrl: audio ? base + audio : null })),
+        readers: readers.map(([qari, rawi, audio]) => ({ qari, rawi, audioUrl: !audio ? null : /^https?:\/\//.test(audio) ? audio : base + audio })),
       })),
     })),
   };
