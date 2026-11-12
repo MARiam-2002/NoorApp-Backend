@@ -29,6 +29,15 @@ const CATEGORY_KEYS = [
   'ISTIGHFAR',
   'QAYN',
   'MASJID_AFTER_SALAM',
+  'WAKING_UP',
+  'ADHAN',
+  'HOME',
+  'TOILET',
+  'DISTRESS',
+  'FASTING',
+  'WEATHER',
+  'DAILY_SITUATIONS',
+  'COMPREHENSIVE_DUA',
 ] as const;
 
 /** Hub "وردك اليوم" goal — must match getDailyWirdForUser / Flutter progress card. */
@@ -66,6 +75,15 @@ const FALLBACK_ID_PREFIX: Record<CategoryKey, string> = {
   ISTIGHFAR: 'is',
   QAYN: 'q',
   MASJID_AFTER_SALAM: 'ms',
+  WAKING_UP: 'wk',
+  ADHAN: 'ad',
+  HOME: 'hm',
+  TOILET: 'tl',
+  DISTRESS: 'ds',
+  FASTING: 'fs',
+  WEATHER: 'wt',
+  DAILY_SITUATIONS: 'dy',
+  COMPREHENSIVE_DUA: 'cd',
 };
 
 const FALLBACK_ITEMS = Object.fromEntries(

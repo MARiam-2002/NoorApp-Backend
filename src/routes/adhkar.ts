@@ -248,7 +248,7 @@ adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
  *         required: true
  *         schema:
  *           type: string
- *           enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD, TRAVEL, SICK, FOOD, ISTIKHARA, WUDU, ISTIGHFAR, QAYN, MASJID_AFTER_SALAM]
+ *           enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD, TRAVEL, SICK, FOOD, ISTIKHARA, WUDU, ISTIGHFAR, QAYN, MASJID_AFTER_SALAM, WAKING_UP, ADHAN, HOME, TOILET, DISTRESS, FASTING, WEATHER, DAILY_SITUATIONS, COMPREHENSIVE_DUA]
  *           example: MORNING
  *         description: مفتاح الفئة (حرف كبير أو صغير - الـ backend يحول لحروف كبير)
  *     responses:
@@ -427,7 +427,7 @@ adhkarRouter.post('/favorites', authenticate, addAdhkarFavoriteHandler);
  *         required: false
  *         schema:
  *           type: string
- *           enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD, TRAVEL, SICK, FOOD, ISTIKHARA, WUDU, ISTIGHFAR, QAYN, MASJID_AFTER_SALAM]
+ *           enum: [MORNING, EVENING, BEFORE_SLEEP, ENTERING_MOSQUE, AFTER_PRAYER, GENERAL_WIRD, TRAVEL, SICK, FOOD, ISTIKHARA, WUDU, ISTIGHFAR, QAYN, MASJID_AFTER_SALAM, WAKING_UP, ADHAN, HOME, TOILET, DISTRESS, FASTING, WEATHER, DAILY_SITUATIONS, COMPREHENSIVE_DUA]
  *         description: (اختياري) فلترة البحث داخل فئة معينة بس
  *       - in: query
  *         name: limit

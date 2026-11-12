@@ -20,22 +20,31 @@ const DAILY_WIRD_ITEM_GOAL = 8;
 const EXPECTED_COUNTS: Record<AdhkarCategoryKey, number> = {
   MORNING: 20,
   EVENING: 19,
-  BEFORE_SLEEP: 7,
-  ENTERING_MOSQUE: 9,
-  AFTER_PRAYER: 9,
+  BEFORE_SLEEP: 11,
+  ENTERING_MOSQUE: 10,
+  AFTER_PRAYER: 12,
   GENERAL_WIRD: 8,
-  TRAVEL: 5,
-  SICK: 7,
-  FOOD: 3,
+  TRAVEL: 8,
+  SICK: 9,
+  FOOD: 7,
   ISTIKHARA: 1,
   WUDU: 5,
   ISTIGHFAR: 7,
   QAYN: 5,
   MASJID_AFTER_SALAM: 4,
+  WAKING_UP: 3,
+  ADHAN: 3,
+  HOME: 4,
+  TOILET: 3,
+  DISTRESS: 6,
+  FASTING: 5,
+  WEATHER: 4,
+  DAILY_SITUATIONS: 9,
+  COMPREHENSIVE_DUA: 8,
 };
 
 const keys = Object.keys(ADHKAR_CATALOG_ITEMS) as AdhkarCategoryKey[];
-assert.equal(keys.length, 14);
+assert.equal(keys.length, 23);
 assert.deepEqual([...keys].sort(), Object.keys(EXPECTED_COUNTS).sort());
 
 let total = 0;
@@ -53,7 +62,7 @@ for (const key of keys) {
   assert.equal(new Set(texts).size, texts.length, `${key} has no duplicate texts`);
   total += items.length;
 }
-assert.equal(total, 109);
+assert.equal(total, 171);
 assert.equal(ADHKAR_CATALOG_TOTAL_ITEMS, total);
 assert.ok(ADHKAR_CATALOG_ITEMS.GENERAL_WIRD.length >= DAILY_WIRD_ITEM_GOAL, 'daily wird goal is reachable');
 assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 2, 'catalog version bumped after the 2026 review');
@@ -102,7 +111,8 @@ assert.ok(` ${normalizeVerse(verseText(47, 19))} `.includes(` ${normalizeVerse(r
 const removals = ADHKAR_CORRECTIONS_2026.filter((rule) => rule.remove).length;
 assert.equal(removals, 22);
 const ADDED_2026_11 = 16; // morning and evening additions, migration 20261112090000
-assert.equal(total - ADDED_2026_11 + removals, 115, 'legacy catalog minus reviewed removals plus the 2026-11 additions');
+const EXPANSION_2026_11 = 62; // new categories and appended items, migration 20261112100100
+assert.equal(total - ADDED_2026_11 - EXPANSION_2026_11 + removals, 115, 'legacy catalog minus reviewed removals plus the 2026-11 additions');
 
 // 2026-11 additions: wording copied from the narration. Bukhari/Muslim items are re-checked here against the pinned
 // editions; the Sunan items were checked against pinned fawazahmed0 editions when added (hashes in the review doc).
@@ -112,6 +122,40 @@ for (const [needle, collection, number] of [['البخاري (6306)', 'bukhari',
   assert.ok(items.length >= 1, needle);
   for (const item of items) assert.ok(findSahihPhrase(collection, item.textAr).some(m => m.number === number), `${needle}: text must be verbatim`);
 }
+// Expansion (catalog version 6): every item citing a numbered al-Bukhari or Muslim narration is re-checked verbatim.
+const sahihRef = /(البخاري|مسلم) \((\d+)\)/gu;
+let sahihChecked = 0;
+for (const key of ['WAKING_UP', 'ADHAN', 'HOME', 'TOILET', 'DISTRESS', 'FASTING', 'WEATHER', 'DAILY_SITUATIONS', 'COMPREHENSIVE_DUA'] as const) {
+  for (const item of ADHKAR_CATALOG_ITEMS[key]) {
+    const refs = [...item.referenceAr.matchAll(sahihRef)];
+    if (refs.length === 0) continue;
+    // The dhikr itself, or the narration quoted in the benefit when the dhikr is the act the narration describes.
+    const candidates = [item.textAr, ...[...(item.benefitAr ?? '').matchAll(/«([^»]+)»/gu)].map(m => m[1]!)];
+    const ok = refs.some(([, book, num]) => candidates.some(text => findSahihPhrase(book === 'البخاري' ? 'bukhari' : 'muslim', text).some(m => m.number === Number(num))));
+    assert.ok(ok, `${key}: ${item.referenceAr} must contain the text verbatim`);
+    sahihChecked += 1;
+  }
+}
+const appended: Array<[AdhkarCategoryKey, number]> = [['BEFORE_SLEEP', 7], ['AFTER_PRAYER', 9], ['ENTERING_MOSQUE', 9], ['FOOD', 3], ['TRAVEL', 5], ['SICK', 7]];
+for (const [key, from] of appended) {
+  for (const item of ADHKAR_CATALOG_ITEMS[key].slice(from)) {
+    const refs = [...item.referenceAr.matchAll(sahihRef)];
+    if (refs.length === 0) continue;
+    // The dhikr itself, or the narration quoted in the benefit when the dhikr is the act the narration describes.
+    const candidates = [item.textAr, ...[...(item.benefitAr ?? '').matchAll(/«([^»]+)»/gu)].map(m => m[1]!)];
+    const ok = refs.some(([, book, num]) => candidates.some(text => findSahihPhrase(book === 'البخاري' ? 'bukhari' : 'muslim', text).some(m => m.number === Number(num))));
+    assert.ok(ok, `${key}: ${item.referenceAr} must contain the text verbatim`);
+    sahihChecked += 1;
+  }
+}
+assert.ok(sahihChecked >= 35, `expected the expansion's Sahihayn items to be checked, got ${sahihChecked}`);
+const kahf = all.filter(i => i.referenceAr === 'سورة الكهف 39');
+assert.equal(kahf.length, 1);
+assert.ok(` ${normalizeVerse(verseText(18, 39))} `.includes(` ${normalizeVerse(kahf[0]!.textAr)} `), 'al-Kahf 39 excerpt');
+const nur = all.find(i => i.referenceAr.includes('سورة النور 61'))?.benefitAr?.match(/﴿([^﴾]+)﴾/u)?.[1];
+assert.ok(nur && ` ${normalizeVerse(verseText(24, 61))} `.includes(` ${normalizeVerse(nur)} `), 'an-Nur 61 quotation');
+assert.ok(ADHKAR_STATIC_CATALOG_VERSION >= 6, 'expansion must invalidate the older offline pack');
+
 const baqarahEnd = all.filter(i => i.referenceAr.startsWith('آخر آيتين من سورة البقرة'));
 assert.equal(baqarahEnd.length, 1);
 assert.equal(normalizeVerse(baqarahEnd[0]!.textAr), normalizeVerse(`${verseText(2, 285)} ${verseText(2, 286)}`), 'al-Baqarah 285-286 verbatim');

@@ -284,3 +284,98 @@ ara-tirmidhi `408028cd56329ed78edbe3ad443beb96b58e16c3e5bd49f9bc7b0eac77c8820f`,
 ara-ibnmajah `b406e6be81588ab0ec1ddbed32f5fd95bbcdda242c460d88331e82eb5c2bc0aa`.
 The al-Bukhari and Muslim items and the al-Baqarah verses are re-checked by `npm run test:adhkar-catalog`, and the
 migration by `ADHKAR_TEST_DB=true npm run test:adhkar-additions`.
+
+## Addendum 2026-11-12 (part 2): adhkar expansion (catalog version 6, 109 → 171 items, 14 → 23 categories)
+
+Goal: cover the daily situations a Muslim needs a dhikr for, using authentic narrations only. Applied to production
+by two migrations: `20261112100000_adhkar_new_category_keys` adds the enum values (they must be committed before
+they can be used), and `20261112100100_adhkar_expansion` adds the rows. Existing rows are never changed; new items are
+appended after the last item of a category, so ids, favorites and completions are untouched. Each category is handled
+only in the expected state (a new category absent or empty; an extended category at exactly its previous count), so an
+empty database or an already updated one is left alone and anything else aborts the deploy.
+
+**New categories (9):** WAKING_UP (أذكار الاستيقاظ, 3), ADHAN (أذكار الأذان, 3), HOME (المنزل, 4), TOILET (دخول الخلاء والخروج منه, 3), DISTRESS (الهم والكرب, 6), FASTING (الصيام ورمضان, 5), WEATHER (المطر والريح, 4), DAILY_SITUATIONS (مواقف يومية, 9), COMPREHENSIVE_DUA (أدعية جامعة, 8).
+
+**Extended categories:** BEFORE_SLEEP 7 → 11, AFTER_PRAYER 9 → 12, ENTERING_MOSQUE 9 → 10 (the dua for leaving the
+mosque), FOOD 3 → 7, TRAVEL 5 → 8, SICK 7 → 9.
+
+**Rule:** as in part 1, only the Quran and narrations graded Sahih or Hasan (al-Bukhari, Muslim, or al-Albani's grade in
+the pinned Sunan editions). Wording copied programmatically from the narration; only orthography normalized, plus one
+vowel-mark typo in the at-Tirmidhi 3428 edition (شَرِيكُ → شَرِيكَ). Where the dhikr is an act described by the
+narration (mentioning Allah when entering the home), the narration itself is quoted in the benefit. Grades are stated
+in the reference shown to the user.
+
+| Category | Dhikr | Reference (as shown in the app) |
+|---|---|---|
+| WAKING_UP (new) | الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا… | رواه البخاري (6312) |
+| WAKING_UP (new) | لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ… | رواه البخاري (1154) |
+| WAKING_UP (new) | الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي فِي جَسَدِي… | رواه الترمذي (3401) - حسنه الألباني |
+| ADHAN (new) | لاَ حَوْلَ وَلاَ قُوَّةَ إِلاَّ بِاللَّهِ | رواه مسلم (385) |
+| ADHAN (new) | أَشْهَدُ أَنْ لاَ إِلَهَ إِلاَّ اللَّهُ… | رواه مسلم (386) |
+| ADHAN (new) | اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ وَالصَّلاَةِ… | رواه البخاري (614) |
+| HOME (new) | بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لاَ… | رواه أبو داود (5095) والترمذي (3426) - صحيح |
+| HOME (new) | اللَّهُمَّ إِنِّي أَعُوذُ بِكَ أَنْ أَضِلَّ… | رواه أبو داود (5094) - صحيح |
+| HOME (new) | بِسْمِ اللَّهِ | ذِكر الله عند دخول البيت - رواه مسلم (2018) |
+| HOME (new) | السَّلَامُ عَلَيْكُمْ | عند دخول البيت، لقوله تعالى في سورة النور 61 |
+| TOILET (new) | بِسْمِ اللَّهِ | رواه الترمذي (606) - صحيح |
+| TOILET (new) | اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْخُبُثِ… | رواه البخاري (142) ومسلم (375) |
+| TOILET (new) | غُفْرَانَكَ | رواه أبو داود (30) والترمذي (7) - صحيح |
+| DISTRESS (new) | لاَ إِلَهَ إِلاَّ اللَّهُ الْعَظِيمُ الْحَلِيمُ،… | رواه البخاري (6346) ومسلم (2730) |
+| DISTRESS (new) | اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ… | رواه البخاري (6363) |
+| DISTRESS (new) | لاَ إِلَهَ إِلاَّ أَنْتَ سُبْحَانَكَ إِنِّي… | دعوة ذي النون - رواه الترمذي (3505) - صحيح |
+| DISTRESS (new) | اللَّهُمَّ رَحْمَتَكَ أَرْجُو فَلاَ تَكِلْنِي إِلَى… | رواه أبو داود (5090) - حسّن الألباني إسناده |
+| DISTRESS (new) | اللَّهُ اللَّهُ رَبِّي لاَ أُشْرِكُ بِهِ… | رواه أبو داود (1525) وابن ماجه (3882) - صحيح |
+| DISTRESS (new) | حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ | رواه البخاري (4563) |
+| FASTING (new) | ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ… | رواه أبو داود (2357) - حسنه الألباني |
+| FASTING (new) | اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ… | رواه ابن ماجه (3850) - صحيح، وعند الترمذي (3513) بزيادة «كريم» |
+| FASTING (new) | إِنِّي صَائِمٌ ×2 | رواه البخاري (1894) |
+| FASTING (new) | أَفْطَرَ عِنْدَكُمُ الصَّائِمُونَ وَأَكَلَ طَعَامَكُمُ الأَبْرَارُ… | رواه أبو داود (3854) وابن ماجه (1747) - صحيح |
+| FASTING (new) | اللَّهُمَّ أَهْلِلْهُ عَلَيْنَا بِالْيُمْنِ وَالإِيمَانِ وَالسَّلاَمَةِ… | رواه الترمذي (3451) - صحيح |
+| WEATHER (new) | صَيِّبًا نَافِعًا | رواه البخاري (1032) |
+| WEATHER (new) | مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ | رواه البخاري (846) ومسلم (71) |
+| WEATHER (new) | اللَّهُمَّ حَوَالَيْنَا وَلاَ عَلَيْنَا | رواه البخاري (1013) |
+| WEATHER (new) | اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَهَا وَخَيْرَ مَا… | رواه مسلم (899) |
+| DAILY_SITUATIONS (new) | الْحَمْدُ لِلَّهِ | رواه البخاري (6224) |
+| DAILY_SITUATIONS (new) | أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ | رواه البخاري (6115) |
+| DAILY_SITUATIONS (new) | إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ اللَّهُمَّ… | رواه مسلم (918) |
+| DAILY_SITUATIONS (new) | الْحَمْدُ لِلَّهِ الَّذِي عَافَانِي مِمَّا ابْتَلاَكَ… | رواه الترمذي (3432) - صحيح |
+| DAILY_SITUATIONS (new) | الْحَمْدُ لِلَّهِ الَّذِي كَسَانِي هَذَا الثَّوْبَ… | رواه أبو داود (4023) - حسنه الألباني |
+| DAILY_SITUATIONS (new) | بَارَكَ اللَّهُ لَكَ وَبَارَكَ عَلَيْكَ وَجَمَعَ… | رواه أبو داود (2130) والترمذي (1091) - صحيح |
+| DAILY_SITUATIONS (new) | لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ… | دعاء دخول السوق - رواه الترمذي (3428) - حسنه الألباني |
+| DAILY_SITUATIONS (new) | سُبْحَانَكَ اللَّهُمَّ وَبِحَمْدِكَ أَشْهَدُ أَنْ لاَ… | كفارة المجلس - رواه الترمذي (3433) - صحيح |
+| DAILY_SITUATIONS (new) | مَا شَاءَ اللَّهُ لَا قُوَّةَ إِلَّا… | سورة الكهف 39 |
+| COMPREHENSIVE_DUA (new) | اللَّهُمَّ رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً،… | رواه البخاري (6389) ومسلم (2690) |
+| COMPREHENSIVE_DUA (new) | يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى… | رواه الترمذي (2140) - صحيح |
+| COMPREHENSIVE_DUA (new) | اللَّهُمَّ مُصَرِّفَ الْقُلُوبِ صَرِّفْ قُلُوبَنَا عَلَى… | رواه مسلم |
+| COMPREHENSIVE_DUA (new) | اللَّهُمَّ اغْفِرْ لِي وَارْحَمْنِي وَاهْدِنِي وَارْزُقْنِي | رواه مسلم (2697) |
+| COMPREHENSIVE_DUA (new) | اللَّهُمَّ أَصْلِحْ لِي دِينِيَ الَّذِي هُوَ… | رواه مسلم (2720) |
+| COMPREHENSIVE_DUA (new) | اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ عِلْمٍ… | رواه مسلم (2722) |
+| COMPREHENSIVE_DUA (new) | اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ زَوَالِ… | رواه مسلم (2739) |
+| COMPREHENSIVE_DUA (new) | رَبِّ اغْفِرْ لِي خَطِيئَتِي وَجَهْلِي وَإِسْرَافِي… | رواه البخاري (6398) |
+| BEFORE_SLEEP | بِاسْمِكَ رَبِّ وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ،… | رواه البخاري (6320) |
+| BEFORE_SLEEP | الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَكَفَانَا… | رواه مسلم (2715) |
+| BEFORE_SLEEP | اللَّهُمَّ رَبَّ السَّمَوَاتِ وَرَبَّ الأَرْضِ وَرَبَّ… | رواه مسلم (2713) |
+| BEFORE_SLEEP | اللَّهُمَّ عَالِمَ الْغَيْبِ وَالشَّهَادَةِ فَاطِرَ السَّمَوَاتِ… | رواه أبو داود (5067) والترمذي (3392) - صحيح |
+| AFTER_PRAYER | لاَ إِلَهَ إِلاَّ اللَّهُ وَحْدَهُ لاَ… | رواه مسلم (594) |
+| AFTER_PRAYER | اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ… | رواه أبو داود (1522) - صحيح |
+| AFTER_PRAYER | اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْجُبْنِ،… | رواه البخاري (2822) |
+| ENTERING_MOSQUE | اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ | رواه مسلم (713) |
+| FOOD | بِسْمِ اللَّهِ أَوَّلَهُ وَآخِرَهُ | رواه أبو داود (3767) - صحيح |
+| FOOD | الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا وَرَزَقَنِيهِ… | رواه الترمذي (3458) وابن ماجه (3285) - حسن |
+| FOOD | الْحَمْدُ لِلَّهِ كَثِيرًا طَيِّبًا مُبَارَكًا فِيهِ،… | رواه البخاري (5458) |
+| FOOD | اللَّهُمَّ بَارِكْ لَهُمْ فِي مَا رَزَقْتَهُمْ… | رواه مسلم (2042) |
+| TRAVEL | آيِبُونَ تَائِبُونَ عَابِدُونَ سَاجِدُونَ لِرَبِّنَا حَامِدُونَ | رواه البخاري (1797) ومسلم (1342) |
+| TRAVEL | أَسْتَوْدِعُ اللَّهَ دِينَكَ وَأَمَانَتَكَ وَخَوَاتِيمَ عَمَلِكَ | رواه الترمذي (3443) وأبو داود (2600) - صحيح |
+| TRAVEL | أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ… | رواه مسلم (2708) |
+| SICK | لاَ بَأْسَ طَهُورٌ إِنْ شَاءَ اللَّهُ | رواه البخاري (3616) |
+| SICK | بِاسْمِ اللَّهِ أَرْقِيكَ مِنْ كُلِّ شَيْءٍ… | رواه مسلم (2186) |
+
+**Not added, with reasons:** «اللهم إني أسألك خير المولج وخير المخرج…» on entering the home (Abu Dawud 5096: da'if,
+al-Albani); «سبحان الذي يسبح الرعد بحمده…» for thunder (a saying of a Companion in al-Muwatta, not a hadith of the
+Prophet ﷺ, and not in the pinned sources); «اللهم إني عبدك ابن عبدك…» for worry (Musnad Ahmad, not in the pinned
+sources yet).
+
+**Pinned source added:** ara-nasai `c705983c19bb089c87cd6531aff609bd94d862183ed0859115b0ff991826a956`
+(fawazahmed0/hadith-api), alongside the three Sunan editions listed in part 1. Every item citing a numbered narration of
+al-Bukhari or Muslim, and the al-Kahf 39 and an-Nur 61 quotations, are re-checked by `npm run test:adhkar-catalog`; the
+migrations by `ADHKAR_TEST_DB=true npm run test:adhkar-expansion`.

@@ -13,6 +13,10 @@ import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { ADHKAR_CATALOG_ITEMS, type AdhkarCategoryKey } from '../src/shared/data/adhkar-catalog';
 import { applyCategoryCorrections, planCategoryCorrections } from './lib/adhkar-corrections-2026';
+import type { AdhkarCategoryKey as CorrectedCategoryKey } from './lib/adhkar-corrections-2026';
+
+const CORRECTED_KEYS = ['MORNING', 'EVENING', 'BEFORE_SLEEP', 'ENTERING_MOSQUE', 'AFTER_PRAYER', 'GENERAL_WIRD', 'TRAVEL', 'SICK',
+  'FOOD', 'ISTIKHARA', 'WUDU', 'ISTIGHFAR', 'QAYN', 'MASJID_AFTER_SALAM'] as const satisfies readonly CorrectedCategoryKey[];
 
 const APPLY = process.argv.includes('--apply');
 const BEFORE_SLEEP_DESCRIPTION_TYPO = 'أذكار وأدعية الوِرِ النوم من السنة النبوية الصحيحة';
@@ -49,7 +53,9 @@ async function loadCategories() {
 
 async function main(): Promise<void> {
   const categories = await loadCategories();
-  const catalogKeys = Object.keys(ADHKAR_CATALOG_ITEMS) as AdhkarCategoryKey[];
+  // Historical one-off: covers the 14 categories that existed at the 2026 review. Later additions arrive by migration.
+  const catalogKeys = (Object.keys(ADHKAR_CATALOG_ITEMS) as AdhkarCategoryKey[])
+    .filter((k): k is AdhkarCategoryKey & CorrectedCategoryKey => (CORRECTED_KEYS as readonly string[]).includes(k));
   const missing = catalogKeys.filter((k) => !categories.some((c) => c.key === k));
   if (missing.length > 0) throw new Error(`Categories missing in DB: ${missing.join(', ')}`);
 

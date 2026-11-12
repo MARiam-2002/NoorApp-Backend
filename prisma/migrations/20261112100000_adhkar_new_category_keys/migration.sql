@@ -1,0 +1,10 @@
+-- New adhkar categories (data is added by the next migration, after these values are committed).
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'WAKING_UP';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'ADHAN';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'HOME';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'TOILET';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'DISTRESS';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'FASTING';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'WEATHER';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'DAILY_SITUATIONS';
+ALTER TYPE "DhikrCategoryKey" ADD VALUE IF NOT EXISTS 'COMPREHENSIVE_DUA';
