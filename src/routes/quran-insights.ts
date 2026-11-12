@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
 import { getAyahInsights, getSurahInsightMarkers, getSurahVirtues } from '../services/quran-insights.service';
-import { getAyahLibrary, getAyahWords, getWord, getRootOccurrences, getTopicTree, getTopic, getSurahInfo, getRubIndex } from '../services/quran-library.service';
+import { getAyahLibrary, getAyahWords, getWord, getRootOccurrences, getTopicTree, getTopic, getSurahInfo, getRubIndex, searchByMeaning } from '../services/quran-library.service';
+import { checkRecitation } from '../services/recitation-check.service';
+import { getSurahAudioCatalog } from '../services/surah-audio.service';
+import { authenticate } from '../middleware/auth';
 import { KHATMAH_TEMPLATES } from '../shared/data/khatmah-templates';
 
 /** Public, static content: GET /quran/insights?surahId&ayahNumber · /quran/surahs/:id/virtues · /quran/surahs/:id/insight-markers */
@@ -53,3 +56,18 @@ quranInsightsRouter.get('/surahs/:surahId/info', asyncHandler(async (req, res) =
 }));
 quranInsightsRouter.get('/index/rub', asyncHandler(async (req, res) => { day(res); sendSuccess(res, { rubs: getRubIndex() }, 'Rub index', req); }));
 quranInsightsRouter.get('/khatmah/templates', asyncHandler(async (req, res) => { day(res); sendSuccess(res, { templates: KHATMAH_TEMPLATES }, 'Khatmah templates', req); }));
+/** Search by meaning (المختصر + topics). */
+quranInsightsRouter.get('/search/meaning', asyncHandler(async (req, res) => {
+  const q = z.object({ q: z.string().trim().min(2).max(200), limit: z.coerce.number().int().min(1).max(100).default(50) }).strict().parse(req.query); day(res);
+  sendSuccess(res, searchByMeaning(q.q, q.limit), 'Meaning search', req);
+}));
+/** Automatic recitation check: transcript from the device's Arabic speech recognition → word-by-word result. */
+quranInsightsRouter.post('/recitation/check', authenticate, asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  sendSuccess(res, await checkRecitation(req.body), 'Recitation checked', req);
+}));
+/** Full-surah recitations (many reciters and riwayat) for continuous listening and download. */
+quranInsightsRouter.get('/audio/surah-reciters', asyncHandler(async (req, res) => {
+  const q = z.object({ riwaya: z.string().max(60).optional() }).strict().parse(req.query); day(res);
+  sendSuccess(res, getSurahAudioCatalog(q.riwaya), 'Surah reciters', req);
+}));

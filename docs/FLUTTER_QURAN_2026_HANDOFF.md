@@ -268,6 +268,37 @@ and a range of pages; hide the glyphs and reveal word by word on tap (client onl
 - Download manager in settings: per-juz page fonts, per-surah recitations, with sizes and delete.
 - Bottom navigation like the reference: المصحف · ختمة · الفهرس · علاماتي · المزيد (المزيد = اختبار ذاتي للحفظ · تعليقاتي · علاماتي · الإعدادات).
 
+## 5c. Automatic recitation check (التسميع التلقائي)
+
+1. The reader picks a range (or "صفحة كاملة / السورة") and taps the mic. Use `speech_to_text` with locale `ar-SA`
+   (partial results on), keep the screen awake, show a live waveform.
+2. When the reader stops (or every ~2 verses for long passages), send
+   `POST /quran/recitation/check` (signed in) `{ surahId, fromAyah, toAyah, transcript }` (max 50 verses).
+3. Response: `words[]` with `status` CORRECT · MINOR · WRONG · MISSED (+ `heard`), `extra[]` (words said that are not
+   in the text, with the position after which they were said), `accuracy`, `reachedWords`, `stoppedAt`.
+4. On the printed page colour the glyphs: CORRECT none, MINOR light amber, WRONG red, MISSED red outline; words after
+   `stoppedAt` stay neutral ("لم تصل إليها"). Tap a red word to hear it (`/quran/word` → `audioUrl`).
+5. Show the note from the response: it checks words and their order, not tajweed or vowels. Device speech recognition
+   sometimes mishears; MINOR is never counted as a mistake.
+
+## 5d. Search by meaning
+`GET /quran/search/meaning?q=الصبر على البلاء` → `topics[]` (matching topics with their verse counts) and `results[]`
+(`verseKey`, `snippet` from المختصر, `viaTopic`). In the search screen add a segmented control:
+**بالنص · بالمعنى · بالجذر** (text = existing `/quran/search`, root = `/quran/roots/{root}`), plus the mic.
+
+## 5e. More reciters and riwayat (full surahs)
+`GET /quran/audio/surah-reciters?riwaya=Hafs|Warsh|Qalun|…` → 213 complete recitations by 174 reciters in 13
+riwayat (حفص، ورش، قالون، الدوري، السوسي، البزي، قنبل، شعبة، ابن ذكوان، خلف، يعقوب…). Each item has
+`surahUrlPattern` (`…/{NNN}.mp3`). Use them for continuous listening and downloads; for verse highlighting and
+repeat use the per-verse catalog (`/quran/audio/catalog`, 43 reciters). In the reciter picker: tabs by riwaya,
+search by name, "تلاوة كاملة" badge.
+
+## 5f. Translations
+`GET /quran/translations` now lists 45 translations in 30+ languages (English ×7 incl. transliteration, Urdu,
+Bengali, Persian, Spanish, German, Russian, Chinese, Hausa, Swahili, Hindi, Somali, Tamil, Japanese, Korean, Bosnian,
+Albanian, Italian, Dutch, Portuguese, Uzbek, Kurdish, Pashto, Amharic, Yoruba, Thai, Vietnamese, Tagalog, Azerbaijani,
+Kazakh, Malayalam, Indonesian, French, Turkish, Malay). Group the picker by `language`.
+
 ## 6. Tafsir
 `GET /quran/tafsirs` now also lists **التفسير الوسيط (طنطاوي)** (`Al_Wasit`). Recommended default order in the picker:
 الميسر (short, simple) · السعدي · الوسيط · ابن كثير · البغوي · القرطبي · الطبري. Show the tafsir in a bottom sheet from the

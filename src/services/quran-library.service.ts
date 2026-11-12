@@ -255,3 +255,44 @@ export function getAyahLibrary(surahId: number, ayahNumber: number) {
     topics: getAyahTopics(surahId, ayahNumber),
   };
 }
+
+// ------------------------------------------------------------------ search by meaning
+
+const norm = (t: string) => wordKey(t).replace(/ة/g, 'ه').replace(/[^ء-ي\s]/g, ' ').replace(/\s+/g, ' ').trim();
+let meaningIndex: Array<{ key: string; s: number; a: number; text: string; normalized: string }> | undefined;
+let topicIndex: Array<{ id: number; name: string; normalized: string; keys: string[] }> | undefined;
+
+/**
+ * Search verses by meaning: the query is matched against المختصر في التفسير (the meaning of every verse) and the topic
+ * names; all query words must appear (prefixes like و/ف/ب/ال are tolerated). Ranked by matches, topic hits first.
+ */
+export function searchByMeaning(query: string, limit = 50) {
+  const q = norm(query);
+  const terms = q.split(' ').filter(t => t.length >= 2).map(t => t.replace(/^(و|ف|ب|ل|ك)?(ال)?/, '')).filter(t => t.length >= 2);
+  if (!terms.length) throw new AppError('Query too short', 400, ErrorCodes.VALIDATION_ERROR);
+  if (!meaningIndex) meaningIndex = dataset<Array<[number, number, string]>>('mukhtasar').map(([s, a, text]) => ({ key: `${s}:${a}`, s, a, text, normalized: ` ${norm(text)} ` }));
+  if (!topicIndex) {
+    const d = dataset<TopicsData>('topics');
+    topicIndex = Object.entries(d.dict).map(([id, [name, , , related]]) => ({ id: Number(id), name, normalized: norm(name), keys: related ? related.split(',').filter(Boolean) : [] }));
+  }
+  const topics = topicIndex.filter(t => terms.every(term => t.normalized.includes(term))).slice(0, 10);
+  const topicKeys = new Set(topics.flatMap(t => t.keys));
+  const results: Array<{ verseKey: string; surahId: number; ayahNumber: number; surahNameAr: string; score: number; snippet: string; viaTopic: boolean }> = [];
+  for (const row of meaningIndex) {
+    let score = 0;
+    for (const term of terms) {
+      const hits = row.normalized.split(term).length - 1;
+      if (!hits) { score = -1; break; }
+      score += hits;
+    }
+    const viaTopic = topicKeys.has(row.key);
+    if (score < 0 && !viaTopic) continue;
+    const first = row.text.search(new RegExp(terms[0]!.split('').join('[\\u064B-\\u0652\\u0670]*')));
+    const start = Math.max(0, first - 60);
+    results.push({ verseKey: row.key, surahId: row.s, ayahNumber: row.a, surahNameAr: nameAr(row.s), score: Math.max(0, score) + (viaTopic ? 5 : 0),
+      snippet: (start > 0 ? '…' : '') + row.text.slice(start, start + 180) + (row.text.length > start + 180 ? '…' : ''), viaTopic });
+  }
+  results.sort((x, y) => y.score - x.score || x.surahId - y.surahId || x.ayahNumber - y.ayahNumber);
+  return { query, source: source('mukhtasar'), topics: topics.map(t => ({ id: t.id, name: t.name, verseCount: t.keys.length })),
+    total: results.length, results: results.slice(0, limit) };
+}

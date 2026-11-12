@@ -69,16 +69,18 @@ assert.ok(salaf.every((d, i) => i === 0 || d.fromSurah === salaf[i - 1]!.toSurah
 
 async function routes() {
   const app = express();
+  app.use(express.json());
   app.use('/quran', quranInsightsRouter);
-  app.use(((error: any, _req: any, res: any, _next: any) => { res.status(error.statusCode ?? (error.name === 'ZodError' ? 400 : 500)).json({ success: false }); }) as express.ErrorRequestHandler);
+  app.use(((error: any, _req: any, res: any, _next: any) => { res.status(error.statusCode ?? error.status ?? (error.name === 'ZodError' ? 400 : 500)).json({ success: false }); }) as express.ErrorRequestHandler);
   const server = app.listen(0, '127.0.0.1');
   try {
     await new Promise<void>(resolve => server.once('listening', resolve));
     const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/quran`;
     for (const ok of ['ayah-library?surahId=2&ayahNumber=255', 'ayah-words?surahId=1&ayahNumber=7', 'word?surahId=1&ayahNumber=7&position=4',
-      `roots/${encodeURIComponent('حمد')}`, 'topics', 'surahs/18/info', 'index/rub', 'khatmah/templates']) {
+      `roots/${encodeURIComponent('حمد')}`, 'topics', 'surahs/18/info', 'index/rub', 'khatmah/templates', `search/meaning?q=${encodeURIComponent('الصبر')}`, 'audio/surah-reciters?riwaya=Warsh']) {
       assert.equal((await fetch(`${base}/${ok}`)).status, 200, ok);
     }
+    assert.equal((await fetch(`${base}/recitation/check`, { method: 'POST' })).status, 401, 'recitation check requires sign-in');
     for (const bad of ['ayah-library?surahId=1&ayahNumber=8', 'word?surahId=1&ayahNumber=1&position=0', 'roots/abc', 'surahs/0/info']) {
       assert.equal((await fetch(`${base}/${bad}`)).status, 400, bad);
     }
