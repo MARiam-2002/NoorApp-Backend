@@ -73,6 +73,8 @@ export function getMushafEditions() {
     pageReadingAvailable: d.id === 'warsh-nafi' ? text.available && Boolean(bundle) : hasQuranFoundationCredentials(),
     khatmahUnit: d.id === 'warsh-nafi' ? 'VERSE' : 'PAGE',
     rendering: 'UNICODE_REFLOW', exactPrintedPageLayout: false,
+    /** Exact printed page (15 lines, King Fahd Complex glyph fonts): GET /quran/editions/madani-hafs/pages/{page}/layout?font=qcf_v2|qcf_v4_tajweed */
+    printedPageLayout: d.id === 'madani-hafs' && hasQuranFoundationCredentials() ? { available: true, fonts: ['qcf_v2', 'qcf_v4_tajweed'], defaultFont: 'qcf_v2', linesPerPage: 15 } : { available: false, fonts: [], defaultFont: null, linesPerPage: null },
     source: d.id === 'warsh-nafi' ? bundle?.sourceUrl ?? 'https://qurancomplex.gov.sa/en/techquran/dev/' : 'https://api-docs.quran.com/docs/tutorials/fonts/page-layout/',
     contentVersion: d.id === 'warsh-nafi' ? text.contentVersion : 'qf-v4',
     offlineDownloadAvailable: false,
@@ -159,9 +161,11 @@ export async function setMushafPreference(userId: string, id: EditionId) {
   await prisma.$executeRaw`INSERT INTO "mushaf_preferences" ("userId","editionId") VALUES (${userId},${id}) ON CONFLICT ("userId") DO UPDATE SET "editionId"=EXCLUDED."editionId"`;
   return getMushafPreference(userId);
 }
-export const mushafBookmarkSchema = z.object({ page: z.number().int().positive(), verseKey: z.string().regex(/^\d{1,3}:\d{1,3}$/), note: z.string().max(500).default(''), saved: z.boolean() }).strict();
-export async function getMushafBookmarks(userId: string, id: EditionId) {
+export const mushafBookmarkSchema = z.object({ page: z.number().int().positive(), verseKey: z.string().regex(/^\d{1,3}:\d{1,3}$/), note: z.string().max(2000).default(''), saved: z.boolean() }).strict();
+/** Saved verses; with `notesOnly`, only those carrying a personal note ("My notes"). */
+export async function getMushafBookmarks(userId: string, id: EditionId, notesOnly = false) {
   edition(id);
+  if (notesOnly) return prisma.$queryRaw`SELECT "page","verseKey","note","updatedAt" FROM "mushaf_bookmarks" WHERE "userId"=${userId} AND "editionId"=${id} AND "note" <> '' ORDER BY "updatedAt" DESC LIMIT 500`;
   return prisma.$queryRaw`SELECT "page","verseKey","note","updatedAt" FROM "mushaf_bookmarks" WHERE "userId"=${userId} AND "editionId"=${id} ORDER BY "updatedAt" DESC LIMIT 500`;
 }
 export async function setMushafBookmark(userId: string, id: EditionId, input: z.infer<typeof mushafBookmarkSchema>) {

@@ -33,6 +33,7 @@ import { travelRouter } from './travel';
 import { readingRouter } from './reading';
 import { fastingRouter } from './fasting';
 import { learningRouter } from './learning';
+import { hifzRouter } from './hifz';
 import { prayerExcuseRouter } from './prayer-excuse';
 
 export const v1Router = Router();
@@ -43,6 +44,7 @@ v1Router.use('/travel', travelRouter);
 v1Router.use('/reading', readingRouter);
 v1Router.use('/fasting', fastingRouter);
 v1Router.use('/learning', learningRouter);
+v1Router.use('/hifz', hifzRouter);
 
 v1Router.use('/health', healthRouter);
 v1Router.use('/auth', authRouter);

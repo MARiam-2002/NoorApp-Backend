@@ -95,7 +95,7 @@ export function stripSurahOpeningBismillahIfNeeded(ayah: {
   return text.replace(BISMILLAH_REGEX, '');
 }
 
-function sanitizeAyahText<T extends { surahId: number; ayahNumber: number; textAr: string }>(
+export function sanitizeAyahText<T extends { surahId: number; ayahNumber: number; textAr: string }>(
   ayah: T,
 ): T {
   const stripped = stripSurahOpeningBismillahIfNeeded(ayah);
@@ -1493,6 +1493,39 @@ const QURAN_RECITERS: ReciterOption[] = [
   { id: 'Muhammad_Siddiq_Al_Minshawi', code: 'Muhammad_Siddiq_Al_Minshawi', name: 'Muhammad Siddiq Al-Minshawi', nameAr: 'محمد صديق المنشاوي', nameEn: 'Muhammad Siddiq Al-Minshawi', style: 'Murattal', resourceId: 9, serverUrl: 'https://everyayah.com/data/Minshawy_Murattal_128kbps' },
   { id: 'Minshawi_Mujawwad', code: 'Minshawi_Mujawwad', name: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', nameAr: 'محمد صديق المنشاوي (مجود)', nameEn: 'Muhammad Siddiq Al-Minshawi (Mujawwad)', style: 'Mujawwad', resourceId: 8, serverUrl: 'https://everyayah.com/data/Minshawy_Mujawwad_192kbps' },
   { id: 'Mahmoud_Ali_Al_Banna', code: 'Mahmoud_Ali_Al_Banna', name: 'Mahmoud Ali Al-Banna', nameAr: 'محمود علي البنا', nameEn: 'Mahmoud Ali Al-Banna', style: 'Murattal', serverUrl: 'https://everyayah.com/data/mahmoud_ali_al_banna_32kbps' },
+  { id: 'Abdul_Basit_Mujawwad', code: 'Abdul_Basit_Mujawwad', name: 'Abdul Basit Abd us-Samad (Mujawwad)', nameAr: 'عبد الباسط عبد الصمد (مجود)', nameEn: 'Abdul Basit Abd us-Samad (Mujawwad)', style: 'Mujawwad', resourceId: 1, serverUrl: 'https://everyayah.com/data/Abdul_Basit_Mujawwad_128kbps' },
+  { id: 'Mahmoud_Al_Husary_Mujawwad', code: 'Mahmoud_Al_Husary_Mujawwad', name: 'Mahmoud Khalil Al-Husary (Mujawwad)', nameAr: 'محمود خليل الحصري (مجود)', nameEn: 'Mahmoud Khalil Al-Husary (Mujawwad)', style: 'Mujawwad', serverUrl: 'https://everyayah.com/data/Husary_128kbps_Mujawwad' },
+  { id: 'Mahmoud_Al_Husary_Muallim', code: 'Mahmoud_Al_Husary_Muallim', name: 'Mahmoud Khalil Al-Husary (Teaching)', nameAr: 'محمود خليل الحصري (المعلم)', nameEn: 'Mahmoud Khalil Al-Husary (Teaching)', style: 'Muallim', resourceId: 12, serverUrl: 'https://everyayah.com/data/Husary_Muallim_128kbps' },
+  { id: 'Maher_Al_Muaiqly', code: 'Maher_Al_Muaiqly', name: 'Maher Al-Muaiqly', nameAr: 'ماهر المعيقلي', nameEn: 'Maher Al-Muaiqly', style: 'Murattal', serverUrl: 'https://everyayah.com/data/MaherAlMuaiqly128kbps' },
+  { id: 'Yasser_Ad_Dussary', code: 'Yasser_Ad_Dussary', name: 'Yasser Ad-Dussary', nameAr: 'ياسر الدوسري', nameEn: 'Yasser Ad-Dussary', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Yasser_Ad-Dussary_128kbps' },
+  { id: 'Abu_Bakr_Ash_Shatri', code: 'Abu_Bakr_Ash_Shatri', name: 'Abu Bakr Ash-Shatri', nameAr: 'أبو بكر الشاطري', nameEn: 'Abu Bakr Ash-Shatri', style: 'Murattal', resourceId: 4, serverUrl: 'https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_128kbps' },
+  { id: 'Ahmed_Al_Ajamy', code: 'Ahmed_Al_Ajamy', name: 'Ahmed ibn Ali Al-Ajamy', nameAr: 'أحمد بن علي العجمي', nameEn: 'Ahmed ibn Ali Al-Ajamy', style: 'Murattal', serverUrl: 'https://everyayah.com/data/ahmed_ibn_ali_al_ajamy_128kbps' },
+  { id: 'Saad_Al_Ghamdi', code: 'Saad_Al_Ghamdi', name: 'Saad Al-Ghamdi', nameAr: 'سعد الغامدي', nameEn: 'Saad Al-Ghamdi', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Ghamadi_40kbps' },
+  { id: 'Hani_Ar_Rifai', code: 'Hani_Ar_Rifai', name: 'Hani Ar-Rifai', nameAr: 'هاني الرفاعي', nameEn: 'Hani Ar-Rifai', style: 'Murattal', resourceId: 5, serverUrl: 'https://everyayah.com/data/Hani_Rifai_192kbps' },
+  { id: 'Ali_Al_Hudhaify', code: 'Ali_Al_Hudhaify', name: 'Ali Al-Hudhaify', nameAr: 'علي الحذيفي', nameEn: 'Ali Al-Hudhaify', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Hudhaify_128kbps' },
+  { id: 'Abdullah_Basfar', code: 'Abdullah_Basfar', name: 'Abdullah Basfar', nameAr: 'عبد الله بصفر', nameEn: 'Abdullah Basfar', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Abdullah_Basfar_192kbps' },
+  { id: 'Mohammad_Al_Tablawi', code: 'Mohammad_Al_Tablawi', name: 'Mohammad Al-Tablawi', nameAr: 'محمد الطبلاوي', nameEn: 'Mohammad Al-Tablawi', style: 'Murattal', resourceId: 11, serverUrl: 'https://everyayah.com/data/Mohammad_al_Tablaway_128kbps' },
+  { id: 'Muhammad_Ayyoub', code: 'Muhammad_Ayyoub', name: 'Muhammad Ayyoub', nameAr: 'محمد أيوب', nameEn: 'Muhammad Ayyoub', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Muhammad_Ayyoub_128kbps' },
+  { id: 'Muhammad_Jibreel', code: 'Muhammad_Jibreel', name: 'Muhammad Jibreel', nameAr: 'محمد جبريل', nameEn: 'Muhammad Jibreel', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Muhammad_Jibreel_128kbps' },
+  { id: 'Salah_Bukhatir', code: 'Salah_Bukhatir', name: 'Salah Bukhatir', nameAr: 'صلاح بو خاطر', nameEn: 'Salah Bukhatir', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Salaah_AbdulRahman_Bukhatir_128kbps' },
+  { id: 'Muhsin_Al_Qasim', code: 'Muhsin_Al_Qasim', name: 'Muhsin Al-Qasim', nameAr: 'محسن القاسم', nameEn: 'Muhsin Al-Qasim', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Muhsin_Al_Qasim_192kbps' },
+  { id: 'Abdullah_Al_Juhany', code: 'Abdullah_Al_Juhany', name: 'Abdullah Awad Al-Juhany', nameAr: 'عبد الله الجهني', nameEn: 'Abdullah Awad Al-Juhany', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Abdullaah_3awwaad_Al-Juhaynee_128kbps' },
+  { id: 'Salah_Al_Budair', code: 'Salah_Al_Budair', name: 'Salah Al-Budair', nameAr: 'صلاح البدير', nameEn: 'Salah Al-Budair', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Salah_Al_Budair_128kbps' },
+  { id: 'Abdullah_Matroud', code: 'Abdullah_Matroud', name: 'Abdullah Matroud', nameAr: 'عبد الله المطرود', nameEn: 'Abdullah Matroud', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Abdullah_Matroud_128kbps' },
+  { id: 'Ahmed_Neana', code: 'Ahmed_Neana', name: 'Ahmed Neana', nameAr: 'أحمد نعينع', nameEn: 'Ahmed Neana', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Ahmed_Neana_128kbps' },
+  { id: 'Muhammad_AbdulKareem', code: 'Muhammad_AbdulKareem', name: 'Muhammad AbdulKareem', nameAr: 'محمد عبد الكريم', nameEn: 'Muhammad AbdulKareem', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Muhammad_AbdulKareem_128kbps' },
+  { id: 'Khalifa_Al_Tunaiji', code: 'Khalifa_Al_Tunaiji', name: 'Khalifa Al-Tunaiji', nameAr: 'خليفة الطنيجي', nameEn: 'Khalifa Al-Tunaiji', style: 'Murattal', serverUrl: 'https://everyayah.com/data/khalefa_al_tunaiji_64kbps' },
+  { id: 'Khalid_Al_Qahtani', code: 'Khalid_Al_Qahtani', name: 'Khalid Al-Qahtani', nameAr: 'خالد القحطاني', nameEn: 'Khalid Al-Qahtani', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Khaalid_Abdullaah_al-Qahtaanee_192kbps' },
+  { id: 'Nasser_Al_Qatami', code: 'Nasser_Al_Qatami', name: 'Nasser Al-Qatami', nameAr: 'ناصر القطامي', nameEn: 'Nasser Al-Qatami', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Nasser_Alqatami_128kbps' },
+  { id: 'Ali_Hajjaj_As_Suwaisi', code: 'Ali_Hajjaj_As_Suwaisi', name: 'Ali Hajjaj As-Suwaisi', nameAr: 'علي حجاج السويسي', nameEn: 'Ali Hajjaj As-Suwaisi', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Ali_Hajjaj_AlSuesy_128kbps' },
+  { id: 'Sahl_Yassin', code: 'Sahl_Yassin', name: 'Sahl Yassin', nameAr: 'سهل ياسين', nameEn: 'Sahl Yassin', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Sahl_Yassin_128kbps' },
+  { id: 'Aziz_Alili', code: 'Aziz_Alili', name: 'Aziz Alili', nameAr: 'عزيز عليلي', nameEn: 'Aziz Alili', style: 'Murattal', serverUrl: 'https://everyayah.com/data/aziz_alili_128kbps' },
+  { id: 'Yaser_Salamah', code: 'Yaser_Salamah', name: 'Yaser Salamah', nameAr: 'ياسر سلامة', nameEn: 'Yaser Salamah', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Yaser_Salamah_128kbps' },
+  { id: 'Akram_Al_Alaqimy', code: 'Akram_Al_Alaqimy', name: 'Akram Al-Alaqimy', nameAr: 'أكرم العلاقمي', nameEn: 'Akram Al-Alaqimy', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Akram_AlAlaqimy_128kbps' },
+  { id: 'Ali_Jaber', code: 'Ali_Jaber', name: 'Ali Jaber', nameAr: 'علي جابر', nameEn: 'Ali Jaber', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Ali_Jaber_64kbps' },
+  { id: 'Fares_Abbad', code: 'Fares_Abbad', name: 'Fares Abbad', nameAr: 'فارس عباد', nameEn: 'Fares Abbad', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Fares_Abbad_64kbps' },
+  { id: 'Ayman_Sowaid', code: 'Ayman_Sowaid', name: 'Ayman Sowaid', nameAr: 'أيمن سويد', nameEn: 'Ayman Sowaid', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Ayman_Sowaid_64kbps' },
+  { id: 'Karim_Mansoori', code: 'Karim_Mansoori', name: 'Karim Mansoori', nameAr: 'كريم منصوري', nameEn: 'Karim Mansoori', style: 'Murattal', serverUrl: 'https://everyayah.com/data/Karim_Mansoori_40kbps' },
 ];
 
 export async function listReciters(): Promise<ReciterOption[]> {
@@ -1538,6 +1571,7 @@ const QURAN_TAFSIRS: TafsirOption[] = [
   { id: 'Ibn_Kathir_Muyassar', code: 'Ibn_Kathir_Muyassar', name: 'Tafsir Al-Muyassar', nameAr: 'تفسير الميسر', nameEn: 'Tafsir Al-Muyassar', authorAr: 'نخبة من العلماء بإشراف مجمع الملك فهد لطباعة المصحف الشريف', authorEn: 'A committee of scholars, King Fahd Glorious Quran Printing Complex', source: 'ar-tafsir-muyassar', language: 'Arabic', resourceId: 16 },
   { id: 'Al_Baghawi', code: 'Al_Baghawi', name: "Ma'alim Al-Tanzil (Al-Baghawi)", nameAr: 'معالم التنزيل (البغوي)', nameEn: "Ma'alim Al-Tanzil (Al-Baghawi)", authorAr: 'حسين بن مسعود البغوي', authorEn: "Husayn ibn Mas'ud Al-Baghawi", yearHijri: 516, yearGregorian: 1122, source: 'ar-tafsir-al-baghawi', language: 'Arabic', resourceId: 94 },
   { id: 'Al_Saadi', code: 'Al_Saadi', name: "Tafsir Al-Sa'di", nameAr: 'تفسير السعدي', nameEn: "Tafsir Al-Sa'di", authorAr: 'عبد الرحمن السعدي', authorEn: "Abdur-Rahman As-Sa'di", source: 'ar-tafseer-al-saddi', language: 'Arabic', resourceId: 91 },
+  { id: 'Al_Wasit', code: 'Al_Wasit', name: 'Al-Tafsir Al-Wasit (Tantawi)', nameAr: 'التفسير الوسيط (طنطاوي)', nameEn: 'Al-Tafsir Al-Wasit (Tantawi)', authorAr: 'محمد سيد طنطاوي', authorEn: 'Muhammad Sayyid Tantawi', yearHijri: 1431, yearGregorian: 2010, source: 'ar-tafsir-al-wasit', language: 'Arabic', resourceId: 93 },
   { id: 'Ibn_Kathir_En', code: 'Ibn_Kathir_En', name: 'Ibn Kathir (Abridged, English)', nameAr: 'ابن كثير (مختصر إنجليزي)', nameEn: 'Ibn Kathir (Abridged, English)', authorAr: 'إسماعيل بن كثير', authorEn: 'Ismail ibn Kathir', source: 'en-tafisr-ibn-kathir', language: 'English', resourceId: 169 },
 ];
 

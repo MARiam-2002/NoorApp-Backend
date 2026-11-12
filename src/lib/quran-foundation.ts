@@ -300,6 +300,10 @@ export const QF_RESOURCE_MAP: QfResourceMaps = {
     al_baghawi: 94,
     Al_Saadi: 91,
     al_saadi: 91,
+    'ar-tafseer-al-saddi': 91,
+    Al_Wasit: 93,
+    al_wasit: 93,
+    'ar-tafsir-al-wasit': 93,
   },
   recitationIdByCode: {
     Mishary_Alafasy: 7,

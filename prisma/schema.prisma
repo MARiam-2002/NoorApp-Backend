@@ -122,6 +122,9 @@ model User {
   duhaSendLogs            DuhaSendLog[]
   qiyamSendLogs           QiyamSendLog[]
   khatmahSendLogs         KhatmahSendLog[]
+  hifzPlan                HifzPlan?
+  hifzSegments            HifzSegment[]
+  hifzSendLogs            HifzSendLog[]
   zakatCycles             ZakatCycle[]
   charityReminder         CharityReminder?
   charitySendLogs         CharitySendLog[]
@@ -1183,4 +1186,62 @@ model LearningProgress {
   @@id([userId, itemId])
   @@index([userId, updatedAt(sort: Desc)], map: "learning_progress_user_updated_idx")
   @@map("learning_progress")
+}
+
+/// Quran memorization plan (one per user). Text columns are constrained in SQL.
+model HifzPlan {
+  userId          String   @id
+  fromSurah       Int
+  toSurah         Int
+  direction       String   @default("BACKWARD")
+  dailyNewVerses  Int      @default(5)
+  reviewLimit     Int      @default(10)
+  reciterId       String?
+  reminderEnabled Boolean  @default(false)
+  reminderTime    String   @default("06:00")
+  status          String   @default("ACTIVE")
+  revision        Int      @default(0)
+  startedAt       DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([reminderEnabled, status], map: "hifz_plans_reminder_idx")
+  @@map("hifz_plans")
+}
+
+/// A memorized verse range with its spaced-review schedule (days in the user's timezone).
+model HifzSegment {
+  id             String    @id
+  userId         String
+  surahId        Int
+  fromAyah       Int
+  toAyah         Int
+  memorizedAt    DateTime  @default(now())
+  memorizedDay   DateTime  @db.Date
+  stage          Int       @default(0)
+  nextReviewDay  DateTime  @db.Date
+  lastReviewedAt DateTime?
+  lastGrade      String?
+  reviewCount    Int       @default(0)
+  lapses         Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, surahId, fromAyah])
+  @@index([userId, nextReviewDay])
+  @@map("hifz_segments")
+}
+
+model HifzSendLog {
+  id            String   @id
+  userId        String
+  occurrenceKey String
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, occurrenceKey])
+  @@index([userId, createdAt])
+  @@map("hifz_send_logs")
 }

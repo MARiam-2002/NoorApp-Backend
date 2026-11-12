@@ -2,10 +2,10 @@ import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
 import { listReciters, validateQuranAudioSelection } from './quran.service';
 
-export const QURAN_AUDIO_CATALOG_VERSION = 1;
+export const QURAN_AUDIO_CATALOG_VERSION = 2;
 
 function metadata(reader: Awaited<ReturnType<typeof listReciters>>[number]) {
-  const bitrate = Number(reader.serverUrl?.match(/_(\d+)kbps/)?.[1]);
+  const bitrate = Number(reader.serverUrl?.match(/(\d+)kbps/i)?.[1]);
   return {
     ...reader,
     riwaya: 'Hafs',
@@ -30,6 +30,8 @@ export async function getQuranAudioCatalog() {
 /** Local URL generation only: no database access or per-verse upstream requests. */
 export function getQuranAudioPlaylist(input: {
   surahId: number; reciterId?: string; fromAyah?: number; toAyah?: number; qualityKbps?: number;
+  /** Memorization/listening repeat: each verse N times, then the whole range M times (1 = no repeat). */
+  repeatEach?: number; repeatRange?: number;
 }) {
   const fromAyah = input.fromAyah ?? 1;
   const { surah, reader } = validateQuranAudioSelection(input.surahId, fromAyah, input.reciterId);
@@ -40,6 +42,15 @@ export function getQuranAudioPlaylist(input: {
     throw new AppError('Invalid verse range or unavailable audio quality', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
   const qualityKbps = reciter.availableQualities[0] ?? null;
+  const repeatEach = input.repeatEach ?? 1;
+  const repeatRange = input.repeatRange ?? 1;
+  const count = toAyah - fromAyah + 1;
+  if (![repeatEach, repeatRange].every(n => Number.isInteger(n) && n >= 1 && n <= 50) || count * repeatEach * repeatRange > 5000) {
+    throw new AppError('Repeat counts must be 1-50 and the playback sequence at most 5000 items', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  /** Indexes into `items`, in playback order, with the requested repeats applied. */
+  const sequence: number[] = [];
+  for (let r = 0; r < repeatRange; r++) for (let i = 0; i < count; i++) for (let e = 0; e < repeatEach; e++) sequence.push(i);
   return {
     schemaVersion: 1,
     catalogVersion: QURAN_AUDIO_CATALOG_VERSION,
@@ -47,6 +58,8 @@ export function getQuranAudioPlaylist(input: {
     surahId: surah.id,
     totalAyahs: surah.totalAyahs,
     fromAyah, toAyah, qualityKbps,
+    repeat: { each: repeatEach, range: repeatRange },
+    sequence,
     // No guessed 000 file or extra basmala is inserted; items are numbered Quran verses.
     items: Array.from({ length: toAyah - fromAyah + 1 }, (_, offset) => {
       const ayahNumber = fromAyah + offset;

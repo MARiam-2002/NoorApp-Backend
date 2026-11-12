@@ -142,6 +142,8 @@ const audioPlaylistQuerySchema = z.object({
   fromAyah: z.coerce.number().int().min(1).max(286).optional(),
   toAyah: z.coerce.number().int().min(1).max(286).optional(),
   qualityKbps: z.coerce.number().int().positive().optional(),
+  repeatEach: z.coerce.number().int().min(1).max(50).optional(),
+  repeatRange: z.coerce.number().int().min(1).max(50).optional(),
 });
 
 /**
