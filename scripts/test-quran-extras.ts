@@ -66,6 +66,7 @@ async function main() {
   assert.equal(new Set(tr.map(t => t.id)).size, tr.length);
   assert.equal(new Set(tr.map(t => t.resourceId)).size, tr.length, 'unique resource ids');
   assert.ok(new Set(tr.map(t => t.languageCode)).size >= 30, 'at least 30 languages');
+  for (const t of tr) assert.ok(Number.isInteger(t.resourceId) && t.resourceId! > 0, `${t.id} has a Quran Foundation resource id`);
   if (process.env.HIFZ_TEST_DB === 'true') {
     const rollback = new Error('ROLLBACK');
     try {

@@ -1864,7 +1864,8 @@ export async function getAyahTranslation(
     QURAN_TRANSLATIONS[0] ??
     { id: 'Sahih_International', code: 'Sahih_International' };
 
-  const resourceId = resolveTranslationResourceId(sourceId ?? catalog.id);
+  const matched = QURAN_TRANSLATIONS.find((t) => matchesCatalogId(t, sourceId));
+  const resourceId = matched?.resourceId ?? resolveTranslationResourceId(sourceId && /^\d+$/.test(sourceId.trim()) ? sourceId : catalog.id);
   try {
     const qf = await fetchQfTranslationByVerse(resourceId, verseKey(surahId, ayahNumber));
     if (qf?.text) {
