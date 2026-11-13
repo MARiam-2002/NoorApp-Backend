@@ -13,6 +13,8 @@ import {
   resolveTimezone,
 } from './salawat-reminder.service';
 import { evaluateMulkEligibility } from './mulk-reminder.service';
+import { AZAN_PREFERENCES_USER_SELECT, buildAzanPreferencesFromUser } from './azan.service';
+import { computePrayerInstantsAround } from './prayer.service';
 import {
   localCoverageUntilMs,
   PUSH_TTL_SECONDS,
@@ -60,7 +62,75 @@ export type ExtraPrayerPreferencesDto = {
   usesCustomVoice: true;
   /** Local coverage the app reported for this reminder; null = none reported or cleared. */
   localScheduledUntil: string | null;
+  /** Qiyam only: FIXED = `time` every night; LAST_THIRD = start of the last third of the night (+ offsetMinutes). */
+  timingMode?: QiyamTimingMode;
+  offsetMinutes?: number;
+  /** Qiyam LAST_THIRD: the next reminder instant (ISO) and its local HH:mm; null when the location is unknown. */
+  nextAtUtc?: string | null;
+  nextLocalTime?: string | null;
+  locationRequired?: boolean;
 };
+
+export type QiyamTimingMode = 'FIXED' | 'LAST_THIRD';
+/** Stored in users.azanPreferences JSON (no extra column / migration), next to the coverage map. */
+const QIYAM_TIMING_KEY = 'qiyamTiming';
+
+export function readQiyamTiming(azanPreferences: unknown): { mode: QiyamTimingMode; offsetMinutes: number } {
+  const raw = (azanPreferences as Record<string, any> | null)?.[QIYAM_TIMING_KEY];
+  const mode: QiyamTimingMode = raw?.mode === 'LAST_THIRD' ? 'LAST_THIRD' : 'FIXED';
+  const off = Number(raw?.offsetMinutes);
+  return { mode, offsetMinutes: Number.isInteger(off) && off >= 0 && off <= 60 ? off : 0 };
+}
+
+type LocationUser = { azanPreferences: unknown; prayerCalculationMethod: string | null; latitude: number | null; longitude: number | null; city: string | null; timezone: string | null };
+
+/**
+ * Start of the last third of the night that begins at Maghrib of `nightDate` (local) and ends at the next Fajr:
+ * Maghrib + 2/3 × (Fajr − Maghrib), same rule as adhan's SunnahTimes.lastThirdOfTheNight. Null when the location is
+ * unknown or a time does not exist (polar nights).
+ */
+export function lastThirdOfNight(user: LocationUser, nightDate: string): Date | null {
+  if (user.latitude == null || user.longitude == null || !Number.isFinite(user.latitude) || !Number.isFinite(user.longitude)) return null;
+  const azan = buildAzanPreferencesFromUser(user as any);
+  const { instants } = computePrayerInstantsAround({
+    latitude: user.latitude, longitude: user.longitude, timezone: user.timezone, method: azan.calculationMethod,
+    madhab: azan.madhab, locationSource: 'profile', now: new Date(nightDate + 'T12:00:00Z'),
+  });
+  const next = new Date(Date.parse(nightDate + 'T12:00:00Z') + 86400000).toISOString().slice(0, 10);
+  const maghrib = instants.find(i => i.key === 'MAGHRIB' && i.date === nightDate);
+  const fajr = instants.find(i => i.key === 'FAJR' && i.date === next);
+  if (!maghrib || !fajr || fajr.timestamp <= maghrib.timestamp) return null;
+  const night = fajr.timestamp.getTime() - maghrib.timestamp.getTime();
+  return new Date(Math.floor((maghrib.timestamp.getTime() + (night * 2) / 3) / 60000) * 60000);
+}
+
+/** The LAST_THIRD reminder instant closest to `now` (last night's or tonight's), with its local HH:mm. */
+export function qiyamLastThirdTarget(user: LocationUser, offsetMinutes: number, now: Date, timeZone: string) {
+  const today = getLocalClock(now, timeZone).dayKey;
+  const yesterday = new Date(Date.parse(today + 'T12:00:00Z') - 86400000).toISOString().slice(0, 10);
+  const candidates = [yesterday, today]
+    .map(d => lastThirdOfNight(user, d))
+    .filter((d): d is Date => d !== null)
+    .map(d => new Date(d.getTime() + offsetMinutes * 60000));
+  if (!candidates.length) return null;
+  const best = candidates.sort((a, b) => Math.abs(a.getTime() - now.getTime()) - Math.abs(b.getTime() - now.getTime()))[0]!;
+  const c = getLocalClock(best, timeZone);
+  return { at: best, localTime: `${String(c.hour).padStart(2, '0')}:${String(c.minute).padStart(2, '0')}`, dayKey: c.dayKey };
+}
+
+/** Next LAST_THIRD reminder after `now` (for the settings screen). */
+function nextQiyamLastThird(user: LocationUser, offsetMinutes: number, now: Date) {
+  const timeZone = resolveTimezone(user.timezone);
+  const today = getLocalClock(now, timeZone).dayKey;
+  for (const k of [-1, 0, 1]) {
+    const d = new Date(Date.parse(today + 'T12:00:00Z') + k * 86400000).toISOString().slice(0, 10);
+    const t = lastThirdOfNight(user, d);
+    if (!t) continue;
+    const at = new Date(t.getTime() + offsetMinutes * 60000);
+    if (at > now) { const c = getLocalClock(at, timeZone); return { at, localTime: `${String(c.hour).padStart(2, '0')}:${String(c.minute).padStart(2, '0')}` }; }
+  }
+  return null;
+}
 
 function meta(kind: ExtraPrayerKind) {
   if (kind === 'DUHA') {
@@ -182,14 +252,19 @@ async function readExtraPrayerPreferences(userId: string, kind: ExtraPrayerKind)
       duhaReminderTime: true,
       qiyamReminderEnabled: true,
       qiyamReminderTime: true,
-      azanPreferences: true,
+      timezone: true,
+      ...AZAN_PREFERENCES_USER_SELECT,
     },
   });
   if (!user) throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
   const coverage = readExtraPrayerCoverage(user.azanPreferences, kind).until;
-  return kind === 'DUHA'
-    ? toDto('DUHA', user.duhaReminderEnabled, user.duhaReminderTime, coverage)
-    : toDto('QIYAM', user.qiyamReminderEnabled, user.qiyamReminderTime, coverage);
+  if (kind === 'DUHA') return toDto('DUHA', user.duhaReminderEnabled, user.duhaReminderTime, coverage);
+  const dto = toDto('QIYAM', user.qiyamReminderEnabled, user.qiyamReminderTime, coverage);
+  const timing = readQiyamTiming(user.azanPreferences);
+  const next = timing.mode === 'LAST_THIRD' ? nextQiyamLastThird(user as LocationUser, timing.offsetMinutes, new Date()) : null;
+  return { ...dto, timingMode: timing.mode, offsetMinutes: timing.offsetMinutes,
+    nextAtUtc: next?.at.toISOString() ?? null, nextLocalTime: next?.localTime ?? null,
+    locationRequired: timing.mode === 'LAST_THIRD' && next === null };
 }
 
 export async function getDuhaPreferences(userId: string): Promise<ExtraPrayerPreferencesDto> {
@@ -200,7 +275,7 @@ export async function getQiyamPreferences(userId: string): Promise<ExtraPrayerPr
   return readExtraPrayerPreferences(userId, 'QIYAM');
 }
 
-type ExtraPrayerPatch = { enabled?: boolean; time?: string; localScheduledUntil?: string | null };
+type ExtraPrayerPatch = { enabled?: boolean; time?: string; localScheduledUntil?: string | null; timingMode?: QiyamTimingMode; offsetMinutes?: number };
 
 async function updateExtraPrayerPreferences(
   userId: string,
@@ -217,7 +292,14 @@ async function updateExtraPrayerPreferences(
     }
     data[timeField] = patch.time;
   }
-  if (Object.keys(data).length === 0 && patch.localScheduledUntil === undefined) {
+  const timingPatch = patch.timingMode !== undefined || patch.offsetMinutes !== undefined;
+  if (timingPatch && kind !== 'QIYAM') {
+    throw new AppError('timingMode and offsetMinutes apply to Qiyam only', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  if (patch.offsetMinutes !== undefined && (!Number.isInteger(patch.offsetMinutes) || patch.offsetMinutes < 0 || patch.offsetMinutes > 60)) {
+    throw new AppError('offsetMinutes must be 0..60', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  if (Object.keys(data).length === 0 && patch.localScheduledUntil === undefined && !timingPatch) {
     throw new AppError('No preference fields to update', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
   await prisma.$transaction(async (db) => {
@@ -225,7 +307,14 @@ async function updateExtraPrayerPreferences(
     const rows: Array<{ azanPreferences: unknown }> =
       await db.$queryRaw`SELECT "azanPreferences" FROM "users" WHERE "id"=${userId} FOR UPDATE`;
     if (!rows.length) throw new AppError('User not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
-    const nextPrefs = nextExtraPrayerCoverage(rows[0]!.azanPreferences, kind, patch);
+    let nextPrefs = nextExtraPrayerCoverage(rows[0]!.azanPreferences, kind,
+      // A timing change invalidates the local schedule exactly like a time change.
+      timingPatch && patch.time === undefined ? { ...patch, time: 'timing' } : patch);
+    if (timingPatch) {
+      const base = nextPrefs ?? { ...((rows[0]!.azanPreferences as Record<string, unknown> | null) ?? {}) };
+      const current = readQiyamTiming(base);
+      nextPrefs = { ...base, [QIYAM_TIMING_KEY]: { mode: patch.timingMode ?? current.mode, offsetMinutes: patch.offsetMinutes ?? current.offsetMinutes } };
+    }
     await db.user.update({
       where: { id: userId },
       data: { ...data, ...(nextPrefs ? { azanPreferences: nextPrefs as any } : {}) },
@@ -295,7 +384,7 @@ async function runKindReminders(
         duhaReminderTime: true,
         qiyamReminderEnabled: true,
         qiyamReminderTime: true,
-        azanPreferences: true,
+        ...AZAN_PREFERENCES_USER_SELECT,
       },
       take: 200,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -311,10 +400,18 @@ async function runKindReminders(
       try {
         const timeZone = resolveTimezone(user.timezone);
         const enabled = kind === 'DUHA' ? user.duhaReminderEnabled : user.qiyamReminderEnabled;
-        const reminderTime = normalizeHhmm(
+        let reminderTime = normalizeHhmm(
           kind === 'DUHA' ? user.duhaReminderTime : user.qiyamReminderTime,
           m.defaultTime,
         );
+        if (kind === 'QIYAM') {
+          const timing = readQiyamTiming(user.azanPreferences);
+          if (timing.mode === 'LAST_THIRD') {
+            const target = qiyamLastThirdTarget(user as LocationUser, timing.offsetMinutes, now, timeZone);
+            // No location (or polar night): fall back to the fixed time so the reminder is never lost.
+            if (target) reminderTime = target.localTime;
+          }
+        }
         const decision = evaluateMulkEligibility({
           enabled,
           now,

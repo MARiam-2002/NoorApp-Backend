@@ -26,6 +26,16 @@ async function main() {
     assert.equal(fajrAlarmPatchSchema.safeParse({ expectedRevision: 0, preferences }).success, false);
   }
   assert.equal(fajrAlarmPatchSchema.safeParse({ expectedRevision: -1, preferences: { enabled: true } }).success, false);
+  // Sensor stop methods: steps and light, with bounded parameters; old settings without them get the defaults.
+  assert.equal(defaults.dismissalMode, 'math');
+  assert.deepEqual([defaults.stepsRequired, defaults.lightLux], [30, 100]);
+  assert.equal(fajrAlarmPreferencesSchema.parse({ dismissalMode: 'math', difficulty: 'easy' }).stepsRequired, 30, 'stored rows from before keep working');
+  for (const preferences of [{ dismissalMode: 'steps', stepsRequired: 40 }, { dismissalMode: 'light', lightLux: 150 }]) {
+    assert.equal(fajrAlarmPatchSchema.safeParse({ expectedRevision: 0, preferences }).success, true);
+  }
+  for (const preferences of [{ dismissalMode: 'shake' }, { stepsRequired: 5 }, { stepsRequired: 101 }, { lightLux: 10 }, { lightLux: 1000 }]) {
+    assert.equal(fajrAlarmPatchSchema.safeParse({ expectedRevision: 0, preferences }).success, false);
+  }
   assert.equal(fajrAlarmScheduleQuerySchema.safeParse({ days: 15 }).success, false);
   assert.equal(fajrAlarmScheduleQuerySchema.safeParse({ days: ['7', '8'] }).success, false);
   const user = { latitude: 30.0444, longitude: 31.2357, timezone: 'Africa/Cairo', city: 'Cairo', azanPreferences: {}, prayerCalculationMethod: 'AUTO' };

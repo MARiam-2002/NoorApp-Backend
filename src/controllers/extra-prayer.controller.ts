@@ -24,10 +24,14 @@ export const extraPrayerPreferencesPatchSchema = z
      * or null when it could not schedule it. The server skips its FCM backup up to this instant.
      */
     localScheduledUntil: z.string().datetime({ offset: true }).nullable().optional(),
+    /** Qiyam only: FIXED (use `time`) or LAST_THIRD (start of the last third of the night + offsetMinutes). */
+    timingMode: z.enum(['FIXED', 'LAST_THIRD']).optional(),
+    offsetMinutes: z.number().int().min(0).max(60).optional(),
   })
   .refine(
-    (body) => body.enabled !== undefined || body.time !== undefined || body.localScheduledUntil !== undefined,
-    { message: 'At least one of enabled, time, localScheduledUntil is required' },
+    (body) => body.enabled !== undefined || body.time !== undefined || body.localScheduledUntil !== undefined
+      || body.timingMode !== undefined || body.offsetMinutes !== undefined,
+    { message: 'At least one of enabled, time, localScheduledUntil, timingMode, offsetMinutes is required' },
   );
 
 export const getDuhaPreferencesHandler = asyncHandler(async (req: Request, res: Response) => {

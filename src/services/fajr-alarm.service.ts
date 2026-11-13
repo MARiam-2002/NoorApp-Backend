@@ -13,7 +13,12 @@ export const fajrAlarmPreferencesSchema = z.object({
   weekdays: z.array(z.number().int().min(1).max(7)).min(1).max(7)
     .refine(v => new Set(v).size === v.length, 'Weekdays must be unique')
     .transform(v => [...v].sort()).default([1, 2, 3, 4, 5, 6, 7]),
-  dismissalMode: z.enum(['math', 'button']).default('math'),
+  /** math: answer questions · button: hold to stop · steps: walk N steps · light: turn the room light on (Android only). */
+  dismissalMode: z.enum(['math', 'button', 'steps', 'light']).default('math'),
+  /** steps mode: how many steps stop the alarm. */
+  stepsRequired: z.number().int().min(10).max(100).default(30),
+  /** light mode: ambient light (lux) that must be reached and held for FAJR_ALARM_POLICY.lightHoldSeconds. */
+  lightLux: z.number().int().min(30).max(400).default(100),
   difficulty: z.enum(['easy', 'medium']).default('easy'),
   questionCount: z.number().int().min(1).max(5).default(2),
   snoozeEnabled: z.boolean().default(true),
@@ -39,7 +44,20 @@ type PreferenceRow = { preferences: unknown; revision: number; updatedAt: Date }
 export const FAJR_ALARM_POLICY = {
   deliveryMode: 'DEVICE_LOCAL', cloudEnabledDoesNotArmDevice: true,
   emergencyStopHoldSeconds: 5, iosMathDismissalEnforceable: false,
-  awardsPrayerCompletion: false, schemaVersion: 1,
+  awardsPrayerCompletion: false, schemaVersion: 2,
+  /**
+   * Which stop methods each platform can enforce. iOS exposes no ambient-light sensor, so `light` is Android-only.
+   * Sensor modes need a permission (Android ACTIVITY_RECOGNITION for steps); without it, or when the sensor reports
+   * nothing for `sensorFallbackSeconds` while ringing, the app switches to `math` so the alarm can always be stopped.
+   */
+  dismissalModes: [
+    { mode: 'math', platforms: ['android', 'ios'], permission: null },
+    { mode: 'button', platforms: ['android', 'ios'], permission: null },
+    { mode: 'steps', platforms: ['android', 'ios'], permission: 'ACTIVITY_RECOGNITION / Motion & Fitness' },
+    { mode: 'light', platforms: ['android'], permission: null },
+  ],
+  sensorFallbackSeconds: 60,
+  lightHoldSeconds: 3,
 } as const;
 const defaults = () => fajrAlarmPreferencesSchema.parse({});
 function view(row?: PreferenceRow) {
