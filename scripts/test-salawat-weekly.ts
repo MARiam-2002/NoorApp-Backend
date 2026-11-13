@@ -66,13 +66,14 @@ async function db() {
       assert.deepEqual([r.myCount, r.duplicate], [100, true], 'a retried batch is not counted twice');
       r = await addSalawatCount('sw-b', { batchId: '6f1c2a90-1111-4c1d-9a00-000000000002', count: 33 }, open, tx);
       assert.deepEqual([r.myCount, r.communityTotal, r.participants], [33, 133, 2], 'shared total of everyone');
-      await assert.rejects(addSalawatCount('sw-a', { batchId: '6f1c2a90-1111-4c1d-9a00-000000000003', count: 1 }, new Date('2026-11-14T10:00:00Z'), tx), (e: any) => e.statusCode === 409, 'closed on Saturday');
+      await assert.rejects(addSalawatCount('sw-a', { batchId: '6f1c2a90-1111-4c1d-9a00-000000000003', count: 1 }, new Date('2026-11-14T10:00:00Z'), tx), (e: any) => e.statusCode === 409 && e.details?.weekKey === '2026-11-20' && typeof e.details?.opensAt === 'string', 'closed on Saturday, with the next window');
       await assert.rejects(addSalawatCount('sw-a', { batchId: 'x', count: 1 }, open, tx), (e: any) => e.name === 'ZodError');
       await assert.rejects(addSalawatCount('sw-a', { batchId: '6f1c2a90-1111-4c1d-9a00-000000000004', count: 1001 }, open, tx), (e: any) => e.name === 'ZodError');
       for (let i = 0; i < 101; i++) r = await addSalawatCount('sw-a', { batchId: `6f1c2a90-2222-4c1d-9a00-${String(i).padStart(12, '0')}`, count: 1000 }, open, tx);
       assert.deepEqual([r.myCount, r.capped], [SALAWAT_WEEKLY_LIMITS.maxPerWeek, true], 'weekly cap');
       const me = await getSalawatWeeklyMine('sw-a', open, tx);
       assert.deepEqual([me.weekKey, me.myCount, me.isOpen], ['2026-11-13', 100000, true]);
+      assert.deepEqual(Object.keys(me.evidence[0]), ['id', 'leadAr', 'textAr', 'referenceAr'], 'internal evidence fields are not sent');
       console.log('salawat weekly DB flow passed (rolled back)');
       throw rollback;
     }, { timeout: 120000 });

@@ -81,7 +81,8 @@ async function loadLoc(db: Db, userId: string): Promise<Loc> {
 }
 
 const dto = (w: ReturnType<typeof salawatWindow>, c: { total: number; participants: number }) => ({
-  ...w, communityTotal: c.total, participants: c.participants, evidence: SALAWAT_WEEKLY_EVIDENCE,
+  ...w, communityTotal: c.total, participants: c.participants,
+  evidence: SALAWAT_WEEKLY_EVIDENCE.map(({ id, leadAr, textAr, referenceAr }) => ({ id, leadAr, textAr, referenceAr })),
   titleAr: 'مجلس الصلاة على النبي ﷺ', subtitleAr: 'من مغرب الخميس إلى مغرب الجمعة',
 });
 
@@ -110,7 +111,7 @@ export async function addSalawatCount(userId: string, raw: unknown, now = new Da
   const v = salawatCountSchema.parse(raw);
   const run = async (tx: Db) => {
     const w = salawatWindow(await loadLoc(tx, userId), now);
-    if (!w.isOpen) throw new AppError(`The gathering opens at ${w.opensAt}`, 409, ErrorCodes.CONFLICT);
+    if (!w.isOpen) throw new AppError(`The gathering opens at ${w.opensAt}`, 409, ErrorCodes.CONFLICT, { weekKey: w.weekKey, opensAt: w.opensAt, closesAt: w.closesAt });
     const fresh = await tx.$executeRaw`INSERT INTO "salawat_weekly_batches" ("userId","batchId") VALUES (${userId},${v.batchId}) ON CONFLICT DO NOTHING`;
     let capped = false;
     if (fresh === 1) {
