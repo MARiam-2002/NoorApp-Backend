@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { getMuyassarPassage } from './tafsir-muyassar.service';
 import { CATALOG_SURAHS } from '../data/surahs';
@@ -508,6 +509,9 @@ export async function resetKhatmah(userId: string) {
   }
 }
 
+/** «بسم الله الرحمن الرحيم» at the start of a stored first ayah, after diacritics are removed (POSIX regex). */
+export const BASMALA_PLAIN_PREFIX_PATTERN = '^[[:space:]\uFEFF]*بسم[[:space:]]+الله[[:space:]]+الرحمن[[:space:]]+الرحيم[[:space:]]*';
+
 export async function searchQuran(query: string, page = 1, limit = 20) {
   if (!query || query.trim().length === 0) {
     throw new AppError('Search query is required (min 1 char)', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
@@ -533,25 +537,28 @@ export async function searchQuran(query: string, page = 1, limit = 20) {
   try {
     const like = `%${normalized}%`;
     const diacritics = ARABIC_DIACRITICS_FOR_TRANSLATE;
+    // Same text the reader shows: without diacritics, and without the basmala that the stored first ayah of every
+    // surah carries (except al-Fatiha, where it is ayah 1, and at-Tawbah, which has none). Otherwise a search for
+    // «الرحمن» or «الله» returns ayah 1 of every surah.
+    const match = Prisma.sql`
+      (CASE WHEN "ayahNumber" = 1 AND "surahId" NOT IN (1, 9)
+        THEN regexp_replace(t.plain, ${BASMALA_PLAIN_PREFIX_PATTERN}, '')
+        ELSE t.plain END) ILIKE ${like}`;
+    const plain = Prisma.sql`
+      CROSS JOIN LATERAL (SELECT translate(
+        replace(replace(replace(replace("textAr", 'ٱ', 'ا'), 'آ', 'ا'), 'أ', 'ا'), 'إ', 'ا'),
+        ${diacritics}, '') AS plain) t`;
     const rows = await prisma.$queryRaw<RawAyah[]>`
       SELECT id, "surahId", "ayahNumber", "textAr", page, juz
-      FROM ayahs
-      WHERE translate(
-        replace(replace(replace(replace("textAr", 'ٱ', 'ا'), 'آ', 'ا'), 'أ', 'ا'), 'إ', 'ا'),
-        ${diacritics},
-        ''
-      ) ILIKE ${like}
+      FROM ayahs ${plain}
+      WHERE ${match}
       ORDER BY "surahId" ASC, "ayahNumber" ASC
       LIMIT ${take} OFFSET ${skip}
     `;
     const countRows = await prisma.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint AS count
-      FROM ayahs
-      WHERE translate(
-        replace(replace(replace(replace("textAr", 'ٱ', 'ا'), 'آ', 'ا'), 'أ', 'ا'), 'إ', 'ا'),
-        ${diacritics},
-        ''
-      ) ILIKE ${like}
+      FROM ayahs ${plain}
+      WHERE ${match}
     `;
     items = rows;
     total = Number(countRows[0]?.count ?? 0);
