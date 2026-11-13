@@ -5,16 +5,18 @@
 import assert from 'node:assert/strict';
 import { prisma } from '../src/lib/prisma';
 import * as authService from '../src/services/auth.service';
+import { env } from '../src/config';
+import { OAuth2Client } from 'google-auth-library';
 
-const realFetch = globalThis.fetch;
+// Google ID tokens are verified by google-auth-library (signature, issuer, expiry, audience). The test replaces that
+// verification with a fixed payload for a test audience, so no network and no real Google credentials are used.
+const TEST_AUDIENCE = 'noor-test-client.apps.googleusercontent.com';
+(env as { GOOGLE_CLIENT_IDS: string }).GOOGLE_CLIENT_IDS = TEST_AUDIENCE;
 
 function mockGoogle(payload: { email: string; sub: string; name: string }) {
-  globalThis.fetch = (async (input: any, init?: any) => {
-    if (String(input).includes('googleapis.com/oauth2/v3/tokeninfo')) {
-      return new Response(JSON.stringify(payload), { status: 200 });
-    }
-    return realFetch(input, init);
-  }) as typeof fetch;
+  OAuth2Client.prototype.verifyIdToken = (async () => ({
+    getPayload: () => ({ ...payload, email_verified: true, aud: TEST_AUDIENCE, iss: 'https://accounts.google.com' }),
+  })) as unknown as OAuth2Client['verifyIdToken'];
 }
 
 async function main() {
@@ -47,7 +49,7 @@ async function main() {
 
     console.log('google username uniqueness: OK', users.map((u) => u.username), ar.user.username);
   } finally {
-    globalThis.fetch = realFetch;
+
     const rows = await prisma.user.findMany({ where: { email: { in: emails } }, select: { id: true } });
     for (const { id } of rows) {
       await authService.hardDeleteUserAccount(id, { blockIdentity: false });

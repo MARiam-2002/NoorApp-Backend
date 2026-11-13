@@ -33,6 +33,8 @@ jobs:
       - name: Fetch pinned hadith editions used by the content citation checks
         run: node scripts/fetch-hadith-editions.cjs
       - run: npm run prisma:deploy
+      - name: Seed the test database (Quran text from the committed cache, no network)
+        run: npm run prisma:seed
       - run: npm run typecheck
       - name: Run every test script (audit)
         env:

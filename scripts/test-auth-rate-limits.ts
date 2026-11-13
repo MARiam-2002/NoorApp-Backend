@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import { createApp } from '../src/app';
 import { prisma } from '../src/lib/prisma';
+import { hashPassword } from '../src/lib/auth';
 import { hardDeleteUserAccount } from '../src/services/auth.service';
 
 async function main() {
@@ -46,8 +47,9 @@ async function main() {
     console.log('--- other accounts on the same IP still work ---');
     const realEmail = `rl-real-${stamp}@noor-test.local`;
     createdEmails.push(realEmail);
-    const signUp = await post('/sign-up', { fullName: 'Rate Limit', email: realEmail, password: 'RateLimit123!' });
-    assert.equal(signUp.status, 201);
+    // Sign-up now confirms the email first (needs the mail provider), so the verified account is created directly.
+    await prisma.user.create({ data: { email: realEmail, username: `rl_real_${stamp}`, fullName: 'Rate Limit',
+      password: await hashPassword('RateLimit123!'), emailVerifiedAt: new Date() } });
 
     console.log('--- successful logins never count toward the limit ---');
     for (let i = 0; i < 15; i += 1) {

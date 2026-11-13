@@ -203,9 +203,13 @@ for (const table of TABLES) {
       locationSource: 'profile',
     });
     assert.equal(s.calculationMethod, EXPECTED_METHOD[table.tz], table.city);
+    // Habous tables are in GMT. Morocco's legal time was GMT+1 until 2026-09-20 and GMT after it, so compare Morocco in
+    // UTC: right on every runtime, whether or not its time-zone data already has the 2026 change.
+    const utc = table.tz === 'Africa/Casablanca';
+    const hhmm = (r: { time: string; iso: string }) => (utc ? new Date(r.iso).toISOString().slice(11, 16) : r.time);
     const got: Record<string, string> = {
-      ...Object.fromEntries(s.schedule.map((r) => [r.key.toLowerCase(), r.time])),
-      sunrise: s.sunrise.time,
+      ...Object.fromEntries(s.schedule.map((r) => [r.key.toLowerCase(), hhmm(r)])),
+      sunrise: hhmm(s.sunrise),
     };
     KEYS.forEach((key, i) => {
       const want = official[i]!;
