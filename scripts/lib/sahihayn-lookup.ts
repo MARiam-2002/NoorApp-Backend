@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { normalizeArabicForSearch } from '../../src/shared/utils/arabic-normalize';
 
-export type SahihCollection = 'bukhari' | 'muslim' | 'tirmidhi';
+export type SahihCollection = 'bukhari' | 'muslim' | 'tirmidhi' | 'abudawud';
 
 export type SahihMatch = {
   collection: SahihCollection;
@@ -59,9 +59,9 @@ function index(collection: SahihCollection): Indexed[] {
   return built;
 }
 
-/** Gradings recorded for a hadith of Jami' al-Tirmidhi (eng-tirmidhi edition), e.g. { 'Al-Albani': 'Sahih' }. */
-export function tirmidhiGrades(number: number): Record<string, string> {
-  const raw = JSON.parse(readFileSync(join(DATA_DIR, 'eng-tirmidhi.json'), 'utf8')) as { hadiths: { hadithnumber: number; grades?: { name: string; grade: string }[] }[] };
+/** Gradings recorded for a hadith of al-Tirmidhi or Abu Dawud (eng-* edition), e.g. { 'Al-Albani': 'Sahih' }. */
+export function tirmidhiGrades(number: number, collection: 'tirmidhi' | 'abudawud' = 'tirmidhi'): Record<string, string> {
+  const raw = JSON.parse(readFileSync(join(DATA_DIR, `eng-${collection}.json`), 'utf8')) as { hadiths: { hadithnumber: number; grades?: { name: string; grade: string }[] }[] };
   const h = raw.hadiths.find((x) => x.hadithnumber === number);
   return Object.fromEntries((h?.grades ?? []).map((g) => [g.name, g.grade]));
 }

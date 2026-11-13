@@ -1,4 +1,9 @@
 import { Router } from 'express';
+import { z } from 'zod';
+import { asyncHandler } from '../middleware/common';
+import { authenticate } from '../middleware/auth';
+import { sendSuccess } from '../shared/utils/response';
+import { addSalawatCount, getSalawatWeeklyMine, getSalawatWeeklyPublic } from '../services/salawat-weekly.service';
 import {
   listSalawatAudioHandler,
   streamSalawatMediaHandler,
@@ -49,3 +54,22 @@ salawatRouter.get('/audio', listSalawatAudioHandler);
  *         description: Unknown file
  */
 salawatRouter.get('/media/:file', streamSalawatMediaHandler);
+
+// ---------------------------------------------------------------- weekly gathering (Thursday Maghrib → Friday Maghrib)
+
+/** Public: window for a timezone + this week's shared total. */
+salawatRouter.get('/weekly', asyncHandler(async (req, res) => {
+  const q = z.object({ timezone: z.string().max(64).optional() }).strict().parse(req.query);
+  res.setHeader('Cache-Control', 'public, max-age=30');
+  sendSuccess(res, await getSalawatWeeklyPublic(q.timezone), 'Weekly salawat gathering', req);
+}));
+/** Signed in: window from the profile location, my count, last weeks. */
+salawatRouter.get('/weekly/me', authenticate, asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  sendSuccess(res, await getSalawatWeeklyMine(req.user!.sub), 'My weekly salawat', req);
+}));
+/** Signed in: add a counted batch { batchId (uuid), count 1..1000 } while the gathering is open (409 otherwise). */
+salawatRouter.post('/weekly/count', authenticate, asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  sendSuccess(res, await addSalawatCount(req.user!.sub, req.body), 'Salawat counted', req);
+}));

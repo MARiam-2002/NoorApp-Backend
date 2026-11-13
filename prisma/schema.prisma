@@ -129,6 +129,8 @@ model User {
   quranPlaylists          QuranPlaylist[]
   sunnahFastingPreference SunnahFastingPreference?
   sunnahFastingSendLogs   SunnahFastingSendLog[]
+  salawatWeeklyCounts     SalawatWeeklyCount[]
+  salawatWeeklyBatches    SalawatWeeklyBatch[]
   zakatCycles             ZakatCycle[]
   charityReminder         CharityReminder?
   charitySendLogs         CharitySendLog[]
@@ -1310,4 +1312,28 @@ model SunnahFastingSendLog {
   @@unique([userId, occurrenceKey])
   @@index([userId, createdAt])
   @@map("sunnah_fasting_send_logs")
+}
+
+/// Weekly salawat gathering: one row per user per week (weekKey = the Friday). Constraints in SQL.
+model SalawatWeeklyCount {
+  userId    String
+  weekKey   DateTime @db.Date
+  count     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, weekKey])
+  @@index([weekKey])
+  @@map("salawat_weekly_counts")
+}
+
+model SalawatWeeklyBatch {
+  userId    String
+  batchId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, batchId])
+  @@index([createdAt])
+  @@map("salawat_weekly_batches")
 }
