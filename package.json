@@ -45,6 +45,7 @@
     "test:dhikr-garden": "tsx scripts/test-dhikr-garden.ts",
     "test:fiqh-course": "tsx scripts/test-fiqh-course.ts",
     "test:learning-listen": "tsx scripts/test-learning-listen.ts",
+    "build:learning-tafsir": "tsx scripts/build-learning-tafsir.ts",
     "build:fiqh-course": "tsx scripts/build-fiqh-course.ts",
     "test:figures": "tsx scripts/test-figures-of-the-day.ts",
     "test:sajdah": "tsx scripts/test-sajdah-verses.ts",

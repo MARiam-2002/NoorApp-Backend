@@ -13,7 +13,7 @@ export type ContentCredit = {
   noteEn: string | null;
 };
 
-export const CONTENT_CREDITS_VERSION = 4;
+export const CONTENT_CREDITS_VERSION = 5;
 
 export const CONTENT_CREDITS: readonly ContentCredit[] = [
   {
@@ -45,6 +45,16 @@ export const CONTENT_CREDITS: readonly ContentCredit[] = [
     url: 'https://qul.tarteel.ai',
     noteAr: null,
     noteEn: null,
+  },
+  {
+    key: 'tafsir_muyassar_learning',
+    titleAr: 'التفسير في «تعلّم مع نور» و«استمع»',
+    titleEn: 'Tafsir in Learn with Noor and Listen',
+    sourceAr: 'التفسير الميسر — نخبة من العلماء بإشراف مجمع الملك فهد لطباعة المصحف الشريف',
+    sourceEn: 'Al-Tafsir Al-Muyassar — a committee of scholars, King Fahd Glorious Quran Printing Complex',
+    url: 'https://qurancomplex.gov.sa',
+    noteAr: 'نص الطبعة المنقحة كما هو، مطابق حرفيًا لنسخة «الباحث القرآني» (tafsir.app). تُتلى الآيات بصوت القارئ ثم يُقرأ تفسيرها.',
+    noteEn: 'Revised edition text unchanged, matched letter for letter with tafsir.app. Ayat are recited by the reciter, then their tafsir is read.',
   },
   {
     key: 'hadith',

@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes } from '../config';
 import { LEARNING_CATALOG_VERSION, LEARNING_COLLECTIONS_DATA } from '../shared/data/learning-content';
+import { LEARNING_TAFSIR_BY_BLOCK, LEARNING_TAFSIR_PASSAGES, LEARNING_TAFSIR_SOURCE } from '../shared/data/learning-tafsir';
 
 /**
  * Learning hub («تعلّم مع نور»): prophet stories, seerah, aqeedah, asma al-husna, fiqh, tajweed, an-Nawawi's Forty.
@@ -87,7 +88,14 @@ export async function getLearningItem(itemId: string, userId?: string) {
   const items = collection.items;
   const at = items.findIndex(i => i.id === item.id);
   const { review: _review, ...content } = item as Item & { review: unknown };
-  return { ...content, collection: { id: collection.id, titleAr: collection.titleAr, methodAr: collection.methodAr },
+  // Additive: «التفسير الميسر» for each Quran block (tajweed cites ayat only as rule examples, so none there).
+  const sections = collection.id === 'tajweed' ? content.sections : content.sections.map(s => ({
+    ...s,
+    quran: s.quran.map(q => ({ ...q, tafsir: (LEARNING_TAFSIR_BY_BLOCK[`${q.surah}:${q.fromAyah}-${q.toAyah}`] ?? [])
+      .map(k => LEARNING_TAFSIR_PASSAGES[k]!).map(p => ({ fromAyah: p.fromAyah, toAyah: p.toAyah, textAr: p.textAr })) })),
+  }));
+  return { ...content, sections, tafsirSource: collection.id === 'tajweed' ? null : LEARNING_TAFSIR_SOURCE,
+    collection: { id: collection.id, titleAr: collection.titleAr, methodAr: collection.methodAr },
     previousItemId: at > 0 ? items[at - 1]!.id : null, nextItemId: at < items.length - 1 ? items[at + 1]!.id : null,
     progress: progressDto(progress.get(item.id), item.sections.length) };
 }
