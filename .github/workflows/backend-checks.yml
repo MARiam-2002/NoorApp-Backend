@@ -33,56 +33,33 @@ jobs:
       - name: Fetch pinned hadith editions used by the content citation checks
         run: node scripts/fetch-hadith-editions.cjs
       - run: npm run prisma:deploy
+      - name: Seed the test database (Quran text from the committed cache, no network)
+        run: npm run prisma:seed
       - run: npm run typecheck
-      - run: npm run test:support
-      - run: npm run test:quran-audio
-      - run: node scripts/test-reminder-cron.cjs
-      - run: npm run test:security-hardening
-      - run: npm run test:logout-device
-      - run: npm run test:cross-feature-audit
-      - run: npm run test:takbir
-      - run: npm run test:near-prayer
-      - run: npm run test:challenge-claim-db
+      - name: Run every test script
         env:
           SECURITY_DB_TEST: "true"
-      - run: npm run test:challenges
-      - run: npm run test:adhkar-catalog
-      - run: npm run test:adhkar-reminders
-        env:
           ADHKAR_REMINDER_TEST_DB: "true"
-      - run: npm run test:learning
-      - run: npm run test:figures
-      - run: npm run test:mushaf-layout
-      - run: npm run test:quran-insights
-      - run: npm run test:hifz
-        env:
+          ADHKAR_TEST_DB: "true"
+          CONTINUITY_TEST_DB: "true"
+          FAJR_ALARM_TEST_DB: "true"
+          FASTING_TEST_DB: "true"
           HIFZ_TEST_DB: "true"
-      - run: npm run test:quran-library
-        env:
-          HIFZ_TEST_DB: "true"
-      - run: npm run test:quran-extras
-        env:
-          HIFZ_TEST_DB: "true"
-      - run: npm run test:quran-station
-        env:
-          HIFZ_TEST_DB: "true"
-      - run: npm run test:sunnah-fasting
-        env:
-          HIFZ_TEST_DB: "true"
-      - run: npm run test:salawat-weekly
-        env:
-          HIFZ_TEST_DB: "true"
-      - run: npm run test:sakina
-      - run: npm run test:hajj-umrah
-      - run: npm run test:dhikr-garden
-      - run: npm run test:learning-listen
-      - run: npm run test:tafsir-muyassar
-      - run: npm run test:tafsir-surah
-      - run: npm run test:fiqh-course
-        env:
-          HIFZ_TEST_DB: "true"
-      - run: npm run test:fasting-qada
-      - run: npm run test:qiyam-last-third
-      - run: npm run test:fajr-alarm
-      - run: npm run test:notification-contract
+          KAHF_TEST_DB: "true"
+          LEARNING_TEST_DB: "true"
+          PRAYER_MARK_TEST_DB: "true"
+          READING_TEST_DB: "true"
+          READING_TEST_HTTP: "true"
+          TRAVEL_TEST_DB: "true"
+          WARSH_TEST_DB: "true"
+          WARSH_TEST_HTTP: "true"
+        # Every test:* script in package.json runs on every push, so a new test can never be left out of CI.
+        # test:account-delete skips itself unless API_BASE names a server (it never touches production by default).
+        run: |
+          fail=0
+          for t in $(node -e "console.log(Object.keys(require('./package.json').scripts).filter(k=>k.startsWith('test:')).join(' '))"); do
+            if timeout 300 npm run -s "$t" > "/tmp/$t.log" 2>&1; then echo "PASS $t"; else echo "FAIL $t"; echo "----- $t -----"; tail -40 "/tmp/$t.log"; fail=1; fi
+          done
+          exit $fail
+      - run: node scripts/test-reminder-cron.cjs
       - run: npm run build

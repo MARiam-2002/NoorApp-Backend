@@ -69,6 +69,7 @@
     "test:near-prayer": "npm run test:fcm-contract && tsx scripts/test-near-prayer-resolver.ts && tsx scripts/test-near-prayer-audit.ts && tsx scripts/test-prayer-delivery.ts",
     "test:prayer-global": "tsx scripts/test-prayer-global.ts",
     "test:swagger-calendar": "tsx scripts/test-swagger-calendar-date.ts",
+    "test:prayer-mark-time": "tsx scripts/test-prayer-mark-time.ts",
     "test:prayer-method": "tsx scripts/test-auto-calculation-method.ts && tsx scripts/test-official-prayer-tables.ts",
     "migrate:prayer-method-auto": "tsx scripts/migrate-calculation-method-auto.ts",
     "test:ai-foundation": "tsx scripts/test-ai-foundation.ts",

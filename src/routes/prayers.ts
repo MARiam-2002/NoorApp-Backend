@@ -79,8 +79,22 @@ prayerRouter.get('/today', optionalAuthenticate, getToday);
  *                 prayer: Asr
  *                 key: ASR
  *                 completed: true
+ *                 date: '2026-07-27'
+ *                 forPreviousNight: false
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
+ *       409:
+ *         description: >
+ *           The prayer has not started yet in the user's location (details.reason PRAYER_NOT_YET_DUE, details.startsAt).
+ *           Exception: Isha between midnight and Fajr is recorded for the night that just passed
+ *           (200 with forPreviousNight true and date = previous day). Unmarking is always allowed.
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: false
+ *               code: CONFLICT
+ *               message: This prayer has not started yet
+ *               details: { reason: PRAYER_NOT_YET_DUE, prayer: ISHA, startsAt: '2026-11-14T16:20:00.000Z' }
  *       400:
  *         description: ❌ نوع الصلاة غير صالح
  *         content:

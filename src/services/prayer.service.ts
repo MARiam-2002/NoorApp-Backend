@@ -614,7 +614,7 @@ async function togglePrayer(
   return true;
 }
 
-export async function getTodayPrayers(userId: string) {
+export async function getTodayPrayers(userId: string, now: Date = new Date()) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -630,7 +630,7 @@ export async function getTodayPrayers(userId: string) {
 
   // Same method + madhab as the Azan notifications (one source of truth).
   const prefs = buildAzanPreferencesFromUser(user);
-  const completed = await findCompletedPrayers(userId);
+  const completed = await findCompletedPrayers(userId, (await getUserLocalCalendarDay(userId, now)).date);
   const hasProfileLocation =
     user.latitude != null &&
     user.longitude != null &&
@@ -654,7 +654,7 @@ export async function getTodayPrayers(userId: string) {
     lng,
     explicitTimezone ? profileTz : hasProfileLocation ? '' : DEFAULT_PRAYER_LOCATION.timezone,
     completed as PrayerNameEnum[],
-    new Date(),
+    now,
     {
       method: prefs.calculationMethod,
       madhab: prefs.madhab,
@@ -672,14 +672,59 @@ export async function getTodayPrayers(userId: string) {
   );
 }
 
-export async function markPrayer(userId: string, prayerId: string) {
+/** Clock skew allowed between the phone and the server when a prayer has just started. */
+const MARK_EARLY_TOLERANCE_MS = 60_000;
+
+/**
+ * Toggle a prayer for the user's local day. Marking it done is only allowed once its time has started (in the user's
+ * own location, method and madhab — the same schedule as GET /prayers/today). Between midnight and Fajr, Isha belongs
+ * to the night that just passed, so it is recorded on the previous day (`forPreviousNight: true`). Unmarking is always
+ * allowed.
+ */
+export async function markPrayer(userId: string, prayerId: string, now: Date = new Date()) {
   const prayerKey = parsePrayerKey(prayerId);
   if (!prayerKey) {
     throw new AppError('Invalid prayer name', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
+  const prayer = prayerKey as PrayerName;
+  const { date: today, dayKey } = await getUserLocalCalendarDay(userId, now);
+  let date = today;
+  let forPreviousNight = false;
 
-  const completed = await togglePrayer(userId, prayerKey as PrayerName);
-  return { prayer: prayerEnumToTitle(prayerKey), key: prayerKey, completed };
+  const markedToday = await prisma.prayerCompletion.findUnique({
+    where: { userId_date_prayer: { userId, date: today, prayer } },
+    select: { id: true },
+  });
+  if (!markedToday) {
+    const day = await getTodayPrayers(userId, now);
+    const startsAt = (key: string) => {
+      const row = day.schedule.find((r) => r.key === key);
+      return row ? new Date(row.iso).getTime() : null;
+    };
+    const start = startsAt(prayerKey);
+    if (start !== null && now.getTime() < start - MARK_EARLY_TOLERANCE_MS) {
+      const fajr = startsAt('FAJR');
+      if (prayerKey === 'ISHA' && fajr !== null && now.getTime() < fajr) {
+        date = new Date(today.getTime() - 86_400_000);
+        forPreviousNight = true;
+      } else {
+        throw new AppError('This prayer has not started yet', HttpStatus.CONFLICT, ErrorCodes.CONFLICT, {
+          reason: 'PRAYER_NOT_YET_DUE',
+          prayer: prayerKey,
+          startsAt: new Date(start).toISOString(),
+        });
+      }
+    }
+  }
+
+  const completed = await togglePrayer(userId, prayer, date);
+  return {
+    prayer: prayerEnumToTitle(prayerKey),
+    key: prayerKey,
+    completed,
+    date: forPreviousNight ? date.toISOString().slice(0, 10) : dayKey,
+    forPreviousNight,
+  };
 }
 
 export async function getPrayerSchedule(

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { PRAYER_TIME_SOUND_MODES } from '../src/services/azan.service';
 import { getPrayerSchedule } from '../src/services/prayer.service';
 import { getSwaggerSpec, setupSwagger } from '../src/lib/swagger';
 import express from 'express';
@@ -16,7 +17,7 @@ async function main(){
  for(const ref of refs){if(!ref.startsWith('#/'))continue;let node:any=spec;for(const key of ref.slice(2).split('/'))node=node?.[key.replace(/~1/g,'/').replace(/~0/g,'~')];assert.notEqual(node,undefined,ref)}
  for(const [p,item] of Object.entries(spec.paths) as any[])for(const [m,op] of Object.entries(item) as any[])if(['get','post','put','patch','delete'].includes(m))assert.ok(Object.keys(op.responses||{}).length,`${m} ${p} missing responses`);
  assert.ok(spec.components.schemas.DashboardResponse.properties.dailyGoal);
- assert.deepEqual(spec.components.schemas.AzanPreferencesPatch.properties.prayerTimeSoundMode.enum,['azan','announcement']);
+ assert.deepEqual(spec.components.schemas.AzanPreferencesPatch.properties.prayerTimeSoundMode.enum,[...PRAYER_TIME_SOUND_MODES]);
  const app=express();setupSwagger(app);const server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));
  try{const address:any=server.address();const response=await fetch(`http://127.0.0.1:${address.port}/api/v1/docs`);assert.equal(response.status,200);const html=await response.text();assert.ok(html.includes('Noor Developer Portal'));assert.ok(html.includes('persistAuthorization: false'));assert.ok(!html.includes('.errors-wrapper { display: none'));assert.ok(html.includes('prefers-reduced-motion'));}finally{await new Promise<void>((r,j)=>server.close(e=>e?j(e):r()))}
  console.log('Calendar-date and Swagger contract/HTML checks passed. No production writes.');

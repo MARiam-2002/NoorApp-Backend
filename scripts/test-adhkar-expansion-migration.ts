@@ -17,6 +17,7 @@ import { ADHKAR_CATALOG_ITEMS, type AdhkarCategoryKey } from '../src/shared/data
 import { ADHKAR_DHIKR_CATEGORIES_FALLBACK } from '../src/shared/constants/fallbacks';
 
 const ENUM_SQL = readFileSync('prisma/migrations/20261112100000_adhkar_new_category_keys/migration.sql', 'utf8');
+const ENUM_STATEMENTS = ENUM_SQL.split(';').map(x => x.replace(/^\s*--.*$/gm, '').trim()).filter(Boolean);
 const DATA_SQL = readFileSync('prisma/migrations/20261112100100_adhkar_expansion/migration.sql', 'utf8');
 
 const PREVIOUS = { BEFORE_SLEEP: 7, AFTER_PRAYER: 9, ENTERING_MOSQUE: 9, FOOD: 3, TRAVEL: 5, SICK: 7 } as const;
@@ -45,8 +46,8 @@ async function main() {
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL)`);
 
       // Enum migration: idempotent, adds exactly the new keys.
-      await tx.$executeRawUnsafe(ENUM_SQL);
-      await tx.$executeRawUnsafe(ENUM_SQL);
+      // A prepared statement takes one command, so run the migration's ALTER TYPE lines one by one (twice: idempotent).
+      for (let i = 0; i < 2; i++) for (const stmt of ENUM_STATEMENTS) await tx.$executeRawUnsafe(stmt);
       const labels = (await tx.$queryRawUnsafe(`SELECT e.enumlabel AS l FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
         JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typname = 'DhikrCategoryKey' AND n.nspname = $1 ORDER BY e.enumsortorder`, schema)).map((r: any) => r.l);
       assert.deepEqual(labels, [...OLD_KEYS, ...NEW_KEYS]);

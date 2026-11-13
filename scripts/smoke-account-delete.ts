@@ -8,10 +8,12 @@
  *   API_BASE=https://noorapp-backend-production.up.railway.app/api/v1 \
  *     npx tsx scripts/smoke-account-delete.ts
  */
-const API_BASE = (
-  process.env.API_BASE ||
-  'https://noorapp-backend-production.up.railway.app/api/v1'
-).replace(/\/$/, '');
+// Never production by default: a run must name its target explicitly.
+if (!process.env.API_BASE) {
+  console.log('SKIP  account-delete smoke: set API_BASE to the server to test (it creates and deletes a throwaway user).');
+  process.exit(0);
+}
+const API_BASE = process.env.API_BASE.replace(/\/$/, '');
 
 type Envelope = {
   success?: boolean;
@@ -59,6 +61,10 @@ async function main(): Promise<void> {
   const signup = await request('POST', '/auth/sign-up', {
     body: { fullName: 'Play Delete Smoke', email, password },
   });
+  if (signup.status === 202) {
+    console.log('SKIP  sign-up needs email verification on this server; run the deletion check with a verified test account.');
+    process.exit(0);
+  }
   if (signup.status !== 201 || !signup.json.success) {
     fail(`sign-up expected 201, got ${signup.status} ${JSON.stringify(signup.json)}`);
   }
