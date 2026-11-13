@@ -72,6 +72,7 @@ jobs:
       - run: npm run test:salawat-weekly
         env:
           HIFZ_TEST_DB: "true"
+      - run: npm run test:sakina
       - run: npm run test:fasting-qada
       - run: npm run test:qiyam-last-third
       - run: npm run test:fajr-alarm
