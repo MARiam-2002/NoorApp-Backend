@@ -5,7 +5,7 @@
  *
  * Source text: prisma/data/tafsir/ar-muyassar.json — quran.com's tafsir data as published in spa5k/tafsir_api
  * (commit eb82bb6), pinned by SHA-256. Every passage that is used must equal, letter for letter and with the same ayah
- * grouping, an independent copy: prisma/data/tafsir/muyassar-crosscheck-tafsir-app.json (الباحث القرآني, tafsir.app).
+ * grouping, an independent copy: prisma/data/tafsir/muyassar-tafsir-app-full.json.gz (الباحث القرآني, tafsir.app).
  * Surah introductions («تسمية السورة / مقاصد السورة») are not part of the ayah tafsir and are dropped.
  *
  *   npx tsx scripts/build-learning-tafsir.ts          # rebuild
@@ -14,37 +14,24 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import { LEARNING_COLLECTIONS_DATA } from '../src/shared/data/learning-content';
+import { EDITOR_NOTES, lettersKey, tafsirBody } from './lib/muyassar';
 
 const DIR = join(process.cwd(), 'prisma', 'data', 'tafsir');
 const OUT = join(process.cwd(), 'src', 'shared', 'data', 'learning-tafsir.ts');
 const PINNED: Record<string, string> = {
   'ar-muyassar.json': '6498c662415947fcb4ce028ddfc741c8f226d16f363e95f911a0d325e8c39241',
-  'muyassar-crosscheck-tafsir-app.json': 'ef4065b1daf2671b5ee5cd8e0a1512edfa2679a9105ba29b8b7b30d62ffa2668',
+  'muyassar-tafsir-app-full.json.gz': '4ffba10bd08a7a8950272a24fd08adfc5ac9767c8e99daaa42ccff8be6dadbb2',
 };
 for (const [f, sha] of Object.entries(PINNED)) {
   const got = createHash('sha256').update(readFileSync(join(DIR, f))).digest('hex');
   if (got !== sha) throw new Error(`${f} changed (sha256 ${got}); review it and update PINNED`);
 }
 const source = JSON.parse(readFileSync(join(DIR, 'ar-muyassar.json'), 'utf8')) as Record<string, string>;
-const cross = (JSON.parse(readFileSync(join(DIR, 'muyassar-crosscheck-tafsir-app.json'), 'utf8')) as {
+const cross = (JSON.parse(gunzipSync(readFileSync(join(DIR, 'muyassar-tafsir-app-full.json.gz'))).toString('utf8')) as {
   entries: Record<string, { start: number; count: number; text: string }>;
 }).entries;
-
-/** The ayah tafsir without the surah introduction that some copies put before «[التفسير]». */
-export const tafsirBody = (s: string) => (s.includes('[التفسير]') ? s.split('[التفسير]')[1]! : s).normalize('NFC').trim();
-
-/** Letters only: vowels, punctuation, spacing and hamza seats removed, so two copies compare by their words. */
-export function lettersKey(s: string) {
-  return s.normalize('NFC')
-    .replace(/ﷺ/g, ' صلى الله عليه وسلم ')
-    .replace(/[ً-ْٰـ۟ۡۥۦ]/g, '')
-    .replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[ؤئ]/g, 'ء')
-    .replace(/[^ء-ي ]/g, ' ').replace(/\s+/g, ' ').trim()
-    .replace(/ما لكم/g, 'مالكم').replace(/لا بد/g, 'لابد').replace(/السماوات/g, 'السموات');
-}
-
-const EDITOR_NOTES = /الشاملة|معد الكتاب|\[التفسير\]|تسمية السورة/;
 
 type Passage = { surah: number; fromAyah: number; toAyah: number; textAr: string };
 const passages = new Map<string, Passage>();
@@ -65,7 +52,7 @@ for (const c of LEARNING_COLLECTIONS_DATA) for (const item of c.items) for (cons
     if (!passages.has(key)) {
       const textAr = tafsirBody(raw);
       const check = cross[`${q.surah}:${from}`];
-      if (!check) throw new Error(`${key}: no cross-check entry; add tafsir.app's text for ${q.surah}:${from} to the cross-check file`);
+      if (!check) throw new Error(`${key}: no tafsir.app entry for ${q.surah}:${from}`);
       if (check.start !== from || check.start + check.count - 1 !== to) throw new Error(`${key}: ayah grouping differs from tafsir.app (${check.start}+${check.count})`);
       if (lettersKey(textAr) !== lettersKey(tafsirBody(check.text))) throw new Error(`${key}: text differs from tafsir.app`);
       if (EDITOR_NOTES.test(textAr)) throw new Error(`${key}: editor note or introduction left in the text`);

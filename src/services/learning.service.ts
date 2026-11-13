@@ -95,6 +95,11 @@ export async function getLearningItem(itemId: string, userId?: string) {
       .map(k => LEARNING_TAFSIR_PASSAGES[k]!).map(p => ({ fromAyah: p.fromAyah, toAyah: p.toAyah, textAr: p.textAr })) })),
   }));
   return { ...content, sections, tafsirSource: collection.id === 'tajweed' ? null : LEARNING_TAFSIR_SOURCE,
+    // Additive: paragraphsAr / reflectionAr / keyPointsAr are Noor's educational wording; ayat, tafsir and hadith are sources.
+    editorial: { fields: ['paragraphsAr', 'reflectionAr', 'keyPointsAr', 'summaryAr'], labelAr: 'صياغة تعليمية من نور',
+      noteAr: collection.id === 'tajweed'
+        ? 'الشرح صياغة تعليمية من نور، والأمثلة آيات من المصحف بنصها.'
+        : 'السرد صياغة تعليمية من نور؛ والمرجع ما تحته: الآيات، و«التفسير الميسر»، والأحاديث بنصها وأرقامها.' },
     collection: { id: collection.id, titleAr: collection.titleAr, methodAr: collection.methodAr },
     previousItemId: at > 0 ? items[at - 1]!.id : null, nextItemId: at < items.length - 1 ? items[at + 1]!.id : null,
     progress: progressDto(progress.get(item.id), item.sections.length) };

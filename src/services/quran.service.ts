@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { getMuyassarPassage } from './tafsir-muyassar.service';
 import { CATALOG_SURAHS } from '../data/surahs';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
@@ -1739,8 +1740,11 @@ export async function getAyahTafsir(
   source: string;
   surahId: number;
   ayahNumber: number;
-  provider: 'quran_foundation' | 'qul';
+  provider: 'quran_foundation' | 'qul' | 'noor_verified';
   language?: string;
+  /** Additive — the tafsir's own ayah group when one passage explains several ayat (verified Muyassar). */
+  groupFromAyah?: number;
+  groupToAyah?: number;
   /** Additive — Quran Foundation / catalog attribution for Flutter UI. */
   resourceId?: number;
   sourceNameAr?: string;
@@ -1772,6 +1776,32 @@ export async function getAyahTafsir(
     authorEn: catalog.authorEn,
     language: catalog.language ?? 'Arabic',
   };
+
+  // «التفسير الميسر»: served from Noor's verified copy (revised edition, every ayah group matched letter for letter with
+  // tafsir.app). Quran Foundation's resource 16 mixes editions and has typos, so it is no longer used for this tafsir.
+  if (catalog.id === 'Ibn_Kathir_Muyassar' || resourceId === 16) {
+    const p = getMuyassarPassage(surahId, ayahNumber);
+    const m = QURAN_TAFSIRS.find((t) => t.id === 'Ibn_Kathir_Muyassar')!;
+    if (p) {
+      return {
+        textAr: p.textAr,
+        text: p.textAr,
+        source: m.id,
+        surahId,
+        ayahNumber,
+        provider: 'noor_verified',
+        groupFromAyah: p.fromAyah,
+        groupToAyah: p.toAyah,
+        language: 'Arabic',
+        resourceId: 16,
+        sourceNameAr: m.nameAr,
+        sourceNameEn: m.nameEn ?? m.name,
+        authorAr: m.authorAr,
+        authorEn: m.authorEn,
+        contentEdition: 'muyassar-revised',
+      };
+    }
+  }
 
   // Al-Qurtubi: prefer QUL-formatted edition (proper spacing). Never rewrite Arabic heuristically.
   // Keep catalog `resourceId` 90 for Flutter preference compatibility; QF remains fallback.

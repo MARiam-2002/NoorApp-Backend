@@ -48,13 +48,13 @@ export const CONTENT_CREDITS: readonly ContentCredit[] = [
   },
   {
     key: 'tafsir_muyassar_learning',
-    titleAr: 'التفسير في «تعلّم مع نور» و«استمع»',
-    titleEn: 'Tafsir in Learn with Noor and Listen',
+    titleAr: 'التفسير الميسر (شاشة التفسير و«تعلّم مع نور» و«استمع»)',
+    titleEn: 'Al-Tafsir Al-Muyassar (tafsir screen, Learn with Noor, Listen)',
     sourceAr: 'التفسير الميسر — نخبة من العلماء بإشراف مجمع الملك فهد لطباعة المصحف الشريف',
     sourceEn: 'Al-Tafsir Al-Muyassar — a committee of scholars, King Fahd Glorious Quran Printing Complex',
     url: 'https://qurancomplex.gov.sa',
-    noteAr: 'نص الطبعة المنقحة كما هو، مطابق حرفيًا لنسخة «الباحث القرآني» (tafsir.app). تُتلى الآيات بصوت القارئ ثم يُقرأ تفسيرها.',
-    noteEn: 'Revised edition text unchanged, matched letter for letter with tafsir.app. Ayat are recited by the reciter, then their tafsir is read.',
+    noteAr: 'نص الطبعة المنقحة كما هو، روجعت كل آيات القرآن (٦٢٣٦ آية) حرفًا حرفًا على نسخة «الباحث القرآني» (tafsir.app). في «استمع» تُتلى الآيات بصوت القارئ ثم يُقرأ تفسيرها.',
+    noteEn: 'Revised edition text unchanged; all 6236 ayat matched letter for letter with tafsir.app. In Listen, ayat are recited by the reciter, then their tafsir is read.',
   },
   {
     key: 'hadith',

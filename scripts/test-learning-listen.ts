@@ -79,6 +79,8 @@ assert.ok(nuh.segments.some(s => s.type === 'ayah' && s.surah === 71));
   // Reader: every Quran block outside tajweed carries its tafsir passages.
   const reader = await getLearningItem('nuh') as any;
   assert.equal(reader.tafsirSource.titleAr, 'التفسير الميسر');
+  assert.equal(reader.editorial.labelAr, 'صياغة تعليمية من نور');
+  assert.ok(reader.editorial.fields.includes('paragraphsAr'));
   for (const s of reader.sections) for (const q of s.quran) assert.ok(q.tafsir.length > 0 && q.tafsir.every((p: any) => passageTexts.has(p.textAr)));
   const app = express(); app.use('/learning', learningRouter);
   app.use(((error: any, _q: any, res: any, _n: any) => { res.status(error.statusCode ?? 500).json({ success: false }); }) as express.ErrorRequestHandler);
