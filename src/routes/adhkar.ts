@@ -89,7 +89,7 @@ adhkarRouter.get('/full-catalog', getAdhkarFullCatalogHandler);
  *                 categories:
  *                   - id: cat-uuid-1
  *                     key: MORNING
- *                     nameAr: اذكار الصباح
+ *                     nameAr: أذكار الصباح
  *                     nameEn: Morning Dhikr
  *                     descriptionAr: الأذكار الواردة لصباح المسلم كل يوم من حصن المسلم
  *                     iconCode: 🌤️
@@ -97,7 +97,7 @@ adhkarRouter.get('/full-catalog', getAdhkarFullCatalogHandler);
  *                     totalItems: 12
  *                   - id: cat-uuid-2
  *                     key: EVENING
- *                     nameAr: اذكار المساء
+ *                     nameAr: أذكار المساء
  *                     nameEn: Evening Dhikr
  *                     iconCode: 🌙
  *                     sortOrder: 2
@@ -126,7 +126,7 @@ adhkarRouter.get('/', optionalAuthenticate, getDhikrHomeHandler);
  *               data:
  *                 - id: cat-uuid-morning
  *                   key: MORNING
- *                   nameAr: اذكار الصباح
+ *                   nameAr: أذكار الصباح
  *                   nameEn: Morning Dhikr
  *                   descriptionAr: الأذكار الواردة لصباح المسلم
  *                   iconCode: 🌤️
@@ -241,7 +241,7 @@ adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
  * /adhkar/categories/{key}:
  *   get:
  *     tags: ['Adhkar (الأذكار)']
- *     summary: تفاصيل فئة معينة + كل الأذكار فيها (مثلاً اذكار الصباح مفصلين)
+ *     summary: تفاصيل فئة معينة + كل الأذكار فيها (مثلاً أذكار الصباح مفصلين)
  *     description: >
  *       يُرجع الفئة + قائمة الأذكار داخلها بالترتيب، مع نص الذكر بالتشكيل الكامل
  *       وعدد مرات التكرار (التكرار) + المرجع (رواه البخاري) + فضل الذكر (إن وجد)
@@ -266,7 +266,7 @@ adhkarRouter.put('/progress', authenticate, saveAdhkarProgressHandler);
  *               data:
  *                 id: cat-uuid-morning
  *                 key: MORNING
- *                 nameAr: اذكار الصباح
+ *                 nameAr: أذكار الصباح
  *                 nameEn: Morning Dhikr
  *                 descriptionAr: الأذكار الواردة لصباح المسلم كل يوم من حصن المسلم
  *                 iconCode: 🌤️
@@ -329,7 +329,7 @@ adhkarRouter.get('/categories/:key', optionalAuthenticate, getDhikrCategoryByKey
  *                     benefitAr: كنز من كنوز الجنة
  *                     category:
  *                       key: MORNING
- *                       nameAr: اذكار الصباح
+ *                       nameAr: أذكار الصباح
  *                   createdAt: '2026-08-28T10:00:00.000Z'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
@@ -371,7 +371,7 @@ adhkarRouter.get('/favorites', authenticate, listAdhkarFavoritesHandler);
  *                   referenceAr: رواه البخاري
  *                   category:
  *                     key: MORNING
- *                     nameAr: اذكار الصباح
+ *                     nameAr: أذكار الصباح
  *                 createdAt: '2026-08-28T10:00:00.000Z'
  *       409:
  *         description: ❌ الذكر موجود في المفضلة
@@ -453,7 +453,7 @@ adhkarRouter.post('/favorites', authenticate, addAdhkarFavoriteHandler);
  *                 items:
  *                   - id: fb-m-3
  *                     categoryKey: MORNING
- *                     categoryNameAr: اذكار الصباح
+ *                     categoryNameAr: أذكار الصباح
  *                     categoryNameEn: Morning Dhikr
  *                     orderInCategory: 3
  *                     textAr: أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ...

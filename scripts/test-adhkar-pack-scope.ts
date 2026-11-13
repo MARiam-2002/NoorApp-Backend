@@ -51,6 +51,7 @@ async function main() {
   assert.equal(legacy.meta.scope, 'legacy');
 
   const all = await getAdhkarFullCatalog('all');
+  for (const c of all.categories as any[]) assert.ok(!/^اذكار/.test(c.nameAr), `${c.key}: «أذكار» is spelled with hamza`);
   assert.ok(all.categories.length > 14, `all scope has ${all.categories.length} categories`);
   assert.equal(all.meta.totalItems, all.categories.reduce((n: number, c: any) => n + c.items.length, 0));
   assert.notEqual(all.meta.contentHash, legacy.meta.contentHash);

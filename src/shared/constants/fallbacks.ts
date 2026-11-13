@@ -51,7 +51,7 @@ export const DAY_OF_YEAR_MAX = 366;
 export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   {
     key: 'MORNING',
-    nameAr: 'اذكار الصباح',
+    nameAr: 'أذكار الصباح',
     nameEn: 'Morning Dhikr',
     descriptionAr: 'الأذكار الواردة لصباح المسلم كل يوم من حصن المسلم',
     descriptionEn: 'Authentic Morning remembrances every Muslim should recite daily from Hisnul Muslim',
@@ -60,7 +60,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'EVENING',
-    nameAr: 'اذكار المساء',
+    nameAr: 'أذكار المساء',
     nameEn: 'Evening Dhikr',
     descriptionAr: 'أذكار المساء الواردة لما يُدخل الوقت',
     descriptionEn: 'Authentic Evening remembrances at sunset from Hisnul Muslim',
@@ -69,7 +69,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'BEFORE_SLEEP',
-    nameAr: 'اذكار النوم',
+    nameAr: 'أذكار النوم',
     nameEn: 'Before Sleep Dhikr',
     descriptionAr: 'أذكار وأدعية النوم من السنة',
     descriptionEn: 'Authentic Dhikr and duas before going to sleep from the Sunnah',
@@ -78,7 +78,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'ENTERING_MOSQUE',
-    nameAr: 'اذكار المسجد',
+    nameAr: 'أذكار المسجد',
     nameEn: 'Entering Mosque',
     descriptionAr: 'أذكار دخول المسجد والجلوس',
     descriptionEn: 'Authentic Dhikr for entering and sitting in the mosque',
@@ -87,7 +87,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'AFTER_PRAYER',
-    nameAr: 'اذكار الصلاة',
+    nameAr: 'أذكار الصلاة',
     nameEn: 'After Salah Dhikr',
     descriptionAr: 'الأذكار بعد الصلوات المفروضة',
     descriptionEn: 'Remembrances after the five obligatory daily prayers',
@@ -105,7 +105,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'TRAVEL',
-    nameAr: 'اذكار السفر',
+    nameAr: 'أذكار السفر',
     nameEn: 'Travel Dhikr',
     descriptionAr: 'أذكار وأدعية السفر من السنة النبوية الصحيحة',
     descriptionEn: 'Authentic travel supplications and remembrances from the Sunnah',
@@ -114,7 +114,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'SICK',
-    nameAr: 'اذكار المريض والرقية',
+    nameAr: 'أذكار المريض والرقية',
     nameEn: 'Sick & Ruqyah',
     descriptionAr: 'أدعية المريض والرقية الشرعية من كتاب السنة',
     descriptionEn: 'Supplications for the sick person and authentic Ruqyah from the Sunnah',
@@ -123,7 +123,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'FOOD',
-    nameAr: 'اذكار الأكل والشرب',
+    nameAr: 'أذكار الأكل والشرب',
     nameEn: 'Food & Drink',
     descriptionAr: 'الأذكار قبل الأكل وبعده والبركة في الطعام',
     descriptionEn: 'Authentic remembrances before and after eating from the Sunnah',
@@ -141,7 +141,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'WUDU',
-    nameAr: 'اذكار الوضوء',
+    nameAr: 'أذكار الوضوء',
     nameEn: 'Wudu Dhikr',
     descriptionAr: 'الأذكار قبل الوضوء وبعد فراغه والشهادة',
     descriptionEn: 'Remembrances before and after performing ablution (Wudu)',
@@ -150,7 +150,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'ISTIGHFAR',
-    nameAr: 'اذكار الاستغفار',
+    nameAr: 'أذكار الاستغفار',
     nameEn: 'Istighfar Remembrances',
     descriptionAr: 'سيد الاستغفار وجمع أذكار التوبة من السنة',
     descriptionEn: 'Sayyid al-Istighfar and authentic repentance remembrances',
@@ -168,7 +168,7 @@ export const ADHKAR_DHIKR_CATEGORIES_FALLBACK = [
   },
   {
     key: 'MASJID_AFTER_SALAM',
-    nameAr: 'اذكار بعد التسليم',
+    nameAr: 'أذكار بعد التسليم',
     nameEn: 'After Masjid Salam',
     descriptionAr: 'أذكار بعد السلام الأخير من الصلاة في المسجد',
     descriptionEn: 'Remembrances after the final taslim from prayer in the mosque',

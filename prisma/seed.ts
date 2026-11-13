@@ -318,7 +318,7 @@ type SeededDhikrCategory = {
 const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   {
     key: 'MORNING',
-    nameAr: 'اذكار الصباح',
+    nameAr: 'أذكار الصباح',
     nameEn: 'Morning Dhikr',
     descriptionAr: 'الأذكار الواردة لصباح المسلم كل يوم من حصن المسلم - صحيحة موثقة',
     descriptionEn: 'Authentic Morning remembrances every Muslim should recite daily from Hisnul Muslim',
@@ -327,7 +327,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'EVENING',
-    nameAr: 'اذكار المساء',
+    nameAr: 'أذكار المساء',
     nameEn: 'Evening Dhikr',
     descriptionAr: 'أذكار المساء الواردة لما يُدخل الوقت من حصن المسلم - صحيحة',
     descriptionEn: 'Authentic Evening remembrances at sunset from Hisnul Muslim',
@@ -336,7 +336,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'BEFORE_SLEEP',
-    nameAr: 'اذكار النوم',
+    nameAr: 'أذكار النوم',
     nameEn: 'Before Sleep Dhikr',
     descriptionAr: 'أذكار وأدعية النوم من السنة النبوية الصحيحة',
     descriptionEn: 'Authentic Dhikr and duas before going to sleep',
@@ -345,7 +345,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'ENTERING_MOSQUE',
-    nameAr: 'اذكار المسجد',
+    nameAr: 'أذكار المسجد',
     nameEn: 'Entering Mosque Dhikr',
     descriptionAr: 'أذكار دخول المسجد والجلوس فيه من السنة الصحيحة',
     descriptionEn: 'Authentic Dhikr for entering and sitting in the mosque',
@@ -354,7 +354,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'AFTER_PRAYER',
-    nameAr: 'اذكار الصلاة',
+    nameAr: 'أذكار الصلاة',
     nameEn: 'After Salah Dhikr',
     descriptionAr: 'الأذكار بعد الصلوات المفروضة الخمس - ورد اليوم من السنة',
     descriptionEn: 'Remembrances after the five obligatory daily prayers',
@@ -372,7 +372,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'TRAVEL',
-    nameAr: 'اذكار السفر',
+    nameAr: 'أذكار السفر',
     nameEn: 'Travel Dhikr',
     descriptionAr: 'أذكار وأدعية السفر من السنة النبوية الصحيحة (حصن المسلم)',
     descriptionEn: 'Authentic travel supplications and remembrances from the Sunnah',
@@ -381,7 +381,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'SICK',
-    nameAr: 'اذكار المريض والرقية',
+    nameAr: 'أذكار المريض والرقية',
     nameEn: 'Sick Person & Ruqyah',
     descriptionAr: 'أدعية المريض والرقية الشرعية من السنة الصحيحة (حصن المسلم)',
     descriptionEn: 'Supplications for the sick person and authentic Ruqyah from the Sunnah',
@@ -390,7 +390,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'FOOD',
-    nameAr: 'اذكار الأكل والشرب',
+    nameAr: 'أذكار الأكل والشرب',
     nameEn: 'Food & Drink Remembrances',
     descriptionAr: 'الأذكار قبل الأكل وبعده والبركة في الطعام من السنة الصحيحة',
     descriptionEn: 'Authentic remembrances before and after eating from the Sunnah',
@@ -408,7 +408,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'WUDU',
-    nameAr: 'اذكار الوضوء',
+    nameAr: 'أذكار الوضوء',
     nameEn: 'Wudu Remembrances',
     descriptionAr: 'الأذكار قبل الوضوء وبعد فراغه من السنة النبوية الصحيحة',
     descriptionEn: 'Remembrances before and after performing ablution (Wudu)',
@@ -417,7 +417,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'ISTIGHFAR',
-    nameAr: 'اذكار الاستغفار',
+    nameAr: 'أذكار الاستغفار',
     nameEn: 'Istighfar Remembrances',
     descriptionAr: 'سيد الاستغفار وجمع أذكار التوبة من السنة الصحيحة',
     descriptionEn: 'Sayyid al-Istighfar and authentic repentance remembrances',
@@ -435,7 +435,7 @@ const ADHKAR_CATEGORIES: SeededDhikrCategory[] = [
   },
   {
     key: 'MASJID_AFTER_SALAM',
-    nameAr: 'اذكار بعد التسليم',
+    nameAr: 'أذكار بعد التسليم',
     nameEn: 'After Final Salam Dhikr',
     descriptionAr: 'أذكار بعد السلام الأخير من الصلاة في المسجد مباشرة',
     descriptionEn: 'Remembrances after the final taslim from prayer in the mosque',
