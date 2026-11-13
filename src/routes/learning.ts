@@ -4,6 +4,7 @@ import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
 import { getLearningCollection, getLearningHub, getLearningItem, saveLearningProgress } from '../services/learning.service';
 import { z } from 'zod';
+import { getLearningListen } from '../services/learning-listen.service';
 import { getFiqhCourse, getFiqhCourseAll, getFiqhCourseCards, getFiqhGlossary, getFiqhLesson, saveFiqhProgress } from '../services/fiqh-course.service';
 
 /** Learning hub. Content is public; progress is private. See FLUTTER_LEARNING_HUB_HANDOFF_2026-11-05.md. */
@@ -46,6 +47,11 @@ learningRouter.get('/collections/:id', optionalAuthenticate, cache, asyncHandler
 }));
 learningRouter.get('/items/:id', optionalAuthenticate, cache, asyncHandler(async (req, res) => {
   sendSuccess(res, await getLearningItem(String(req.params.id), req.user?.sub), 'Learning item', req);
+}));
+/** «استمع»: listening script for an item (public, cacheable). */
+learningRouter.get('/items/:id/listen', asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  sendSuccess(res, getLearningListen(String(req.params.id)), 'Listening script', req);
 }));
 learningRouter.put('/items/:id/progress', authenticate, asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'private, no-store');

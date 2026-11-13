@@ -75,6 +75,7 @@ jobs:
       - run: npm run test:sakina
       - run: npm run test:hajj-umrah
       - run: npm run test:dhikr-garden
+      - run: npm run test:learning-listen
       - run: npm run test:fiqh-course
         env:
           HIFZ_TEST_DB: "true"
