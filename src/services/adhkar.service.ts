@@ -40,6 +40,29 @@ const CATEGORY_KEYS = [
   'COMPREHENSIVE_DUA',
 ] as const;
 
+/**
+ * Offline adhkar pack scope. Apps released before the Nov 2026 expansion validate the pack as exactly these 14
+ * categories and reject anything else, so they get only these (with the items added inside them). An app that
+ * understands more asks with `?categories=all`. Each scope has its own contentHash, so a client never compares one
+ * scope's hash with the other's.
+ */
+export const LEGACY_PACK_CATEGORY_KEYS: readonly string[] = CATEGORY_KEYS.slice(0, 14);
+export type AdhkarPackScope = 'legacy' | 'all';
+export function parseAdhkarPackScope(value: unknown): AdhkarPackScope {
+  return value === 'all' ? 'all' : 'legacy';
+}
+const inScope = (scope: AdhkarPackScope, key: string) => scope === 'all' || LEGACY_PACK_CATEGORY_KEYS.includes(key);
+function packMeta(scope: AdhkarPackScope, totalCategories: number, totalItems: number) {
+  return {
+    catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
+    contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${scope === 'all' ? 'all-' : ''}${totalCategories}-${totalItems}`,
+    totalCategories,
+    totalItems,
+    scope,
+    downloadPath: scope === 'all' ? `${ADHKAR_STATIC_DOWNLOAD_PATH}?categories=all` : ADHKAR_STATIC_DOWNLOAD_PATH,
+  };
+}
+
 /** Hub "وردك اليوم" goal — must match getDailyWirdForUser / Flutter progress card. */
 export const DAILY_WIRD_ITEM_GOAL = 8;
 
@@ -282,9 +305,10 @@ export async function getCategoriesWithDailyWird(userId?: string | null) {
  * Complete static Adhkar pack for Flutter one-time offline download.
  * No user progress / favorites / resume marks.
  */
-export async function getAdhkarFullCatalog() {
+export async function getAdhkarFullCatalog(scope: AdhkarPackScope = 'legacy') {
   try {
     const fromDb = await prisma.dhikrCategory.findMany({
+      where: scope === 'all' ? undefined : { key: { in: [...LEGACY_PACK_CATEGORY_KEYS] as never } },
       orderBy: { sortOrder: 'asc' },
       include: {
         items: { orderBy: { orderInCategory: 'asc' } },
@@ -318,16 +342,7 @@ export async function getAdhkarFullCatalog() {
       }));
 
       const totalItems = categories.reduce((sum, c) => sum + c.items.length, 0);
-      return {
-        meta: {
-          catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
-          contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${categories.length}-${totalItems}`,
-          totalCategories: categories.length,
-          totalItems,
-          downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
-        },
-        categories,
-      };
+      return { meta: packMeta(scope, categories.length, totalItems), categories };
     }
   } catch (err: any) {
     logger.warn('[Adhkar] getAdhkarFullCatalog prisma failed, using per-key fallback', {
@@ -337,41 +352,25 @@ export async function getAdhkarFullCatalog() {
   }
 
   const categories = [];
-  for (const key of CATEGORY_KEYS) {
+  for (const key of CATEGORY_KEYS.filter((k) => inScope(scope, k))) {
     const cat = await getCategoryWithItems(key);
     const { markedItemId: _ignore, ...rest } = cat as typeof cat & { markedItemId?: string | null };
     categories.push(rest);
   }
 
   const totalItems = categories.reduce((sum, c) => sum + (c.items?.length ?? 0), 0);
-  return {
-    meta: {
-      catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
-      contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${categories.length}-${totalItems}`,
-      totalCategories: categories.length,
-      totalItems,
-      downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
-    },
-    categories,
-  };
+  return { meta: packMeta(scope, categories.length, totalItems), categories };
 }
 
-/** Lightweight Adhkar version probe — no item texts. */
-export async function getAdhkarStaticMeta() {
+/** Lightweight Adhkar version probe — no item texts. Same scope rules as getAdhkarFullCatalog. */
+export async function getAdhkarStaticMeta(scope: AdhkarPackScope = 'legacy') {
   try {
+    const where = scope === 'all' ? undefined : { key: { in: [...LEGACY_PACK_CATEGORY_KEYS] as never } };
     const [totalCategories, totalItems] = await Promise.all([
-      prisma.dhikrCategory.count(),
-      prisma.dhikrItem.count(),
+      prisma.dhikrCategory.count({ where }),
+      prisma.dhikrItem.count({ where: where ? { category: where } : undefined }),
     ]);
-    if (totalCategories > 0) {
-      return {
-        catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
-        contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${totalCategories}-${totalItems}`,
-        totalCategories,
-        totalItems,
-        downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
-      };
-    }
+    if (totalCategories > 0) return packMeta(scope, totalCategories, totalItems);
   } catch (err: any) {
     logger.warn('[Adhkar] getAdhkarStaticMeta prisma failed, using fallback counts', {
       code: err?.code,
@@ -379,15 +378,8 @@ export async function getAdhkarStaticMeta() {
     });
   }
 
-  const fallbackCats = ALL_FALLBACK_CATEGORIES.length;
-  const fallbackItems = ALL_FALLBACK_CATEGORIES.reduce((s, c) => s + (c.totalItems ?? 0), 0);
-  return {
-    catalogVersion: ADHKAR_STATIC_CATALOG_VERSION,
-    contentHash: `adhkar-v${ADHKAR_STATIC_CATALOG_VERSION}-${fallbackCats}-${fallbackItems}`,
-    totalCategories: fallbackCats,
-    totalItems: fallbackItems,
-    downloadPath: ADHKAR_STATIC_DOWNLOAD_PATH,
-  };
+  const fallback = ALL_FALLBACK_CATEGORIES.filter((c) => inScope(scope, c.key));
+  return packMeta(scope, fallback.length, fallback.reduce((s, c) => s + (c.totalItems ?? 0), 0));
 }
 
 // ============================================================

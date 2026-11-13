@@ -28,6 +28,7 @@
     "test:mulk": "tsx scripts/test-mulk-eligibility.ts",
     "smoke:mulk": "tsx scripts/smoke-mulk-production.ts",
     "test:nawafel": "tsx scripts/test-nawafel-catalog.ts && tsx scripts/test-nawafel-preferences.ts",
+    "test:adhkar-pack-scope": "tsx scripts/test-adhkar-pack-scope.ts",
     "test:adhkar-catalog": "tsx scripts/test-adhkar-catalog.ts",
     "test:adhkar-additions": "tsx scripts/test-adhkar-additions-migration.ts",
     "test:adhkar-expansion": "tsx scripts/test-adhkar-expansion-migration.ts",

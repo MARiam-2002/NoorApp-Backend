@@ -37,8 +37,12 @@ adhkarRouter.get('/static-meta', getAdhkarStaticMetaHandler);
  *     tags: ['Adhkar (الأذكار)']
  *     summary: Complete Adhkar pack for one-time offline download
  *     description: |
- *       Public. All categories with items (textAr, textEn, repeatCount, order, refs).
- *       No user progress/favorites. Flutter stores locally and uses offline.
+ *       Public. Categories with items (textAr, textEn, repeatCount, order, refs). No user progress/favorites.
+ *       Default (no query): the 14 original categories (with every item added inside them) — the pack released
+ *       apps validate. `?categories=all`: every category (23). meta.scope and meta.contentHash differ per scope;
+ *       compare with the matching entry of /content/static-meta (`adhkar` or `adhkarAll`).
+ *     parameters:
+ *       - { in: query, name: categories, schema: { type: string, enum: [all] }, description: 'all = every category' }
  *     responses:
  *       200:
  *         description: Full Adhkar catalog

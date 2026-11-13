@@ -18,6 +18,7 @@ import {
   saveResumeMark,
   getAdhkarFullCatalog,
   getAdhkarStaticMeta,
+  parseAdhkarPackScope,
 } from '../services/adhkar.service';
 
 export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: Response) => {
@@ -26,7 +27,7 @@ export const getDhikrCategoriesHandler = asyncHandler(async (req: Request, res: 
 });
 
 export const getAdhkarFullCatalogHandler = asyncHandler(async (req: Request, res: Response) => {
-  const data = await getAdhkarFullCatalog();
+  const data = await getAdhkarFullCatalog(parseAdhkarPackScope(req.query.categories));
   sendSuccess(
     res,
     data,
@@ -36,7 +37,7 @@ export const getAdhkarFullCatalogHandler = asyncHandler(async (req: Request, res
 });
 
 export const getAdhkarStaticMetaHandler = asyncHandler(async (req: Request, res: Response) => {
-  const data = await getAdhkarStaticMeta();
+  const data = await getAdhkarStaticMeta(parseAdhkarPackScope(req.query.categories));
   sendSuccess(res, data, 'Adhkar static catalog meta retrieved successfully', req);
 });
 
