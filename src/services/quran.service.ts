@@ -13,6 +13,7 @@ import { withPerfTiming } from '../lib/perf';
 import {
   fetchQfAudioByVerse,
   fetchQfTafsirByVerse,
+  fetchQfTafsirByChapter,
   fetchQfTranslationByVerse,
   resolveRecitationResourceId,
   resolveTafsirResourceId,
@@ -21,6 +22,7 @@ import {
 } from '../lib/quran-foundation';
 import {
   fetchQulQurtubiByVerse,
+  fetchQulQurtubiBySurah,
   isAlQurtubiCatalogId,
   QUL_QURTUBI_RESOURCE_ID,
 } from '../lib/qurtubi-qul';
@@ -1729,6 +1731,31 @@ export async function getAyahAudio(
   };
 }
 
+/** Which tafsir a request means (id, code, slug or resource id), with its attribution. Shared by ayah and surah reads. */
+function resolveTafsirCatalog(sourceId?: string) {
+  const catalog =
+    QURAN_TAFSIRS.find((t) => matchesCatalogId(t, sourceId)) ??
+    QURAN_TAFSIRS[0] ??
+    ({
+      id: 'Ibn_Kathir',
+      code: 'Ibn_Kathir',
+      nameAr: 'تفسير ابن كثير',
+      nameEn: 'Tafsir Ibn Kathir',
+      language: 'Arabic',
+      resourceId: 14,
+    } as TafsirOption);
+  const resourceId = resolveTafsirResourceId(sourceId ?? catalog.id);
+  const attribution = {
+    resourceId: typeof resourceId === 'number' ? resourceId : catalog.resourceId,
+    sourceNameAr: catalog.nameAr,
+    sourceNameEn: catalog.nameEn ?? catalog.name,
+    authorAr: catalog.authorAr,
+    authorEn: catalog.authorEn,
+    language: catalog.language ?? 'Arabic',
+  };
+  return { catalog, resourceId, attribution };
+}
+
 export async function getAyahTafsir(
   surahId: number,
   ayahNumber: number,
@@ -1755,27 +1782,7 @@ export async function getAyahTafsir(
   qulResourceId?: number;
   contentEdition?: string;
 }> {
-  const catalog =
-    QURAN_TAFSIRS.find((t) => matchesCatalogId(t, sourceId)) ??
-    QURAN_TAFSIRS[0] ??
-    ({
-      id: 'Ibn_Kathir',
-      code: 'Ibn_Kathir',
-      nameAr: 'تفسير ابن كثير',
-      nameEn: 'Tafsir Ibn Kathir',
-      language: 'Arabic',
-      resourceId: 14,
-    } as TafsirOption);
-
-  const resourceId = resolveTafsirResourceId(sourceId ?? catalog.id);
-  const attribution = {
-    resourceId: typeof resourceId === 'number' ? resourceId : catalog.resourceId,
-    sourceNameAr: catalog.nameAr,
-    sourceNameEn: catalog.nameEn ?? catalog.name,
-    authorAr: catalog.authorAr,
-    authorEn: catalog.authorEn,
-    language: catalog.language ?? 'Arabic',
-  };
+  const { catalog, resourceId, attribution } = resolveTafsirCatalog(sourceId);
 
   // «التفسير الميسر»: served from Noor's verified copy (revised edition, every ayah group matched letter for letter with
   // tafsir.app). Quran Foundation's resource 16 mixes editions and has typos, so it is no longer used for this tafsir.
@@ -1873,6 +1880,69 @@ export async function getAyahTafsir(
     HttpStatus.SERVICE_UNAVAILABLE,
     ErrorCodes.TAFSIR_TEMPORARILY_UNAVAILABLE,
     { retryAfterSeconds: retryAfterSec },
+  );
+}
+
+/**
+ * A whole surah of one tafsir, for offline reading: the app downloads it the first time the user opens tafsir in a surah
+ * and reads it locally afterwards. Same text and same source choice as getAyahTafsir (verified Muyassar; formatted
+ * Al-Qurtubi with Quran Foundation as fallback; Quran Foundation for the rest). Ayat a tafsir does not explain have
+ * textAr null. Kept in memory for a day; the route lets clients cache it for a day too.
+ */
+type SurahTafsirAyah = { ayahNumber: number; textAr: string | null; groupFromAyah?: number; groupToAyah?: number };
+const surahTafsirCache = new Map<string, { at: number; value: Awaited<ReturnType<typeof buildSurahTafsir>> }>();
+const SURAH_TAFSIR_TTL_MS = 24 * 60 * 60 * 1000;
+const SURAH_TAFSIR_MAX = 60;
+
+export async function getSurahTafsir(surahId: number, sourceId?: string) {
+  const surah = CATALOG_SURAHS.find((x) => x.id === surahId);
+  if (!surah) throw new AppError('Surah not found', HttpStatus.NOT_FOUND, ErrorCodes.NOT_FOUND);
+  const { catalog } = resolveTafsirCatalog(sourceId);
+  const key = `${catalog.id}:${surahId}`;
+  const hit = surahTafsirCache.get(key);
+  if (hit && Date.now() - hit.at < SURAH_TAFSIR_TTL_MS) return hit.value;
+  const value = await buildSurahTafsir(surah.id, surah.totalAyahs, sourceId);
+  surahTafsirCache.delete(key);
+  surahTafsirCache.set(key, { at: Date.now(), value });
+  while (surahTafsirCache.size > SURAH_TAFSIR_MAX) surahTafsirCache.delete(surahTafsirCache.keys().next().value!);
+  return value;
+}
+
+/** Tests only. */
+export function clearSurahTafsirCache() {
+  surahTafsirCache.clear();
+}
+
+async function buildSurahTafsir(surahId: number, totalAyahs: number, sourceId?: string) {
+  const { catalog, resourceId, attribution } = resolveTafsirCatalog(sourceId);
+  const head = { surahId, ayahCount: totalAyahs, language: attribution.language, resourceId: attribution.resourceId,
+    sourceNameAr: attribution.sourceNameAr, sourceNameEn: attribution.sourceNameEn, authorAr: attribution.authorAr, authorEn: attribution.authorEn };
+  const fromMap = (texts: Map<number, string>) => Array.from({ length: totalAyahs }, (_, i): SurahTafsirAyah =>
+    ({ ayahNumber: i + 1, textAr: texts.get(i + 1) ?? null }));
+  const done = (provider: 'noor_verified' | 'qul' | 'quran_foundation', source: string, ayat: SurahTafsirAyah[], extra: Record<string, unknown> = {}) =>
+    ({ ...head, ...extra, source, provider, ayat, missingAyat: ayat.filter((a) => !a.textAr).map((a) => a.ayahNumber) });
+
+  if (catalog.id === 'Ibn_Kathir_Muyassar' || resourceId === 16) {
+    const m = QURAN_TAFSIRS.find((t) => t.id === 'Ibn_Kathir_Muyassar')!;
+    const ayat = Array.from({ length: totalAyahs }, (_, i): SurahTafsirAyah => {
+      const p = getMuyassarPassage(surahId, i + 1)!;
+      return { ayahNumber: i + 1, textAr: p.textAr, groupFromAyah: p.fromAyah, groupToAyah: p.toAyah };
+    });
+    return done('noor_verified', m.id, ayat, { resourceId: 16, sourceNameAr: m.nameAr, sourceNameEn: m.nameEn ?? m.name,
+      authorAr: m.authorAr, authorEn: m.authorEn, language: 'Arabic', contentEdition: 'muyassar-revised' });
+  }
+  if (isAlQurtubiCatalogId(catalog.id, attribution.resourceId)) {
+    const qul = await fetchQulQurtubiBySurah(surahId);
+    if (qul && qul.size > 0) return done('qul', catalog.id, fromMap(qul), { resourceId: attribution.resourceId ?? 90, qulResourceId: QUL_QURTUBI_RESOURCE_ID });
+  }
+  const qf = await fetchQfTafsirByChapter(resourceId, surahId);
+  if (qf && qf.size > 0) return done('quran_foundation', catalog.id, fromMap(qf));
+
+  throw new AppError(
+    'Tafsir is temporarily unavailable. Please try again later.',
+    HttpStatus.SERVICE_UNAVAILABLE,
+    ErrorCodes.TAFSIR_TEMPORARILY_UNAVAILABLE,
+    { retryAfterSeconds: Math.max(Math.ceil(getProviderCooldownRemainingMs(PROVIDER_KEYS.QURAN_FOUNDATION) / 1000), 5) },
   );
 }
 

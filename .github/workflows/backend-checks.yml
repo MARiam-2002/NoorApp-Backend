@@ -77,6 +77,7 @@ jobs:
       - run: npm run test:dhikr-garden
       - run: npm run test:learning-listen
       - run: npm run test:tafsir-muyassar
+      - run: npm run test:tafsir-surah
       - run: npm run test:fiqh-course
         env:
           HIFZ_TEST_DB: "true"

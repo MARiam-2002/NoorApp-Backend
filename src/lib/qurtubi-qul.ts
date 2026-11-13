@@ -135,6 +135,41 @@ export async function fetchQulQurtubiByVerse(
   return null;
 }
 
+/**
+ * Whole surah of formatted Al-Qurtubi from the same mirror (one file per surah), for offline use.
+ * Fills the per-ayah cache too, so the reader and the offline bundle show the same text. Null on failure / cooldown.
+ */
+export async function fetchQulQurtubiBySurah(surahId: number): Promise<Map<number, string> | null> {
+  if (!Number.isInteger(surahId) || surahId < 1 || surahId > 114) return null;
+  if (isProviderCoolingDown(PROVIDER_KEYS.QUL_QURTUBI)) return null;
+  for (const base of CDN_BASES) {
+    try {
+      const res = await fetchWithTimeout(`${base}/${surahId}.json`, 20_000);
+      if (res.status === 429) {
+        markProviderRateLimited(PROVIDER_KEYS.QUL_QURTUBI, res.headers.get('retry-after'));
+        return null;
+      }
+      if (!res.ok) continue;
+      const rows = (await res.json()) as Array<{ ayah?: number; text?: string }>;
+      if (!Array.isArray(rows)) continue;
+      const out = new Map<number, string>();
+      const expiresAtMs = Date.now() + CACHE_TTL_MS;
+      for (const r of rows) {
+        const text = typeof r?.text === 'string' ? r.text.trim() : '';
+        if (!Number.isInteger(r?.ayah) || !text) continue;
+        out.set(r.ayah!, text);
+        ayahCache.set(`${surahId}:${r.ayah}`, { text, expiresAtMs });
+      }
+      if (out.size === 0) continue;
+      clearProviderCooldown(PROVIDER_KEYS.QUL_QURTUBI);
+      return out;
+    } catch (err) {
+      logger.warn('[QurtubiQUL] surah fetch failed', { message: (err as Error)?.message });
+    }
+  }
+  return null;
+}
+
 export function isAlQurtubiCatalogId(catalogId: string, resourceId?: number | string): boolean {
   const id = catalogId.trim();
   if (

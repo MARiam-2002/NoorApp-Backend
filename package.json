@@ -48,6 +48,7 @@
     "build:learning-tafsir": "tsx scripts/build-learning-tafsir.ts",
     "build:tafsir-muyassar": "tsx scripts/build-tafsir-muyassar.ts",
     "test:tafsir-muyassar": "tsx scripts/test-tafsir-muyassar.ts",
+    "test:tafsir-surah": "tsx scripts/test-tafsir-surah.ts",
     "build:fiqh-course": "tsx scripts/build-fiqh-course.ts",
     "test:figures": "tsx scripts/test-figures-of-the-day.ts",
     "test:sajdah": "tsx scripts/test-sajdah-verses.ts",

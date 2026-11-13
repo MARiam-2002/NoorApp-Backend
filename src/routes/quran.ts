@@ -35,6 +35,7 @@ import {
   listTranslationsHandler,
   getAyahAudioHandler,
   getAyahTafsirHandler,
+  getSurahTafsirHandler,
   getAyahTranslationHandler,
   listSajdahVersesCatalogHandler,
   getSajdahUserProgressHandler,
@@ -121,6 +122,13 @@ const getAyahAudioQuerySchema = z.object({
 const getAyahTafsirQuerySchema = z.object({
   surahId: z.coerce.number().int().min(1).max(114),
   ayahNumber: z.coerce.number().int().min(1),
+  source: z.string().min(1).optional(),
+  tafsirId: z.string().min(1).optional(),
+  id: z.string().min(1).optional(),
+});
+
+const getSurahTafsirQuerySchema = z.object({
+  surahId: z.coerce.number().int().min(1).max(114),
   source: z.string().min(1).optional(),
   tafsirId: z.string().min(1).optional(),
   id: z.string().min(1).optional(),
@@ -1120,6 +1128,26 @@ quranRouter.get('/audio', validate(getAyahAudioQuerySchema, 'query'), getAyahAud
  *               meta: {}
  */
 quranRouter.get('/tafsir', validate(getAyahTafsirQuerySchema, 'query'), getAyahTafsirHandler);
+
+/**
+ * @openapi
+ * /quran/tafsir/surah:
+ *   get:
+ *     tags: [Quran]
+ *     summary: Whole surah of one tafsir for offline reading
+ *     description: >
+ *       Same text and source choice as /quran/tafsir (verified «التفسير الميسر», formatted Al-Qurtubi, Quran Foundation
+ *       for the rest). The app downloads it the first time tafsir is opened in a surah and reads it offline afterwards.
+ *       ayat[] has one row per ayah; textAr is null for ayat the tafsir does not explain (listed in missingAyat).
+ *       Muyassar rows also carry groupFromAyah/groupToAyah. Public, cacheable for a day.
+ *     parameters:
+ *       - { in: query, name: surahId, required: true, schema: { type: integer, minimum: 1, maximum: 114 } }
+ *       - { in: query, name: tafsirId, schema: { type: string }, description: Same ids as /quran/tafsir (also source / id) }
+ *     responses:
+ *       200: { description: Surah tafsir }
+ *       503: { description: Provider temporarily unavailable (retryAfterSeconds) }
+ */
+quranRouter.get('/tafsir/surah', validate(getSurahTafsirQuerySchema, 'query'), getSurahTafsirHandler);
 
 /**
  * @openapi

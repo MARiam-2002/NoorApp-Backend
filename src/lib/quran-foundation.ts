@@ -239,6 +239,32 @@ export async function fetchQfTafsirByVerse(
   };
 }
 
+/**
+ * Whole surah of one tafsir (same text as by_ayah, plain text), for offline use. Ayat the resource does not explain
+ * are simply absent (by_ayah returns 404 for them too). Null when the provider is unavailable.
+ */
+export async function fetchQfTafsirByChapter(
+  resourceIdOrSlug: string | number,
+  surahId: number,
+): Promise<Map<number, string> | null> {
+  const out = new Map<number, string>();
+  let page: number | null = 1;
+  for (let guard = 0; page && guard < 10; guard++) {
+    const data: {
+      tafsirs?: Array<{ verse_key?: string; text?: string }>;
+      pagination?: { next_page?: number | null };
+    } | null = await qfFetchJson(`/tafsirs/${resourceIdOrSlug}/by_chapter/${surahId}`, { per_page: 300, page });
+    if (!data?.tafsirs) return null;
+    for (const t of data.tafsirs) {
+      const ayah = Number(t.verse_key?.split(':')[1]);
+      const text = t.text ? stripHtml(t.text) : '';
+      if (Number.isInteger(ayah) && text) out.set(ayah, text);
+    }
+    page = data.pagination?.next_page ?? null;
+  }
+  return out;
+}
+
 export async function fetchQfAudioByVerse(
   recitationId: number,
   verseKey: string,
