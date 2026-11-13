@@ -9,6 +9,10 @@ import {
   changeDhikrHandler,
   getHistoryHandler,
 } from '../controllers/tasbih.controller';
+import { asyncHandler } from '../middleware/common';
+import { sendSuccess } from '../shared/utils/response';
+import { getDhikrArName, getDhikrEnName } from '../services/tasbih.service';
+import { DHIKR_GARDEN_COPY, DHIKR_GARDEN_HADITH, DHIKR_GARDEN_PHRASES, DHIKR_GARDEN_VERSION } from '../shared/data/dhikr-garden';
 
 const DhikrEnum = z.enum([
   'SUBHAN_ALLAH',
@@ -36,6 +40,21 @@ const tasbihHistorySchema = z.object({
 });
 
 export const tasbihRouter = Router();
+
+/**
+ * «غراس الجنة» (public): which counter phrases grow the on-device garden, the evidence and the copy.
+ * The garden itself is drawn and counted on the device; nothing is stored here.
+ */
+tasbihRouter.get('/garden', asyncHandler(async (req, res) => {
+  z.object({}).strict().parse(req.query);
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  sendSuccess(res, {
+    version: DHIKR_GARDEN_VERSION,
+    ...DHIKR_GARDEN_COPY,
+    phrases: DHIKR_GARDEN_PHRASES.map((p) => ({ ...p, dhikrAr: getDhikrArName(p.dhikr), dhikrEn: getDhikrEnName(p.dhikr) })),
+    evidence: DHIKR_GARDEN_HADITH.map(({ id, leadAr, textAr, referenceAr }) => ({ id, leadAr, textAr, referenceAr })),
+  }, 'Dhikr garden', req);
+}));
 
 /**
  * @openapi
