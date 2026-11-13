@@ -73,6 +73,7 @@ jobs:
         env:
           HIFZ_TEST_DB: "true"
       - run: npm run test:sakina
+      - run: npm run test:hajj-umrah
       - run: npm run test:fasting-qada
       - run: npm run test:qiyam-last-third
       - run: npm run test:fajr-alarm

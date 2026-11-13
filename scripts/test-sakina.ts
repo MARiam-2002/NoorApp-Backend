@@ -6,24 +6,13 @@
  *   node scripts/fetch-hadith-editions.cjs && npx tsx scripts/test-sakina.ts
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { gunzipSync } from 'node:zlib';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
-import { findSahihPhrase, tirmidhiGrades } from './lib/sahihayn-lookup';
-import { normalizeArabicForSearch } from '../src/shared/utils/arabic-normalize';
+import { assertAyahRangeContains } from './lib/quran-words';
+import { assertVerbatimHadith } from './lib/verbatim';
 import { SAKINA_HADITH, SAKINA_MOODS } from '../src/shared/data/sakina';
 import { getSakinaAll, getSakinaMood, getSakinaMoods } from '../src/services/sakina.service';
 import { sakinaRouter } from '../src/routes/sakina';
-
-// Words of each ayah from the bundled morphology data. The key ignores alef, hamza seats and ya, where Uthmani and
-// plain spelling differ (سَيِّـَٔاتِهِم / سيئاتهم); a few words of each check are still distinctive enough to pin the ayah.
-//: [[surah, ayah, [[word, ...], ...]], ...]
-const morph = JSON.parse(gunzipSync(readFileSync('src/shared/data/quran-library/morphology.json.gz')).toString()) as [number, number, [string, unknown][]][];
-const verses = new Map<string, string[]>(morph.map(([s, v, words]) => [`${s}:${v}`, words.map((w) => w[0])]));
-assert.equal(verses.size, 6236, 'whole Quran present');
-const key = (w: string) => normalizeArabicForSearch(w).replace(/[^ء-ي]/g, '').replace(/[اء-ئىي]/g, '').replace(/ة/g, 'ه');
-const keys = (t: string) => t.split(/\s+/).map(key).filter(Boolean);
 
 const ids = new Set<string>();
 for (const m of SAKINA_MOODS) {
@@ -32,28 +21,13 @@ for (const m of SAKINA_MOODS) {
   assert.ok(m.ayat.length >= 3 && m.adhkar.length >= 1 && m.hadith.length >= 1, `${m.id} has content of each kind`);
   for (const r of m.ayat) {
     assert.ok(r.from <= r.to && r.to - r.from <= 3, `${m.id} ${r.surah}:${r.from}-${r.to} short range`);
-    const words: string[] = [];
-    for (let v = r.from; v <= r.to; v++) {
-      const w = verses.get(`${r.surah}:${v}`);
-      assert.ok(w, `${r.surah}:${v} exists`);
-      words.push(...w!);
-    }
-    const hay = words.map(key).filter(Boolean).join(' ');
-    assert.ok(` ${hay} `.includes(` ${keys(r.check).join(' ')} `), `${m.id}: ${r.surah}:${r.from}-${r.to} contains «${r.check}»`);
+    assertAyahRangeContains(r.surah, r.from, r.to, r.check, m.id);
   }
   for (const h of m.hadith) assert.ok(SAKINA_HADITH[h], `${m.id}: hadith ${h} defined`);
 }
 assert.equal(SAKINA_MOODS.length, 10);
 
-for (const h of Object.values(SAKINA_HADITH)) {
-  const hits = findSahihPhrase(h.collection, h.textAr);
-  assert.ok(hits.some((x) => x.number === h.number), `${h.id}: verbatim in ${h.collection} ${h.number} (found ${hits.map((x) => x.number).join(',') || 'none'})`);
-  assert.ok(h.referenceAr.includes(`(${h.number})`), `${h.id}: reference names the number`);
-  if (h.collection === 'tirmidhi' || h.collection === 'abudawud') {
-    assert.equal(tirmidhiGrades(h.number, h.collection)['Al-Albani'], 'Sahih', `${h.id}: al-Albani grade`);
-    assert.match(h.referenceAr, /وصححه الألباني/);
-  }
-}
+for (const h of Object.values(SAKINA_HADITH)) assertVerbatimHadith(h);
 for (const id of Object.keys(SAKINA_HADITH)) assert.ok(SAKINA_MOODS.some((m) => m.hadith.includes(id)), `hadith ${id} is used`);
 
 // Service: adhkar resolve from the catalog (throws on a missing reference), no internal fields leak.
