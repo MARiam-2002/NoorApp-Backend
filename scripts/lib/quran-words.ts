@@ -27,6 +27,30 @@ export function assertAyahRangeContains(surah: number, from: number, to: number,
     if (!w) throw new Error(`${label} ${surah}:${a} does not exist`);
     words.push(...w);
   }
+  if (!phrase.trim()) return; // existence only
   const hay = ` ${words.map(key).filter(Boolean).join(' ')} `;
   if (!hay.includes(` ${keys(phrase).join(' ')} `)) throw new Error(`${label} ${surah}:${from}-${to} does not contain «${phrase}»`);
+}
+
+/** Looser key for quotes in imla'i spelling: Uthmani وٰ (الصلوٰة، الزكوٰة) and imla'i وا (الصلوات) both fold to ا. */
+const looseKey = (w: string) => normalizeArabicForSearch(w.replace(/[\u064B-\u0652]/g, '').replace(/و\u0670/g, 'ا'))
+  .replace(/[^\u0621-\u064A]/g, '').replace(/[\u0621\u0623\u0625\u0622]/g, 'ا').replace(/(?<=[\u0621-\u064A])وا/g, 'ا')
+  .replace(/[\u0627\u0624\u0626\u0649\u064A]/g, '').replace(/\u0629/g, '\u0647');
+let flat: { keys: string[]; at: string[] } | null = null;
+/** Where a quoted passage (imla'i or Uthmani spelling, may cross ayat) occurs in the Quran, or null. */
+export function findQuranPassage(phrase: string): string | null {
+  const v = load();
+  if (!flat) {
+    flat = { keys: [], at: [] };
+    for (const [ref, words] of v) for (const w of words) { const k = looseKey(w); if (k) { flat.keys.push(k); flat.at.push(ref); } }
+  }
+  const parts = phrase.split(/\.{3}|…/).map(p => p.trim()).filter(p => p.split(/\s+/).length >= 2);
+  if (parts.length > 1) { const refs = parts.map(findQuranPassage); return refs.every(Boolean) ? refs[0] : null; }
+  const target = phrase.replace(/[*۝]/g, ' ').replace(/[0-9٠-٩]+/g, ' ').split(/\s+/).map(looseKey).filter(Boolean);
+  if (!target.length) return null;
+  outer: for (let i = 0; i + target.length <= flat.keys.length; i++) {
+    for (let j = 0; j < target.length; j++) if (flat.keys[i + j] !== target[j]) continue outer;
+    return flat.at[i];
+  }
+  return null;
 }

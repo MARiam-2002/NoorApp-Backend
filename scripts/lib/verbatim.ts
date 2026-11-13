@@ -23,7 +23,7 @@ export function assertVerbatimHadith(
   if (!h.referenceAr.includes(`(${h.number})`)) throw new Error(`${h.id}: reference must name ${h.number}`);
   if (h.collection === 'tirmidhi' || h.collection === 'abudawud') {
     const grade = tirmidhiGrades(h.number, h.collection)['Al-Albani'];
-    const expected = grade === 'Sahih' ? 'وصححه الألباني' : grade === 'Hasan' ? 'وحسّنه الألباني' : null;
+    const expected = grade === 'Hasan Sahih' ? 'وقال الألباني: حسن صحيح' : /^Sahih/.test(grade ?? '') ? 'وصححه الألباني' : /^Hasan/.test(grade ?? '') ? 'وحسّنه الألباني' : null;
     if (!expected) throw new Error(`${h.id}: al-Albani grade is ${grade ?? 'missing'}, not sahih or hasan`);
     if (!h.referenceAr.includes(expected)) throw new Error(`${h.id}: reference must say «${expected}»`);
   }
