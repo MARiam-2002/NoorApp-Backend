@@ -10,7 +10,8 @@ import { readFileSync } from 'node:fs';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
 import { findSahihPhrase, tirmidhiGrades } from './lib/sahihayn-lookup';
-import { SALAWAT_WEEKLY_EVIDENCE, SALAWAT_WEEKLY_LIMITS, salawatWindow, addSalawatCount, getSalawatWeeklyMine } from '../src/services/salawat-weekly.service';
+import { assertVerbatimHadith } from './lib/verbatim';
+import { SALAWAT_WEEKLY_PHRASE, SALAWAT_WEEKLY_EVIDENCE, SALAWAT_WEEKLY_LIMITS, salawatWindow, addSalawatCount, getSalawatWeeklyMine } from '../src/services/salawat-weekly.service';
 import { salawatRouter } from '../src/routes/salawat';
 import { prisma } from '../src/lib/prisma';
 
@@ -18,6 +19,9 @@ for (const e of SALAWAT_WEEKLY_EVIDENCE) {
   assert.ok(findSahihPhrase(e.collection, e.textAr).some(h => h.number === e.number), `${e.id} verbatim`);
   if (e.collection === 'abudawud') assert.equal(tirmidhiGrades(e.number, 'abudawud')['Al-Albani'], 'Sahih');
 }
+
+assertVerbatimHadith({ id: 'phrase', ...SALAWAT_WEEKLY_PHRASE, referenceAr: 'رواه البخاري (3370)' });
+for (const e of SALAWAT_WEEKLY_EVIDENCE) assertVerbatimHadith({ ...e, referenceAr: e.referenceAr });
 
 const cairo = { latitude: 30.0444, longitude: 31.2357, timezone: 'Africa/Cairo', city: 'Cairo', azanPreferences: {}, prayerCalculationMethod: 'EGYPTIAN_GENERAL_AUTHORITY_OF_SURVEY' };
 // Thursday 12 Nov 2026, 20:00 Cairo (18:00Z): open, week of Friday 13 Nov.

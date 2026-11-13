@@ -26,6 +26,10 @@ export const SALAWAT_WEEKLY_EVIDENCE = [
     collection: 'muslim' as const, number: 408, referenceAr: 'رواه مسلم (408)' },
 ];
 
+/** What the counter shows while tapping: the opening words of the salawat the Prophet ﷺ taught (al-Bukhari 3370). */
+export const SALAWAT_WEEKLY_PHRASE = { textAr: 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ، وَعَلَى آلِ مُحَمَّدٍ', referenceAr: 'من الصلاة التي علّمها النبي ﷺ أصحابه — رواه البخاري (3370)',
+  collection: 'bukhari' as const, number: 3370 };
+
 type Loc = { latitude: number | null; longitude: number | null; timezone: string | null; azanPreferences: unknown; prayerCalculationMethod: string | null; city: string | null };
 const addDays = (day: string, n: number) => new Date(Date.parse(day + 'T12:00:00Z') + n * 86400000).toISOString().slice(0, 10);
 
@@ -84,6 +88,7 @@ const dto = (w: ReturnType<typeof salawatWindow>, c: { total: number; participan
   ...w, communityTotal: c.total, participants: c.participants,
   evidence: SALAWAT_WEEKLY_EVIDENCE.map(({ id, leadAr, textAr, referenceAr }) => ({ id, leadAr, textAr, referenceAr })),
   titleAr: 'مجلس الصلاة على النبي ﷺ', subtitleAr: 'من مغرب الخميس إلى مغرب الجمعة',
+  phrase: { textAr: SALAWAT_WEEKLY_PHRASE.textAr, referenceAr: SALAWAT_WEEKLY_PHRASE.referenceAr },
 });
 
 /** Public: the window for a timezone (no location → 18:00) and the shared total of that week. */
