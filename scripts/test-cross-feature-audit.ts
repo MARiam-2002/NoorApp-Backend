@@ -83,9 +83,13 @@ async function main() {
     prisma.dailyProgress.findUnique = (async () => null) as any;
     prisma.prayerCompletion.findMany = (async () => [{ date: new RealDate('2027-01-01'), prayer: 'FAJR' }]) as any;
     const prayerOnly = await getJourneyProgress('audit');
-    assert.equal(prayerOnly.daily.length, 1);
-    assert.equal(prayerOnly.daily[0].prayersCompleted, 1);
-    assert.ok(prayerOnly.daily[0].overallPercent > 0);
+    // Every day of the window is returned (empty days included); the prayer-only day is today, the last one.
+    assert.equal(prayerOnly.daily.length, 7);
+    assert.equal(prayerOnly.daily[6].date, '2027-01-01');
+    assert.equal(prayerOnly.daily[6].prayersCompleted, 1);
+    assert.ok(prayerOnly.daily[6].overallPercent > 0);
+    assert.ok(prayerOnly.daily.slice(0, 6).every(d => d.prayersCompleted === 0 && d.overallPercent === 0));
+    assert.equal(prayerOnly.summary.daysStreak, 1, 'a marked prayer counts in the streak');
     const calendar = await getMonthlyCalendarHeatmap('audit', 1, 2027);
     assert.equal(calendar.quranGoal.pagesTarget, 5);
     assert.equal(calendar.cells[0].status, 'partial', 'prayer-only day must not be marked missed');
