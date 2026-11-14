@@ -61,6 +61,8 @@ model User {
   azanPreferences         Json?
   /// Home visibility and selected rawatib slots; separate from daily completion.
   nawafelPreferences      Json?
+  /// Home screen layout: section order/visibility and tool shortcuts (GET/PUT /profile/home-layout).
+  homeLayout              Json?
   /// FCM "Pray for the Prophet ﷺ" reminders (opt-in; default off).
   salawatReminderEnabled  Boolean                @default(false)
   /// Allowed values: 30 | 60 | 120 | 180.

@@ -1,6 +1,7 @@
 import { passwordFieldSchema } from '../lib/validation';
 import { changePasswordRateLimiter } from '../middleware/http';
 import { getKahfPreferences, updateKahfPreferences } from '../services/kahf-reminder.service';
+import { getHomeLayout, putHomeLayout } from '../services/home-layout.service';
 import { getAdhkarReminderPreferences, updateAdhkarReminderPreferences } from '../services/adhkar-reminder.service';
 import { getFajrAlarmPreferences, updateFajrAlarmPreferences } from '../services/fajr-alarm.service';
 import { asyncHandler } from '../middleware/common';
@@ -713,6 +714,72 @@ profileRouter.put(
   validate(khatmahReminderPatchSchema),
   patchKhatmahReminderHandler,
 );
+
+/**
+ * @openapi
+ * /profile/home-layout:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: ترتيب الشاشة الرئيسية (الأقسام والأدوات) — متزامن بين الأجهزة
+ *     description: |
+ *       Order and visibility of the home sections, and the shortcuts in the tools grid (at most 8).
+ *       The «now» card (next prayer and the action for this time of day) is always first and is not part of the layout.
+ *       A user who never saved gets the default (every section visible, 8 default tools, revision 0).
+ *       `catalog` lists every id this server knows; ids added later appear at the end, visible.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Layout
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: Home layout
+ *               data:
+ *                 sections:
+ *                   - { id: today, visible: true }
+ *                   - { id: continue, visible: true }
+ *                   - { id: challenge, visible: true }
+ *                   - { id: daily_inspiration, visible: true }
+ *                   - { id: tools, visible: true }
+ *                 tools: [qibla, tasbih, fasting_qada, rawatib, sajdah, zakat, sadaqah, prayer_times]
+ *                 revision: 0
+ *                 updatedAt: null
+ *                 catalog:
+ *                   sections: [today, continue, challenge, daily_inspiration, tools]
+ *                   tools: [qibla, tasbih, fasting_qada, rawatib, sajdah, zakat, sadaqah, prayer_times, kahf, salawat, hifz, travel, hajj_umrah, learning]
+ *                   toolsMax: 8
+ *   put:
+ *     tags: ['Profile']
+ *     summary: حفظ ترتيب الشاشة الرئيسية
+ *     description: |
+ *       Send the whole layout. `sections` must list each section id once, in order. `tools` at most 8, no repeats.
+ *       `expectedRevision` is the `revision` from the last GET (0 the first time); if another device saved in between,
+ *       the answer is 409 `{ reason: HOME_LAYOUT_REVISION, currentRevision }` — GET again, re-apply, retry.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           example:
+ *             sections:
+ *               - { id: today, visible: true }
+ *               - { id: continue, visible: true }
+ *               - { id: daily_inspiration, visible: true }
+ *               - { id: tools, visible: true }
+ *               - { id: challenge, visible: false }
+ *             tools: [qibla, tasbih, kahf, fasting_qada]
+ *             expectedRevision: 0
+ *     responses:
+ *       200: { description: Saved layout (revision + 1) }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       409: { description: Saved from another device in between (HOME_LAYOUT_REVISION) }
+ */
+profileRouter.get('/home-layout', authenticate, privateNawafelCache, asyncHandler(async (req, res) => { sendSuccess(res, await getHomeLayout(req.user!.sub), 'Home layout', req); }));
+profileRouter.put('/home-layout', authenticate, privateNawafelCache, asyncHandler(async (req, res) => { sendSuccess(res, await putHomeLayout(req.user!.sub, req.body), 'Home layout saved', req); }));
 
 profileRouter.get('/kahf-preferences', authenticate, privateNawafelCache, asyncHandler(async(req,res)=>{sendSuccess(res,await getKahfPreferences(req.user!.sub),'Surah Al-Kahf reminder preferences',req);}));
 profileRouter.patch('/kahf-preferences', authenticate, privateNawafelCache, asyncHandler(async(req,res)=>{sendSuccess(res,await updateKahfPreferences(req.user!.sub,req.body),'Surah Al-Kahf reminder updated',req);}));
