@@ -45,6 +45,7 @@ jobs:
           FAJR_ALARM_TEST_DB: "true"
           FASTING_TEST_DB: "true"
           HIFZ_TEST_DB: "true"
+          JOURNEY_TEST_DB: "true"
           KAHF_TEST_DB: "true"
           LEARNING_TEST_DB: "true"
           PRAYER_MARK_TEST_DB: "true"

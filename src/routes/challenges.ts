@@ -86,18 +86,25 @@ challengesRouter.get('/', authenticate, getChallenges);
  *               success: true
  *               message: تفاصيل تحدي اليوم
  *               data:
- *                 id: 208
- *                 dayOfYear: 208
- *                 date: '2026-07-27'
- *                 titleAr: اقرأ صفحتين من القرآن
- *                 descriptionAr: اقرأ صفحتين على الأقل من القرآن الكريم اليوم
- *                 type: QURAN_PAGES
- *                 target: 2
- *                 rewardPoints: 50
- *                 currentValue: 3
- *                 completed: true
+ *                 id: '318'
+ *                 dayOfYear: 318
+ *                 titleAr: الصلاة نور
+ *                 titleEn: Prayer is light
+ *                 descriptionAr: 'قال النبي ﷺ: «وَالصَّلاَةُ نُورٌ» (رواه مسلم — رقم 223). أدِّ صلواتك الخمس اليوم'
+ *                 descriptionEn: 'The Prophet ﷺ said: “Prayer is light” (Sahih Muslim 223). Pray all five prayers today'
+ *                 type: PRAYER
+ *                 targetValue: 5
+ *                 rewardPoints: 100
+ *                 completed: false
  *                 claimed: false
- *                 progressPercent: 150
+ *                 progress:
+ *                   current: 2
+ *                   target: 5
+ *                   unit: PRAYERS
+ *                   unitAr: صلوات
+ *                   unitEn: prayers
+ *                   percent: 40
+ *                   completed: false
  *               meta: null
  *               timestamp: '2026-07-27T10:30:00.000Z'
  *       401:

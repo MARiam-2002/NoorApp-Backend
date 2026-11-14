@@ -112,12 +112,22 @@ import * as dashboardController from '../controllers/dashboard.controller';
  *                   currentPage: 35
  *                   progressPercent: 6
  *                 dailyChallenge:
- *                   titleAr: 'اقرأ 5 صفحات من القرآن'
- *                   descriptionAr: 'اقرأ 5 صفحات من القرآن الكريم اليوم للحصول على 50 نقطة'
+ *                   type: QURAN_PAGES
+ *                   dayOfYear: 208
+ *                   titleAr: 'صفحتان من القرآن'
+ *                   descriptionAr: 'اقرأ صفحتين من القرآن الكريم اليوم'
  *                   rewardPoints: 50
- *                   targetValue: 5
+ *                   targetValue: 2
  *                   completed: false
  *                   claimed: false
+ *                   progress:
+ *                     current: 1
+ *                     target: 2
+ *                     unit: PAGES
+ *                     unitAr: صفحات
+ *                     unitEn: pages
+ *                     percent: 50
+ *                     completed: false
  *                 utilities:
  *                   tasbih:
  *                     enabled: true

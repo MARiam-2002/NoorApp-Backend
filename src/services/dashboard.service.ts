@@ -12,7 +12,7 @@ import { buildAzanPreferencesFromUser } from './azan.service';
 import type { DailyPrayerSchedule } from './prayer.service';
 import { formatArabicDateInfo, getDayOfYear } from '../utils/date';
 import { calendarDayOfYear, getUserLocalCalendarDay } from '../shared/utils/user-local-date';
-import { isDailyChallengeCompleted } from '../utils/challenge';
+import { dailyChallengeProgress, isDailyChallengeCompleted } from '../utils/challenge';
 import {
   DEFAULT_LATITUDE,
   DEFAULT_LONGITUDE,
@@ -176,6 +176,8 @@ export type DashboardData = {
     targetValue: number;
     completed: boolean;
     claimed: boolean;
+    /** current / target in the challenge's own unit (PAGES, PRAYERS, WIRD). */
+    progress?: ReturnType<typeof dailyChallengeProgress>;
   };
   dailyGoal?: { pagesTarget: number; pagesReadToday: number; completed: boolean; remainingToday: number; percent: number; source: 'khatmah_plan' | 'default' };
   utilities: Record<string, unknown>;
@@ -538,7 +540,7 @@ async function buildDashboardPayload(
       ? Math.round((prayers.completedCount / prayers.totalCount) * 100) / 100
       : 0;
 
-  const challengeCompleted = isDailyChallengeCompleted(
+  const challengeProgress = dailyChallengeProgress(
     (challengeTemplate?.type ?? FALLBACK_CHALLENGE.type) as ChallengeType,
     challengeTemplate?.targetValue ?? FALLBACK_CHALLENGE.targetValue,
     {
@@ -548,6 +550,7 @@ async function buildDashboardPayload(
     },
     completedPrayers,
   );
+  const challengeCompleted = challengeProgress.completed;
 
   const displayName =
     user.fullName?.trim() || user.username;
@@ -698,6 +701,7 @@ async function buildDashboardPayload(
       targetValue: challengeTemplate?.targetValue ?? FALLBACK_CHALLENGE.targetValue,
       completed: challengeCompleted,
       claimed: Boolean(challengeCompletion?.claimedAt),
+      progress: challengeProgress,
     },
     utilities: {
       tasbih: { enabled: true },

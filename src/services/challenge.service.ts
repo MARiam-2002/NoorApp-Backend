@@ -4,7 +4,8 @@ import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
 import { getTodayDateOnly } from '../utils/date';
 import { calendarDayOfYear, getUserLocalCalendarDay } from '../shared/utils/user-local-date';
-import { isDailyChallengeCompleted } from '../utils/challenge';
+import { dailyChallengeProgress, isDailyChallengeCompleted } from '../utils/challenge';
+import { syncJourneyAdhkarFromDhikr } from './adhkar.service';
 import {
   assertValidDayOfYear,
   getOrCreateTodayJourney,
@@ -40,8 +41,11 @@ export async function getChallengeByDay(userId: string, dayOfYear: number) {
     where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
   });
 
+  // Same adhkar source as the dashboard and Journey (the Azkar screen's ledger), so «completed» agrees everywhere.
+  await syncJourneyAdhkarFromDhikr(userId, date).catch(() => undefined);
   const journey = await getOrCreateToday(userId, date);
   const completedPrayers = await findCompletedPrayers(userId, date);
+  const progress = dailyChallengeProgress(template.type, template.targetValue, journey as unknown as JourneySnapshot, completedPrayers);
 
   return {
     id: String(dayOfYear),
@@ -53,13 +57,9 @@ export async function getChallengeByDay(userId: string, dayOfYear: number) {
     type: template.type,
     targetValue: template.targetValue,
     rewardPoints: template.rewardPoints,
-    completed: isDailyChallengeCompleted(
-      template.type,
-      template.targetValue,
-      journey as unknown as JourneySnapshot,
-      completedPrayers,
-    ),
+    completed: progress.completed,
     claimed: Boolean(completion?.claimedAt),
+    progress,
   };
 }
 
@@ -87,6 +87,7 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
 
   const template = await getDailyChallengeTemplateWithFallback(dayOfYear);
 
+  await syncJourneyAdhkarFromDhikr(userId, date).catch(() => undefined);
   const journey = await getOrCreateToday(userId, date);
   const completedPrayers = await findCompletedPrayers(userId, date);
   const isCompleted = isDailyChallengeCompleted(

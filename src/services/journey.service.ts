@@ -10,7 +10,7 @@ import { prisma } from '../lib/prisma';
 import { charityExperience, getZakatHomeTile } from './zakat.service';
 import { getDailyQuranGoal } from './quran-daily-goal.service';
 import { calendarDayOfYear, getUserLocalCalendarDay } from '../shared/utils/user-local-date';
-import { isDailyChallengeCompleted } from '../utils/challenge';
+import { dailyChallengeProgress } from '../utils/challenge';
 import {
   FALLBACK_CHALLENGE,
 } from '../shared/constants/fallbacks';
@@ -32,7 +32,7 @@ import {
   type SadaqahCategoryId,
 } from '../shared/constants/sadaqah';
 import {
-  getDailyChallengeTemplate,
+  getDailyChallengeTemplateWithFallback,
 } from './daily-content.service';
 import { parsePrayerKey } from '../shared/utils/prayer-names';
 import { applyJourneyAdhkarToDhikrLedger, syncJourneyAdhkarFromDhikr } from './adhkar.service';
@@ -138,6 +138,45 @@ async function getOrCreateToday(userId: string, date?: Date) {
     create: { userId, date: resolved },
     update: {},
   });
+}
+
+const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+
+/**
+ * Days that count in «سلسلة الحسنات»: Quran read, morning/evening adhkar or the daily wird done, or a prayer marked.
+ * Opening the app creates an empty DailyProgress row, which is not a deed and never counts.
+ */
+export async function getActiveDayKeys(userId: string, from: Date, to: Date): Promise<Set<string>> {
+  const [rows, prayers] = await Promise.all([
+    prisma.dailyProgress.findMany({
+      where: { userId, date: { gte: from, lte: to } },
+      select: { date: true, quranPagesRead: true, morningAdhkarCompleted: true, eveningAdhkarCompleted: true, adhkarCompleted: true },
+    }),
+    prisma.prayerCompletion.findMany({ where: { userId, date: { gte: from, lte: to } }, select: { date: true } }),
+  ]);
+  const active = new Set<string>();
+  for (const r of rows) {
+    if (r.quranPagesRead > 0 || r.morningAdhkarCompleted || r.eveningAdhkarCompleted || r.adhkarCompleted) active.add(dayKey(r.date));
+  }
+  for (const p of prayers) active.add(dayKey(p.date));
+  return active;
+}
+
+/**
+ * Consecutive active days ending today, or ending yesterday while today has no deed yet
+ * (the streak stays alive until the day is over).
+ */
+export function streakFromActiveDays(active: Set<string>, today: Date): { days: number; todayActive: boolean; endDate: string | null } {
+  const todayActive = active.has(dayKey(today));
+  const cursor = new Date(today);
+  if (!todayActive) cursor.setUTCDate(cursor.getUTCDate() - 1);
+  const end = dayKey(cursor);
+  let days = 0;
+  while (active.has(dayKey(cursor))) {
+    days += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return { days, todayActive, endDate: days > 0 ? end : null };
 }
 
 export async function getTodayJourney(userId: string) {
@@ -281,6 +320,7 @@ async function getTodayJourneyLegacy(userId: string) {
 
   let points = 0;
   let streakDays = 0;
+  let streakTodayActive = false;
   let levelProgress = getJourneyLevelProgress(0);
   let streakDaysCompleted: Array<{ date: string; completed: boolean; index: number }> = [];
   let streakDisplayDays: Array<{
@@ -302,13 +342,12 @@ async function getTodayJourneyLegacy(userId: string) {
     const challengeDate = (await getUserLocalCalendarDay(userId)).date;
     const dayOfYear = calendarDayOfYear(challengeDate);
     const year = challengeDate.getUTCFullYear();
-    const [user, last30Progress, challengeTemplate, challengeCompletion] = await Promise.all([
+    const historyFrom = new Date(date);
+    historyFrom.setUTCDate(historyFrom.getUTCDate() - 400);
+    const [user, activeDays, challengeTemplate, challengeCompletion] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId }, select: { points: true, level: true, createdAt: true } }),
-      prisma.dailyProgress.findMany({
-        where: { userId },
-        select: { date: true, quranPagesRead: true, morningAdhkarCompleted: true, eveningAdhkarCompleted: true, sadaqahAmount: true },
-      }),
-      getDailyChallengeTemplate(dayOfYear).catch(() => null),
+      getActiveDayKeys(userId, historyFrom, date),
+      getDailyChallengeTemplateWithFallback(dayOfYear).catch(() => null),
       prisma.challengeCompletion.findUnique({
         where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
       }).catch(() => null),
@@ -323,25 +362,18 @@ async function getTodayJourneyLegacy(userId: string) {
       }).catch(() => undefined);
     }
 
-    const datesSet = new Set(
-      last30Progress
-        .filter((p) => p.quranPagesRead > 0 || p.morningAdhkarCompleted || p.eveningAdhkarCompleted)
-        .map((p) => p.date.toISOString().slice(0, 10)),
-    );
-    const cursor = new Date(date);
-    while (datesSet.has(cursor.toISOString().slice(0, 10))) {
-      streakDays += 1;
-      cursor.setUTCDate(cursor.getUTCDate() - 1);
-    }
+    const streak = streakFromActiveDays(activeDays, date);
+    streakDays = streak.days;
+    streakTodayActive = streak.todayActive;
+    const streakEnd = streak.endDate ? new Date(`${streak.endDate}T00:00:00.000Z`) : null;
 
     // Checkmarks for "سلسلة الحسنات" — one entry per consecutive streak day (newest last).
     const streakCap = Math.min(streakDays, 30);
-    for (let i = streakCap - 1; i >= 0; i -= 1) {
-      const d = new Date(date);
+    for (let i = streakCap - 1; i >= 0 && streakEnd; i -= 1) {
+      const d = new Date(streakEnd);
       d.setUTCDate(d.getUTCDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
       streakDaysCompleted.push({
-        date: dateStr,
+        date: dayKey(d),
         completed: true,
         index: streakCap - i,
       });
@@ -349,13 +381,13 @@ async function getTodayJourneyLegacy(userId: string) {
 
     // Fixed 10-slot row matching the Journey mock (filled vs empty circles).
     const displayWindow = 10;
+    const streakFromKey = streakEnd ? (() => { const d = new Date(streakEnd); d.setUTCDate(d.getUTCDate() - (streakDays - 1)); return dayKey(d); })() : null;
     for (let i = displayWindow - 1; i >= 0; i -= 1) {
       const d = new Date(date);
       d.setUTCDate(d.getUTCDate() - i);
-      const dateStr = d.toISOString().slice(0, 10);
-      const completed = datesSet.has(dateStr);
-      const daysAgo = i;
-      const inCurrentStreak = streakDays > 0 && daysAgo < streakDays;
+      const dateStr = dayKey(d);
+      const completed = activeDays.has(dateStr);
+      const inCurrentStreak = Boolean(streakFromKey && streak.endDate && dateStr >= streakFromKey && dateStr <= streak.endDate);
       streakDisplayDays.push({
         date: dateStr,
         completed,
@@ -365,25 +397,29 @@ async function getTodayJourneyLegacy(userId: string) {
     }
 
     const challengeTemplateSafe = challengeTemplate ?? FALLBACK_CHALLENGE;
-    const challengeCompleted = isDailyChallengeCompleted(
-      (challengeTemplateSafe.type ?? FALLBACK_CHALLENGE.type) as ChallengeType,
+    const challengeType = (challengeTemplateSafe.type ?? FALLBACK_CHALLENGE.type) as ChallengeType;
+    const challengeProgress = dailyChallengeProgress(
+      challengeType,
       challengeTemplateSafe.targetValue ?? FALLBACK_CHALLENGE.targetValue,
       {
         quranPagesRead: progress.quranPagesRead,
-        adhkarCompleted: morningCompleted && eveningCompleted,
+        adhkarCompleted: overallAdhkar,
         sadaqahAmount: Number(progress.sadaqahAmount),
       },
-      completedPrayerKeys as unknown as any[],
+      [...completedPrayerKeys] as unknown as any[],
     );
     dailyChallenge = {
+      type: challengeType,
+      dayOfYear,
       titleAr: challengeTemplateSafe.titleAr ?? FALLBACK_CHALLENGE.titleAr,
       titleEn: challengeTemplateSafe.titleEn ?? FALLBACK_CHALLENGE.titleEn,
       descriptionAr: challengeTemplateSafe.descriptionAr ?? FALLBACK_CHALLENGE.descriptionAr,
       descriptionEn: challengeTemplateSafe.descriptionEn ?? FALLBACK_CHALLENGE.descriptionEn,
       rewardPoints: challengeTemplateSafe.rewardPoints ?? FALLBACK_CHALLENGE.rewardPoints,
       targetValue: challengeTemplateSafe.targetValue ?? FALLBACK_CHALLENGE.targetValue,
-      completed: challengeCompleted,
+      completed: challengeProgress.completed,
       claimed: Boolean(challengeCompletion?.claimedAt),
+      progress: challengeProgress,
     };
 
     const nowIso = new Date().toISOString();
@@ -454,6 +490,8 @@ async function getTodayJourneyLegacy(userId: string) {
     /** Additive — Journey screen "سلسلة الحسنات" card */
     streak: {
       days: streakDays,
+      /** false while today has no deed yet: the streak still counts yesterday until the day ends. */
+      todayActive: streakTodayActive,
       labelAr: 'سلسلة الحسنات',
       labelEn: 'Good deeds streak',
       unitAr: 'يوم متواصل',
@@ -876,7 +914,9 @@ export async function getSadaqahToday(userId: string) {
   };
 }
 
-export async function getJourneyProgress(userId: string, days = 7) {
+export async function getJourneyProgress(userId: string, requestedDays = 7) {
+  // ?days= comes straight from the query string: whole days, 1..90, default 7.
+  const days = Number.isInteger(requestedDays) && requestedDays >= 1 ? Math.min(requestedDays, 90) : 7;
   const { date: today } = await getUserLocalCalendarDay(userId);
   const startDate = new Date(today);
   startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
@@ -908,17 +948,16 @@ export async function getJourneyProgress(userId: string, days = 7) {
 
   const TOTAL_PRAYERS = 5;
 
-  const dailyRows = progress.map(p => ({ date: p.date, quranPagesRead: p.quranPagesRead,
-    morningAdhkarCompleted: p.morningAdhkarCompleted, eveningAdhkarCompleted: p.eveningAdhkarCompleted,
-    adhkarCompleted: p.adhkarCompleted, sadaqahAmount: Number(p.sadaqahAmount) }));
-  const knownDays = new Set(dailyRows.map(p => p.date.toISOString().slice(0, 10)));
-  for (const prayer of prayerCompletions) {
-    const key = prayer.date.toISOString().slice(0, 10);
-    if (!knownDays.has(key)) {
-      knownDays.add(key);
-      dailyRows.push({ date: prayer.date, quranPagesRead: 0, morningAdhkarCompleted: false,
-        eveningAdhkarCompleted: false, adhkarCompleted: false, sadaqahAmount: 0 });
-    }
+  // One row for every day of the window, oldest first: days with no record are empty days, not missing days.
+  const byDay = new Map(progress.map(p => [dayKey(p.date), p]));
+  const dailyRows: Array<{ date: Date; quranPagesRead: number; morningAdhkarCompleted: boolean; eveningAdhkarCompleted: boolean; adhkarCompleted: boolean; sadaqahAmount: number }> = [];
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date(startDate);
+    d.setUTCDate(d.getUTCDate() + i);
+    const p = byDay.get(dayKey(d));
+    dailyRows.push({ date: d, quranPagesRead: p?.quranPagesRead ?? 0, morningAdhkarCompleted: p?.morningAdhkarCompleted ?? false,
+      eveningAdhkarCompleted: p?.eveningAdhkarCompleted ?? false, adhkarCompleted: p?.adhkarCompleted ?? false,
+      sadaqahAmount: Number(p?.sadaqahAmount ?? 0) });
   }
   const todayStr = today.toISOString().slice(0, 10);
   const excusedDays = await getExcusedDayKeys(userId, startDate.toISOString().slice(0, 10), todayStr, todayStr);
@@ -953,7 +992,9 @@ export async function getJourneyProgress(userId: string, days = 7) {
   });
 
   const totalPrayersCompleted = prayerCompletions.length;
-  const daysStreak = computeDaysStreak(dailyRows, today);
+  const historyFrom = new Date(today);
+  historyFrom.setUTCDate(historyFrom.getUTCDate() - 400);
+  const daysStreak = streakFromActiveDays(await getActiveDayKeys(userId, historyFrom, today), today).days;
 
   const summary = {
     totalQuranPages: progress.reduce((sum, p) => sum + p.quranPagesRead, 0),
@@ -977,20 +1018,6 @@ export async function getJourneyProgress(userId: string, days = 7) {
     records: daily,
     summary,
   };
-}
-
-function computeDaysStreak(progress: Array<{ date: Date }>, today: Date): number {
-  if (progress.length === 0) return 0;
-  const datesSet = new Set(
-    progress.map((p) => p.date.toISOString().slice(0, 10)),
-  );
-  let streak = 0;
-  const cursor = new Date(today);
-  while (datesSet.has(cursor.toISOString().slice(0, 10))) {
-    streak += 1;
-    cursor.setUTCDate(cursor.getUTCDate() - 1);
-  }
-  return streak;
 }
 
 const TOTAL_QURAN_PAGES = 604;
@@ -1176,7 +1203,8 @@ export async function getMonthlyStats(userId: string) {
  *   الصلاة 95% green, القرآن 90% indigo, الصدقة 75% indigo, الذكار 85% brown
  * All shapes same order as the screenshot.
  */
-export async function getWeeklyCategorySummary(userId: string, days = 7) {
+export async function getWeeklyCategorySummary(userId: string, requestedDays = 7) {
+  const days = Number.isInteger(requestedDays) && requestedDays >= 1 ? Math.min(requestedDays, 90) : 7;
   const { date: today } = await getUserLocalCalendarDay(userId);
   const startDate = new Date(today);
   startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
@@ -1252,7 +1280,7 @@ export async function getWeeklyCategorySummary(userId: string, days = 7) {
       },
       {
         key: 'ADHKAR',
-        keyAr: 'الذكار',
+        keyAr: 'الأذكار',
         keyEn: 'Dhikr',
         percent: adhkarPercent,
         color: 'amber', // brownish-yellow matching the 85% amber bar
