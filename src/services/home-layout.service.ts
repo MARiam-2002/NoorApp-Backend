@@ -10,11 +10,12 @@ import { ErrorCodes } from '../config';
  */
 export const HOME_SECTION_IDS = ['today', 'continue', 'challenge', 'daily_inspiration', 'tools'] as const;
 export const HOME_TOOL_IDS = [
-  'qibla', 'tasbih', 'fasting_qada', 'rawatib', 'sajdah', 'zakat', 'sadaqah', 'prayer_times',
-  'kahf', 'salawat', 'hifz', 'travel', 'hajj_umrah', 'learning',
+  'qibla', 'tasbih', 'sajdah', 'zakat', 'sakina', 'fasting_qada', 'listen', 'hifz',
+  'rawatib', 'prayer_times', 'kahf', 'salawat', 'travel', 'hajj_umrah', 'learning',
 ] as const;
 export const HOME_TOOLS_MAX = 8;
-export const DEFAULT_HOME_TOOLS = ['qibla', 'tasbih', 'fasting_qada', 'rawatib', 'sajdah', 'zakat', 'sadaqah', 'prayer_times'] as const;
+/** Sadaqah is not a home tool: the app has no sadaqah screen (legacy tracking is reminder-only). Saved layouts that had it drop it on read. */
+export const DEFAULT_HOME_TOOLS = ['qibla', 'tasbih', 'sajdah', 'zakat', 'sakina', 'fasting_qada', 'listen', 'hifz'] as const;
 
 type SectionId = (typeof HOME_SECTION_IDS)[number];
 type ToolId = (typeof HOME_TOOL_IDS)[number];

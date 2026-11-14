@@ -743,12 +743,12 @@ profileRouter.put(
  *                   - { id: challenge, visible: true }
  *                   - { id: daily_inspiration, visible: true }
  *                   - { id: tools, visible: true }
- *                 tools: [qibla, tasbih, fasting_qada, rawatib, sajdah, zakat, sadaqah, prayer_times]
+ *                 tools: [qibla, tasbih, sajdah, zakat, sakina, fasting_qada, listen, hifz]
  *                 revision: 0
  *                 updatedAt: null
  *                 catalog:
  *                   sections: [today, continue, challenge, daily_inspiration, tools]
- *                   tools: [qibla, tasbih, fasting_qada, rawatib, sajdah, zakat, sadaqah, prayer_times, kahf, salawat, hifz, travel, hajj_umrah, learning]
+ *                   tools: [qibla, tasbih, sajdah, zakat, sakina, fasting_qada, listen, hifz, rawatib, prayer_times, kahf, salawat, travel, hajj_umrah, learning]
  *                   toolsMax: 8
  *   put:
  *     tags: ['Profile']

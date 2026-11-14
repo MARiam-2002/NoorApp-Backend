@@ -34,7 +34,10 @@ import { DEFAULT_HOME_TOOLS, HOME_SECTION_IDS, homeLayoutPutSchema, normalizeHom
   assert.equal(homeLayoutPutSchema.safeParse({ sections: sections.slice(1), tools: [], expectedRevision: 0 }).success, false, 'every section once');
   assert.equal(homeLayoutPutSchema.safeParse({ sections: [...sections.slice(1), sections[1]], tools: [], expectedRevision: 0 }).success, false, 'no duplicate section');
   assert.equal(homeLayoutPutSchema.safeParse({ sections, tools: ['qibla', 'qibla'], expectedRevision: 0 }).success, false, 'no duplicate tool');
-  assert.equal(homeLayoutPutSchema.safeParse({ sections, tools: ['qibla', 'tasbih', 'fasting_qada', 'rawatib', 'sajdah', 'zakat', 'sadaqah', 'prayer_times', 'kahf'], expectedRevision: 0 }).success, false, 'at most 8 tools');
+  assert.equal(homeLayoutPutSchema.safeParse({ sections, tools: ['qibla', 'tasbih', 'sajdah', 'zakat', 'sakina', 'fasting_qada', 'listen', 'hifz', 'kahf'], expectedRevision: 0 }).success, false, 'at most 8 tools');
+  assert.equal(homeLayoutPutSchema.safeParse({ sections, tools: ['sadaqah'], expectedRevision: 0 }).success, false, 'sadaqah is not a home tool');
+  assert.deepEqual(normalizeHomeLayout({ tools: ['sadaqah', 'sakina', 'listen'] }).tools, ['sakina', 'listen'], 'saved sadaqah is dropped');
+  assert.ok(!(DEFAULT_HOME_TOOLS as readonly string[]).includes('sadaqah'));
   assert.equal(homeLayoutPutSchema.safeParse({ sections, tools: ['weather'], expectedRevision: 0 }).success, false, 'unknown tool');
   assert.equal(homeLayoutPutSchema.safeParse({ sections, tools: [], expectedRevision: 0, extra: 1 }).success, false, 'strict body');
   console.log('home layout pure rules: PASSED');
