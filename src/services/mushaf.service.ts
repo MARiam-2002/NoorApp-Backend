@@ -92,6 +92,18 @@ type QfPage = { verses: QfVerse[]; pagination: { next_page: number | null; total
 // Bounded process cache for public content only. Never persist API responses as an offline corpus.
 const pageCache = new Map<string, { expires: number; data: unknown }>();
 const pending = new Map<string, Promise<any>>();
+/** Seeded Uthmani text for one Madani page (null when the page is not seeded). */
+export async function localMadaniPage(page: number) {
+  const rows = await prisma.ayah.findMany({
+    where: { page },
+    orderBy: [{ surahId: 'asc' }, { ayahNumber: 'asc' }],
+    select: { surahId: true, ayahNumber: true, textAr: true, juz: true },
+  });
+  const verses = rows
+    .filter(r => r.textAr && r.textAr.trim().length > 0)
+    .map(r => verseSchema.parse({ key: `${r.surahId}:${r.ayahNumber}`, surah: r.surahId, ayah: r.ayahNumber, text: r.textAr, juz: optionalIndex(r.juz, 30) }));
+  return verses.length > 0 ? verses : null;
+}
 export async function getMushafPage(id: EditionId, page: number): Promise<any> {
   const d = edition(id);
   if (!Number.isInteger(page) || page < 1 || page > d.pages!) throw new AppError('Page outside this edition', 400, ErrorCodes.VALIDATION_ERROR);
@@ -124,6 +136,15 @@ export async function getMushafPage(id: EditionId, page: number): Promise<any> {
       const bounds = await qfFetchJson<{ pages: Record<string, { first_verse_key: string; last_verse_key: string }> }>('/pages/lookup', { mushaf: d.mushafId!, page_number: page }, false);
       if (bounds?.pages?.[String(page)]?.first_verse_key !== verses[0]!.key || bounds?.pages?.[String(page)]?.last_verse_key !== verses[verses.length - 1]!.key) throw new Error('Edition page mapping mismatch');
     } catch {
+      // Madani Hafs has the same 604-page numbering as the seeded Quran text: serve it from our database
+      // so the reader never shows an error page because the provider is down or rate-limited.
+      const local = id === 'madani-hafs' ? await localMadaniPage(page) : null;
+      if (local) {
+        const data = { editionId: id, riwayah: d.riwayah, page, totalPages: d.pages, rendering: d.rendering, contentVersion: d.contentVersion, source: 'local', verses: local };
+        if (pageCache.size >= 128) pageCache.delete(pageCache.keys().next().value!);
+        pageCache.set(key, { expires: Date.now() + 60_000, data });
+        return data;
+      }
       throw new AppError('Quran content provider temporarily unavailable', 503, ErrorCodes.INTERNAL_SERVER_ERROR);
     }
     const data = { editionId: id, riwayah: d.riwayah, page, totalPages: d.pages, rendering: d.rendering, contentVersion: d.contentVersion, verses };

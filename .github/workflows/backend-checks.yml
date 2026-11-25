@@ -49,6 +49,7 @@ jobs:
           JOURNEY_TEST_DB: "true"
           KAHF_TEST_DB: "true"
           LEARNING_TEST_DB: "true"
+          NOTIFY_TEST_DB: "true"
           PRAYER_MARK_TEST_DB: "true"
           QURAN_SEARCH_TEST_DB: "true"
           READING_TEST_DB: "true"

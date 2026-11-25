@@ -17,6 +17,8 @@ export type ContractNotification = {
   deepLink?: string | null;
   payload?: Record<string, unknown> | null;
   createdAt: string;
+  /** How many times this reminder came since it was last read (repeats fold into one row). */
+  repeatCount?: number;
   unreadCount?: number;
 };
 
@@ -79,6 +81,7 @@ function serializeNotification(
     deepLink: (row.deepLink ?? (extra?.deepLink as string | undefined)) ?? null,
     payload: rowPayload ?? ((extra?.payload as Record<string, unknown> | undefined) ?? null),
     createdAt: row.createdAt.toISOString(),
+    repeatCount: typeof rowPayload?.repeatCount === 'number' ? rowPayload.repeatCount : 1,
   };
 }
 
@@ -202,6 +205,26 @@ export async function getNotification(userId: string, id: string) {
   return serializeNotification(notification);
 }
 
+/** Kinds that are one moment each (the Adhan of a prayer, a challenge reward) are never folded together. */
+const NEVER_COLLAPSE_CONTRACT_TYPES = new Set(['AZAN', 'CHALLENGE']);
+/** A repeated reminder folds into the unread one of the same kind from the last 24 hours. */
+export const COLLAPSE_WINDOW_MS = 24 * 60 * 60 * 1000;
+/** Read notifications are kept 30 days; anything older than 90 days goes. */
+export const READ_RETENTION_DAYS = 30;
+export const MAX_RETENTION_DAYS = 90;
+
+/** The kind a notification is grouped by: its contract type plus the reminder kind carried in its payload. */
+export function notificationGroupKey(type: string, payload?: Record<string, unknown> | null): string {
+  const contract = mapNotificationTypeToContract(type);
+  const sub = payload && typeof payload.type === 'string' ? payload.type : payload && typeof payload.kind === 'string' ? payload.kind : '';
+  return `${contract}|${sub}`;
+}
+
+export function isCollapsibleNotification(type: string, payload?: Record<string, unknown> | null): boolean {
+  if (payload && payload.collapse === false) return false;
+  return !NEVER_COLLAPSE_CONTRACT_TYPES.has(mapNotificationTypeToContract(type));
+}
+
 export async function createNotification(input: {
   userId: string;
   titleAr: string;
@@ -212,6 +235,38 @@ export async function createNotification(input: {
   deepLink?: string | null;
   payload?: Record<string, unknown> | null;
 }) {
+  const type = input.type ?? 'SYSTEM';
+  if (isCollapsibleNotification(type, input.payload)) {
+    const key = notificationGroupKey(type, input.payload);
+    const since = new Date(Date.now() - COLLAPSE_WINDOW_MS);
+    const recent = await prisma.notification.findMany({
+      where: { userId: input.userId, type: type as any, readAt: null, createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    const same = recent.find(r => notificationGroupKey(String(r.type), r.payload as Record<string, unknown> | null) === key);
+    if (same) {
+      const prev = (same.payload ?? {}) as Record<string, unknown>;
+      const prevCount = typeof prev.repeatCount === 'number' && prev.repeatCount >= 1 ? prev.repeatCount : 1;
+      const row = await prisma.notification.update({
+        where: { id: same.id },
+        data: {
+          titleAr: input.titleAr,
+          titleEn: input.titleEn,
+          bodyAr: input.bodyAr,
+          bodyEn: input.bodyEn,
+          deepLink: input.deepLink ?? same.deepLink ?? null,
+          createdAt: new Date(),
+          payload: {
+            ...(input.payload ?? {}),
+            repeatCount: prevCount + 1,
+            firstAt: typeof prev.firstAt === 'string' ? prev.firstAt : same.createdAt.toISOString(),
+          } as any,
+        },
+      });
+      return serializeNotification(row);
+    }
+  }
   const row = await prisma.notification.create({
     data: {
       userId: input.userId,
@@ -219,10 +274,21 @@ export async function createNotification(input: {
       titleEn: input.titleEn,
       bodyAr: input.bodyAr,
       bodyEn: input.bodyEn,
-      type: (input.type ?? 'SYSTEM') as any,
+      type: type as any,
       deepLink: input.deepLink ?? null,
       payload: (input.payload ?? undefined) as any,
     },
   });
   return serializeNotification(row);
+}
+
+/** Drops read notifications older than 30 days and every notification older than 90 days. */
+export async function pruneOldNotifications(now = new Date()) {
+  const day = 24 * 60 * 60 * 1000;
+  const readCut = new Date(now.getTime() - READ_RETENTION_DAYS * day);
+  const allCut = new Date(now.getTime() - MAX_RETENTION_DAYS * day);
+  const result = await prisma.notification.deleteMany({
+    where: { OR: [{ readAt: { not: null }, createdAt: { lt: readCut } }, { createdAt: { lt: allCut } }] },
+  });
+  return { deleted: result.count };
 }

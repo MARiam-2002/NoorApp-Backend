@@ -11,7 +11,7 @@ import {
 } from '../controllers/tasbih.controller';
 import { asyncHandler } from '../middleware/common';
 import { sendSuccess } from '../shared/utils/response';
-import { getDhikrArName, getDhikrEnName } from '../services/tasbih.service';
+import { getDhikrArName, getDhikrEnName, getTasbihSummary } from '../services/tasbih.service';
 import { DHIKR_GARDEN_COPY, DHIKR_GARDEN_HADITH, DHIKR_GARDEN_PHRASES, DHIKR_GARDEN_VERSION } from '../shared/data/dhikr-garden';
 
 const DhikrEnum = z.enum([
@@ -161,6 +161,36 @@ tasbihRouter.get('/today', authenticate, getTodayHandler);
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  */
+const tasbihSummarySchema = z.object({
+  days: z.coerce.number().int().min(1).max(366).default(7).optional(),
+});
+
+/**
+ * @openapi
+ * /tasbih/summary:
+ *   get:
+ *     tags: ['Tasbih']
+ *     summary: ملخص التسبيح لآخر أيام (أسبوع أو شهر)
+ *     description: |
+ *       المجموع والمتوسط اليومي وأفضل يوم والأيام المتتالية وتوزيع الأذكار لآخر `days` يوماً تنتهي اليوم بتوقيت المستخدم.
+ *       الأيام بلا تسبيح تظهر بصفر. رقم اليوم هو ما قيل فيه حتى لو صُفّر العداد.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema: { type: integer, minimum: 1, maximum: 366, default: 7 }
+ *     responses:
+ *       200:
+ *         description: الملخص
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+tasbihRouter.get('/summary', authenticate, validate(tasbihSummarySchema, 'query'), asyncHandler(async (req, res) => {
+  const { days } = req.query as unknown as { days?: number };
+  sendSuccess(res, await getTasbihSummary(req.user!.sub, days ?? 7), 'Tasbih summary', req);
+}));
+
 tasbihRouter.get(
   '/history',
   authenticate,

@@ -1,4 +1,5 @@
 import { azanChannelId } from '../shared/utils/notification-channels';
+import { isQuietHoursExempt, userIsInQuietHours } from './notification-quiet-hours.service';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { ErrorCodes, HttpStatus } from '../config';
@@ -165,6 +166,12 @@ export async function sendPushToUser(
     iosInterruptionLevel?: 'active' | 'time-sensitive';
   },
 ) {
+  // The user's quiet window holds back every reminder except the Adhan itself.
+  if (!isQuietHoursExempt(payload.data) && (await userIsInQuietHours(userId))) {
+    logger.info('[Devices] Push held back by quiet hours', { event: 'push_quiet_hours', userId, eventType: payload.data?.eventType ?? payload.data?.type ?? 'UNKNOWN' });
+    const out = { sent: 0, failed: 0, reason: 'QUIET_HOURS' as const };
+    return out;
+  }
   let tokens: Array<{ token: string; capabilities?: unknown }>;
   try {
     tokens = await prisma.deviceToken.findMany({

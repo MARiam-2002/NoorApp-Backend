@@ -392,3 +392,85 @@ export async function getTasbihHistory(userId: string, limit = 30) {
     totalAllTime: log.totalAllTime,
   }));
 }
+
+export type TasbihSummary = {
+  days: number;
+  from: string;
+  to: string;
+  total: number;
+  activeDays: number;
+  avgPerDay: number;
+  avgPerActiveDay: number;
+  goalMetDays: number;
+  dailyGoal: number;
+  bestDay: { date: string; count: number } | null;
+  currentStreakDays: number;
+  lifetimeTotal: number;
+  perDay: Array<{ date: string; count: number; dhikr: string | null }>;
+  perDhikr: Array<{ dhikr: string; dhikrAr: string; dhikrEn: string; total: number }>;
+};
+
+const dayKeyOf = (d: Date) => d.toISOString().slice(0, 10);
+
+/**
+ * Totals for the last `days` days ending today in the user's timezone (missing days count as 0).
+ * A day's figure is what was said that day, even if the counter was reset (totalAllTime per row).
+ * The streak counts back from today, or from yesterday if nothing has been said yet today.
+ */
+export async function getTasbihSummary(userId: string, days = 7, now = new Date()): Promise<TasbihSummary> {
+  if (!Number.isInteger(days) || days < 1 || days > 366) {
+    throw new AppError('days must be between 1 and 366', HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
+  }
+  const { date: today } = await getUserLocalCalendarDay(userId, now);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const from = new Date(today.getTime() - (days - 1) * dayMs);
+  const streakFrom = new Date(today.getTime() - 400 * dayMs);
+  const [rows, streakRows, lifetime] = await Promise.all([
+    prisma.tasbihLog.findMany({ where: { userId, date: { gte: from, lte: today } }, orderBy: { date: 'asc' } }),
+    prisma.tasbihLog.findMany({
+      where: { userId, date: { gte: streakFrom, lte: today }, totalAllTime: { gt: 0 } },
+      select: { date: true },
+      orderBy: { date: 'desc' },
+    }),
+    prisma.tasbihLog.aggregate({ where: { userId }, _sum: { totalAllTime: true } }),
+  ]);
+  const byDay = new Map(rows.map(r => [dayKeyOf(r.date), r]));
+  const perDay: TasbihSummary['perDay'] = [];
+  for (let i = 0; i < days; i += 1) {
+    const key = dayKeyOf(new Date(from.getTime() + i * dayMs));
+    const r = byDay.get(key);
+    perDay.push({ date: key, count: Math.max(0, r?.totalAllTime ?? 0), dhikr: r ? String(r.dhikr) : null });
+  }
+  const total = perDay.reduce((s, d) => s + d.count, 0);
+  const active = perDay.filter(d => d.count > 0);
+  const best = active.reduce<{ date: string; count: number } | null>((b, d) => (!b || d.count > b.count ? { date: d.date, count: d.count } : b), null);
+  const dhikrTotals = new Map<string, number>();
+  for (const d of active) if (d.dhikr) dhikrTotals.set(d.dhikr, (dhikrTotals.get(d.dhikr) ?? 0) + d.count);
+
+  const said = new Set(streakRows.map(r => dayKeyOf(r.date)));
+  let cursor = said.has(dayKeyOf(today)) ? today : new Date(today.getTime() - dayMs);
+  let streak = 0;
+  while (said.has(dayKeyOf(cursor))) {
+    streak += 1;
+    cursor = new Date(cursor.getTime() - dayMs);
+  }
+
+  return {
+    days,
+    from: dayKeyOf(from),
+    to: dayKeyOf(today),
+    total,
+    activeDays: active.length,
+    avgPerDay: Math.round(total / days),
+    avgPerActiveDay: active.length ? Math.round(total / active.length) : 0,
+    goalMetDays: perDay.filter(d => d.count >= TASBIH_DAILY_GOAL).length,
+    dailyGoal: TASBIH_DAILY_GOAL,
+    bestDay: best,
+    currentStreakDays: streak,
+    lifetimeTotal: lifetime._sum.totalAllTime ?? 0,
+    perDay,
+    perDhikr: [...dhikrTotals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([dhikr, t]) => ({ dhikr, dhikrAr: getDhikrArName(dhikr), dhikrEn: getDhikrEnName(dhikr), total: t })),
+  };
+}

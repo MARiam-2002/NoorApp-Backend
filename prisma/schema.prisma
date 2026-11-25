@@ -63,6 +63,8 @@ model User {
   nawafelPreferences      Json?
   /// Home screen layout: section order/visibility and tool shortcuts (GET/PUT /profile/home-layout).
   homeLayout              Json?
+  /// One quiet window for every reminder except the Adhan: { enabled, start "HH:mm", end "HH:mm" } in the user's timezone.
+  notificationQuietHours  Json?
   /// FCM "Pray for the Prophet ﷺ" reminders (opt-in; default off).
   salawatReminderEnabled  Boolean                @default(false)
   /// Allowed values: 30 | 60 | 120 | 180.

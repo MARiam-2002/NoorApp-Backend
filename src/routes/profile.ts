@@ -2,6 +2,7 @@ import { passwordFieldSchema } from '../lib/validation';
 import { changePasswordRateLimiter } from '../middleware/http';
 import { getKahfPreferences, updateKahfPreferences } from '../services/kahf-reminder.service';
 import { getHomeLayout, putHomeLayout } from '../services/home-layout.service';
+import { getQuietHours, updateQuietHours } from '../services/notification-quiet-hours.service';
 import { getAdhkarReminderPreferences, updateAdhkarReminderPreferences } from '../services/adhkar-reminder.service';
 import { getFajrAlarmPreferences, updateFajrAlarmPreferences } from '../services/fajr-alarm.service';
 import { asyncHandler } from '../middleware/common';
@@ -778,6 +779,37 @@ profileRouter.put(
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       409: { description: Saved from another device in between (HOME_LAYOUT_REVISION) }
  */
+/**
+ * @openapi
+ * /profile/notification-quiet-hours:
+ *   get:
+ *     tags: ['Profile']
+ *     summary: فترة الهدوء لكل التذكيرات ما عدا الأذان
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: '{ enabled, start "HH:mm", end "HH:mm", timezone } — الفترة قد تعبر منتصف الليل'
+ *   patch:
+ *     tags: ['Profile']
+ *     summary: تعديل فترة الهدوء
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               enabled: { type: boolean }
+ *               start: { type: string, example: '23:00' }
+ *               end: { type: string, example: '05:00' }
+ *     responses:
+ *       200:
+ *         description: الإعداد بعد الحفظ
+ */
+profileRouter.get('/notification-quiet-hours', authenticate, privateNawafelCache, asyncHandler(async (req, res) => { sendSuccess(res, await getQuietHours(req.user!.sub), 'Quiet hours', req); }));
+profileRouter.patch('/notification-quiet-hours', authenticate, privateNawafelCache, asyncHandler(async (req, res) => { sendSuccess(res, await updateQuietHours(req.user!.sub, req.body), 'Quiet hours saved', req); }));
 profileRouter.get('/home-layout', authenticate, privateNawafelCache, asyncHandler(async (req, res) => { sendSuccess(res, await getHomeLayout(req.user!.sub), 'Home layout', req); }));
 profileRouter.put('/home-layout', authenticate, privateNawafelCache, asyncHandler(async (req, res) => { sendSuccess(res, await putHomeLayout(req.user!.sub, req.body), 'Home layout saved', req); }));
 

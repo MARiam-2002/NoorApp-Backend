@@ -1,6 +1,10 @@
 import { appConfig, env } from '../config';
 import { logger } from './logger';
 import { runPrayerReminderCron } from '../services/prayer-reminder.service';
+import { pruneOldNotifications } from '../services/notification.service';
+
+const PRUNE_EVERY_MS = 24 * 60 * 60 * 1000;
+let lastPruneAt = 0;
 
 /** Fire shortly after each wall-clock minute so the local HH:mm has already rolled over. */
 const TICK_OFFSET_MS = 1_500;
@@ -33,6 +37,12 @@ async function tick(): Promise<void> {
       message: (err as Error)?.message,
     });
   } finally {
+    if (Date.now() - lastPruneAt >= PRUNE_EVERY_MS) {
+      lastPruneAt = Date.now();
+      pruneOldNotifications()
+        .then(r => logger.info('[ReminderScheduler] old notifications pruned', r))
+        .catch(err => logger.warn('[ReminderScheduler] prune failed', { message: (err as Error)?.message }));
+    }
     scheduleNext();
   }
 }
