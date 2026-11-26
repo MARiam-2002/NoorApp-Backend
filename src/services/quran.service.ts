@@ -1763,6 +1763,56 @@ function resolveTafsirCatalog(sourceId?: string) {
   return { catalog, resourceId, attribution };
 }
 
+/** A verse reference for tafsir navigation. */
+export type TafsirVerseRef = { surahId: number; ayahNumber: number };
+
+/**
+ * The ayah before and after a tafsir passage. A passage that explains a group of ayat (verified Muyassar) is one step:
+ * «previous» is the ayah before the group and «next» the ayah after it, so the reader never sees the same passage twice.
+ * Crosses surah boundaries; null at the first ayah of Al-Fatiha and the last ayah of An-Nas.
+ */
+export function tafsirNeighbors(
+  surahId: number,
+  fromAyah: number,
+  toAyah: number = fromAyah,
+): { previous: TafsirVerseRef | null; next: TafsirVerseRef | null; surahAyahCount: number } {
+  const total = (id: number) => CATALOG_SURAHS.find((s) => s.id === id)?.totalAyahs ?? 0;
+  const count = total(surahId);
+  const from = Math.max(1, Math.min(fromAyah, count || fromAyah));
+  const to = Math.max(from, Math.min(toAyah, count || toAyah));
+  let previous: TafsirVerseRef | null = null;
+  if (from > 1) previous = { surahId, ayahNumber: from - 1 };
+  else if (surahId > 1) previous = { surahId: surahId - 1, ayahNumber: total(surahId - 1) };
+  let next: TafsirVerseRef | null = null;
+  if (count > 0 && to < count) next = { surahId, ayahNumber: to + 1 };
+  else if (surahId < 114) next = { surahId: surahId + 1, ayahNumber: 1 };
+  return { previous, next, surahAyahCount: count };
+}
+
+/**
+ * Additive context for the tafsir sheet: the ayah's own text (best-effort from the seeded ayah table) and the
+ * previous / next references. Never throws — a missing ayah row only leaves ayahTextAr empty.
+ */
+export async function tafsirNavigationContext(
+  surahId: number,
+  ayahNumber: number,
+  groupFromAyah?: number,
+  groupToAyah?: number,
+): Promise<{ ayahTextAr: string; previous: TafsirVerseRef | null; next: TafsirVerseRef | null; surahAyahCount: number }> {
+  const nav = tafsirNeighbors(surahId, groupFromAyah ?? ayahNumber, groupToAyah ?? ayahNumber);
+  let ayahTextAr = '';
+  try {
+    const row = await prisma.ayah.findUnique({
+      where: { surahId_ayahNumber: { surahId, ayahNumber } },
+      select: { textAr: true },
+    });
+    ayahTextAr = row?.textAr?.trim() ?? '';
+  } catch (err) {
+    logger.warn('[Quran] tafsir ayah text lookup failed', { message: (err as Error)?.message });
+  }
+  return { ayahTextAr, ...nav };
+}
+
 export async function getAyahTafsir(
   surahId: number,
   ayahNumber: number,

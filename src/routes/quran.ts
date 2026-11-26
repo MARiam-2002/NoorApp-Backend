@@ -1089,7 +1089,9 @@ quranRouter.get('/audio', validate(getAyahAudioQuerySchema, 'query'), getAyahAud
  *   get:
  *     tags: ['Quran']
  *     summary: الحصول على تفسير آية
- *     description: يعيد نص التفسير لآية محددة من Quran Foundation Content API مع المصدر المختار.
+ *     description: >
+ *       يعيد نص التفسير لآية محددة مع المصدر المختار، ومعه نص الآية (ayahTextAr، حسب المتاح) و previous / next
+ *       للتنقل بين الآيات (خطوة واحدة لكل مجموعة آيات، وتعبر بين السور؛ null في أول المصحف وآخره).
  *     parameters:
  *       - in: query
  *         name: surahId
@@ -1125,6 +1127,10 @@ quranRouter.get('/audio', validate(getAyahAudioQuerySchema, 'query'), getAyahAud
  *                 source: Ibn_Kathir
  *                 surahId: 1
  *                 ayahNumber: 1
+ *                 ayahTextAr: بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+ *                 surahAyahCount: 7
+ *                 previous: null
+ *                 next: { surahId: 1, ayahNumber: 2 }
  *               meta: {}
  */
 quranRouter.get('/tafsir', validate(getAyahTafsirQuerySchema, 'query'), getAyahTafsirHandler);

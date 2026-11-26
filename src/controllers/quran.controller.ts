@@ -33,6 +33,7 @@ import {
   listTranslations,
   getAyahAudio,
   getAyahTafsir,
+  tafsirNavigationContext,
   getSurahTafsir,
   getAyahTranslation,
   listSajdahVersesCatalog,
@@ -290,8 +291,11 @@ export const getAyahTafsirHandler = asyncHandler(async (req: Request, res: Respo
     id?: string;
   };
   const source = q.source ?? q.tafsirId ?? q.id;
-  const data = await getAyahTafsir(Number(q.surahId), Number(q.ayahNumber), source);
-  sendSuccess(res, data, 'Quran tafsir retrieved successfully', req);
+  const surahId = Number(q.surahId);
+  const ayahNumber = Number(q.ayahNumber);
+  const data = await getAyahTafsir(surahId, ayahNumber, source);
+  const nav = await tafsirNavigationContext(surahId, ayahNumber, data.groupFromAyah, data.groupToAyah);
+  sendSuccess(res, { ...data, ...nav }, 'Quran tafsir retrieved successfully', req);
 });
 
 export const getSurahTafsirHandler = asyncHandler(async (req: Request, res: Response) => {
