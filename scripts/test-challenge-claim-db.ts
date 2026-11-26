@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { prisma } from '../src/lib/prisma';
 import { assertSafeDatabaseTarget } from '../src/lib/database-safety';
 import { claimChallenge } from '../src/services/challenge.service';
+import { DEFAULT_DAILY_QURAN_PAGES } from '../src/shared/utils/quran-daily-goal';
 import { calendarDayOfYear, localDayKeyForTimezone, dateOnlyFromDayKey } from '../src/shared/utils/user-local-date';
 
 async function main() {
@@ -44,7 +45,8 @@ async function main() {
     prisma.user.findUnique = ((args: any) => scoped((tx: any) => tx.user.findUnique(args))) as any;
     prisma.user.update = ((args: any) => scoped((tx: any) => tx.user.update(args))) as any;
     prisma.dailyChallengeTemplate.findFirst = (async () => ({ type: 'QURAN_PAGES', targetValue: 1, rewardPoints: 50 })) as any;
-    prisma.dailyProgress.upsert = (async () => ({ quranPagesRead: 1, adhkarCompleted: false, sadaqahAmount: 0 })) as any;
+    // A pages challenge asks for the user's daily goal (default goal: no khatmah plan for this user).
+    prisma.dailyProgress.upsert = (async () => ({ quranPagesRead: DEFAULT_DAILY_QURAN_PAGES, adhkarCompleted: false, sadaqahAmount: 0 })) as any;
     prisma.prayerCompletion.findMany = (async () => []) as any;
     prisma.notification.create = (async () => ({})) as any;
     const date = dateOnlyFromDayKey(localDayKeyForTimezone('Africa/Cairo'));

@@ -12,6 +12,8 @@ import {
   getDailyChallengeTemplateWithFallback,
 } from './daily-content.service';
 import { FALLBACK_CHALLENGE } from '../shared/constants/fallbacks';
+import { personalizeChallengeTemplate } from '../shared/utils/challenge-personalize';
+import { getDailyQuranGoal } from './quran-daily-goal.service';
 import { getJourneyLevelProgress } from '../shared/constants/journey-levels';
 
 type JourneySnapshot = {
@@ -36,7 +38,7 @@ export async function getChallengeByDay(userId: string, dayOfYear: number) {
   assertValidDayOfYear(dayOfYear);
   const { date } = await getUserLocalCalendarDay(userId);
   const year = date.getUTCFullYear();
-  const template = await getDailyChallengeTemplateWithFallback(dayOfYear);
+  const rawTemplate = await getDailyChallengeTemplateWithFallback(dayOfYear);
   const completion = await prisma.challengeCompletion.findUnique({
     where: { userId_year_dayOfYear: { userId, year, dayOfYear } },
   });
@@ -44,6 +46,10 @@ export async function getChallengeByDay(userId: string, dayOfYear: number) {
   // Same adhkar source as the dashboard and Journey (the Azkar screen's ledger), so «completed» agrees everywhere.
   await syncJourneyAdhkarFromDhikr(userId, date).catch(() => undefined);
   const journey = await getOrCreateToday(userId, date);
+  const template = personalizeChallengeTemplate(
+    rawTemplate,
+    (await getDailyQuranGoal(userId, journey.quranPagesRead)).pagesTarget,
+  );
   const completedPrayers = await findCompletedPrayers(userId, date);
   const progress = dailyChallengeProgress(template.type, template.targetValue, journey as unknown as JourneySnapshot, completedPrayers);
 
@@ -85,10 +91,15 @@ export async function claimChallenge(userId: string, dayOfYearStr: string) {
     throw new AppError("Only today's challenge can be claimed", HttpStatus.BAD_REQUEST, ErrorCodes.VALIDATION_ERROR);
   }
 
-  const template = await getDailyChallengeTemplateWithFallback(dayOfYear);
+  const rawTemplate = await getDailyChallengeTemplateWithFallback(dayOfYear);
 
   await syncJourneyAdhkarFromDhikr(userId, date).catch(() => undefined);
   const journey = await getOrCreateToday(userId, date);
+  // Claim checks the same personal target the user saw.
+  const template = personalizeChallengeTemplate(
+    rawTemplate,
+    (await getDailyQuranGoal(userId, journey.quranPagesRead)).pagesTarget,
+  );
   const completedPrayers = await findCompletedPrayers(userId, date);
   const isCompleted = isDailyChallengeCompleted(
     template.type,

@@ -5,6 +5,7 @@ import type { ChallengeType, PrayerName } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { charityExperience, getZakatHomeTile } from './zakat.service';
 import { getDailyQuranGoal } from './quran-daily-goal.service';
+import { personalizeChallengeTemplate } from '../shared/utils/challenge-personalize';
 import { DEFAULT_DAILY_QURAN_PAGES } from '../shared/utils/quran-daily-goal';
 import { logger } from '../lib/logger';
 import { calculateDailyPrayerSchedule } from './prayer.service';
@@ -394,7 +395,7 @@ async function buildDashboardPayload(
     khatmah,
     verse,
     hadith,
-    challengeTemplate,
+    rawChallengeTemplate,
     challengeCompletion,
     nawafelTile,
   ] = await Promise.all([
@@ -419,6 +420,10 @@ async function buildDashboardPayload(
   ]);
 
   const dailyQuranGoal = await getDailyQuranGoal(userId, journey.quranPagesRead);
+  // A pages challenge asks for the same number as the Quran tile (one goal everywhere).
+  const challengeTemplate = rawChallengeTemplate
+    ? personalizeChallengeTemplate(rawChallengeTemplate, dailyQuranGoal.pagesTarget)
+    : null;
 
   const surah = khatmah?.currentSurahId
     ? await getSurah(khatmah.currentSurahId)

@@ -9,6 +9,7 @@ import { AppError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
 import { charityExperience, getZakatHomeTile } from './zakat.service';
 import { getDailyQuranGoal } from './quran-daily-goal.service';
+import { personalizeChallengeTemplate } from '../shared/utils/challenge-personalize';
 import { calendarDayOfYear, getUserLocalCalendarDay } from '../shared/utils/user-local-date';
 import { dailyChallengeProgress } from '../utils/challenge';
 import {
@@ -396,7 +397,7 @@ async function getTodayJourneyLegacy(userId: string) {
       });
     }
 
-    const challengeTemplateSafe = challengeTemplate ?? FALLBACK_CHALLENGE;
+    const challengeTemplateSafe = personalizeChallengeTemplate(challengeTemplate ?? FALLBACK_CHALLENGE, quranGoal);
     const challengeType = (challengeTemplateSafe.type ?? FALLBACK_CHALLENGE.type) as ChallengeType;
     const challengeProgress = dailyChallengeProgress(
       challengeType,
