@@ -23,6 +23,12 @@ export type FcmPayload = {
    * when the app has the Time Sensitive Notifications capability (ignored otherwise).
    */
   iosInterruptionLevel?: 'active' | 'time-sensitive';
+  /**
+   * Android only: send a data message (no `notification` block) so the app's own handler
+   * decides — it drops late or duplicate events and plays announcement + Azan itself.
+   * Use only for tokens whose app schedules prayer alarms locally (see device.service).
+   */
+  androidDataOnly?: boolean;
 };
 
 const APNS_COLLAPSE_ID_MAX_BYTES = 64;
@@ -145,6 +151,28 @@ export function buildFcmMulticastMessage(tokens: string[], payload: FcmPayload, 
   }
   if (occurrenceKey && Buffer.byteLength(occurrenceKey, 'utf8') <= APNS_COLLAPSE_ID_MAX_BYTES) {
     apnsHeaders['apns-collapse-id'] = occurrenceKey;
+  }
+
+  if (payload.androidDataOnly) {
+    // Data-only: Android never auto-displays it; the app renders (or suppresses) it.
+    return {
+      tokens,
+      data: Object.fromEntries(
+        Object.entries({
+          ...(payload.data ?? {}),
+          title: payload.data?.title || payload.title,
+          body: payload.data?.body || payload.body,
+          nativeSound: soundExplicitlyDisabled ? '' : nativeSound,
+          androidChannelId: androidNotif.channelId,
+          deliveryMode: 'APP_HANDLED',
+          ...(soundExplicitlyDisabled ? { soundEnabled: 'false' } : {}),
+        }).map(([k, v]) => [k, String(v ?? '')]),
+      ),
+      android: {
+        priority: 'high',
+        ...(ttlSeconds != null ? { ttl: ttlSeconds * 1000 } : {}),
+      },
+    };
   }
 
   return {

@@ -16,9 +16,11 @@ const PRE_REMINDER_MAX_SLIP_RATIO = 0.5;
 
 /** FCM time-to-live: an expired reminder is dropped instead of arriving hours later. */
 export const PUSH_TTL_SECONDS = {
-  AZAN: 15 * 60,
-  SCHEDULED_REMINDER: 60 * 60,
-  SALAWAT: 30 * 60,
+  /** An Azan more than 10 minutes late is wrong, not helpful (phone was offline). */
+  AZAN: 10 * 60,
+  /** Adhkar / Mulk / Khatmah / Hifz: a reminder that arrives much later just piles up on reconnect. */
+  SCHEDULED_REMINDER: 20 * 60,
+  SALAWAT: 15 * 60,
 } as const;
 
 export function isDueAtLocalMinute(

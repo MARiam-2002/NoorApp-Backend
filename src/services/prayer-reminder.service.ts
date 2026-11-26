@@ -797,6 +797,7 @@ export async function runAzanRemindersForUser(
         androidChannelId: baseData.androidChannelId,
         ttlSeconds: remainingSeconds,
         iosInterruptionLevel: 'time-sensitive',
+        appHandledOnAndroid: true,
       });
       pushesSent += result.sent;
 

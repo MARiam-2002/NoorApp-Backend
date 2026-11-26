@@ -15,6 +15,7 @@ export type DeviceCapabilities = {
   supportedTypes?: string[];
   notificationsEnabled?: boolean;
   exactAlarmsAllowed?: boolean;
+  installationId?: string;
 };
 
 export type RegisterDeviceInput = {
@@ -33,8 +34,21 @@ function normalizeCapabilities(raw: DeviceCapabilities | undefined) {
     ...(raw.supportedTypes ? { supportedTypes: [...new Set(raw.supportedTypes)].sort() } : {}),
     ...(raw.notificationsEnabled != null ? { notificationsEnabled: raw.notificationsEnabled } : {}),
     ...(raw.exactAlarmsAllowed != null ? { exactAlarmsAllowed: raw.exactAlarmsAllowed } : {}),
+    ...(raw.installationId ? { installationId: raw.installationId } : {}),
     reportedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Android installs that schedule prayer alarms on the phone (exact alarms allowed) own the
+ * delivery: a data message lets the app skip an event its own alarm already played, drop one
+ * that arrives late (e.g. after the phone was offline) and play announcement + Azan in order.
+ * Installs without exact alarms keep OS-displayed notifications (nothing local to collide with).
+ */
+export function isAppHandledAndroidDevice(platform: string | undefined, capabilities: unknown): boolean {
+  if ((platform ?? '').toLowerCase() !== 'android') return false;
+  const caps = capabilities as { exactAlarmsAllowed?: unknown; supportedTypes?: unknown } | null | undefined;
+  return caps?.exactAlarmsAllowed === true;
 }
 
 function deviceChannelSchemaVersion(capabilities: unknown): number {
@@ -109,6 +123,23 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
     },
   });
 
+  // A refreshed FCM token can stay deliverable for a while: two tokens of one phone would
+  // receive every reminder twice. Keep only the newest token per app install.
+  let replacedTokens = 0;
+  if (capabilities?.installationId) {
+    try {
+      const stale = await prisma.deviceToken.deleteMany({
+        where: {
+          token: { not: token },
+          capabilities: { path: ['installationId'], equals: capabilities.installationId },
+        },
+      });
+      replacedTokens = stale.count;
+    } catch (err) {
+      logger.warn('[Push] stale install tokens not pruned', { message: (err as Error)?.message });
+    }
+  }
+
   logger.info('[Push] device_token_registered', {
     event: 'device_token_registered',
     blame: 'FLUTTER_OK_TOKEN_SYNCED',
@@ -119,6 +150,7 @@ export async function registerDeviceToken(userId: string, input: RegisterDeviceI
     tokenFingerprint: `${token.slice(0, 8)}…`,
     channelSchemaVersion: capabilities?.channelSchemaVersion ?? null,
     bundledSoundCount: capabilities?.bundledSounds?.length ?? null,
+    replacedTokens,
   });
 
   return {
@@ -164,6 +196,11 @@ export async function sendPushToUser(
     androidChannelId?: string;
     ttlSeconds?: number;
     iosInterruptionLevel?: 'active' | 'time-sensitive';
+    /**
+     * Prayer events: Android installs that schedule prayer alarms locally get a data message,
+     * so the app dedupes against its own alarm, drops late events and plays announcement + Azan.
+     */
+    appHandledOnAndroid?: boolean;
   },
 ) {
   // The user's quiet window holds back every reminder except the Adhan itself.
@@ -172,11 +209,11 @@ export async function sendPushToUser(
     const out = { sent: 0, failed: 0, reason: 'QUIET_HOURS' as const };
     return out;
   }
-  let tokens: Array<{ token: string; capabilities?: unknown }>;
+  let tokens: Array<{ token: string; capabilities?: unknown; platform?: string }>;
   try {
     tokens = await prisma.deviceToken.findMany({
       where: { userId },
-      select: { token: true, capabilities: true },
+      select: { token: true, capabilities: true, platform: true },
     });
   } catch {
     // capabilities column not migrated yet → legacy channel ids for everyone.
@@ -204,15 +241,16 @@ export async function sendPushToUser(
 
   // Devices that synced channel schema v2 get the re-created (audible) reminder channels;
   // older installs keep the ids they already have. One multicast per group.
-  const groups = new Map<string, { tokens: string[]; channel: string | undefined; nativeSound: string | null | undefined; data: Record<string, string> }>();
+  const groups = new Map<string, { tokens: string[]; channel: string | undefined; nativeSound: string | null | undefined; data: Record<string, string>; dataOnly: boolean }>();
   for (const t of tokens) {
     const channel = resolveDeviceChannelId(payload.androidChannelId, deviceChannelSchemaVersion(t.capabilities));
     const audio = resolveAnnouncementAzanDeviceAudio(
       t.capabilities,
       resolveTakbirDeviceAudio(t.capabilities, { ...payload, androidChannelId: channel, data: dataForLog }),
     );
-    const key = JSON.stringify([audio.androidChannelId ?? '', audio.nativeSound, audio.data.audioFallbackReason ?? '']);
-    const group = groups.get(key) ?? { tokens: [], channel: audio.androidChannelId, nativeSound: audio.nativeSound, data: audio.data };
+    const dataOnly = payload.appHandledOnAndroid === true && isAppHandledAndroidDevice(t.platform, t.capabilities);
+    const key = JSON.stringify([audio.androidChannelId ?? '', audio.nativeSound, audio.data.audioFallbackReason ?? '', dataOnly]);
+    const group = groups.get(key) ?? { tokens: [], channel: audio.androidChannelId, nativeSound: audio.nativeSound, data: audio.data, dataOnly };
     group.tokens.push(t.token);
     groups.set(key, group);
   }
@@ -226,6 +264,7 @@ export async function sendPushToUser(
       androidChannelId: group.channel || undefined,
       ttlSeconds: payload.ttlSeconds,
       iosInterruptionLevel: payload.iosInterruptionLevel,
+      androidDataOnly: group.dataOnly,
     });
     result.successCount += r.successCount;
     result.failureCount += r.failureCount;

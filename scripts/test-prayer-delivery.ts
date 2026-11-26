@@ -86,7 +86,8 @@ async function main() {
     assert.equal(eventWire.data.nativeSound, 'sc_event_jumuah');
     assert.equal(eventWire.apns.payload.aps.sound, 'sc_event_jumuah.caf');
     assert.equal(payloads[1].androidChannelId, 'azan_sc_event_jumuah');
-    assert.equal(payloads[1].ttlSeconds, 898, 'at-time TTL also respects its absolute expiry');
+    assert.equal(payloads[1].ttlSeconds, 598, 'at-time TTL also respects its absolute expiry (10 minutes)');
+    assert.equal(payloads[1].appHandledOnAndroid, true, 'Android installs with local alarms decide themselves');
     claimedKeys.clear();
     user.azanPreferences.soundEnabled = false;
     await runAzanRemindersForUser(user, 10, memo, send, bundled);

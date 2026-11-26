@@ -20,6 +20,8 @@ export const deviceCapabilitiesSchema = z.object({
   supportedTypes: z.array(z.string().regex(/^[A-Z_]{1,40}$/)).max(60).optional(),
   notificationsEnabled: z.boolean().optional(),
   exactAlarmsAllowed: z.boolean().optional(),
+  /** Random id the app keeps for its install; replaces older FCM tokens of the same phone. */
+  installationId: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional(),
 });
 
 const tokenBodySchema = z.object({

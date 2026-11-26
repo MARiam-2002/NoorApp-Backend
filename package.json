@@ -65,7 +65,7 @@
     "test:google-username": "tsx scripts/test-google-username-unique.ts",
     "test:auth-rate-limits": "tsx scripts/test-auth-rate-limits.ts",
     "cleanup:users-without-fcm": "tsx scripts/cleanup-users-without-fcm.ts",
-    "test:fcm-contract": "tsx scripts/test-fcm-audio-contract.ts && tsx scripts/test-prayer-voice-catalog.ts && tsx scripts/test-notification-contract.ts",
+    "test:fcm-contract": "tsx scripts/test-fcm-audio-contract.ts && tsx scripts/test-prayer-voice-catalog.ts && tsx scripts/test-notification-contract.ts && tsx scripts/test-push-app-handled.ts",
     "test:notification-contract": "tsx scripts/test-notification-contract.ts",
     "test:near-prayer": "npm run test:fcm-contract && tsx scripts/test-near-prayer-resolver.ts && tsx scripts/test-near-prayer-audit.ts && tsx scripts/test-prayer-delivery.ts",
     "test:prayer-global": "tsx scripts/test-prayer-global.ts",
