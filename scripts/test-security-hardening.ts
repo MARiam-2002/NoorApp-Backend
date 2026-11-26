@@ -12,6 +12,7 @@ import { generateAccessToken, hashPassword } from '../src/lib/auth';
 import { apiClientKey } from '../src/middleware/http';
 import { googleSignIn } from '../src/services/auth.service';
 import { claimChallenge } from '../src/services/challenge.service';
+import { DEFAULT_DAILY_QURAN_PAGES } from '../src/shared/utils/quran-daily-goal';
 import { calendarDayOfYear } from '../src/shared/utils/user-local-date';
 import { isolatedReminderStage } from '../src/services/prayer-reminder.service';
 import { cronRouter } from '../src/routes/cron';
@@ -87,6 +88,7 @@ async function main() {
   const originals = {
     update: prisma.user.update, find: prisma.user.findUnique, tx: prisma.$transaction, template: prisma.dailyChallengeTemplate.findFirst,
     journey: prisma.dailyProgress.upsert, prayers: prisma.prayerCompletion.findMany, notification: prisma.notification.create,
+    khatmah: prisma.khatmah.findUnique,
   };
   let points = 0;
   const claims = new Map<string, any>();
@@ -95,7 +97,9 @@ async function main() {
     prisma.user.findUnique = (async () => ({ timezone: 'Africa/Cairo' })) as any;
     prisma.user.update = (async () => ({})) as any;
     prisma.dailyChallengeTemplate.findFirst = (async () => ({ type: 'QURAN_PAGES', targetValue: 1, rewardPoints: 50 })) as any;
-    prisma.dailyProgress.upsert = (async () => ({ quranPagesRead: 1, adhkarCompleted: false, sadaqahAmount: 0 })) as any;
+    // A pages challenge asks for the user's daily goal (default goal: no khatmah plan).
+    prisma.dailyProgress.upsert = (async () => ({ quranPagesRead: DEFAULT_DAILY_QURAN_PAGES, adhkarCompleted: false, sadaqahAmount: 0 })) as any;
+    prisma.khatmah.findUnique = (async () => null) as any;
     prisma.prayerCompletion.findMany = (async () => []) as any;
     prisma.notification.create = (async () => ({})) as any;
     // Simulate account row serialization; no production DB is contacted.
@@ -127,6 +131,7 @@ async function main() {
     prisma.user.update = originals.update; prisma.user.findUnique = originals.find; prisma.$transaction = originals.tx;
     prisma.dailyChallengeTemplate.findFirst = originals.template; prisma.dailyProgress.upsert = originals.journey;
     prisma.prayerCompletion.findMany = originals.prayers; prisma.notification.create = originals.notification;
+    prisma.khatmah.findUnique = originals.khatmah;
   }
   assert.throws(() => assertSafeDatabaseTarget('postgres://x:y@production.proxy.rlwy.net/railway', 'development'));
   assert.doesNotThrow(() => assertSafeDatabaseTarget('postgres://x:y@localhost/noor_test', 'test'));

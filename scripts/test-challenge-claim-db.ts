@@ -22,7 +22,7 @@ async function main() {
   let created = false;
   const original = { tx: prisma.$transaction, find: prisma.user.findUnique, update: prisma.user.update,
     template: prisma.dailyChallengeTemplate.findFirst, journey: prisma.dailyProgress.upsert,
-    prayers: prisma.prayerCompletion.findMany, notification: prisma.notification.create };
+    prayers: prisma.prayerCompletion.findMany, notification: prisma.notification.create, khatmah: prisma.khatmah.findUnique };
   const scoped = (run: any) => db.$transaction(async tx => {
     await tx.$executeRawUnsafe(`SET LOCAL search_path TO "${schema}"`);
     return run(tx);
@@ -49,6 +49,7 @@ async function main() {
     prisma.dailyProgress.upsert = (async () => ({ quranPagesRead: DEFAULT_DAILY_QURAN_PAGES, adhkarCompleted: false, sadaqahAmount: 0 })) as any;
     prisma.prayerCompletion.findMany = (async () => []) as any;
     prisma.notification.create = (async () => ({})) as any;
+    prisma.khatmah.findUnique = (async () => null) as any;
     const date = dateOnlyFromDayKey(localDayKeyForTimezone('Africa/Cairo'));
     const day = calendarDayOfYear(date);
     const results = await Promise.allSettled(Array.from({ length: 8 }, () => claimChallenge('qa', String(day))));
@@ -62,6 +63,7 @@ async function main() {
     prisma.$transaction = original.tx; prisma.user.findUnique = original.find; prisma.user.update = original.update;
     prisma.dailyChallengeTemplate.findFirst = original.template; prisma.dailyProgress.upsert = original.journey;
     prisma.prayerCompletion.findMany = original.prayers; prisma.notification.create = original.notification;
+    prisma.khatmah.findUnique = original.khatmah;
     if (created && /^challenge_security_[a-f0-9]{32}$/.test(schema)) await db.$executeRawUnsafe(`DROP SCHEMA "${schema}" CASCADE`);
     await db.$disconnect(); await prisma.$disconnect();
   }
